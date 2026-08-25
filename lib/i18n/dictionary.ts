@@ -604,6 +604,48 @@ const DICT = {
     en: "None of the dishes in this menu exist as real recipes yet, so there's nothing to add to the shopping list.",
   },
 
+  // Hel-meny-timeline (Fase 5 – Experience, 5.8) – se
+  // components/meal/MealTimelineSection.tsx og computeMealTimeline i
+  // lib/kitchen-intelligence/meal-timeline.ts. Gjenbruker
+  // "recipeDetail.timelineInvalidTime" fra ett-oppskrift-tidslinjen for
+  // selve feilmeldingen (samme, generiske tekst passer fint her også).
+  "mealTimeline.heading": { no: "Tidslinje for hele menyen", en: "Timeline for the whole menu" },
+  "mealTimeline.description": {
+    no: "Se når du bør starte hver rett for at alt er klart samtidig.",
+    en: "See when you should start each dish so everything is ready at the same time.",
+  },
+  "mealTimeline.readyLabel": { no: "Ønsket spisetidspunkt", en: "Desired time to eat" },
+  "mealTimeline.button": { no: "Vis tidslinje", en: "Show timeline" },
+  "mealTimeline.loading": { no: "Regner ut …", en: "Calculating …" },
+  "mealTimeline.error": {
+    no: "Klarte ikke å regne ut tidslinjen. Prøv igjen.",
+    en: "Couldn't calculate the timeline. Please try again.",
+  },
+  "mealTimeline.startLabel": { no: "Start", en: "Start" },
+  "mealTimeline.totalMinutes": { no: "{minutes} min totalt", en: "{minutes} min total" },
+  "mealTimeline.readyAtLabel": { no: "Alt klart", en: "Everything ready" },
+  "mealTimeline.noExisting": {
+    no: "Ingen av rettene i denne menyen finnes som ekte oppskrifter ennå, så det er ingen tidslinje å beregne.",
+    en: "None of the dishes in this menu exist as real recipes yet, so there's no timeline to calculate.",
+  },
+  "mealTimeline.noSteps": {
+    no: "Ingen av rettene i menyen har steg å beregne en tidslinje fra.",
+    en: "None of the dishes in the menu have steps to calculate a timeline from.",
+  },
+
+  "mealCookMode.button": { no: "Start kokemodus for hele menyen", en: "Start cook mode for the whole menu" },
+  "mealCookMode.loading": { no: "Henter oppskriftene …", en: "Loading the recipes …" },
+  "mealCookMode.error": {
+    no: "Kunne ikke starte kokemodus for menyen. Prøv igjen.",
+    en: "Couldn't start cook mode for the menu. Please try again.",
+  },
+  "mealCookMode.noCookableDishes": {
+    no: "Ingen av rettene i menyen har steg å lage kokemodus av.",
+    en: "None of the dishes in the menu have steps to build cook mode from.",
+  },
+  "mealCookMode.closeButton": { no: "Lukk", en: "Close" },
+  "mealCookMode.switcherAria": { no: "Bytt mellom rettene i menyen", en: "Switch between the dishes in the menu" },
+
   "recipeDetail.unitsAria": { no: "Målenhet", en: "Unit system" },
   "recipeDetail.unitsMetric": { no: "Metrisk", en: "Metric" },
   "recipeDetail.unitsUs": { no: "US", en: "US" },

@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
 import { sortSlotsByRole } from "@/lib/kitchen-intelligence";
 import { MealWineSection } from "@/components/meal/MealWineSection";
 import { MealShoppingListSection } from "@/components/meal/MealShoppingListSection";
+import { MealTimelineSection } from "@/components/meal/MealTimelineSection";
+import { MultiCookMode } from "@/components/meal/MultiCookMode";
 import { Badge } from "@/components/ui/Badge";
+import { PlayIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
@@ -23,15 +27,30 @@ import { t, type Lang } from "@/lib/i18n";
  * Bevisst enkel dish-visning (ingen bilder/full oppskriftsdata er hentet
  * inn her – kun den lette snapshoten som ligger på selve slotten, se
  * ExistingMealCourseSlot i lib/kitchen-intelligence/types.ts). Vin
- * (MealWineSection) og kombinert handleliste (MealShoppingListSection)
- * bygger begge videre på slots-listen herfra – hel-meny-timeline er neste.
+ * (MealWineSection), kombinert handleliste (MealShoppingListSection) og
+ * hel-meny-timeline (MealTimelineSection) bygger alle videre på
+ * slots-listen herfra. `session.desiredReadyAt` (string | null) sendes til
+ * MealTimelineSection som `readyAt` med en `?? ""`-fallback, siden
+ * komponenten selv håndterer "tomt/ugyldig klokkeslett"-tilfellet.
+ *
+ * Multi-oppskrift Cook Mode (MultiCookMode.tsx, 5.17) åpnes som et eget
+ * fullskjerm-lag OVENPÅ denne siden (samme mønster som RecipeInteractive.tsx
+ * sin `cookModeOpen`-boolean + betinget rendering av CookMode nederst i
+ * treet) – se MultiCookMode.tsx sin filheader for hvorfor det er trygt å la
+ * den gjenbruke ett-oppskrift-CookMode.tsx internt.
  */
 export function MealView({ mealId, lang }: { mealId: string; lang: Lang }) {
+  const [cookModeOpen, setCookModeOpen] = useState(false);
   const { mealIds, hydrated: indexHydrated } = useMealSessionIndex();
-  const { session, hydrated: sessionHydrated, setTitle, setNotes, remove, setServings } = useMealSession(
-    mealId,
-    "",
-  );
+  const {
+    session,
+    hydrated: sessionHydrated,
+    setTitle,
+    setNotes,
+    remove,
+    setServings,
+    setDesiredReadyAt,
+  } = useMealSession(mealId, "");
 
   if (!indexHydrated || !sessionHydrated) {
     return <div className="h-40 animate-pulse rounded-card bg-cream-dark/60" />;
@@ -47,6 +66,7 @@ export function MealView({ mealId, lang }: { mealId: string; lang: Lang }) {
   }
 
   const slots = sortSlotsByRole(session.slots);
+  const hasExistingDish = slots.some((slot) => slot.source === "existing");
 
   return (
     <div className="space-y-6">
@@ -119,7 +139,27 @@ export function MealView({ mealId, lang }: { mealId: string; lang: Lang }) {
         </div>
       )}
 
+      {hasExistingDish && (
+        <button
+          type="button"
+          onClick={() => setCookModeOpen(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-clay py-3.5 text-base font-medium text-cream transition-colors hover:bg-clay-dark sm:text-lg"
+        >
+          <PlayIcon className="h-4 w-4" />
+          {t(lang, "mealCookMode.button")}
+        </button>
+      )}
+
       {slots.length > 0 && <MealShoppingListSection slots={slots} lang={lang} />}
+
+      {slots.length > 0 && (
+        <MealTimelineSection
+          slots={slots}
+          readyAt={session.desiredReadyAt ?? ""}
+          onReadyAtChange={setDesiredReadyAt}
+          lang={lang}
+        />
+      )}
 
       {slots.length > 0 && (
         <MealWineSection
@@ -141,6 +181,15 @@ export function MealView({ mealId, lang }: { mealId: string; lang: Lang }) {
           className="mt-1 w-full rounded-lg border border-line bg-cream px-3 py-2 text-sm text-ink focus:border-clay focus:outline-none"
         />
       </div>
+
+      {cookModeOpen && (
+        <MultiCookMode
+          mealTitle={session.title}
+          slots={slots}
+          onClose={() => setCookModeOpen(false)}
+          lang={lang}
+        />
+      )}
     </div>
   );
 }

@@ -49,3 +49,9 @@ export {
   setSlotServings,
   sortSlotsByRole,
 } from "@/lib/kitchen-intelligence/meal-session";
+export type {
+  MealTimeline,
+  MealTimelineDishEntry,
+  MealTimelineDishInput,
+} from "@/lib/kitchen-intelligence/meal-timeline";
+export { computeMealTimeline } from "@/lib/kitchen-intelligence/meal-timeline";

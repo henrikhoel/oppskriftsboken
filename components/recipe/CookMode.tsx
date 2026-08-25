@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { clsx } from "clsx";
 import type { IngredientGroup, RecipeStep } from "@/lib/types";
 import { useCookModeState } from "@/lib/hooks/useCookModeState";
@@ -63,9 +63,17 @@ interface CookModeProps {
   steps: RecipeStep[];
   onClose: () => void;
   lang: Lang;
+  /** Valgfri ekstra rad rett under fremdriftslinjen i header – brukt av
+   * MultiCookMode.tsx (Fase 5 – Experience, 5.17) til å vise en
+   * rette-bytter mellom flere retter i samme måltid. Udefinert ved vanlig
+   * ett-oppskrift-bruk (RecipeInteractive.tsx) – ingen visuell endring der.
+   * Bevisst en enkel slot fremfor å bygge flere-retter-logikk inn i denne
+   * fila, som ellers allerede bærer timere/talestyring/wake lock for ÉN
+   * oppskrift om gangen. */
+  headerExtra?: ReactNode;
 }
 
-export function CookMode({ recipeId, title, ingredientGroups, steps, onClose, lang }: CookModeProps) {
+export function CookMode({ recipeId, title, ingredientGroups, steps, onClose, lang, headerExtra }: CookModeProps) {
   const { state, toggleIngredient, toggleStep, setCurrentStepIndex } = useCookModeState(recipeId);
   const {
     isSupported: wakeLockSupported,
@@ -270,6 +278,8 @@ export function CookMode({ recipeId, title, ingredientGroups, steps, onClose, la
           </button>
         )}
       </header>
+
+      {headerExtra}
 
       {/* Vises kun når nettleseren virkelig mangler støtte for Wake Lock –
        * ikke ved testing over usikker http:// (se cookMode.wakeLockInsecure
