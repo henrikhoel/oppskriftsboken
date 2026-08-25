@@ -33,6 +33,12 @@ import { t, type Lang } from "@/lib/i18n";
  * MealTimelineSection som `readyAt` med en `?? ""`-fallback, siden
  * komponenten selv håndterer "tomt/ugyldig klokkeslett"-tilfellet.
  *
+ * Rekkefølge under rettene (bevisst, etter tilbakemelding): ønsket
+ * spisetidspunkt/tidslinje (MealTimelineSection) FØRST – man setter
+ * tidspunktet før man eventuelt starter å lage mat – deretter
+ * kokemodus-knappen rett under, så vin, og handleliste (MealShoppingListSection)
+ * sist av seksjonene, rett over notat-feltet.
+ *
  * Multi-oppskrift Cook Mode (MultiCookMode.tsx, 5.17) åpnes som et eget
  * fullskjerm-lag OVENPÅ denne siden (samme mønster som RecipeInteractive.tsx
  * sin `cookModeOpen`-boolean + betinget rendering av CookMode nederst i
@@ -139,6 +145,15 @@ export function MealView({ mealId, lang }: { mealId: string; lang: Lang }) {
         </div>
       )}
 
+      {slots.length > 0 && (
+        <MealTimelineSection
+          slots={slots}
+          readyAt={session.desiredReadyAt ?? ""}
+          onReadyAtChange={setDesiredReadyAt}
+          lang={lang}
+        />
+      )}
+
       {hasExistingDish && (
         <button
           type="button"
@@ -150,17 +165,6 @@ export function MealView({ mealId, lang }: { mealId: string; lang: Lang }) {
         </button>
       )}
 
-      {slots.length > 0 && <MealShoppingListSection slots={slots} lang={lang} />}
-
-      {slots.length > 0 && (
-        <MealTimelineSection
-          slots={slots}
-          readyAt={session.desiredReadyAt ?? ""}
-          onReadyAtChange={setDesiredReadyAt}
-          lang={lang}
-        />
-      )}
-
       {slots.length > 0 && (
         <MealWineSection
           mealTitle={session.title}
@@ -168,6 +172,8 @@ export function MealView({ mealId, lang }: { mealId: string; lang: Lang }) {
           lang={lang}
         />
       )}
+
+      {slots.length > 0 && <MealShoppingListSection slots={slots} lang={lang} />}
 
       <div>
         <label className="text-xs font-medium uppercase tracking-wide text-ink-faint">
