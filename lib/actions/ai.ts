@@ -48,6 +48,52 @@ export async function getWineRecommendation(recipe: RecipeContext, lang: Lang = 
   return text.trim();
 }
 
+/**
+ * MENYNIVÅ-VIN (Fase 5 – Experience, 5.6). Samme prinsipp som
+ * getWineRecommendation over (vinSTIL, ikke et bestemt produsentnavn – det
+ * er getVinmonopoletWineSuggestion i lib/actions/vinmonopolet.ts sin jobb),
+ * men vurderer HELE MENYEN under ett i stedet for én rett – bygger direkte
+ * på MealSession-objektet fra Fase 5 steg 1 (se
+ * components/meal/MealView.tsx), ikke bare på ankerretten alene.
+ *
+ * IKKE cachet, av samme grunn som getWineRecommendation: en gitt
+ * meny-sammensetning er en personlig, unik kombinasjon denne ene besøkende
+ * satte sammen – langt mindre sannsynlig å gjenbrukes på tvers av andre
+ * besøkende enn f.eks. et menyforslag for én bestemt oppskrift, så caching
+ * ville gitt lite reell gjenbruksverdi for kompleksiteten det tilfører.
+ */
+export async function getMealWineRecommendation(
+  meal: { title: string; courses: { roleLabel: string; title: string }[] },
+  lang: Lang = "no",
+): Promise<string> {
+  const courseList = meal.courses.map((c) => `${c.roleLabel}: ${c.title}`).join("\n");
+
+  const system =
+    lang === "en"
+      ? "You are a knowledgeable sommelier giving a wine recommendation for an ENTIRE MULTI-COURSE MEAL, not a " +
+        "single dish. Consider the arc of the whole meal – suggest ONE wine style/grape (e.g. \"a medium-bodied " +
+        "red like Pinot Noir\") that works well across as much of the meal as possible (starter and main in " +
+        "particular). If the dessert genuinely needs something different (e.g. a sweet wine), say so briefly as a " +
+        "second, separate suggestion – otherwise don't force a second wine in. Since you don't have access to a " +
+        "specific wine selection right now, suggest a WINE STYLE/GRAPE, not a specific producer. Answer in max " +
+        "3-4 sentences, warm and everyday in tone, no heading or preamble."
+      : "Du er en kunnskapsrik sommelier som gir en vinanbefaling for ET HELT FLERRETTERS MÅLTID, ikke én enkelt " +
+        "rett. Vurder hele måltidets bue – foreslå ÉN vinstil/drue (f.eks. «en middels fyldig rødvin som Pinot " +
+        "Noir») som fungerer godt gjennom så mye av måltidet som mulig (særlig forrett og hovedrett). Hvis " +
+        "desserten genuint trenger noe annet (f.eks. en søt vin), nevn det kort som et eget, andre forslag – ikke " +
+        "press inn en vin nummer to hvis det ikke trengs. Siden du ikke har tilgang til et konkret vinsortiment " +
+        "akkurat nå, foreslå en VINSTIL/DRUE, ikke et bestemt produsentnavn. Svar med maks 3-4 setninger, varmt " +
+        "og hverdagslig, ingen overskrift eller innledning.";
+
+  const prompt =
+    lang === "en"
+      ? `Menu: ${meal.title}\n\nCourses:\n${courseList}\n\nSuggest a wine (or wine plan) for this whole meal.`
+      : `Meny: ${meal.title}\n\nRetter:\n${courseList}\n\nForeslå en vin (eller vin-plan) for hele dette måltidet.`;
+
+  const text = await callClaude(system, prompt, 300);
+  return text.trim();
+}
+
 /** Gjest skriver inn et vinnavn, får en vurdering av match mot retten. */
 export async function checkWineMatch(
   recipe: RecipeContext,

@@ -561,6 +561,24 @@ const DICT = {
   },
   "mealPage.suggestedDescriptionLabel": { no: "Om forslaget", en: "About the suggestion" },
 
+  // Menynivå-vin (Fase 5 – Experience, 5.6) – se
+  // components/meal/MealWineSection.tsx og getMealWineRecommendation i
+  // lib/actions/ai.ts. Gjenbruker de generiske "wine.vinmonopolet*"-nøklene
+  // over for selve Vinmonopolet-oppslaget (samme tekst passer fint for
+  // både én rett og en hel meny).
+  "mealWine.heading": { no: "Vin til hele menyen", en: "Wine for the whole meal" },
+  "mealWine.description": {
+    no: "Få et vinforslag som tar hensyn til hele måltidet – ikke bare én rett.",
+    en: "Get a wine suggestion that considers the whole meal – not just one dish.",
+  },
+  "mealWine.button": { no: "Foreslå vin til menyen", en: "Suggest wine for the menu" },
+  "mealWine.fetching": { no: "Tenker …", en: "Thinking …" },
+  "mealWine.getNew": { no: "Foreslå en annen", en: "Suggest another" },
+  "mealWine.error": {
+    no: "Klarte ikke å hente et vinforslag akkurat nå. Prøv igjen.",
+    en: "Couldn't get a wine suggestion right now. Please try again.",
+  },
+
   "recipeDetail.unitsAria": { no: "Målenhet", en: "Unit system" },
   "recipeDetail.unitsMetric": { no: "Metrisk", en: "Metric" },
   "recipeDetail.unitsUs": { no: "US", en: "US" },

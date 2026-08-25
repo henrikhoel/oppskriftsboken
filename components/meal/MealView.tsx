@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
 import { sortSlotsByRole } from "@/lib/kitchen-intelligence";
+import { MealWineSection } from "@/components/meal/MealWineSection";
 import { Badge } from "@/components/ui/Badge";
 import { t, type Lang } from "@/lib/i18n";
 
@@ -115,6 +116,14 @@ export function MealView({ mealId, lang }: { mealId: string; lang: Lang }) {
             </div>
           ))}
         </div>
+      )}
+
+      {slots.length > 0 && (
+        <MealWineSection
+          mealTitle={session.title}
+          courses={slots.map((slot) => ({ roleLabel: t(lang, `mealBuilder.role.${slot.role}`), title: slot.title }))}
+          lang={lang}
+        />
       )}
 
       <div>
