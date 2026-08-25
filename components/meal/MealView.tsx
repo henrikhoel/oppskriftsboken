@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
 import { sortSlotsByRole } from "@/lib/kitchen-intelligence";
 import { MealWineSection } from "@/components/meal/MealWineSection";
+import { MealShoppingListSection } from "@/components/meal/MealShoppingListSection";
 import { Badge } from "@/components/ui/Badge";
 import { t, type Lang } from "@/lib/i18n";
 
@@ -19,11 +20,11 @@ import { t, type Lang } from "@/lib/i18n";
  * indeksen er den ene kilden som skiller "lagret, men tom" fra "aldri
  * lagret".
  *
- * Bevisst enkel visning i dette steget (menybyggeren, 5.1–5.4): ingen
- * bilder/full oppskriftsdata er hentet inn (kun den lette snapshoten som
- * ligger på selve slotten – se ExistingMealCourseSlot i
- * lib/kitchen-intelligence/types.ts). Dette er stedet senere steg (vin,
- * kombinert handleliste, hel-meny-timeline) bygger videre på.
+ * Bevisst enkel dish-visning (ingen bilder/full oppskriftsdata er hentet
+ * inn her – kun den lette snapshoten som ligger på selve slotten, se
+ * ExistingMealCourseSlot i lib/kitchen-intelligence/types.ts). Vin
+ * (MealWineSection) og kombinert handleliste (MealShoppingListSection)
+ * bygger begge videre på slots-listen herfra – hel-meny-timeline er neste.
  */
 export function MealView({ mealId, lang }: { mealId: string; lang: Lang }) {
   const { mealIds, hydrated: indexHydrated } = useMealSessionIndex();
@@ -117,6 +118,8 @@ export function MealView({ mealId, lang }: { mealId: string; lang: Lang }) {
           ))}
         </div>
       )}
+
+      {slots.length > 0 && <MealShoppingListSection slots={slots} lang={lang} />}
 
       {slots.length > 0 && (
         <MealWineSection

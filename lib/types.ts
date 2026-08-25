@@ -170,6 +170,17 @@ export interface RecipeFilters {
   ingredient?: string;
 }
 
+/** Presis sporbarhet til ÉN oppskrift-bidrag på en handlelistelinje (Fase 5
+ * – Experience, 5.7 – "kombinert handleliste"). Et TILLEGG til
+ * fromRecipes (under), ikke en erstatning – se ShoppingListEntry.sources. */
+export interface ShoppingListSourceRef {
+  recipeId: string;
+  slug: string;
+  /** Porsjoner denne linjen ble skalert for ved akkurat dette bidraget –
+   * null hvis ukjent. */
+  servings: number | null;
+}
+
 export interface ShoppingListEntry {
   id: string;
   amount: number | null;
@@ -180,4 +191,13 @@ export interface ShoppingListEntry {
   checked: boolean;
   /** Hvilke oppskrifter denne linjen stammer fra, for sporbarhet i UI. */
   fromRecipes: string[];
+  /** Samme sporbarhet som fromRecipes, men strukturert (id/slug/porsjoner i
+   * stedet for kun tittel-tekst) – lagt til 25.08.2026 for menyens
+   * "kombinerte handleliste" (se lib/actions/meal-shopping-list.ts), som
+   * trenger å vite NØYAKTIG hvilken rett og hvor mange porsjoner hver
+   * ingrediens kommer fra. VALGFRITT felt: handlelister lagret FØR dette
+   * feltet fantes mangler det rett og slett (ikke en tom liste) – all
+   * lesing av det gjøres derfor alltid som `entry.sources ?? []`, og
+   * fromRecipes forblir den ene, uendrede kilden UI-et viser frem. */
+  sources?: ShoppingListSourceRef[];
 }

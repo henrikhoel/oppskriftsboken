@@ -579,6 +579,31 @@ const DICT = {
     en: "Couldn't get a wine suggestion right now. Please try again.",
   },
 
+  // Kombinert handleliste (Fase 5 – Experience, 5.7) – se
+  // components/meal/MealShoppingListSection.tsx og
+  // lib/actions/meal-shopping-list.ts.
+  "mealShopping.heading": { no: "Handleliste for hele menyen", en: "Shopping list for the whole menu" },
+  "mealShopping.description": {
+    no: "Legg ingrediensene fra alle rettene i menyen til handlelisten din, skalert til riktig antall porsjoner for hver rett.",
+    en: "Add the ingredients from every dish in the menu to your shopping list, scaled to the right serving count for each dish.",
+  },
+  "mealShopping.button": { no: "Legg hele menyen i handlelisten", en: "Add the whole menu to the shopping list" },
+  "mealShopping.loading": { no: "Legger til …", en: "Adding …" },
+  "mealShopping.done": { no: "Lagt til i handlelisten.", en: "Added to the shopping list." },
+  "mealShopping.viewList": { no: "Se handlelisten", en: "View shopping list" },
+  "mealShopping.error": {
+    no: "Klarte ikke å legge menyen til i handlelisten. Prøv igjen.",
+    en: "Couldn't add the menu to the shopping list. Please try again.",
+  },
+  "mealShopping.skippedSuggested": {
+    no: "{count} forslag i menyen finnes ikke som ekte oppskrift ennå, og ble derfor ikke lagt til.",
+    en: "{count} suggestion(s) in the menu don't exist as a real recipe yet, so they weren't added.",
+  },
+  "mealShopping.noExisting": {
+    no: "Ingen av rettene i denne menyen finnes som ekte oppskrifter ennå, så det er ingenting å legge i handlelisten.",
+    en: "None of the dishes in this menu exist as real recipes yet, so there's nothing to add to the shopping list.",
+  },
+
   "recipeDetail.unitsAria": { no: "Målenhet", en: "Unit system" },
   "recipeDetail.unitsMetric": { no: "Metrisk", en: "Metric" },
   "recipeDetail.unitsUs": { no: "US", en: "US" },

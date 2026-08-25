@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
-import type { IngredientGroup, ShoppingListEntry } from "@/lib/types";
+import type { IngredientGroup, ShoppingListEntry, ShoppingListSourceRef } from "@/lib/types";
 import { mergeIngredientsIntoList } from "@/lib/utils/shopping-list";
 
 const STORAGE_KEY = "oppskriftsboken:handleliste";
@@ -13,10 +13,15 @@ export function useShoppingList() {
     [],
   );
 
+  /** `source` (valgfri, femte arg) – strukturert sporbarhet lagt til for
+   * "kombinert handleliste" (Fase 5 – Experience, 5.7, se
+   * components/meal/MealShoppingListSection.tsx). Utelates kalleren den
+   * (som den eksisterende enkelt-oppskrift-siden fortsatt gjør), er
+   * oppførselen 100 % uendret fra før. */
   const addFromRecipe = useCallback(
-    (groups: IngredientGroup[], recipeTitle: string, servingsMultiplier = 1) => {
+    (groups: IngredientGroup[], recipeTitle: string, servingsMultiplier = 1, source?: ShoppingListSourceRef) => {
       setEntries((prev) =>
-        mergeIngredientsIntoList(prev, groups, recipeTitle, servingsMultiplier),
+        mergeIngredientsIntoList(prev, groups, recipeTitle, servingsMultiplier, source),
       );
     },
     [setEntries],

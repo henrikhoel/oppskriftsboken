@@ -1,4 +1,4 @@
-import type { IngredientGroup, ShoppingListEntry } from "@/lib/types";
+import type { IngredientGroup, ShoppingListEntry, ShoppingListSourceRef } from "@/lib/types";
 import { parseAmount } from "@/lib/utils/scale";
 
 /**
@@ -20,18 +20,34 @@ function normalizeUnit(unit: string | null): string {
   return unit.trim().toLowerCase();
 }
 
+/** Sammenligner to ShoppingListSourceRef på recipeId alene (samme oppskrift
+ * regnes som samme kilde uansett om porsjonstallet skulle avvike mellom to
+ * bidrag – bør normalt ikke skje, men vi dobbelfører aldri samme
+ * oppskrift). */
+function hasSameSource(sources: ShoppingListSourceRef[], source: ShoppingListSourceRef): boolean {
+  return sources.some((s) => s.recipeId === source.recipeId);
+}
+
 /**
  * Legger ingredienser fra en eller flere oppskrifter til en eksisterende
  * handleliste. To linjer slås KUN sammen dersom navn og enhet er identiske
  * (etter normalisering) og begge mengder er tallbare – ellers legges de til
  * som separate linjer, for å unngå å gjette feil (f.eks. "1 boks" + "400 g"
  * slås aldri sammen).
+ *
+ * `source` (valgfri) – strukturert sporbarhet (recipeId/slug/porsjoner), se
+ * ShoppingListSourceRef i lib/types.ts. Lagt til for "kombinert
+ * handleliste" (Fase 5 – Experience, 5.7); eksisterende kallere som ikke
+ * sender den (enkelt-oppskrift-siden, se useShoppingList.ts) fortsetter å
+ * fungere UENDRET – fromRecipes (tittel-teksten UI-et viser) settes alltid,
+ * uavhengig av om `source` er oppgitt.
  */
 export function mergeIngredientsIntoList(
   existing: ShoppingListEntry[],
   groups: IngredientGroup[],
   recipeTitle: string,
   servingsMultiplier = 1,
+  source?: ShoppingListSourceRef,
 ): ShoppingListEntry[] {
   const next = [...existing];
 
@@ -61,6 +77,10 @@ export function mergeIngredientsIntoList(
         if (!match.fromRecipes.includes(recipeTitle)) {
           match.fromRecipes.push(recipeTitle);
         }
+        if (source) {
+          match.sources = match.sources ?? [];
+          if (!hasSameSource(match.sources, source)) match.sources.push(source);
+        }
         continue;
       }
 
@@ -72,6 +92,7 @@ export function mergeIngredientsIntoList(
         name: item.name + (item.note ? ` (${item.note})` : ""),
         checked: false,
         fromRecipes: [recipeTitle],
+        sources: source ? [source] : undefined,
       });
     }
   }

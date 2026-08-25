@@ -159,6 +159,39 @@ export async function getAllRecipesForAdmin(): Promise<RecipeSummary[]> {
   return ((data ?? []) as unknown as RawRecipeRow[]).map((row) => toSummary(mapRecipeRow(row)));
 }
 
+/**
+ * Flere fulle oppskrifter (ingredienser + porsjonstall) samlet i ett
+ * oppslag, gitt en liste med id-er – brukt av "Legg hele menyen i
+ * handlelisten" (Fase 5 – Experience, 5.7, se
+ * lib/actions/meal-shopping-list.ts), der MealSession-slotsene KUN har en
+ * lett id/slug/tittel-snapshot (se ExistingMealCourseSlot i
+ * lib/kitchen-intelligence/types.ts) og trenger de ekte ingredienslistene
+ * for å bygges om til handlelistelinjer. KUN publiserte oppskrifter – en
+ * rett som er avpublisert etter at den ble lagt i en meny skal ikke lekke
+ * upublisert innhold inn i handlelisten. Rekkefølgen på svaret følger IKKE
+ * nødvendigvis `ids` – kalleren slår opp i resultatet per id selv. */
+export async function getRecipesByIds(ids: string[]): Promise<Recipe[]> {
+  if (ids.length === 0) return [];
+
+  if (!isSupabaseConfigured) {
+    return demoRecipes.filter((r) => r.isPublished && ids.includes(r.id));
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("recipes")
+    .select(RECIPE_SELECT)
+    .in("id", ids)
+    .eq("is_published", true);
+
+  if (error) {
+    console.error("Kunne ikke hente oppskrifter for handleliste:", error.message);
+    return [];
+  }
+
+  return ((data ?? []) as unknown as RawRecipeRow[]).map((row) => mapRecipeRow(row));
+}
+
 export async function getRecipeByIdForAdmin(id: string): Promise<Recipe | null> {
   if (!isSupabaseConfigured) {
     const recipe = demoRecipes.find((r) => r.id === id);
