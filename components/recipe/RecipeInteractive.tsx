@@ -1,0 +1,681 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { clsx } from "clsx";
+import type { IngredientGroup, Recipe, RecipeStep, VegetarianIngredientGroup, VegetarianStep } from "@/lib/types";
+import { Badge } from "@/components/ui/Badge";
+import { ServingsScaler } from "@/components/recipe/ServingsScaler";
+import { UnitSystemSwitcher } from "@/components/recipe/UnitSystemSwitcher";
+import { CookMode } from "@/components/recipe/CookMode";
+import { CookingTimelinePanel } from "@/components/recipe/CookingTimelinePanel";
+import { TasteProfileDisplay } from "@/components/recipe/TasteProfileDisplay";
+import { NutritionPanel } from "@/components/recipe/NutritionPanel";
+import { MenuSuggestions } from "@/components/recipe/MenuSuggestions";
+import { ParallelTaskBadge } from "@/components/recipe/ParallelTaskBadge";
+import type { CookingTimeline } from "@/lib/kitchen-intelligence/timeline";
+import { groupInfoByStepId } from "@/lib/kitchen-intelligence/parallel-tasks";
+import type { ParallelTaskGroup } from "@/lib/actions/kitchen-intelligence";
+import { WineSection } from "@/components/recipe/WineSection";
+import { FavoriteButton } from "@/components/recipe/FavoriteButton";
+import { RatingStars } from "@/components/recipe/RatingStars";
+import { RecipeMeta } from "@/components/recipe/RecipeMeta";
+import { Button } from "@/components/ui/Button";
+import { CheckIcon, PlayIcon, ShoppingBagIcon } from "@/components/ui/icons";
+import { scaleAmount } from "@/lib/utils/scale";
+import { convertAmountToUs, type UnitSystem } from "@/lib/utils/units";
+import { useShoppingList } from "@/lib/hooks/useShoppingList";
+import { getVegetarianVariant, getEnglishVariant, getUsMeasurementsVariant } from "@/lib/actions/ai";
+import { getIngredientSubstitution, type SubstitutionSuggestion } from "@/lib/actions/kitchen-intelligence";
+import { localizedCategoryName } from "@/lib/utils/format";
+import { t, type Lang } from "@/lib/i18n";
+
+/** Gir AI-svarets JSON-innhold (uten id/sortOrder) samme form som de vanlige
+ * ingrediensgruppene/stegene, med genererte id-er – trygt siden denne
+ * listen aldri omorganiseres i UI-et, kun vises og hukes av. Brukes for
+ * både vegetarvarianten og den engelske oversettelsen, siden begge har
+ * identisk form (VegetarianIngredientGroup[]/VegetarianStep[]). */
+function withSyntheticIds(
+  prefix: string,
+  groups: VegetarianIngredientGroup[],
+  steps: VegetarianStep[],
+): { groups: IngredientGroup[]; steps: RecipeStep[] } {
+  return {
+    groups: groups.map((g, gi) => ({
+      id: `${prefix}-group-${gi}`,
+      title: g.title,
+      sortOrder: gi,
+      items: g.items.map((item, ii) => ({
+        id: `${prefix}-item-${gi}-${ii}`,
+        amount: item.amount,
+        unit: item.unit,
+        name: item.name,
+        note: item.note,
+        sortOrder: ii,
+      })),
+    })),
+    steps: steps.map((s, si) => ({
+      id: `${prefix}-step-${si}`,
+      groupTitle: s.groupTitle,
+      stepNumber: si + 1,
+      text: s.text,
+      sortOrder: si,
+    })),
+  };
+}
+
+export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; isAdmin: boolean; lang: Lang }) {
+  const [servings, setServings] = useState(recipe.servings);
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [cookModeOpen, setCookModeOpen] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  // Løftet opp fra CookingTimelinePanel slik at samme beregnede tidspunkt
+  // også kan vises inline under hvert steg i fremgangsmåten under, ikke
+  // bare inne i selve panelet – se CookingTimelinePanel.tsx sin
+  // onTimelineChange-kommentar.
+  const [cookingTimeline, setCookingTimeline] = useState<CookingTimeline | null>(null);
+  const [parallelGroups, setParallelGroups] = useState<ParallelTaskGroup[] | null>(null);
+  const stepToGroupInfo = groupInfoByStepId(parallelGroups);
+  const { addFromRecipe } = useShoppingList();
+
+  // Smart ingrediens-erstatning – bevisst en LOKAL, additiv oversikt (nøkkel:
+  // ingrediens-id) og IKKE en del av RecipeSession/lib/kitchen-intelligence
+  // sin delte state ennå: forslaget vises kun oppå den originale ingrediensen
+  // (gjennomstreking + pil + nytt navn + begrunnelse), det erstatter den
+  // ALDRI i selve dataflyten – handlelisten og Cook Mode viser fortsatt den
+  // faktiske ingrediensen. Dette er en bevisst avgrenset førsteversjon; å
+  // koble erstatningen inn i handlelisten/skaleringen ville krevd at
+  // AI-forslaget også fikk en mengde/enhet, noe getIngredientSubstitution
+  // bevisst IKKE gir (se kommentaren i lib/actions/kitchen-intelligence.ts).
+  const [substitutions, setSubstitutions] = useState<Record<string, SubstitutionSuggestion>>({});
+  const [substitutionLoadingIds, setSubstitutionLoadingIds] = useState<Set<string>>(new Set());
+  const [substitutionErrors, setSubstitutionErrors] = useState<Record<string, string>>({});
+
+  const [vegResult, setVegResult] = useState<{ note: string; groups: IngredientGroup[]; steps: RecipeStep[] } | null>(
+    null,
+  );
+  const [vegLoading, setVegLoading] = useState(false);
+  const [vegError, setVegError] = useState<string | null>(null);
+  const [showVegetarian, setShowVegetarian] = useState(false);
+
+  const [engResult, setEngResult] = useState<{
+    title: string;
+    description: string;
+    groups: IngredientGroup[];
+    steps: RecipeStep[];
+    notes: string | null;
+    tips: string | null;
+  } | null>(null);
+  const [engLoading, setEngLoading] = useState(false);
+  const [engError, setEngError] = useState<string | null>(null);
+
+  // Metrisk/US er et rent lokalt, ikke-lagret valg for DENNE siden (i
+  // motsetning til NO/EN, som huskes globalt via en cookie). Ingrediens-
+  // mengder konverteres deterministisk (lib/utils/units.ts); mål nevnt i
+  // fri tekst (ovnstemperatur, formstørrelser o.l.) konverteres av AI-en,
+  // uavhengig av hvilket språk/vegetar-valg som er aktivt.
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>("metric");
+  const [usResult, setUsResult] = useState<{ steps: RecipeStep[]; notes: string | null; tips: string | null } | null>(
+    null,
+  );
+  const [usLoading, setUsLoading] = useState(false);
+  const [usError, setUsError] = useState<string | null>(null);
+  const lastUsSourceRef = useRef<{ steps: RecipeStep[]; notes: string | null; tips: string | null } | null>(null);
+
+  async function handleGetEnglish() {
+    setEngError(null);
+    setEngLoading(true);
+    try {
+      const result = await getEnglishVariant({
+        title: recipe.title,
+        description: recipe.description,
+        ingredientGroups: recipe.ingredientGroups.map((g) => ({
+          title: g.title,
+          items: g.items.map((i) => ({ amount: i.amount, unit: i.unit, name: i.name, note: i.note })),
+        })),
+        steps: recipe.steps.map((s) => ({ groupTitle: s.groupTitle, text: s.text })),
+        notes: recipe.notes,
+        tips: recipe.tips,
+      });
+      const { groups, steps } = withSyntheticIds("eng", result.ingredientGroups, result.steps);
+      setEngResult({
+        title: result.title,
+        description: result.description,
+        groups,
+        steps,
+        notes: result.notes,
+        tips: result.tips,
+      });
+    } catch (err) {
+      setEngError(err instanceof Error ? err.message : t(lang, "recipeDetail.engError"));
+    } finally {
+      setEngLoading(false);
+    }
+  }
+
+  // Når navigasjonsspråket er engelsk, oversettes den viste oppskriften
+  // automatisk – ingen egen knapp per oppskrift lenger. Trigges kun når
+  // lang endrer seg (f.eks. ved mount, eller når man bytter i menyen og
+  // siden refreshes), ikke ved hvert re-render.
+  useEffect(() => {
+    if (lang === "en" && !engResult && !engLoading) {
+      handleGetEnglish();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, recipe.id]);
+
+  const useEnglish = lang === "en" && Boolean(engResult);
+  const useVegetarian = lang === "no" && Boolean(vegResult) && showVegetarian;
+
+  const displayTitle = useEnglish && engResult ? engResult.title : recipe.title;
+  const displayDescription = useEnglish && engResult ? engResult.description : recipe.description;
+  const displayNotes = useEnglish && engResult ? engResult.notes : recipe.notes;
+  const displayTips = useEnglish && engResult ? engResult.tips : recipe.tips;
+
+  const baseGroups = useEnglish && engResult ? engResult.groups : useVegetarian && vegResult ? vegResult.groups : recipe.ingredientGroups;
+  const baseSteps = useEnglish && engResult ? engResult.steps : useVegetarian && vegResult ? vegResult.steps : recipe.steps;
+
+  // Delt mellom "Bytt ut"-forslagene under og WineSection – begge trenger
+  // "hele retten sett under ett" som kontekst for AI-en.
+  const recipeIngredientNames = useMemo(
+    () => baseGroups.flatMap((g) => g.items.map((i) => i.name)),
+    [baseGroups],
+  );
+
+  const scaledGroups = useMemo(
+    () =>
+      baseGroups.map((group) => ({
+        ...group,
+        items: group.items.map((item) => ({
+          ...item,
+          amount: scaleAmount(item.amount, recipe.servings, servings),
+        })),
+      })),
+    [baseGroups, recipe.servings, servings],
+  );
+
+  // Ingrediensmengder konverteres deterministisk og umiddelbart (ingen
+  // AI-kall nødvendig) – helt uavhengig av teksten under.
+  const displayGroups = useMemo(() => {
+    if (unitSystem === "metric") return scaledGroups;
+    return scaledGroups.map((group) => ({
+      ...group,
+      items: group.items.map((item) => {
+        const converted = convertAmountToUs(item.amount, item.unit);
+        return { ...item, amount: converted.amount, unit: converted.unit };
+      }),
+    }));
+  }, [scaledGroups, unitSystem]);
+
+  async function handleGetUsMeasurements() {
+    setUsError(null);
+    setUsLoading(true);
+    try {
+      const result = await getUsMeasurementsVariant({
+        steps: baseSteps.map((s) => ({ groupTitle: s.groupTitle, text: s.text })),
+        notes: displayNotes,
+        tips: displayTips,
+      });
+      const { steps } = withSyntheticIds("us", [], result.steps);
+      setUsResult({ steps, notes: result.notes, tips: result.tips });
+    } catch (err) {
+      setUsError(err instanceof Error ? err.message : t(lang, "recipeDetail.unitsError"));
+    } finally {
+      setUsLoading(false);
+    }
+  }
+
+  // Trigges når man bytter til US, og på nytt dersom kildeteksten endrer
+  // seg mens US er valgt (f.eks. ved bytte av språk eller vegetarvisning).
+  // Sammenligner referanser (stabile med mindre engResult/vegResult/lang
+  // faktisk endrer seg), så vi ikke kaller AI-en på nytt uten grunn.
+  useEffect(() => {
+    if (unitSystem !== "us") return;
+    const sourceChanged =
+      lastUsSourceRef.current?.steps !== baseSteps ||
+      lastUsSourceRef.current?.notes !== displayNotes ||
+      lastUsSourceRef.current?.tips !== displayTips;
+    if (!sourceChanged && usResult) return;
+    lastUsSourceRef.current = { steps: baseSteps, notes: displayNotes, tips: displayTips };
+    handleGetUsMeasurements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unitSystem, baseSteps, displayNotes, displayTips]);
+
+  const finalSteps = unitSystem === "us" && usResult ? usResult.steps : baseSteps;
+  const finalNotes = unitSystem === "us" && usResult ? usResult.notes : displayNotes;
+  const finalTips = unitSystem === "us" && usResult ? usResult.tips : displayTips;
+
+  function toggleChecked(id: string) {
+    setCheckedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleAddToShoppingList() {
+    addFromRecipe(baseGroups, displayTitle, servings / recipe.servings);
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 2200);
+  }
+
+  async function handleSubstitute(item: { id: string; name: string; amount: string | null; unit: string | null; note: string | null }) {
+    setSubstitutionErrors((prev) => {
+      if (!(item.id in prev)) return prev;
+      const next = { ...prev };
+      delete next[item.id];
+      return next;
+    });
+    setSubstitutionLoadingIds((prev) => new Set(prev).add(item.id));
+    try {
+      const suggestion = await getIngredientSubstitution(
+        recipe.id,
+        { title: displayTitle, ingredientNames: recipeIngredientNames },
+        { name: item.name, amount: item.amount, unit: item.unit, note: item.note },
+        useVegetarian ? "vegetarian" : "original",
+        lang,
+      );
+      setSubstitutions((prev) => ({ ...prev, [item.id]: suggestion }));
+    } catch (err) {
+      setSubstitutionErrors((prev) => ({
+        ...prev,
+        [item.id]: err instanceof Error ? err.message : t(lang, "recipeDetail.substituteError"),
+      }));
+    } finally {
+      setSubstitutionLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
+
+  function handleUndoSubstitute(itemId: string) {
+    setSubstitutions((prev) => {
+      if (!(itemId in prev)) return prev;
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
+  }
+
+  async function handleGetVegetarian() {
+    setVegError(null);
+    setVegLoading(true);
+    try {
+      const result = await getVegetarianVariant({
+        title: recipe.title,
+        ingredientGroups: recipe.ingredientGroups.map((g) => ({
+          title: g.title,
+          items: g.items.map((i) => ({ amount: i.amount, unit: i.unit, name: i.name, note: i.note })),
+        })),
+        steps: recipe.steps.map((s) => ({ groupTitle: s.groupTitle, text: s.text })),
+      });
+      const { groups, steps } = withSyntheticIds("veg", result.ingredientGroups, result.steps);
+      setVegResult({ note: result.note, groups, steps });
+      setShowVegetarian(true);
+    } catch (err) {
+      setVegError(err instanceof Error ? err.message : t(lang, "recipeDetail.vegError"));
+    } finally {
+      setVegLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <header className="relative -mt-16 rounded-t-3xl bg-cream pb-6 pt-6 sm:-mt-20 sm:pb-8 sm:pt-8">
+        <div className="flex flex-wrap items-center gap-2">
+          {recipe.category && <Badge tone="clay">{localizedCategoryName(recipe.category, lang)}</Badge>}
+          {recipe.tags.map((tag) => (
+            <Badge key={tag.id} tone="neutral">
+              {tag.name}
+            </Badge>
+          ))}
+          {!recipe.isPublished && <Badge tone="mustard">{t(lang, "recipeDetail.draft")}</Badge>}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
+          <h1 className="text-balance font-serif text-3xl leading-tight text-ink sm:text-4xl md:text-5xl">
+            {displayTitle}
+          </h1>
+          <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.favoritedByAdmin} isAdmin={isAdmin} lang={lang} />
+        </div>
+
+        <p className="mt-3 max-w-2xl text-base text-ink-soft sm:text-lg">{displayDescription}</p>
+        {lang === "en" && engLoading && (
+          <p className="mt-1 text-xs text-ink-faint">{t(lang, "recipeDetail.engTranslating")}</p>
+        )}
+        {lang === "en" && engError && (
+          <p className="mt-1 text-xs text-clay-dark">
+            {engError}{" "}
+            <button type="button" onClick={handleGetEnglish} className="font-medium underline underline-offset-2">
+              {t(lang, "recipeDetail.reTranslate")}
+            </button>
+          </p>
+        )}
+
+        <div className="mt-3">
+          <RatingStars
+            recipeId={recipe.id}
+            recipeSlug={recipe.slug}
+            initialRatingSum={recipe.ratingSum}
+            initialRatingCount={recipe.ratingCount}
+            lang={lang}
+          />
+        </div>
+
+        <div className="mt-6">
+          <RecipeMeta
+            prepTimeMinutes={recipe.prepTimeMinutes}
+            cookTimeMinutes={recipe.cookTimeMinutes}
+            totalTimeMinutes={recipe.totalTimeMinutes}
+            servings={recipe.servings}
+            difficulty={recipe.difficulty}
+            lang={lang}
+          />
+        </div>
+
+        {/* Forhåndsgenerert i admin, ikke en live per-besøk AI-beregning –
+            se TasteProfileDisplay.tsx. Vises kun når admin faktisk har
+            generert én; ingen tom/lastende boks for oppskrifter uten. */}
+        {recipe.tasteProfile && (
+          <div className="mt-6">
+            <TasteProfileDisplay tasteProfile={recipe.tasteProfile} lang={lang} />
+          </div>
+        )}
+
+        {/* Forhåndsgenerert i admin, samme mønster som smaksprofilen over –
+            men ULIKT den, skjult bak en "vis"-knapp helt til noen faktisk
+            trykker (se NutritionPanel.tsx sin filheader). Vises kun når
+            admin faktisk har generert én. */}
+        {recipe.nutritionInfo && (
+          <div className="mt-4">
+            <NutritionPanel nutrition={recipe.nutritionInfo} lang={lang} />
+          </div>
+        )}
+      </header>
+
+      <div className="grid gap-8 pt-4 lg:grid-cols-[minmax(0,1fr)_2fr] lg:gap-12">
+        <section aria-labelledby="ingredienser-heading" className="lg:sticky lg:top-24 lg:self-start">
+          <div className="rounded-card border border-line bg-paper p-5 shadow-card sm:p-6">
+            <h2 id="ingredienser-heading" className="font-serif text-2xl text-ink">
+              {t(lang, "recipeDetail.ingredientsHeading")}
+            </h2>
+            <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+              <ServingsScaler servings={servings} onChange={setServings} lang={lang} />
+              <div>
+                <div className="mb-2 text-sm font-medium text-ink-soft">
+                  {t(lang, "recipeDetail.unitsAria")}
+                </div>
+                <UnitSystemSwitcher value={unitSystem} onChange={setUnitSystem} lang={lang} />
+              </div>
+            </div>
+            {unitSystem === "us" && usLoading && (
+              <p className="mt-1.5 text-xs text-ink-faint">{t(lang, "recipeDetail.convertingUnits")}</p>
+            )}
+            {unitSystem === "us" && usError && (
+              <p className="mt-1.5 text-xs text-clay-dark">
+                {usError}{" "}
+                <button
+                  type="button"
+                  onClick={handleGetUsMeasurements}
+                  className="font-medium underline underline-offset-2"
+                >
+                  {t(lang, "recipeDetail.unitsRetry")}
+                </button>
+              </p>
+            )}
+
+            {lang === "no" && (
+              <div className="mt-4 space-y-2">
+                {!vegResult && (
+                  <button
+                    type="button"
+                    onClick={handleGetVegetarian}
+                    disabled={vegLoading}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-olive-light bg-olive-light/40 px-3 py-2.5 text-sm font-medium text-olive-dark transition-colors hover:bg-olive-light disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {vegLoading ? t(lang, "recipeDetail.vegLoading") : t(lang, "recipeDetail.vegPrompt")}
+                  </button>
+                )}
+                {vegError && <p className="text-xs text-clay-dark">{vegError}</p>}
+
+                {vegResult && (
+                  <div className="space-y-2">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-olive-light bg-olive-light/40 px-3 py-2.5 text-sm text-olive-dark">
+                      <input
+                        type="checkbox"
+                        checked={showVegetarian}
+                        onChange={(e) => setShowVegetarian(e.target.checked)}
+                        className="h-4 w-4 accent-olive"
+                      />
+                      {t(lang, "recipeDetail.showVeg")}
+                    </label>
+                    {showVegetarian && <p className="text-xs leading-relaxed text-ink-faint">{vegResult.note}</p>}
+                    <button
+                      type="button"
+                      onClick={handleGetVegetarian}
+                      disabled={vegLoading}
+                      className="text-xs font-medium text-clay hover:text-clay-dark disabled:cursor-not-allowed disabled:text-ink-faint"
+                    >
+                      {vegLoading ? t(lang, "recipeDetail.newSuggestionLoading") : t(lang, "recipeDetail.newSuggestion")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="mt-6 space-y-6">
+              {displayGroups.map((group) => (
+                <div key={group.id}>
+                  {group.title && (
+                    <h3 className="mb-2 font-serif text-base text-ink-soft">{group.title}</h3>
+                  )}
+                  <ul className="space-y-1">
+                    {group.items.map((item) => {
+                      const checked = checkedItems.has(item.id);
+                      const substitution = substitutions[item.id];
+                      const substitutionLoading = substitutionLoadingIds.has(item.id);
+                      const substitutionError = substitutionErrors[item.id];
+                      return (
+                        <li key={item.id}>
+                          <label
+                            className={clsx(
+                              "flex cursor-pointer items-start gap-3 rounded-xl px-2.5 py-2 text-sm transition-colors hover:bg-cream-dark",
+                              checked && "text-ink-faint line-through",
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleChecked(item.id)}
+                              className="mt-0.5 h-4 w-4 shrink-0 accent-clay"
+                            />
+                            <span>
+                              {[item.amount, item.unit].filter(Boolean).join(" ")}{" "}
+                              {substitution ? (
+                                <>
+                                  <span className="text-ink-faint line-through">{item.name}</span>{" "}
+                                  <span className="font-medium text-clay-dark">→ {substitution.substituteName}</span>
+                                </>
+                              ) : (
+                                <span className={checked ? "" : "text-ink"}>{item.name}</span>
+                              )}
+                              {item.note && !substitution && <span className="text-ink-faint"> ({item.note})</span>}
+                            </span>
+                          </label>
+
+                          {/* Utenfor <label> med vilje – en knapp her skal IKKE
+                              også veksle avkrysningsboksen, se native
+                              label->control-videresending. */}
+                          <div className="ml-[1.75rem] mt-0.5">
+                            {substitution && (
+                              <div className="rounded-lg bg-clay-light/40 px-2.5 py-1.5 text-xs leading-relaxed text-ink-soft">
+                                <p>{substitution.reason}</p>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUndoSubstitute(item.id)}
+                                  className="mt-0.5 font-medium text-clay hover:text-clay-dark"
+                                >
+                                  {t(lang, "recipeDetail.substituteUndo")}
+                                </button>
+                              </div>
+                            )}
+                            {!substitution && substitutionLoading && (
+                              <p className="text-xs text-ink-faint">{t(lang, "recipeDetail.substituteLoading")}</p>
+                            )}
+                            {!substitution && !substitutionLoading && substitutionError && (
+                              <p className="text-xs text-clay-dark">
+                                {substitutionError}{" "}
+                                <button
+                                  type="button"
+                                  onClick={() => handleSubstitute(item)}
+                                  className="font-medium underline underline-offset-2"
+                                >
+                                  {t(lang, "recipeDetail.substituteRetry")}
+                                </button>
+                              </p>
+                            )}
+                            {!substitution && !substitutionLoading && !substitutionError && (
+                              <button
+                                type="button"
+                                onClick={() => handleSubstitute(item)}
+                                className="text-xs font-medium text-clay hover:text-clay-dark"
+                              >
+                                {t(lang, "recipeDetail.substitutePrompt")}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6">
+              <CookingTimelinePanel
+                recipeId={recipe.id}
+                steps={finalSteps}
+                prepTimeMinutes={recipe.prepTimeMinutes}
+                lang={lang}
+                onTimelineChange={setCookingTimeline}
+                onParallelGroupsChange={setParallelGroups}
+              />
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3">
+              <Button variant="primary" size="lg" onClick={() => setCookModeOpen(true)}>
+                <PlayIcon className="h-4 w-4" />
+                {t(lang, "recipeDetail.startCooking")}
+              </Button>
+              <Button variant="outline" size="md" onClick={handleAddToShoppingList}>
+                {justAdded ? (
+                  <>
+                    <CheckIcon className="h-4 w-4" />
+                    {t(lang, "recipeDetail.addedToList")}
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBagIcon className="h-4 w-4" />
+                    {t(lang, "recipeDetail.addToList")}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="fremgangsmate-heading">
+          <h2 id="fremgangsmate-heading" className="font-serif text-2xl text-ink">
+            {t(lang, "recipeDetail.stepsHeading")}
+          </h2>
+          <ol className="mt-4 space-y-6">
+            {finalSteps.map((step, index) => {
+              // Fra "Når bør jeg starte?"-panelet over (CookingTimelinePanel)
+              // – kun satt når brukeren faktisk har regnet ut en tidsplan;
+              // se onTimelineChange-nullstillingen der for hvorfor et gammelt
+              // klokkeslett aldri vises for et steg det ikke faktisk gjelder.
+              const stepStartTime = cookingTimeline?.steps.find((s) => s.stepId === step.id)?.startClockTime;
+              // Fra "Se hva som kan gjøres samtidig" i samme panel – samme
+              // bokstav-merking som brukes der, se
+              // lib/kitchen-intelligence/parallel-tasks.ts.
+              const parallelInfo = stepToGroupInfo.get(step.id);
+              return (
+                <li key={step.id} className="flex gap-4">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-clay-light font-serif text-base text-clay-dark">
+                    {index + 1}
+                  </span>
+                  <div className="pt-1">
+                    {(step.groupTitle || stepStartTime || parallelInfo) && (
+                      <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        {step.groupTitle && (
+                          <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                            {step.groupTitle}
+                          </p>
+                        )}
+                        {stepStartTime && (
+                          <p className="flex items-center gap-1.5 text-xs font-medium text-clay-dark">
+                            {t(lang, "recipeDetail.stepStartTime", { time: stepStartTime })}
+                            {parallelInfo && <ParallelTaskBadge info={parallelInfo} lang={lang} />}
+                          </p>
+                        )}
+                        {!stepStartTime && parallelInfo && <ParallelTaskBadge info={parallelInfo} lang={lang} />}
+                      </div>
+                    )}
+                    <p className="text-[0.975rem] leading-relaxed text-ink">{step.text}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+
+          {(finalNotes || finalTips) && (
+            <div className="mt-10 space-y-4">
+              {finalNotes && (
+                <div className="rounded-card border border-line bg-cream-dark/60 p-5">
+                  <h3 className="font-serif text-lg text-ink">{t(lang, "recipeDetail.notes")}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{finalNotes}</p>
+                </div>
+              )}
+              {finalTips && (
+                <div className="rounded-card border border-olive-light bg-olive-light/50 p-5">
+                  <h3 className="font-serif text-lg text-olive-dark">{t(lang, "recipeDetail.tips")}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{finalTips}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <MenuSuggestions
+            recipeId={recipe.id}
+            title={displayTitle}
+            description={displayDescription}
+            lang={lang}
+          />
+
+          <WineSection
+            recipeContext={{
+              title: displayTitle,
+              description: displayDescription,
+              ingredientNames: recipeIngredientNames,
+            }}
+            lang={lang}
+          />
+        </section>
+      </div>
+
+      {cookModeOpen && (
+        <CookMode
+          recipeId={recipe.id}
+          title={displayTitle}
+          ingredientGroups={displayGroups}
+          steps={finalSteps}
+          onClose={() => setCookModeOpen(false)}
+          lang={lang}
+        />
+      )}
+    </>
+  );
+}

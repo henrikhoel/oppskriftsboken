@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+/*
+ * Designtokens for "À TABLE"-uttrykket: mørk, elegant restaurant-stemning –
+ * dyp, varm nesten-sort bunnfarge, ivory-hvit tekst, og antikk gull som
+ * eneste sterke aksentfarge (i stedet for tidligere terrakotta). Samme
+ * NAVN på tokens som før (cream/ink/paper/clay/olive/mustard) er beholdt
+ * bevisst, men VERDIENE er nå inverterte i lyshet – dette er det som gjør
+ * at nesten hele resten av kodebasen (som allerede konsekvent bruker disse
+ * tokennavnene) automatisk blir mørk uten at hver eneste komponent måtte
+ * skrives om. Se komponenter som bevisst IKKE følger denne automatikken
+ * (f.eks. CookMode.tsx sitt fullskjerm-overlay, som eksplisitt bruker
+ * cream/ink omvendt av det man skulle tro, for å garantere at det forblir
+ * mørkt og fokusert uavhengig av resten av temaet).
+ *
+ * Endrer du en farge her, bør du speile endringen i lib/config.ts sin
+ * kommentar slik at de to ikke låser seg ut av synk over tid.
+ *
+ * Fontvariablene (--font-serif / --font-sans) settes på <html> i
+ * app/layout.tsx via next/font/google, og hentes inn her slik at Tailwind
+ * kan generere font-serif / font-sans-klassene fra dem.
+ */
+@theme {
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* "cream" = den mørkeste flaten (sidebakgrunn) OG – ved bruk som
+     tekstfarge oppå en lys/gyllen aksent – den mørke teksten der.
+     Bevisst nøytralt svart (ikke varm/brun-tonet som f.eks. clay-familien
+     under) – siden og kortene bak rettene skal lese som ren sort, ikke
+     brun, etter eksplisitt tilbakemelding. */
+  --color-cream: #0b0b0a;
+  --color-cream-dark: #191917;
+  --color-paper: #201f1c;
+  /* "ink" = den lyseste, ivory-fargen: primær lesetekst på den mørke
+     bunnen, OG – ved bruk som bakgrunn – en lys, kontrasterende flate. */
+  --color-ink: #f3ead9;
+  --color-ink-soft: #c8b998;
+  --color-ink-faint: #8d8064;
+  /* Streker/border – bevisst nøytralt svart/grå (ikke brun-tonet som de
+     andre mørke tokenene over), etter eksplisitt ønske om at streken
+     under header og alle kant-linjer på siden skal være svarte. */
+  --color-line: #232323;
+  --color-line-strong: #3c3c3c;
+
+  /* Gull/messing – erstatter tidligere terrakotta ("clay") som hoved-
+     aksent. clay = middels, varm gull (mørk tekst oppå gir god kontrast).
+     clay-dark = lysere/klarere gull, brukt både som hover-glød og som
+     lesbar gull-tekst oppå de mørke clay-light-panelene. */
+  --color-clay: #c9a227;
+  --color-clay-dark: #e6c34f;
+  --color-clay-light: #362a10;
+
+  --color-olive: #8a9b52;
+  --color-olive-dark: #b9c97e;
+  --color-olive-light: #262b16;
+
+  --color-mustard: #c98f2e;
+  --color-mustard-light: #34260d;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px -14px rgba(0, 0, 0, 0.6);
+  --shadow-card-hover:
+    0 2px 6px rgba(0, 0, 0, 0.45), 0 22px 44px -18px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(201, 162, 39, 0.08);
+
+  --radius-card: 1.1rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+  }
+
+  ::selection {
+    background-color: var(--color-clay-light);
+    color: var(--color-clay-dark);
+  }
+
+  /* Tydelig gull fokus-ring i stedet for standard blå – god kontrast mot
+     den mørke bunnen, og fortsatt en del av paletten. Skjules for
+     museklikk, vises for tastatur. */
+  :focus-visible {
+    outline: 2px solid var(--color-clay);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Klipper lange beskrivelser pent på kort, uansett skjermbredde. */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
