@@ -10,11 +10,16 @@ export type {
   ChosenImprovement,
   ChosenSubstitution,
   CookModeProgress,
+  ExistingMealCourseSlot,
   ImprovementTier,
+  MealCourseRole,
+  MealCourseSlot,
+  MealSession,
   RecipeSession,
   RecipeSessionContext,
   RecipeSessionTimer,
   RecipeVariant,
+  SuggestedMealCourseSlot,
 } from "@/lib/kitchen-intelligence/types";
 export { AI_CACHE_FEATURES } from "@/lib/kitchen-intelligence/types";
 export {
@@ -28,3 +33,17 @@ export {
   withSubstitution,
   withoutSubstitution,
 } from "@/lib/kitchen-intelligence/session";
+export {
+  addExistingSlot,
+  addSuggestedSlot,
+  countSlotsBySource,
+  createEmptyMealSession,
+  markSuggestionConverted,
+  removeSlot,
+  renameMeal,
+  replaceSlotContent,
+  setMealDesiredReadyAt,
+  setMealNotes,
+  setSlotServings,
+  sortSlotsByRole,
+} from "@/lib/kitchen-intelligence/meal-session";

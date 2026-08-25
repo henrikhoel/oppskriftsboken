@@ -173,3 +173,103 @@ export const AI_CACHE_FEATURES = [
 ] as const;
 
 export type AiCacheFeature = (typeof AI_CACHE_FEATURES)[number];
+
+/**
+ * MealSession – FASE 5 ("Experience"), se rapport til Henrik 25.08.2026.
+ * ==============================================================
+ *
+ * RecipeSession (over) representerer ÉN RETT slik den besøkende faktisk
+ * lager den. MealSession representerer HELE MÅLTIDET – flere retter satt
+ * sammen til én meny (typisk forrett/hovedrett/tilbehør/dessert), med sin
+ * egen vinanbefaling, kombinerte handleliste og tilberedningstidslinje.
+ * Dette er BEVISST en helt egen type, ikke en utvidelse av RecipeSession –
+ * de to har ulikt omfang og ulik levetid (en RecipeSession følger én
+ * oppskrift over tid, en MealSession følger én planlagt anledning).
+ * En MealSession kan referere til flere RecipeSessions (via slot.recipeId),
+ * men eier ikke selve retts-tilstanden (porsjoner/erstatninger/Cook Mode for
+ * den enkelte retten hører fortsatt hjemme i dens egen RecipeSession).
+ *
+ * Lagres KUN lokalt per besøkende (localStorage, samme mønster som
+ * RecipeSession – se useMealSession.ts), og MUTERER ALDRI databasen: å
+ * legge en oppskrift inn i en meny er ikke en redigering av oppskriften.
+ */
+
+/** Hvilken plass i måltidet en rett fyller. Bevisst flat firedeling (ikke
+ * f.eks. et fritt tekstfelt) slik at UI-et kan gruppere/sortere menyen
+ * konsistent uten å tolke fritekst. */
+export type MealCourseRole = "starter" | "main" | "side" | "dessert";
+
+interface MealCourseSlotBase {
+  /** Stabil id for DENNE PLASSEN i menyen (ikke oppskriften) – overlever at
+   * brukeren bytter ut hvilken rett som fyller plassen, slik at UI-et kan
+   * beholde posisjon/fokus ved redigering/bytte. */
+  id: string;
+  role: MealCourseRole;
+  /** Målporsjoner for DENNE retten i menysammenheng – kan bevisst avvike fra
+   * de andre rettene i menyen (f.eks. en dessert eller et tilbehør lages
+   * ofte i mindre porsjon enn hovedretten, selv om det er samme antall
+   * gjester). Sammenlignes mot oppskriftens/forslagets egen grunn-porsjon
+   * for skalering, på samme måte som RecipeSession.servings. */
+  servings: number;
+}
+
+/** En plass i menyen fylt av en oppskrift som FINNES i katalogen fra før.
+ * `title`/`slug` er en SNAPSHOT tatt idet retten ble lagt til menyen (for
+ * umiddelbar visning uten et ekstra oppslag) – selve fasiten er alltid
+ * oppskriften bak `recipeId`, på samme måte som RecipeSession aldri lagrer
+ * oppskriftsinnhold, kun `recipeId`. */
+export interface ExistingMealCourseSlot extends MealCourseSlotBase {
+  source: "existing";
+  recipeId: string;
+  slug: string;
+  title: string;
+}
+
+/** En plass i menyen fylt av et AI-foreslått rett-forslag som IKKE finnes i
+ * katalogen ennå – ingen `recipeId`, ingen oppskriftsside å lenke til. Dette
+ * er kjernen i "tydelig merking av hva som finnes fra før vs. hva som er
+ * nytt" (se rapport til Henrik): UI-et kan skille de to slot-typene på
+ * `source` alene, uten gjetting. */
+export interface SuggestedMealCourseSlot extends MealCourseSlotBase {
+  source: "suggested";
+  title: string;
+  /** Kort AI-generert pitch for retten – står i stedet for en oppskriftsside
+   * siden det ikke finnes en ennå. */
+  description: string;
+  /** Satt dersom brukeren senere velger å opprette forslaget som en ekte
+   * oppskrift i admin – kobler slotten til den nye oppskriften i etterkant,
+   * uten å måtte bygge menyen på nytt. Null helt til det skjer. Ren
+   * datamodell-støtte her; selve "opprett fra forslag"-handlingen bygges i
+   * menybygger-steget (5.1–5.4). */
+  convertedRecipeId: string | null;
+}
+
+export type MealCourseSlot = ExistingMealCourseSlot | SuggestedMealCourseSlot;
+
+/**
+ * Én instans per (mealSessionId, besøkende), lagret i localStorage under
+ * nøkkelen `oppskriftsboken:meal:${id}` (se useMealSession-hooken). En
+ * besøkende kan i prinsippet ha flere MealSessions samtidig (flere planlagte
+ * middager) – id-et skiller dem, i motsetning til RecipeSession som er
+ * nøkkelert på recipeId (kun én økt per oppskrift).
+ */
+export interface MealSession {
+  id: string;
+  /** Oppskriften menyen opprinnelig ble generert rundt (typisk hovedretten
+   * brukeren sto på når "lag en meny rundt denne"-forslaget ble trigget).
+   * Beholdes som referanse selv om den rollen senere byttes ut med en annen
+   * rett i menybyggeren – null dersom menyen ble startet uten en bestemt
+   * utgangsrett. */
+  anchorRecipeId: string | null;
+  /** Menyens navn, f.eks. "Middag lørdag" – redigerbar av brukeren,
+   * forhåndsutfylt med et AI-foreslått navn når menyen genereres. */
+  title: string;
+  slots: MealCourseSlot[];
+  /** Ønsket tidspunkt HELE MÅLTIDET skal være klart, "HH:mm" lokal tid.
+   * Samme felt/format som RecipeSession.desiredReadyAt, men her styrer det
+   * en hel-meny-tidslinje (5.8) på tvers av alle rettene i stedet for én. */
+  desiredReadyAt: string | null;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
