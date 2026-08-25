@@ -506,6 +506,61 @@ const DICT = {
     no: "Fant ingen gode forslag akkurat nå.",
     en: "Couldn't find any good suggestions right now.",
   },
+
+  // Menybyggeren (Fase 5 – Experience) – se components/recipe/MealBuilder.tsx
+  // og generateMealPlan i lib/actions/kitchen-intelligence.ts. Rolle-
+  // etikettene (mealBuilder.role.*) brukes BÅDE i UI-et OG i selve
+  // AI-prompten (samme kilde, ett sted å endre teksten).
+  "mealBuilder.role.starter": { no: "Forrett", en: "Starter" },
+  "mealBuilder.role.main": { no: "Hovedrett", en: "Main course" },
+  "mealBuilder.role.side": { no: "Tilbehør", en: "Side dish" },
+  "mealBuilder.role.dessert": { no: "Dessert", en: "Dessert" },
+  "mealBuilder.heading": { no: "Bygg en meny rundt denne retten", en: "Build a menu around this dish" },
+  "mealBuilder.intro": {
+    no: "La AI-en sette sammen en hel meny rundt denne retten – hentet fra oppskriftsboken der det passer, foreslått nytt der det ikke gjør det.",
+    en: "Let AI put together a full menu around this dish – drawn from your cookbook where it fits, suggested fresh where it doesn't.",
+  },
+  "mealBuilder.button": { no: "Bygg en meny", en: "Build a menu" },
+  "mealBuilder.loading": { no: "Setter sammen menyen …", en: "Putting the menu together …" },
+  "mealBuilder.error": {
+    no: "Klarte ikke å bygge menyen akkurat nå. Prøv igjen.",
+    en: "Couldn't build the menu right now. Please try again.",
+  },
+  "mealBuilder.anchorBadge": { no: "Retten du startet med", en: "The dish you started with" },
+  "mealBuilder.existingBadge": { no: "Finnes i oppskriftsboken", en: "Already in your cookbook" },
+  "mealBuilder.suggestedBadge": { no: "Nytt forslag", en: "New suggestion" },
+  "mealBuilder.regenerate": { no: "Foreslå en annen", en: "Suggest another" },
+  "mealBuilder.regenerating": { no: "Finner et alternativ …", en: "Finding an alternative …" },
+  "mealBuilder.remove": { no: "Fjern fra menyen", en: "Remove from menu" },
+  "mealBuilder.removed": {
+    no: "Fjernet fra menyen.",
+    en: "Removed from the menu.",
+  },
+  "mealBuilder.servingsLabel": { no: "Porsjoner", en: "Servings" },
+  "mealBuilder.titleLabel": { no: "Menynavn", en: "Menu name" },
+  "mealBuilder.save": { no: "Lagre menyen", en: "Save menu" },
+  "mealBuilder.saving": { no: "Lagrer …", en: "Saving …" },
+  "mealBuilder.saveError": {
+    no: "Klarte ikke å lagre menyen på denne enheten.",
+    en: "Couldn't save the menu on this device.",
+  },
+  "mealBuilder.viewSaved": { no: "Se den lagrede menyen", en: "View the saved menu" },
+
+  // Den lagrede menysiden – app/meny/[id]/page.tsx.
+  "mealPage.metaTitle": { no: "Din meny", en: "Your menu" },
+  "mealPage.notFoundHeading": { no: "Fant ikke menyen", en: "Menu not found" },
+  "mealPage.notFoundBody": {
+    no: "Denne menyen finnes ikke på denne enheten – menyer lagres kun lokalt i nettleseren de ble laget i.",
+    en: "This menu doesn't exist on this device – menus are only stored locally in the browser they were created in.",
+  },
+  "mealPage.emptyState": { no: "Denne menyen er tom.", en: "This menu is empty." },
+  "mealPage.notesLabel": { no: "Notater", en: "Notes" },
+  "mealPage.notesPlaceholder": {
+    no: "Egne notater om menyen – f.eks. hvem som kommer, eller ting å huske …",
+    en: "Your own notes about the menu – e.g. who's coming, or things to remember …",
+  },
+  "mealPage.suggestedDescriptionLabel": { no: "Om forslaget", en: "About the suggestion" },
+
   "recipeDetail.unitsAria": { no: "Målenhet", en: "Unit system" },
   "recipeDetail.unitsMetric": { no: "Metrisk", en: "Metric" },
   "recipeDetail.unitsUs": { no: "US", en: "US" },

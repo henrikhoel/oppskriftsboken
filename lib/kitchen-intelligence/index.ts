@@ -36,8 +36,10 @@ export {
 export {
   addExistingSlot,
   addSuggestedSlot,
+  ALL_MEAL_COURSE_ROLES,
   countSlotsBySource,
   createEmptyMealSession,
+  inferCourseRoleFromCategory,
   markSuggestionConverted,
   removeSlot,
   renameMeal,

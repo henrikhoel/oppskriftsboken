@@ -170,14 +170,39 @@ export function setMealDesiredReadyAt(session: MealSession, desiredReadyAt: stri
   return { ...session, desiredReadyAt };
 }
 
-/** Praktisk gruppering for UI-et (menybygger-kortene, hel-meny-timeline) –
- * ren visningshjelp, ingen tilstand. Bevisst fast rekkefølge
- * (forrett → hovedrett → tilbehør → dessert) uavhengig av hvilken rekkefølge
- * plassene ble lagt til i. */
-const ROLE_ORDER: MealCourseRole[] = ["starter", "main", "side", "dessert"];
+/** Hvilke ord i en kategoris navn peker mot hvilken menyrolle – brukt til å
+ * plassere "ankerretten" (retten menyen bygges rundt) deterministisk FØR
+ * AI-en spørres om resten av menyen, se generateMealPlan i
+ * lib/actions/kitchen-intelligence.ts. Bevisst konservativ: kun dessert og
+ * tilbehør/saus-kategorier trekkes ut tydelig (entydige nok navn i praksis),
+ * ellers antas "main" – en feilklassifisert "forrett" som blir stående som
+ * hovedrett er et langt mindre synlig feilgrep enn f.eks. en faktisk
+ * hovedrett (f.eks. en gryterett i kategorien "Middag") som feilaktig
+ * havner som forrett. */
+const DESSERT_CATEGORY_WORDS = ["dessert", "kake", "is", "søt", "sjokolade", "bakst", "bakverk"];
+const SIDE_CATEGORY_WORDS = ["tilbehør", "saus", "dressing", "siderett"];
+const STARTER_CATEGORY_WORDS = ["forrett", "suppe", "salat"];
 
+export function inferCourseRoleFromCategory(categoryName: string | null): MealCourseRole {
+  if (!categoryName) return "main";
+  const normalized = categoryName.toLowerCase();
+  if (DESSERT_CATEGORY_WORDS.some((word) => normalized.includes(word))) return "dessert";
+  if (SIDE_CATEGORY_WORDS.some((word) => normalized.includes(word))) return "side";
+  if (STARTER_CATEGORY_WORDS.some((word) => normalized.includes(word))) return "starter";
+  return "main";
+}
+
+/** Fast rekkefølge (forrett → hovedrett → tilbehør → dessert), brukt både
+ * som selve rolle-registeret (f.eks. for å regne ut "de tre gjenværende
+ * rollene" rundt en ankerrett i generateMealPlan) og for sortering. */
+export const ALL_MEAL_COURSE_ROLES: MealCourseRole[] = ["starter", "main", "side", "dessert"];
+
+/** Praktisk gruppering for UI-et (menybygger-kortene, hel-meny-timeline) –
+ * ren visningshjelp, ingen tilstand. */
 export function sortSlotsByRole(slots: MealCourseSlot[]): MealCourseSlot[] {
-  return [...slots].sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role));
+  return [...slots].sort(
+    (a, b) => ALL_MEAL_COURSE_ROLES.indexOf(a.role) - ALL_MEAL_COURSE_ROLES.indexOf(b.role),
+  );
 }
 
 /** Antall retter i menyen som faktisk finnes i katalogen vs. kun er

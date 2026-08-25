@@ -163,6 +163,15 @@ export const AI_CACHE_FEATURES = [
   "leftovers",
   "mood_mode",
   "parallel_tasks",
+  // "meal_plan" (Fase 5 – Experience): generateMealPlan i
+  // lib/actions/kitchen-intelligence.ts – EGEN feature, ikke gjenbruk av
+  // "menu_suggestion", selv om de to funksjonelt ligner (begge foreslår
+  // andre retter til en gitt hovedrett). Grunnen: ulik payload-form
+  // ({recipeId, note}[] for menu_suggestion vs. rolle-inndelte
+  // eksisterende/nye forslag for meal_plan) – samme feature-navn på to
+  // ulike former ville latt gamle cache-rader bli lest inn og feiltolket
+  // som den nye formen uten noen kjøretids-sjekk som fanger det.
+  "meal_plan",
   // MERK: "taste_profile" er BEVISST ikke lenger her – smaksprofilen er
   // 25.08.2026 gjort om fra en cachet, live per-besøk AI-beregning til en
   // forhåndsgenerert admin-egenskap lagret direkte på oppskriften

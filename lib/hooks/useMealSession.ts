@@ -18,6 +18,17 @@ import type { MealCourseRole, MealSession } from "@/lib/kitchen-intelligence/typ
 
 const INDEX_KEY = "oppskriftsboken:meals:index";
 
+/** Trygg id-generering for en NY meny – samme fallback-mønster som
+ * makeKey() i lib/admin-form-types.ts (der crypto.randomUUID ikke skulle
+ * finnes i miljøet). Kalleren (f.eks. MealBuilder.tsx) genererer én id ved
+ * mount (`useState(() => generateMealId())`), og bruker den til BÅDE
+ * `useMealSession(id, …)` og `useMealSessionIndex().addToIndex(id)`. */
+export function generateMealId(): string {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+}
+
 /**
  * Register over hvilke MealSession-id-er denne besøkende har fra før – i
  * motsetning til RecipeSession (nøkkelert på recipeId, alltid nåbar fra

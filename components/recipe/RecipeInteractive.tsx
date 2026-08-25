@@ -11,6 +11,7 @@ import { CookingTimelinePanel } from "@/components/recipe/CookingTimelinePanel";
 import { TasteProfileDisplay } from "@/components/recipe/TasteProfileDisplay";
 import { NutritionPanel } from "@/components/recipe/NutritionPanel";
 import { MenuSuggestions } from "@/components/recipe/MenuSuggestions";
+import { MealBuilder } from "@/components/recipe/MealBuilder";
 import { ParallelTaskBadge } from "@/components/recipe/ParallelTaskBadge";
 import type { CookingTimeline } from "@/lib/kitchen-intelligence/timeline";
 import { groupInfoByStepId } from "@/lib/kitchen-intelligence/parallel-tasks";
@@ -652,6 +653,18 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             recipeId={recipe.id}
             title={displayTitle}
             description={displayDescription}
+            lang={lang}
+          />
+
+          <MealBuilder
+            recipe={{
+              id: recipe.id,
+              slug: recipe.slug,
+              title: displayTitle,
+              description: displayDescription,
+              servings,
+              category: recipe.category ? { name: recipe.category.name } : null,
+            }}
             lang={lang}
           />
 
