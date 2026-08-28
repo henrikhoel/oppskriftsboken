@@ -8,9 +8,9 @@ import { ShoppingListBadgeCount } from "@/components/shopping/ShoppingListBadgeC
 import { t, type Lang } from "@/lib/i18n";
 
 const NAV_ITEMS = [
-  { href: "/", labelKey: "nav.home", icon: HomeIcon },
-  { href: "/oppskrifter", labelKey: "nav.recipes", icon: BookIcon },
-  { href: "/hva-kan-jeg-lage", labelKey: "nav.pantry", icon: CameraIcon },
+  { href: "/", labelKey: "nav.home", icon: HomeIcon, badge: false },
+  { href: "/oppskrifter", labelKey: "nav.recipes", icon: BookIcon, badge: false },
+  { href: "/hva-kan-jeg-lage", labelKey: "nav.pantry", icon: CameraIcon, badge: false },
   // "Hvordan gjør jeg det?" (27.08.2026) – kunnskapsbiblioteket for
   // kjøkkenteknikker, se app/hvordan-gjor-jeg-det/*. Bruker den KORTE
   // nav.guidesShort-teksten her (samme nøkkel spesifikasjonen egentlig kun
@@ -18,9 +18,9 @@ const NAV_ITEMS = [
   // bunnmenyen ikke har plass til hele "Hvordan gjør jeg det?" på én linje
   // uten å bryte layouten – selve siden sin <h1> viser fortsatt hele,
   // riktige konseptnavnet uendret, se app/hvordan-gjor-jeg-det/page.tsx.
-  { href: "/hvordan-gjor-jeg-det", labelKey: "nav.guidesShort", icon: HelpCircleIcon },
+  { href: "/hvordan-gjor-jeg-det", labelKey: "nav.guidesShort", icon: HelpCircleIcon, badge: false },
   { href: "/handleliste", labelKey: "nav.shoppingList", icon: ShoppingBagIcon, badge: true },
-  { href: "/favoritter", labelKey: "nav.favorites", icon: HeartIcon },
+  { href: "/favoritter", labelKey: "nav.favorites", icon: HeartIcon, badge: false },
 ] as const;
 
 /**

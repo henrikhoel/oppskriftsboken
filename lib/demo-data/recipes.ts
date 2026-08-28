@@ -57,6 +57,7 @@ export const demoRecipes: Recipe[] = [
       "Rask hverdagspasta med italiensk pølse, en kremet tomatsaus og masse parmesan. Klar på under 40 minutter.",
     heroImageUrl: img("salsiccia-pasta.jpg"),
     heroImageAlt: "Rigatoni i kremet tomatsaus med salsiccia og parmesan",
+    heroImageIsAiGenerated: false,
     images: [],
     category: findDemoCategory("pasta") ?? null,
     tags: [
@@ -117,6 +118,7 @@ export const demoRecipes: Recipe[] = [
       "Tynn, luftig bunn med sprø kant, San Marzano-tomater og bøffelmozzarella – slik de gjør det i Napoli.",
     heroImageUrl: img("napolitansk-pizza.jpg"),
     heroImageAlt: "Napolitansk pizza med mozzarella og fersk basilikum",
+    heroImageIsAiGenerated: false,
     images: [],
     category: findDemoCategory("pizza") ?? null,
     tags: [
@@ -184,6 +186,7 @@ export const demoRecipes: Recipe[] = [
       "Sitron- og oreganomarinert svinespyd rett fra grillen, servert i lunt pitabrød med tzatziki og friske grønnsaker.",
     heroImageUrl: img("greske-svinespyd.jpg"),
     heroImageAlt: "Grillede svinespyd servert med pitabrød og tzatziki",
+    heroImageIsAiGenerated: false,
     images: [],
     category: findDemoCategory("kjott") ?? null,
     tags: [
@@ -246,6 +249,7 @@ export const demoRecipes: Recipe[] = [
       "Panert kyllingfilet med sprø panko-skorpe, god tomatsaus og smeltet mozzarella – en amerikansk-italiensk favoritt.",
     heroImageUrl: img("kylling-parmesan.jpg"),
     heroImageAlt: "Ovnsbakt kylling parmesan med smeltet ost og tomatsaus",
+    heroImageIsAiGenerated: false,
     images: [],
     category: findDemoCategory("kylling") ?? null,
     tags: [
@@ -304,6 +308,7 @@ export const demoRecipes: Recipe[] = [
       "Møre, hjemmelagde kjøttboller som småkoker i en rik tomatsaus med hvitløk og fersk basilikum.",
     heroImageUrl: img("kjottboller-tomatsaus.jpg"),
     heroImageAlt: "Kjøttboller i tomatsaus toppet med basilikum",
+    heroImageIsAiGenerated: false,
     images: [],
     category: findDemoCategory("kjott") ?? null,
     tags: [
@@ -378,6 +383,7 @@ export const demoRecipes: Recipe[] = [
       "Rask, kremet pastarett med parmesan og trøffelolje – enkel nok til en hverdag, fin nok til en festmiddag.",
     heroImageUrl: img("troffelpasta.jpg"),
     heroImageAlt: "Tagliatelle i kremet trøffelsaus med parmesan",
+    heroImageIsAiGenerated: false,
     images: [],
     category: findDemoCategory("pasta") ?? null,
     tags: [
@@ -433,6 +439,7 @@ export const demoRecipes: Recipe[] = [
       "Flate, sprø ovnsbakte poteter med røkt paprika og rosmarin, servert med en rask hvitløksaioli.",
     heroImageUrl: img("crispy-potatoes.jpg"),
     heroImageAlt: "Sprø ovnsbakte poteter med aioli-dip og rosmarin",
+    heroImageIsAiGenerated: false,
     images: [],
     category: findDemoCategory("tilbehor") ?? null,
     tags: [
@@ -490,6 +497,7 @@ export const demoRecipes: Recipe[] = [
       "Mettende frokostpannekaker med cottage cheese og havregryn – enkle å blende sammen på en travel morgen.",
     heroImageUrl: img("proteinpannekaker.jpg"),
     heroImageAlt: "Stabel med proteinpannekaker toppet med bær og yoghurt",
+    heroImageIsAiGenerated: false,
     images: [],
     category: findDemoCategory("frokost") ?? null,
     tags: [
