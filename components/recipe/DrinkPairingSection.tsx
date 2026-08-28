@@ -104,68 +104,78 @@ function DrinkPairingResult({
   }
 
   return (
-    <div className="mt-4 divide-y divide-line sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-      <DrinkColumn label={t(lang, "drinkPairing.wineLabel")} option={pairing.wine}>
-        {!vinResult && (
-          <button
-            type="button"
-            onClick={handleFindWine}
-            disabled={vinLoading}
-            className="mt-3 block text-xs font-medium text-clay hover:text-clay-dark disabled:cursor-not-allowed disabled:text-ink-faint"
-          >
-            {vinLoading ? t(lang, "wine.vinmonopoletLoading") : t(lang, "drinkPairing.findWineButton")}
-          </button>
-        )}
-        {vinError && <p className="mt-2 text-xs text-clay-dark">{vinError}</p>}
-        {vinResult && (
-          <div className="mt-3 rounded-xl border border-olive-light bg-olive-light/30 px-3.5 py-3">
-            <div className="flex gap-3">
-              {!vinImageFailed && (
-                // eslint-disable-next-line @next/next/no-img-element -- ekte, eksternt Vinmonopolet-bilde (se vinmonopoletProductImageUrl); ikke alle produkter har bilde, derfor onError-fallback
-                <img
-                  src={vinResult.imageUrl}
-                  alt={vinResult.productName}
-                  onError={() => setVinImageFailed(true)}
-                  className="h-20 w-20 shrink-0 rounded-lg border border-line bg-cream object-contain"
-                />
-              )}
-              <div className="min-w-0">
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-sm font-semibold text-olive-dark">{vinResult.productName}</p>
-                  {vinResult.priceNok !== null && (
-                    <p className="shrink-0 text-xs font-medium text-ink-soft">
-                      {t(lang, "wine.priceLabel")}: {vinResult.priceNok} kr
-                    </p>
-                  )}
-                </div>
-                <p className="mt-1 text-xs leading-relaxed text-ink-soft">{vinResult.reasoning}</p>
-              </div>
-            </div>
-            <a
-              href={vinResult.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-block rounded-lg bg-clay px-3.5 py-2 text-xs font-medium text-cream transition-colors hover:bg-clay-dark"
-            >
-              {t(lang, "wine.viewProduct")} →
-            </a>
-            <p className="mt-2 text-[0.68rem] leading-relaxed text-ink-faint">{t(lang, "wine.vinmonopoletDisclaimer")}</p>
+    <div className="mt-4">
+      <div className="divide-y divide-line sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <DrinkColumn label={t(lang, "drinkPairing.wineLabel")} option={pairing.wine}>
+          {!vinResult && (
             <button
               type="button"
-              onClick={() => {
-                setVinResult(null);
-                setVinImageFailed(false);
-              }}
-              className="mt-2 block text-xs font-medium text-clay hover:text-clay-dark"
+              onClick={handleFindWine}
+              disabled={vinLoading}
+              className="mt-3 block text-xs font-medium text-clay hover:text-clay-dark disabled:cursor-not-allowed disabled:text-ink-faint"
             >
-              {t(lang, "wine.vinmonopoletNewSuggestion")}
+              {vinLoading ? t(lang, "wine.vinmonopoletLoading") : t(lang, "drinkPairing.findWineButton")}
             </button>
-          </div>
-        )}
-      </DrinkColumn>
+          )}
+          {vinError && <p className="mt-2 text-xs text-clay-dark">{vinError}</p>}
+        </DrinkColumn>
 
-      <DrinkColumn label={t(lang, "drinkPairing.beerLabel")} option={pairing.beer} />
-      <DrinkColumn label={t(lang, "drinkPairing.nonAlcoholicLabel")} option={pairing.nonAlcoholic} />
+        <DrinkColumn label={t(lang, "drinkPairing.beerLabel")} option={pairing.beer} />
+        <DrinkColumn label={t(lang, "drinkPairing.nonAlcoholicLabel")} option={pairing.nonAlcoholic} />
+      </div>
+
+      {/* Vinmonopolet-forslaget rendres UTENFOR tre-kolonners-rutenettet over
+       * med full seksjonsbredde, ikke klemt inn i vin-kolonnens ca. 1/3
+       * bredde på desktop – bilde + produkttekst trenger mer luft enn én
+       * kolonne gir, og en bredere, rolig "funnet til deg"-kort kjennes
+       * dessuten mer elegant enn et trangt sidepanel. */}
+      {vinResult && (
+        <div className="mt-6 border-t border-line pt-6">
+          <div className="flex flex-col gap-4 rounded-2xl border border-olive-light bg-olive-light/20 p-5 sm:flex-row sm:p-6">
+            {!vinImageFailed && (
+              // eslint-disable-next-line @next/next/no-img-element -- ekte, eksternt Vinmonopolet-bilde (se vinmonopoletProductImageUrl); ikke alle produkter har bilde, derfor onError-fallback
+              <img
+                src={vinResult.imageUrl}
+                alt={vinResult.productName}
+                onError={() => setVinImageFailed(true)}
+                className="h-28 w-28 shrink-0 self-center rounded-xl border border-line bg-cream object-contain sm:self-start"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <p className="font-serif text-lg text-olive-dark">{vinResult.productName}</p>
+                {vinResult.priceNok !== null && (
+                  <p className="shrink-0 text-sm font-medium text-ink-soft">
+                    {t(lang, "wine.priceLabel")}: {vinResult.priceNok} kr
+                  </p>
+                )}
+              </div>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{vinResult.reasoning}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+                <a
+                  href={vinResult.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block rounded-lg bg-clay px-3.5 py-2 text-xs font-medium text-cream transition-colors hover:bg-clay-dark"
+                >
+                  {t(lang, "wine.viewProduct")} →
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVinResult(null);
+                    setVinImageFailed(false);
+                  }}
+                  className="text-xs font-medium text-clay hover:text-clay-dark"
+                >
+                  {t(lang, "wine.vinmonopoletNewSuggestion")}
+                </button>
+              </div>
+              <p className="mt-3 text-[0.68rem] leading-relaxed text-ink-faint">{t(lang, "wine.vinmonopoletDisclaimer")}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
