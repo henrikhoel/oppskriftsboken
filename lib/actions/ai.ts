@@ -148,32 +148,51 @@ export async function getMealMoodSuggestion(
   return text.trim();
 }
 
-/** Gjest skriver inn et vinnavn, får en vurdering av match mot retten. */
-export async function checkWineMatch(
+/** Hvilken drikketype "Passer denne?"-sjekkeren vurderer – se
+ * checkBeverageMatch under. Bevisst en union her (ikke bare "wine"
+ * hardkodet inn i prompt-teksten) slik at en fremtidig ølsjekk (spec 5.7:
+ * "Jeg har denne ølen – passer den?") blir ETT nytt kallsted med
+ * beverageKind: "beer", ikke en ny, duplisert funksjon – se filheaderen til
+ * DrinkPairingSection.tsx for hvorfor kun vin er bygget ut i UI-et ennå. */
+export type BeverageKind = "wine" | "beer";
+
+const BEVERAGE_NOUN: Record<BeverageKind, { no: string; en: string }> = {
+  wine: { no: "vin", en: "wine" },
+  beer: { no: "øl", en: "beer" },
+};
+
+/** Gjest skriver inn navnet på en drikke (vin i dag), får en vurdering av
+ * match mot retten. Delt logikk for alle drikketyper – kun selve
+ * substantivet i prompten (BEVERAGE_NOUN) og feilmeldingen skiller dem. */
+export async function checkBeverageMatch(
   recipe: RecipeContext,
-  wineNameRaw: string,
+  beverageNameRaw: string,
   lang: Lang = "no",
+  beverageKind: BeverageKind = "wine",
 ): Promise<{ verdict: WineVerdict; reasoning: string; wineNameParsed: string }> {
-  const wineName = wineNameRaw.trim().slice(0, 120);
-  if (!wineName) {
-    throw new Error(lang === "en" ? "Enter the name of a wine first." : "Skriv inn navnet på en vin først.");
+  const beverageName = beverageNameRaw.trim().slice(0, 120);
+  const noun = BEVERAGE_NOUN[beverageKind][lang];
+  if (!beverageName) {
+    throw new Error(
+      lang === "en" ? `Enter the name of a ${noun} first.` : `Skriv inn navnet på en ${noun} først.`,
+    );
   }
 
   const system =
     lang === "en"
-      ? "You are a knowledgeable sommelier. You're given a dinner dish and the name of a wine typed in by a guest " +
-        "(may be spelled inaccurately or incompletely). Interpret which wine/wine type is most likely meant, " +
-        "and judge how well it pairs with the dish.\n\n" +
-        'Respond with ONLY JSON in exactly this shape: {"verdict": "ikke_bra" | "greit" | "bra" | "meget_bra", "reasoning": "short reasoning in English, max 2 sentences", "wineNameParsed": "the wine/wine type as you interpreted it"}'
-      : "Du er en kunnskapsrik sommelier. Du får en middagsrett og navnet på en vin skrevet inn av en gjest " +
-        "(kan være stavet unøyaktig eller ufullstendig). Tolk hvilken vin/vintype det mest sannsynlig er snakk om, " +
-        "og vurder hvor godt den passer til retten.\n\n" +
-        'Svar KUN med JSON på nøyaktig denne formen: {"verdict": "ikke_bra" | "greit" | "bra" | "meget_bra", "reasoning": "kort begrunnelse på norsk, maks 2 setninger", "wineNameParsed": "vinen/vintypen slik du tolket den"}';
+      ? `You are a knowledgeable sommelier/beer expert. You're given a dinner dish and the name of a ${noun} typed ` +
+        `in by a guest (may be spelled inaccurately or incompletely). Interpret which ${noun}/${noun} type is most ` +
+        "likely meant, and judge how well it pairs with the dish.\n\n" +
+        'Respond with ONLY JSON in exactly this shape: {"verdict": "ikke_bra" | "greit" | "bra" | "meget_bra", "reasoning": "short reasoning in English, max 2 sentences", "wineNameParsed": "the beverage/type as you interpreted it"}'
+      : `Du er en kunnskapsrik sommelier/ølkjenner. Du får en middagsrett og navnet på en ${noun} skrevet inn av en ` +
+        `gjest (kan være stavet unøyaktig eller ufullstendig). Tolk hvilken ${noun}/${noun}type det mest sannsynlig ` +
+        "er snakk om, og vurder hvor godt den passer til retten.\n\n" +
+        'Svar KUN med JSON på nøyaktig denne formen: {"verdict": "ikke_bra" | "greit" | "bra" | "meget_bra", "reasoning": "kort begrunnelse på norsk, maks 2 setninger", "wineNameParsed": "drikken/typen slik du tolket den"}';
 
   const prompt =
     lang === "en"
-      ? `Dish: ${recipe.title}\nDescription: ${recipe.description || "(no description)"}\nMain ingredients: ${recipe.ingredientNames.slice(0, 15).join(", ") || "(unknown)"}\n\nWine given by guest: "${wineName}"`
-      : `Rett: ${recipe.title}\nBeskrivelse: ${recipe.description || "(ingen beskrivelse)"}\nHovedingredienser: ${recipe.ingredientNames.slice(0, 15).join(", ") || "(ukjent)"}\n\nVin oppgitt av gjest: "${wineName}"`;
+      ? `Dish: ${recipe.title}\nDescription: ${recipe.description || "(no description)"}\nMain ingredients: ${recipe.ingredientNames.slice(0, 15).join(", ") || "(unknown)"}\n\n${noun[0].toUpperCase()}${noun.slice(1)} given by guest: "${beverageName}"`
+      : `Rett: ${recipe.title}\nBeskrivelse: ${recipe.description || "(ingen beskrivelse)"}\nHovedingredienser: ${recipe.ingredientNames.slice(0, 15).join(", ") || "(ukjent)"}\n\n${noun[0].toUpperCase()}${noun.slice(1)} oppgitt av gjest: "${beverageName}"`;
 
   const result = await callClaudeJSON<{
     verdict: string;
@@ -181,7 +200,17 @@ export async function checkWineMatch(
     wineNameParsed: string;
   }>(system, prompt, 300);
 
-  return normalizeWineVerdict(result, wineName);
+  return normalizeWineVerdict(result, beverageName);
+}
+
+/** Bevart som et tynt, vin-spesifikt kallenavn for eksisterende og fremtidig
+ * kode som kun bryr seg om vin – delegerer til checkBeverageMatch over. */
+export async function checkWineMatch(
+  recipe: RecipeContext,
+  wineNameRaw: string,
+  lang: Lang = "no",
+): Promise<{ verdict: WineVerdict; reasoning: string; wineNameParsed: string }> {
+  return checkBeverageMatch(recipe, wineNameRaw, lang, "wine");
 }
 
 function normalizeWineVerdict(
@@ -202,7 +231,13 @@ function normalizeWineVerdict(
 /** Gjest tar bilde av (eller velger fra bibliotek) en vinflaske/etikett – AI-en
  * leser etiketten og vurderer match mot retten i samme kall. Bildet lastes
  * aldri opp noe sted permanent; det sendes direkte videre til Anthropic sitt
- * API og kastes etterpå. */
+ * API og kastes etterpå.
+ *
+ * BEVISST IKKE generalisert til checkBeverageMatchFromImage ennå (i
+ * motsetning til tekst-varianten over) – bildegjenkjenning av en ølflaske/
+ * -boks er en egen, ikke-triviell jobb (spesifikasjonens punkt 7 sier
+ * eksplisitt at dette kan vente), så kun tekstsjekkeren er generalisert per
+ * nå. Arkitekturen er likevel ikke til hinder for det senere. */
 export async function checkWineMatchFromImage(
   recipe: RecipeContext,
   image: { mediaType: string; base64Data: string },

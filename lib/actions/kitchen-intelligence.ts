@@ -18,6 +18,7 @@ import {
 import type { MealCourseRole, MealOccasion } from "@/lib/kitchen-intelligence/types";
 import { getSearchableRecipes, getPublishedRecipeSummaries } from "@/lib/data/recipes";
 import type { RecipeSummary } from "@/lib/types";
+import type { TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import type { Lang } from "@/lib/i18n/lang";
 import { t, type DictKey } from "@/lib/i18n";
 
@@ -284,6 +285,158 @@ export async function getIngredientSubstitution(
 
   await setCachedAiSuggestion(recipeId, "substitution", cacheKey, suggestion);
   return suggestion;
+}
+
+/**
+ * "DRIKKE TIL" (28.08.2026) – erstatter den tidligere frittstående
+ * vinanbefalingen PÅ SELVE OPPSKRIFTSSIDEN (WineSection.tsx, nå
+ * DrinkPairingSection.tsx) med TRE samtidige drikkeforslag: VIN, ØL og UTEN
+ * ALKOHOL, alle vurdert opp mot DENNE rettens faktiske smaksprofil i ett og
+ * samme AI-kall – i stedet for tre ukoordinerte kall som lett kunne endt
+ * opp usammenhengende (f.eks. en fyldig rødvin og et lett pilsnerforslag
+ * til samme rett uten noen felles logikk bak). getWineRecommendation i
+ * lib/actions/ai.ts er IKKE fjernet/erstattet globalt – den lever videre
+ * uendret som grunnlaget for den separate "Mat & vin"-seksjonen på
+ * forsiden (components/home/WinePairing.tsx).
+ *
+ * DELER pairing-resonnementet på tvers av alle tre kategoriene (ett system-
+ * prompt, én vurdering av fett/syre/sødme/salt/umami/styrke/røyk/urter/
+ * kremethet osv.), i stedet for tre separate "intelligente systemer" – kun
+ * SELVE resultatformen skiller vin/øl/alkoholfritt (se DrinkPairingOption).
+ *
+ * Cachet PER OPPSKRIFT+SPRÅK (ikke per besøkende) – samme resonnement som
+ * getMenuSuggestions: retten endrer seg ikke fra besøk til besøk, så svaret
+ * kan trygt gjenbrukes. recipe.tasteProfile (forhåndsgenerert i admin, se
+ * lib/kitchen-intelligence/taste.ts) sendes med som en EKSTRA, presis hint
+ * når den finnes – funksjonen virker helt fint uten den også (mange
+ * oppskrifter har ikke fått generert en smaksprofil ennå), da resonnerer
+ * AI-en kun ut fra tittel/beskrivelse/ingredienser, som før.
+ */
+
+export interface DrinkPairingOption {
+  /** Kort stil-/typenavn – f.eks. "Côtes du Rhône" (vin) eller "Dry stout"
+   * (øl) eller "Syrlig eplemost" (alkoholfritt). ALDRI et produsent- eller
+   * merkenavn – se system-prompten. */
+  style: string;
+  /** Valgfri kort detaljlinje – typisk relevante druer for vin (f.eks.
+   * "Syrah · Grenache"). Null når det ikke tilfører noe (vanlig for øl og
+   * alkoholfrie forslag). */
+  detail: string | null;
+  /** Én kort setning: HVORFOR denne matcher akkurat denne retten – se
+   * spesifikasjonens "ikke overforklar"-krav (punkt 8). */
+  note: string;
+}
+
+export interface DrinkPairing {
+  wine: DrinkPairingOption;
+  beer: DrinkPairingOption;
+  nonAlcoholic: DrinkPairingOption;
+}
+
+interface RawDrinkPairingOption {
+  style?: string;
+  detail?: string | null;
+  note?: string;
+}
+
+function cleanDrinkPairingOption(raw: RawDrinkPairingOption | undefined): DrinkPairingOption {
+  const detail = typeof raw?.detail === "string" ? raw.detail.trim().slice(0, 60) : "";
+  return {
+    style: (raw?.style ?? "").trim().slice(0, 60),
+    detail: detail || null,
+    note: (raw?.note ?? "").trim().slice(0, 220),
+  };
+}
+
+/** Bygger smaksprofil-linjen som mates inn i prompten – se filheaderen over
+ * for hvorfor dette er en EKSTRA hint, ikke en forutsetning. Tallene (0-5)
+ * skrives ut med norske/engelske dimensjonsnavn slik AI-en ikke trenger å
+ * kjenne til de interne id-ene i lib/kitchen-intelligence/taste.ts. */
+function tasteProfilePromptLine(tasteProfile: TasteProfile | null | undefined, lang: Lang): string {
+  if (!tasteProfile) return "";
+  const labels =
+    lang === "en"
+      ? { sweet: "sweet", salty: "salty", sour: "sour", bitter: "bitter", umami: "umami", spicy: "spicy/heat" }
+      : { sweet: "søtt", salty: "salt", sour: "syrlig", bitter: "bittert", umami: "umami", spicy: "sterkt/chili" };
+  const d = tasteProfile.dimensions;
+  const dims = `${labels.sweet} ${d.sweet}/5, ${labels.salty} ${d.salty}/5, ${labels.sour} ${d.sour}/5, ${labels.bitter} ${d.bitter}/5, ${labels.umami} ${d.umami}/5, ${labels.spicy} ${d.spicy}/5`;
+  const summary = lang === "en" ? tasteProfile.summaryEn || tasteProfile.summary : tasteProfile.summary;
+  return lang === "en"
+    ? `\nKnown flavor profile (0-5 scale): ${dims}. Summary: "${summary}"`
+    : `\nKjent smaksprofil (skala 0-5): ${dims}. Oppsummering: "${summary}"`;
+}
+
+export async function getDrinkPairing(
+  recipeId: string,
+  recipe: { title: string; description: string; ingredientNames: string[]; tasteProfile?: TasteProfile | null },
+  lang: Lang = "no",
+): Promise<DrinkPairing> {
+  const cached = await getCachedAiSuggestion<DrinkPairing>(recipeId, "drink_pairing", lang);
+  if (cached) return cached;
+
+  const system =
+    lang === "en"
+      ? "You are a knowledgeable sommelier AND beer expert who gives short, elegant drink pairings for a home-cooked " +
+        "dish, in English. Base your suggestions on the dish's ACTUAL flavor profile, not just its name – reason " +
+        "explicitly about fat, acidity, sweetness, saltiness, umami, spice/heat, smoke, grilling, herbs, creaminess, " +
+        "tomato, dark/reduced sauces, seafood vs. meat type, and cooking method. Suggest THREE separate pairings " +
+        "that each genuinely fit the dish on their own terms:\n\n" +
+        '1. WINE: a wine STYLE/GRAPE (e.g. "Côtes du Rhône", "Chablis") – never a specific producer or bottle. ' +
+        'Include relevant grapes in "detail" only when it adds real information.\n' +
+        "2. BEER: a specific beer STYLE (e.g. pilsner, helles, saison, weissbier, pale ale, IPA, brown ale, porter, " +
+        "dry stout) chosen by actually matching bitterness, malt character, roasted notes, carbonation, sweetness " +
+        "and alcohol strength against the dish – NEVER just default to \"heavy food = dark beer\". Leave \"detail\" " +
+        "null unless a specific hop/malt note genuinely adds value.\n" +
+        "3. NON-ALCOHOLIC: a REAL, considered pairing, not a lazy default. Consider options like a tart or sweeter " +
+        "apple juice/cider, kombucha, a matching non-alcoholic beer style, non-alcoholic sparkling wine, a tonic/" +
+        "citrus-based drink, or a tea-based option – pick whichever ACTUALLY fits this dish's flavor, never just " +
+        '"non-alcoholic wine" as a catch-all default answer.\n\n' +
+        "Keep every \"note\" to exactly ONE short, concrete sentence – the reader should understand WHAT to drink " +
+        "and WHY within a couple of seconds, not read a paragraph. Avoid flowery language.\n\n" +
+        'Respond with ONLY JSON in exactly this shape: {"wine": {"style": "...", "detail": "..." or null, "note": ' +
+        '"..."}, "beer": {"style": "...", "detail": null, "note": "..."}, "nonAlcoholic": {"style": "...", "detail": ' +
+        'null, "note": "..."}}.'
+      : "Du er en kunnskapsrik sommelier OG ølkjenner som gir korte, elegante drikkeforslag til en hjemmelaget rett, " +
+        "på norsk. Baser forslagene på rettens FAKTISKE smaksprofil, ikke bare navnet – resonner eksplisitt rundt " +
+        "fett, syre, sødme, salt, umami, styrke/chili, røyk, grilling, urter, kremethet, tomat, mørke/reduserte " +
+        "sauser, sjømat vs. kjøttype, og tilberedningsmetode. Foreslå TRE separate drikker som hver for seg genuint " +
+        "passer retten på egne premisser:\n\n" +
+        '1. VIN: en vinSTIL/-region (f.eks. «Côtes du Rhône», «Chablis») – aldri et bestemt produsentnavn eller ' +
+        'flaske. Ta med relevante druer i "detail" kun når det faktisk tilfører informasjon.\n' +
+        "2. ØL: en konkret ølSTIL (f.eks. pilsner, helles, saison, weissbier, pale ale, IPA, brown ale, porter, dry " +
+        "stout) valgt ved å faktisk matche bitterhet, maltkarakter, ristede toner, kullsyre, sødme og alkoholstyrke " +
+        'mot retten – ALDRI bare «kraftig mat = mørkt øl». La "detail" være null med mindre en konkret humle-/' +
+        "maltnote faktisk tilfører verdi.\n" +
+        "3. UTEN ALKOHOL: en EKTE, gjennomtenkt match, ikke et pliktalternativ. Vurder ting som syrlig eller søtere " +
+        "eplemost, kombucha, en alkoholfri ølstil som passer, alkoholfri musserende, en tonic-/sitrusbasert drikke, " +
+        'eller et tebasert alternativ – velg det som FAKTISK passer denne rettens smak, aldri bare «alkoholfri vin» ' +
+        "som et standardsvar til alt.\n\n" +
+        'Hold hver "note" til NØYAKTIG én kort, konkret setning – leseren skal forstå HVA de bør drikke og HVORFOR ' +
+        "på et par sekunder, ikke lese et avsnitt. Unngå blomstrete språk.\n\n" +
+        'Svar KUN med JSON på nøyaktig denne formen: {"wine": {"style": "...", "detail": "..." eller null, "note": ' +
+        '"..."}, "beer": {"style": "...", "detail": null, "note": "..."}, "nonAlcoholic": {"style": "...", "detail": ' +
+        'null, "note": "..."}}.';
+
+  const prompt =
+    (lang === "en"
+      ? `Dish: ${recipe.title}\nDescription: ${recipe.description || "(no description)"}\nMain ingredients: ${recipe.ingredientNames.slice(0, 15).join(", ") || "(unknown)"}`
+      : `Rett: ${recipe.title}\nBeskrivelse: ${recipe.description || "(ingen beskrivelse)"}\nHovedingredienser: ${recipe.ingredientNames.slice(0, 15).join(", ") || "(ukjent)"}`) +
+    tasteProfilePromptLine(recipe.tasteProfile, lang);
+
+  const result = await callClaudeJSON<{
+    wine?: RawDrinkPairingOption;
+    beer?: RawDrinkPairingOption;
+    nonAlcoholic?: RawDrinkPairingOption;
+  }>(system, prompt, 500, 0.4);
+
+  const pairing: DrinkPairing = {
+    wine: cleanDrinkPairingOption(result.wine),
+    beer: cleanDrinkPairingOption(result.beer),
+    nonAlcoholic: cleanDrinkPairingOption(result.nonAlcoholic),
+  };
+
+  await setCachedAiSuggestion(recipeId, "drink_pairing", lang, pairing);
+  return pairing;
 }
 
 /**

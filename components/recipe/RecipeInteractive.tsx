@@ -16,7 +16,7 @@ import { ParallelTaskBadge } from "@/components/recipe/ParallelTaskBadge";
 import type { CookingTimeline } from "@/lib/kitchen-intelligence/timeline";
 import { groupInfoByStepId } from "@/lib/kitchen-intelligence/parallel-tasks";
 import type { ParallelTaskGroup } from "@/lib/actions/kitchen-intelligence";
-import { WineSection } from "@/components/recipe/WineSection";
+import { DrinkPairingSection } from "@/components/recipe/DrinkPairingSection";
 import { RecipeQuestionSection } from "@/components/recipe/RecipeQuestionSection";
 import { FavoriteButton } from "@/components/recipe/FavoriteButton";
 import { RatingStars } from "@/components/recipe/RatingStars";
@@ -713,12 +713,14 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             lang={lang}
           />
 
-          <WineSection
+          <DrinkPairingSection
+            recipeId={recipe.id}
             recipeContext={{
               title: displayTitle,
               description: displayDescription,
               ingredientNames: recipeIngredientNames,
             }}
+            tasteProfile={recipe.tasteProfile ?? null}
             lang={lang}
           />
 

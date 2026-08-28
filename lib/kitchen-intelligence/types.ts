@@ -209,6 +209,19 @@ export const AI_CACHE_FEATURES = [
   // lib/actions/recipes.ts. Gamle cache-rader med feature="taste_profile"
   // kan trygt ligge urørt/slettes manuelt i ai_suggestion_cache – de leses
   // ikke av noe lenger.
+  // "drink_pairing" (28.08.2026): getDrinkPairing i
+  // lib/actions/kitchen-intelligence.ts – "Drikke til" på selve
+  // oppskriftssiden (components/recipe/DrinkPairingSection.tsx), som
+  // utvider den tidligere ène-vin-forslaget der til tre samtidige forslag
+  // (vin/øl/uten alkohol) fra ÉTT AI-kall som vurderer rettens faktiske
+  // smaksprofil under ett, i stedet for tre separate, ukoordinerte kall.
+  // getWineRecommendation i lib/actions/ai.ts lever VIDERE uendret – den
+  // brukes fortsatt av den HELT ANDRE "Mat & vin"-seksjonen på forsiden
+  // (components/home/WinePairing.tsx, retning RETT -> VIN), kun bruken på
+  // selve oppskriftssiden er erstattet av denne. Cache-nøkkelen er bare
+  // språket (`lang`) – samme svar for alle besøkende på DENNE oppskriften,
+  // samme mønster som "menu_suggestion".
+  "drink_pairing",
 ] as const;
 
 export type AiCacheFeature = (typeof AI_CACHE_FEATURES)[number];

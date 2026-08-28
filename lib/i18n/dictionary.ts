@@ -490,14 +490,6 @@ const DICT = {
     en: "Can be done in parallel: {note}",
   },
 
-  "wine.recTitle": { no: "Vinanbefaling", en: "Wine pairing" },
-  "wine.recDesc": {
-    no: "Få et forslag til hva slags vin som passer til denne retten.",
-    en: "Get a suggestion for what kind of wine goes well with this dish.",
-  },
-  "wine.getRec": { no: "Få vinanbefaling", en: "Get a wine suggestion" },
-  "wine.fetching": { no: "Henter forslag …", en: "Fetching a suggestion …" },
-  "wine.getNewRec": { no: "Få et nytt forslag", en: "Get another suggestion" },
   "wine.vinmonopoletPrompt": { no: "Vil du ha et konkret forslag fra Vinmonopolet?", en: "Want a specific suggestion from Vinmonopolet?" },
   "wine.vinmonopoletLoading": { no: "Leter i Vinmonopolets sortiment …", en: "Searching Vinmonopolet's assortment …" },
   "wine.vinmonopoletError": { no: "Klarte ikke å finne et forslag. Prøv igjen.", en: "Couldn't find a suggestion. Please try again." },
@@ -508,13 +500,6 @@ const DICT = {
     en: "The product name, image, and price are fetched directly from Vinmonopolet's own product page right now, not an estimate. The catalog still doesn't distinguish active from discontinued products, so it's worth checking stock on the product page. Discontinued, or not quite what you had in mind? Use \"Try a new suggestion\" below.",
   },
   "wine.vinmonopoletNewSuggestion": { no: "Prøv et nytt forslag", en: "Try a new suggestion" },
-  "wine.fetchingNew": { no: "Henter …", en: "Fetching …" },
-  "wine.recError": { no: "Kunne ikke hente vinanbefaling. Prøv igjen.", en: "Couldn't fetch a wine suggestion. Please try again." },
-  "wine.matchTitle": { no: "Passer vinen din med denne retten?", en: "Does your wine match this dish?" },
-  "wine.matchDesc": {
-    no: "Skriv inn vinen du har, så vurderer vi hvor godt den passer.",
-    en: "Enter the wine you have, and we'll judge how well it pairs.",
-  },
   "wine.matchPlaceholder": { no: "F.eks. «Chianti» eller «Rioja»", en: "E.g. \"Chianti\" or \"Rioja\"" },
   "wine.checkMatch": { no: "Sjekk match", en: "Check match" },
   "wine.checking": { no: "Sjekker …", en: "Checking …" },
@@ -530,6 +515,36 @@ const DICT = {
   },
   "wine.or": { no: "eller", en: "or" },
   "wine.retakePhoto": { no: "Ta nytt bilde", en: "Take another photo" },
+
+  // "DRIKKE TIL" (28.08.2026) – erstatter den tidligere frittstående
+  // vinanbefalingen (wine.recTitle m.fl., nå fjernet) på oppskriftssiden,
+  // se DrinkPairingSection.tsx og getDrinkPairing i
+  // lib/actions/kitchen-intelligence.ts. wine.vinmonopolet*/wine.match*-
+  // nøklene over BRUKES FORTSATT herfra (vinprodukt-oppslag og
+  // "passer denne?"-sjekkeren) – kun selve seksjonsrammen er ny.
+  "drinkPairing.heading": { no: "Drikke til", en: "Drink pairing" },
+  "drinkPairing.intro": {
+    no: "Et forslag til hva du kan drikke til, tilpasset rettens smak.",
+    en: "A suggestion for what to drink with it, matched to the dish's flavor.",
+  },
+  "drinkPairing.button": { no: "Få drikkeforslag", en: "Get drink suggestions" },
+  "drinkPairing.loading": { no: "Finner gode drikkematcher …", en: "Finding good pairings …" },
+  "drinkPairing.error": {
+    no: "Kunne ikke hente drikkeforslag. Prøv igjen.",
+    en: "Couldn't fetch drink suggestions. Please try again.",
+  },
+  "drinkPairing.wineLabel": { no: "Vin", en: "Wine" },
+  "drinkPairing.beerLabel": { no: "Øl", en: "Beer" },
+  "drinkPairing.nonAlcoholicLabel": { no: "Uten alkohol", en: "Non-alcoholic" },
+  "drinkPairing.findWineButton": {
+    no: "Finn en konkret vin på Vinmonopolet",
+    en: "Find a specific wine at Vinmonopolet",
+  },
+  "drinkPairing.matchTitle": { no: "Passer denne?", en: "Does this match?" },
+  "drinkPairing.matchDesc": {
+    no: "Skriv inn (eller ta bilde av) en vin du har, så vurderer vi hvor godt den passer.",
+    en: "Enter (or photograph) a wine you have, and we'll judge how well it pairs.",
+  },
 
   "recipeQuestion.title": { no: "Lurer du på noe?", en: "Wondering about something?" },
   "recipeQuestion.desc": {
