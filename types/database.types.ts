@@ -102,6 +102,7 @@ export interface Database {
           difficulty: Difficulty;
           notes: string | null;
           tips: string | null;
+          warnings: string | null;
           source: string | null;
           is_published: boolean;
           is_featured: boolean;
@@ -138,6 +139,7 @@ export interface Database {
           difficulty?: Difficulty;
           notes?: string | null;
           tips?: string | null;
+          warnings?: string | null;
           source?: string | null;
           is_published?: boolean;
           is_featured?: boolean;
@@ -154,7 +156,15 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["recipes"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "recipes_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       recipe_tags: {
         Row: { recipe_id: string; tag_id: string };
@@ -337,7 +347,15 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["knowledge_guides"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_guides_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "guide_categories";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       knowledge_guide_steps: {
         Row: {
