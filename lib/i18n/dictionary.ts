@@ -54,8 +54,8 @@ const DICT = {
     en: "The recipes you actually cook, again and again",
   },
   "home.subtitleRest": {
-    no: "Det beste skjer alltid rundt bordet.",
-    en: "The best things always happen around the table.",
+    no: "Det beste skjer rundt bordet.",
+    en: "The best things happen around the table.",
   },
   /** Brukt i AtmosphereSection (den mørke stemningsseksjonen med
    * kakestabel-/vinglassbildet) i stedet for home.subtitleRest – samme
