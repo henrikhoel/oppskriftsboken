@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Landingsside for "Hvordan gjør jeg det?" – À TABLEs kunnskapsbibliotek
+ * Landingsside for "Hvordan gjør jeg det?" – CONVITEs kunnskapsbibliotek
  * (se filheaderen til supabase/migrations/0013_knowledge_guides.sql).
  * Henter KUN kategorier + tellinger her (bevisst begrenset datasett, ikke
  * hele guide-tabellen) – selve søket skjer server-side per tastetrykk via

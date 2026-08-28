@@ -407,7 +407,7 @@ function BeatBlock({ beat, lang, filler }: { beat: Beat; lang: Lang; filler?: Re
  * kolonnen i siste par-oppslag (se `filler` på PairedBeat), i stedet for et
  * rent bakgrunnsbilde (vurdert og forkastet, se samtale). Et ekte, kreditert
  * sitat. Sitatet/attribusjonen er bevisst alltid på fransk (matcher
- * "À TABLE"-navnet); kun den lille oversettelseslinjen bytter språk med
+ * "CONVITE"-navnet); kun den lille oversettelseslinjen bytter språk med
  * resten av siden. */
 function ClosingQuote({ lang }: { lang: Lang }) {
   return (

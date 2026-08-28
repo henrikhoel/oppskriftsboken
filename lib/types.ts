@@ -379,7 +379,7 @@ export interface ShoppingListEntry {
 }
 
 /**
- * "HVORDAN GJØR JEG DET?" – À TABLEs kunnskapsbibliotek for praktiske
+ * "HVORDAN GJØR JEG DET?" – CONVITEs kunnskapsbibliotek for praktiske
  * kjøkkenteknikker og problemløsning (koke poteter, lage roux, redde en
  * skilt saus osv.), bygget 27.08.2026. Se supabase/migrations/0013_knowledge_guides.sql
  * for skjemaet disse typene speiler, og lib/data/guides.ts for lesing.
@@ -500,7 +500,7 @@ export interface GuideSearchResult extends GuideSummary {
 }
 
 /**
- * "I sesong" – À TABLEs redaksjonelle sesonglag (se
+ * "I sesong" – CONVITEs redaksjonelle sesonglag (se
  * supabase/migrations/0014_seasons.sql). EGEN tabell fra alt annet
  * innhold, samme begrunnelse som guide_categories/knowledge_guides i
  * lib/types.ts sin egen filheader over: en sesong er ikke en
@@ -558,7 +558,7 @@ export type IngredientCategory =
  * lib/kitchen-intelligence/seasonal.ts. */
 export type IngredientOriginGroup = "havet" | "skogen" | "jorda" | "hagen" | "beite";
 
-/** Norsk vs importert (spesifikasjonens punkt 6) – À TABLE skal aldri
+/** Norsk vs importert (spesifikasjonens punkt 6) – CONVITE skal aldri
  * fremstille en importert råvare (f.eks. blodappelsin) som norsk, selv om
  * den er en reell og relevant vintersesong-råvare kulinarisk. */
 export type IngredientOrigin = "norwegian" | "imported";
@@ -573,7 +573,7 @@ export type IngredientOrigin = "norwegian" | "imported";
  *                 skaffes i denne perioden, men er ikke nødvendigvis
  *                 kulinarisk interessant hele tiden (f.eks. blåskjell).
  *   SESONG        (seasonStart/EndMonth) – den naturlige/relevante perioden
- *                 À TABLE faktisk fremhever råvaren i. `null`/`null` her
+ *                 CONVITE faktisk fremhever råvaren i. `null`/`null` her
  *                 betyr "bruk foreldre-sesongens `months`" (samme fallback-
  *                 prinsipp som peak alltid har hatt), og gjør at råvaren KUN
  *                 vises på sin egen hjemme-sesongside. Sette et EKSPLISITT

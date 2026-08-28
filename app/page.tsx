@@ -112,7 +112,7 @@ export default async function HomePage() {
             "calc(100svh - var(--app-banner-h, 2.375rem) - var(--header-h, 4.0625rem) - var(--bottom-nav-h, 0px))",
         }}
       >
-        {/* Stemningsbilde bak À TABLE-ordmerket. Rent dekorativt (alt=""). Ekte
+        {/* Stemningsbilde bak CONVITE-ordmerket. Rent dekorativt (alt=""). Ekte
             foto (ikke AI-generert) – se public/images/hero.jpg. */}
         <Image
           src="/images/hero.jpg"
@@ -134,7 +134,7 @@ export default async function HomePage() {
               venstreside som teksten kan stå fritt over, i stedet for å
               ligge midt oppå pastaen. */}
           <div className="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
-            {/* "À TABLE" er selve blikkfanget – gjort mye større. Under
+            {/* "CONVITE" er selve blikkfanget – gjort mye større. Under
                 står kun én kort linje ("home.subtitleRest", nå "Det beste
                 skjer rundt bordet."), rett over søkefeltet – i samme
                 kursive serif/gull-stil som "Din digitale kokebok" hadde

@@ -11,7 +11,7 @@ export function AtmosphereSection({ lang }: { lang: Lang }) {
   return (
     // Kakestabelen i originalbildet sitter litt venstre for midten, med rent
     // mørkt (nesten svart) bakteppe både lengst til venstre OG lengst til
-    // høyre. Fra sm: og opp flankerer vi derfor kaken: À TABLE helt til
+    // høyre. Fra sm: og opp flankerer vi derfor kaken: CONVITE helt til
     // venstre (i den rene bakteppe-sonen, før vase/flaske-rekvisittene
     // begynner rundt ~30% inn i bildet), tagline-linjen til høyre (samme
     // plassering som før) – kaken selv står fritt i midten, urørt av tekst.

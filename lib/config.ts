@@ -9,10 +9,10 @@
 
 export const siteConfig = {
   /** Vises i header, footer, metadata-tittel og som fallback-logo. */
-  name: "À TABLE",
+  name: "CONVITE",
   /**
    * Kort merkevare-slagord, vises i hero-seksjonen i kursiv rett under
-   * "À TABLE"-ordmerket. Bevisst holdt på engelsk i BEGGE språkvarianter
+   * "CONVITE"-ordmerket. Bevisst holdt på engelsk i BEGGE språkvarianter
    * (samme mønster som f.eks. "Just Do It") – dette er selve merkevaren,
    * ikke tekst som skal oversettes med resten av siden.
    */
@@ -25,9 +25,9 @@ export const siteConfig = {
   /** Brukes til absolutte URL-er i Open Graph / JSON-LD / canonical. */
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   /** Emoji/tekst-basert favicon-erstatning inntil egen logo er lastet opp. */
-  logoInitial: "À",
+  logoInitial: "C",
   locale: "nb_NO",
-  author: "À TABLE",
+  author: "CONVITE",
 } as const;
 
 /**

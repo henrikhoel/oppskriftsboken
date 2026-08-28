@@ -271,7 +271,7 @@ export function SeasonIngredientList({
           sticky) mens man scroller videre.
           Stilen er bevisst holdt rolig/redaksjonell (Henriks ønske om noe
           "mer elegant og stilrent" 28.08.2026): en tynn gyllen kant i
-          venstre marg (samme antikk-gull-aksent som resten av "À TABLE",
+          venstre marg (samme antikk-gull-aksent som resten av "CONVITE",
           se app/globals.css) erstatter en tidligere, mer "snakkeboble"-aktig
           pil-tupp – den antyder fortsatt en kobling til valget uten å bli
           en tegneserie-detalj. Romsligere polstring (p-8) matcher ellers

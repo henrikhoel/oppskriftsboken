@@ -684,7 +684,7 @@ function sanitizeDraftMinutes(value: unknown): number | null {
 export async function getRecipeDraft(input: RecipeDraftInput): Promise<RecipeDraft> {
   const system =
     "Du er en erfaren kokk og oppskriftsforfatter som skriver oppskrifter for en norsk, redaksjonell " +
-    "kokebok-app (À TABLE). Du får en tittel og en kort beskrivelse av en rett, og skal dikte opp en komplett, " +
+    "kokebok-app (CONVITE). Du får en tittel og en kort beskrivelse av en rett, og skal dikte opp en komplett, " +
     "realistisk oppskrift som passer godt til beskrivelsen – ingredienser MED konkrete, fornuftige mengder " +
     "tilpasset det oppgitte antall porsjoner, og en fremgangsmåte steg for steg. Skriv kort, konkret og " +
     "appetittvekkende, uten unødvendig poesi eller overdrivelser – samme nøkterne, presise stil som resten av " +
@@ -970,7 +970,7 @@ export interface NewDishSuggestionInput {
  */
 export async function suggestNewDishIdeas(input: NewDishSuggestionInput): Promise<NewDishSuggestion[]> {
   const system =
-    "Du er en erfaren kokk og redaktør som hjelper til med å utvide en norsk, redaksjonell kokebok-app (À TABLE) " +
+    "Du er en erfaren kokk og redaktør som hjelper til med å utvide en norsk, redaksjonell kokebok-app (CONVITE) " +
     "med NYE retter. Du får en liste over ingredienser en admin har for hånden, ev. et ønske om type mat, og en " +
     "liste over titler på retter som ALLEREDE finnes på nettstedet. Foreslå 3-5 HELT NYE retteideer – IKKE " +
     "oppskrifter som allerede finnes i listen, og heller ikke noe som er for likt en eksisterende tittel (unngå " +

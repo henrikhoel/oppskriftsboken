@@ -2,7 +2,7 @@ import type { Guide, GuideRelatedSummary } from "@/lib/types";
 import { findDemoGuideCategory } from "@/lib/demo-data/guide-categories";
 
 /**
- * "HVORDAN GJØR JEG DET?" – À TABLEs kunnskapsbibliotek for praktiske
+ * "HVORDAN GJØR JEG DET?" – CONVITEs kunnskapsbibliotek for praktiske
  * kjøkkenteknikker og problemløsning. Startet som fire demo-/placeholder-
  * guider (spesifikasjon punkt 22) for å teste UI, søk, kategorier,
  * kort-svar, steg (inkl. tidtaker-felt), tips/pass på og relaterte guider.

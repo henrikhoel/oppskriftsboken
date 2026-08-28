@@ -23,7 +23,7 @@ import { t, type Lang } from "@/lib/i18n";
  * atskilt av subtile skillelinjer på desktop, stablet på mobil. Ingen
  * "AI-dashboard"-følelse, samme redaksjonelle språk (serif-overskrifter,
  * små sperret store bokstaver til kategorietikettene) som resten av
- * À TABLEs "kjøkkenintelligens"-seksjoner (se f.eks. Eyebrow-mønsteret i
+ * CONVITEs "kjøkkenintelligens"-seksjoner (se f.eks. Eyebrow-mønsteret i
  * EveningExperience.tsx).
  */
 

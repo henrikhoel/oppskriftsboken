@@ -11,7 +11,7 @@ import { localizedCategoryName } from "@/lib/utils/format";
  * "Bla etter kategori" – en editorial INDEKS, ikke et dashboard-aktig
  * kort-grid (se git-historikk for den forrige varianten med store brune
  * gradientkort/bilde-fliser, bevisst fjernet 24.08.2026 etter tilbake-
- * melding om at den føltes for "SaaS", ikke i tråd med resten av À TABLEs
+ * melding om at den føltes for "SaaS", ikke i tråd med resten av CONVITEs
  * rolige, redaksjonelle uttrykk). Ingen bilder, ikoner, kort eller
  * fargeflater her – kun typografi, luft og tynne linjer, ment å kjennes ut
  * som innholdsfortegnelsen i et eksklusivt mat-/livsstilsmagasin. Seksjonen

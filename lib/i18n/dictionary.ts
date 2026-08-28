@@ -838,7 +838,7 @@ const DICT = {
     en: "Wine, table, mood and music – curated around this exact menu.",
   },
   "eveningExperience.dialogAria": { no: "Gjør det til en kveld", en: "Make it an evening" },
-  "eveningExperience.eyebrow": { no: "À TABLE", en: "À TABLE" },
+  "eveningExperience.eyebrow": { no: "CONVITE", en: "CONVITE" },
   "eveningExperience.menuHeading": { no: "Meny", en: "Menu" },
   "eveningExperience.wineHeading": { no: "I glasset", en: "In the glass" },
   "eveningExperience.tableHeading": { no: "På bordet", en: "On the table" },
@@ -903,7 +903,7 @@ const DICT = {
     en: "It may have been deleted, unpublished, or the link is wrong.",
   },
 
-  // --- "Hvordan gjør jeg det?" – À TABLEs kunnskapsbibliotek for
+  // --- "Hvordan gjør jeg det?" – CONVITEs kunnskapsbibliotek for
   // kjøkkenteknikker og problemløsning (bygget 27.08.2026, se
   // supabase/migrations/0013_knowledge_guides.sql). Oppskriften forteller
   // HVA som skal gjøres; denne delen av siden lærer brukeren HVORDAN. Egen

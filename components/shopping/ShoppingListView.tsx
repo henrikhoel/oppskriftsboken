@@ -77,9 +77,9 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
         : "";
     // MERK: `title` sendes ALLEREDE separat til navigator.share under, og
     // enkelte mottakere (bl.a. Notater på iPhone) viser både title OG den
-    // første linjen i text – la tidligere "Handleliste – À TABLE" stå som
+    // første linjen i text – la tidligere "Handleliste – CONVITE" stå som
     // egen første linje i text, som da dukket opp RETT under den samme
-    // "Handleliste"-tittelen. Kun À TABLE-navnet (uten "Handleliste" foran)
+    // "Handleliste"-tittelen. Kun CONVITE-navnet (uten "Handleliste" foran)
     // står derfor i selve teksten nå.
     const text = `${siteConfig.name}\n\n${menuBlock}${lines.join("\n")}`;
     try {

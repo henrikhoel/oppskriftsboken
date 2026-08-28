@@ -342,7 +342,7 @@ export function EveningExperience({
          * fullskjerm-opplevelse UTEN resten av sideskallet (header/bunnmeny)
          * rundt seg, se print:hidden-wrapperne i app/layout.tsx (26.08.2026,
          * Henrik: "må ha en mulighet til å gå tilbake til forsiden ved å
-         * trykke på À TABLE oppe til venstre"). */}
+         * trykke på CONVITE oppe til venstre"). */}
         <Link
           href="/"
           className="font-sans text-xs font-semibold uppercase tracking-[0.3em] text-clay transition-colors hover:text-clay-dark"
@@ -632,7 +632,7 @@ export function EveningExperience({
           </>
         )}
 
-        {/* AVSLUTNINGEN — speiler åpningen (kl. + À TABLE), nesten absurd
+        {/* AVSLUTNINGEN — speiler åpningen (kl. + CONVITE), nesten absurd
          * enkelt, masse negativ plass. Gjenbruker siteConfig.tagline (samme
          * ekte data som utskriftsvisningens avslutning i MealView.tsx bruker
          * – IKKE en hardkodet setning som "Det beste skjer rundt bordet"). */}
