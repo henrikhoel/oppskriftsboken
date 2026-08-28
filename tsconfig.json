@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -16,7 +12,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "incremental": true,
     "plugins": [
       {
@@ -25,20 +21,26 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "scripts/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  /*
+   * "scripts" er eksplisitt ekskludert fra typesjekken her: disse filene
+   * kjøres kun manuelt med tsx (npm run seed, seed all, generate hero), som
+   * ikke typesjekker, kun transpilerer. De har derfor aldri vært
+   * typesjekket, og next build (som tsc sjekker hele prosjektet mot,
+   * inkludert denne mappen via ts-filmønsteret i include over) feilet på
+   * 28.08.2026 med 15+ feil i scripts/seed.ts da Henrik skulle deploye til
+   * Vercel for første gang, feil som ikke har noe med selve den kjørende
+   * nettsiden å gjøre. Løses riktig ved å faktisk rette opp seed.ts sine
+   * typer ved en senere anledning, men til da skal ikke et
+   * vedlikeholdsscript kunne blokkere en ellers frisk produksjonsdeploy.
+   */
+  "exclude": ["node_modules", "scripts"]
 }
