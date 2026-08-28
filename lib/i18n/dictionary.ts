@@ -39,7 +39,6 @@ const DICT = {
   "footer.favorites": { no: "Favoritter", en: "Favorites" },
   "footer.shoppingList": { no: "Handleliste", en: "Shopping list" },
   "footer.admin": { no: "Admin", en: "Admin" },
-  "footer.madeFor": { no: "Laget for eget kjøkkenbruk.", en: "Made for home kitchen use." },
   "footer.ariaLabel": { no: "Bunntekst", en: "Footer" },
   "footer.backToTop": { no: "Til toppen", en: "Back to top" },
 

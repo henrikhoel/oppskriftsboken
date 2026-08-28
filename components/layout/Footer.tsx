@@ -45,7 +45,7 @@ export function Footer({ lang }: { lang: Lang }) {
           </nav>
         </div>
         <p className="mt-10 text-xs text-ink-faint">
-          © {new Date().getFullYear()} {siteConfig.name}. {t(lang, "footer.madeFor")}
+          © {new Date().getFullYear()} {siteConfig.name}
         </p>
       </div>
     </footer>
