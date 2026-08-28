@@ -127,3 +127,15 @@
     overflow: hidden;
   }
 }
+
+/* Rundere, mer sjenerøs sidemarg for de utskriftsvennlige menyvisningene
+ * (MealView.tsx sin print:block-oppsummering) enn nettleserens trange
+ * standardmarg – gir dem den luftige, redaksjonelle følelsen resten av
+ * siden allerede har. NB: selve nettleserens egne topp-/bunntekst i
+ * utskriften (dato, side-URL, sidetall) styres IKKE herfra – det skrus av i
+ * utskriftsdialogens "Flere innstillinger" (avhuk "Topp- og bunntekst"). */
+@media print {
+  @page {
+    margin: 1.75cm;
+  }
+}

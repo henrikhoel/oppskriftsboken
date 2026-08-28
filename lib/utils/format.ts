@@ -13,6 +13,22 @@ export function formatMinutes(minutes: number | null | undefined, lang: "no" | "
   return rest === 0 ? `${hours} ${hourUnit}` : `${hours} ${hourUnit} ${rest} ${minUnit}`;
 }
 
+/** Formaterer et tidsintervall som "5-7 min" – for tilberedningstid der admin
+ * har skrevet et intervall (se cookTimeMinutesMax i lib/types.ts, satt via
+ * "fra-til"-feltet i RecipeForm.tsx). Faller tilbake til vanlig
+ * formatMinutes() når max er null/lik min, så eksisterende oppskrifter med
+ * kun ett tall vises helt uendret. */
+export function formatMinutesRange(
+  min: number | null | undefined,
+  max: number | null | undefined,
+  lang: "no" | "en" = "no",
+): string {
+  if (min == null || Number.isNaN(min)) return "–";
+  if (max == null || Number.isNaN(max) || max === min) return formatMinutes(min, lang);
+  if (min < 60 && max < 60) return `${min}-${max} min`;
+  return `${formatMinutes(min, lang)}–${formatMinutes(max, lang)}`;
+}
+
 /**
  * Velger engelsk tittel/beskrivelse (recipe.titleEn/descriptionEn – forhånds-
  * generert med AI i admin, se lib/actions/recipes.ts ->

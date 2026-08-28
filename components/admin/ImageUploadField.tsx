@@ -163,7 +163,8 @@ export function ImageUploadField({
               onChange={(e) => onChange({ ...value, alt: e.target.value })}
               placeholder={altPlaceholder ?? "Alt-tekst (beskrivelse av bildet)"}
               aria-label="Alt-tekst for bildet"
-              className="w-full rounded-lg border border-line-strong bg-paper px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint focus:outline-none"
+              // text-base på mobil (unngår iOS-innzooming ved fokus).
+              className="w-full rounded-lg border border-line-strong bg-paper px-3 py-1.5 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-xs"
             />
           )}
           {error && <p className="text-xs text-clay-dark">{error}</p>}

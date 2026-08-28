@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { generateId } from "@/lib/utils/id";
 import {
   addExistingSlot,
   addSuggestedSlot,
@@ -10,23 +11,25 @@ import {
   removeSlot,
   renameMeal,
   replaceSlotContent,
+  setMealAnchorRecipeId,
   setMealDesiredReadyAt,
   setMealNotes,
+  setMealOccasion,
   setSlotServings,
 } from "@/lib/kitchen-intelligence/meal-session";
-import type { MealCourseRole, MealSession } from "@/lib/kitchen-intelligence/types";
+import type { MealCourseRole, MealOccasion, MealSession } from "@/lib/kitchen-intelligence/types";
 
 const INDEX_KEY = "oppskriftsboken:meals:index";
 
-/** Trygg id-generering for en NY meny – samme fallback-mønster som
- * makeKey() i lib/admin-form-types.ts (der crypto.randomUUID ikke skulle
- * finnes i miljøet). Kalleren (f.eks. MealBuilder.tsx) genererer én id ved
- * mount (`useState(() => generateMealId())`), og bruker den til BÅDE
+/** Trygg id-generering for en NY meny – tynn wrapper rundt den delte
+ * generateId() (lib/utils/id.ts, samme sted som makeKey() i
+ * lib/admin-form-types.ts nå også bruker – se den filen for hvorfor en
+ * fallback trengs i det hele tatt, ikke bare crypto.randomUUID() direkte).
+ * Kalleren (f.eks. MealBuilder.tsx) genererer én id ved mount
+ * (`useState(() => generateMealId())`), og bruker den til BÅDE
  * `useMealSession(id, …)` og `useMealSessionIndex().addToIndex(id)`. */
 export function generateMealId(): string {
-  return typeof crypto !== "undefined" && crypto.randomUUID
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2);
+  return generateId();
 }
 
 /**
@@ -90,6 +93,11 @@ export function useMealSession(mealId: string, initialTitle: string) {
 
   const setTitle = useCallback((title: string) => touch((prev) => renameMeal(prev, title)), [touch]);
 
+  const setAnchorRecipeId = useCallback(
+    (anchorRecipeId: string | null) => touch((prev) => setMealAnchorRecipeId(prev, anchorRecipeId)),
+    [touch],
+  );
+
   const addExisting = useCallback(
     (role: MealCourseRole, recipe: { id: string; slug: string; title: string }, servings: number) =>
       touch((prev) => addExistingSlot(prev, role, recipe, servings)),
@@ -129,10 +137,16 @@ export function useMealSession(mealId: string, initialTitle: string) {
     [touch],
   );
 
+  const setOccasion = useCallback(
+    (occasion: MealOccasion | null) => touch((prev) => setMealOccasion(prev, occasion)),
+    [touch],
+  );
+
   return {
     session,
     hydrated,
     setTitle,
+    setAnchorRecipeId,
     addExisting,
     addSuggested,
     remove,
@@ -141,5 +155,6 @@ export function useMealSession(mealId: string, initialTitle: string) {
     markConverted,
     setNotes,
     setDesiredReadyAt,
+    setOccasion,
   };
 }

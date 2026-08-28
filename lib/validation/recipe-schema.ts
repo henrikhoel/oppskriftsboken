@@ -50,12 +50,17 @@ export const recipeInputSchema = z.object({
   servings: z.coerce.number().int().min(1).max(100),
   prepTimeMinutes: z.coerce.number().int().min(0).max(2000).nullable(),
   cookTimeMinutes: z.coerce.number().int().min(0).max(2000).nullable(),
+  // Valgfri ØVRE grense for et intervall admin skrev inn ("5-7") i
+  // "Tilberedning (min)"-feltet, tolket i RecipeForm.tsx sin
+  // parseMinutesRange(). Null = ikke et intervall, kun cookTimeMinutes brukes.
+  cookTimeMinutesMax: z.coerce.number().int().min(0).max(2000).nullable(),
   totalTimeMinutes: z.coerce.number().int().min(0).max(4000).nullable(),
   difficulty: z.enum(["enkel", "middels", "avansert"]),
   ingredientGroups: z.array(ingredientGroupSchema).min(1, "Legg til minst én ingrediensgruppe"),
   steps: z.array(stepSchema).min(1, "Legg til minst ett steg"),
   notes: z.string().trim().max(2000).nullable(),
   tips: z.string().trim().max(2000).nullable(),
+  warnings: z.string().trim().max(2000).nullable(),
   source: z.string().trim().max(200).nullable(),
   isPublished: z.boolean(),
   isFeatured: z.boolean(),

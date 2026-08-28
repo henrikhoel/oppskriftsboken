@@ -119,13 +119,22 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 `.env.local` lastes automatisk av Next.js og skal **aldri** committes (den ligger allerede i `.gitignore`). `SUPABASE_SERVICE_ROLE_KEY` brukes kun av `scripts/seed.ts` som kjører lokalt på din maskin – den sendes aldri til nettleseren.
 
-### 3.5 Last inn eksempeloppskriftene (valgfritt, men anbefalt)
+### 3.5 Last inn innhold
 
 ```bash
 npm run seed
 ```
 
-Dette fyller databasen din med de samme 8 eksempeloppskriftene og kategoriene som demo-modus viser, så du har noe å øve på med det samme. Trygt å kjøre flere ganger.
+Dette fyller databasen din med "I sesong"-innholdet fra `lib/demo-data/` (sesonginnhold – det seedes raskest og er det du justerer oftest). Trygt å kjøre flere ganger – oppdaterer eksisterende rader i stedet for å duplisere dem.
+
+**Guidene** ("Hvordan gjør jeg det?") og **eksempeloppskriftene** (Trøffelpasta og de andre demo-oppskriftene) seedes IKKE av en vanlig `npm run seed` – kjør i stedet:
+
+```bash
+npm run seed:guides
+npm run seed:recipes
+```
+
+kun når du faktisk trenger dem (typisk helt i starten, eller etter at du har endret guide-innholdet i `lib/demo-data/`). Grunnen til at alt dette er delt opp i egne kommandoer: (1) en oppskrift eller guide du sletter i appen kommer tilbake neste gang du kjører en vanlig `npm run seed`, siden seed-scriptet upserter på slug og ikke kan skille "aldri seedet" fra "bevisst slettet", og (2) guide-seedingen alene tar merkbart lang tid, noe som blir tungvint når du bare vil oppdatere sesonginnhold og seeder ofte mens du itererer. Kjør `npm run seed:all` hvis du vil seede alt (guider, sesonginnhold og eksempeloppskrifter) i ett kall, eller `npm run seed:seasons` for å være eksplisitt om at du kun vil ha sesonginnholdet (samme som `npm run seed` uten flagg).
 
 ### 3.6 Opprett admin-bruker
 
@@ -143,7 +152,11 @@ npm run lint       # ESLint
 npm run typecheck  # TypeScript uten emit
 npm run build      # produksjonsbygg
 npm run start      # kjør produksjonsbygget lokalt
-npm run seed       # seed Supabase med eksempeldata (krever .env.local)
+npm run seed       # seed Supabase med sesonginnhold (krever .env.local)
+npm run seed:seasons  # samme som npm run seed, skrevet eksplisitt
+npm run seed:guides   # seed KUN "Hvordan gjør jeg det?"-guidene
+npm run seed:recipes  # seed KUN eksempeloppskriftene + kategoriene
+npm run seed:all      # seed alt sammen (guider + sesonginnhold + eksempeloppskrifter)
 ```
 
 ## 5. Deploy til Vercel

@@ -8,11 +8,13 @@ export function RecipeGrid({
   recipes,
   emptyTitle,
   emptyDescription,
+  isAdmin = false,
   lang = "no",
 }: {
   recipes: RecipeSummary[];
   emptyTitle?: string;
   emptyDescription?: string;
+  isAdmin?: boolean;
   lang?: Lang;
 }) {
   if (recipes.length === 0) {
@@ -28,7 +30,7 @@ export function RecipeGrid({
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {recipes.map((recipe, i) => (
-        <RecipeCard key={recipe.id} recipe={recipe} priority={i < 4} lang={lang} />
+        <RecipeCard key={recipe.id} recipe={recipe} priority={i < 4} isAdmin={isAdmin} lang={lang} />
       ))}
     </div>
   );

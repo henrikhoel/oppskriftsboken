@@ -9,6 +9,10 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed.ts",
+    "seed:seasons": "tsx scripts/seed.ts --seasons",
+    "seed:guides": "tsx scripts/seed.ts --guides",
+    "seed:recipes": "tsx scripts/seed.ts --recipes",
+    "seed:all": "tsx scripts/seed.ts --all",
     "generate:hero": "tsx scripts/generate-hero-image.ts"
   },
   "dependencies": {

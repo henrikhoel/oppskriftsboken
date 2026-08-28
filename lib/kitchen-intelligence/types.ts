@@ -172,6 +172,36 @@ export const AI_CACHE_FEATURES = [
   // ulike former ville latt gamle cache-rader bli lest inn og feiltolket
   // som den nye formen uten noen kjøretids-sjekk som fanger det.
   "meal_plan",
+  // "evening_curation" (Fase 5-finale, 5.9–5.11/5.14): getEveningCuration i
+  // lib/actions/kitchen-intelligence.ts – strukturert vin/bord/stemning/
+  // musikk(+servering) for HELE menyen under ett, brukt av
+  // EveningExperience.tsx. recipeId er alltid null her (samme presedens som
+  // "mood_mode" over) – gjelder en sammensatt meny, ikke én bestemt
+  // oppskrift; cache-nøkkelen bærer i stedet anledning+rettene selv.
+  // UTVIDET 26.08.2026 med "hvorfor?"-begrunnelser og en ordforklarings-
+  // liste (se EveningCuration i kitchen-intelligence.ts) – BEVISST en RENT
+  // ADDITIV utvidelse av samme feature/cache-nøkkelrom (ingen ny feature-
+  // streng), i motsetning til "meal_plan" over: de nye feltene er valgfrie
+  // i typen nettopp slik at eldre, allerede cachede rader (som mangler dem)
+  // fortsatt kan leses trygt – UI-et skjuler bare "hvorfor?"-knappen der
+  // feltet ikke finnes, i stedet for å kreve at HELE cachen tømmes.
+  "evening_curation",
+  // "step_timer_labels" (26.08.2026): getStepTimerLabels i
+  // lib/actions/kitchen-intelligence.ts – korte, gjenkjennelige
+  // tidtaker-navn ("Gryten koker") for steg med tidtaker-verdig varighet,
+  // brukt av CookMode.tsx/MultiCookMode.tsx i stedet for det generiske
+  // "Steg 3" når flere tidtakere kjører samtidig. Samme svar for alle
+  // besøkende som ser de samme stegene → cachet per oppskrift.
+  "step_timer_labels",
+  // "recipe_question" (27.08.2026): answerRecipeQuestion i
+  // lib/actions/kitchen-intelligence.ts – "Lurer du på noe?" på
+  // oppskriftssiden, der en besøkende kan stille et fritt spørsmål om DENNE
+  // oppskriften (f.eks. "kan jeg lage pannebrødet på forhånd og la det ligge
+  // klart under et håndkle?") og få et konkret svar. Cache-nøkkelen bærer
+  // selve (normaliserte) spørsmålsteksten – stiller en annen besøkende
+  // samme spørsmål om samme oppskrift, gjenbrukes svaret direkte i stedet
+  // for å betale for et nytt AI-kall.
+  "recipe_question",
   // MERK: "taste_profile" er BEVISST ikke lenger her – smaksprofilen er
   // 25.08.2026 gjort om fra en cachet, live per-besøk AI-beregning til en
   // forhåndsgenerert admin-egenskap lagret direkte på oppskriften
@@ -255,6 +285,14 @@ export interface SuggestedMealCourseSlot extends MealCourseSlotBase {
 
 export type MealCourseSlot = ExistingMealCourseSlot | SuggestedMealCourseSlot;
 
+/** ANLEDNING (Fase 5 – Experience, 5.12). Bevisst FÅ, elegante valg (ikke
+ * "20 kategorier") – valgt av brukeren selv i menybyggeren, IKKE av AI.
+ * Brukes som en MYK kontekst-hint til AI-kallene (meny-generering,
+ * stemning/kveld, vin) – "skal aldri overstyre brukerens faktiske valg"
+ * (spesifikasjonen, 5.12), altså aldri en hard filtrering av hva brukeren
+ * selv kan velge, kun en preferanse AI-en tar hensyn til. */
+export type MealOccasion = "hverdag" | "fredagskveld" | "date_night" | "venner" | "feiring";
+
 /**
  * Én instans per (mealSessionId, besøkende), lagret i localStorage under
  * nøkkelen `oppskriftsboken:meal:${id}` (se useMealSession-hooken). En
@@ -278,6 +316,10 @@ export interface MealSession {
    * Samme felt/format som RecipeSession.desiredReadyAt, men her styrer det
    * en hel-meny-tidslinje (5.8) på tvers av alle rettene i stedet for én. */
   desiredReadyAt: string | null;
+  /** Valgt anledning for kvelden (5.12) – null helt til brukeren aktivt
+   * velger en i menybyggeren. Påvirker AI-forslag (meny/vin/stemning), aldri
+   * hvilke retter brukeren FAKTISK har valgt. */
+  occasion: MealOccasion | null;
   notes: string;
   createdAt: string;
   updatedAt: string;

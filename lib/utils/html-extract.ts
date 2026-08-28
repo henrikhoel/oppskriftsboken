@@ -207,6 +207,50 @@ function decodeHtmlEntities(text: string): string {
   return text.replace(/&amp;|&lt;|&gt;|&quot;|&#39;|&apos;|&nbsp;/g, (entity) => HTML_ENTITIES[entity] ?? entity);
 }
 
+/** Plukker ut innholdet i en <meta>-tagg ved property ELLER name (f.eks.
+ * property="og:description" eller name="description") – rekkefølgen på
+ * attributtene i selve taggen kan variere fra side til side, så alle fire
+ * kombinasjoner forsøkes. Brukes for Instagram/TikTok-innlegg (se
+ * stripSocialCaptionBoilerplate under), som ikke har schema.org Recipe
+ * JSON-LD, men som ALLTID setter disse metataggene – plattformen er selv
+ * avhengig av at Facebook/Slack/Twitter sine egne "hent lenke-forhåndsvisning"-
+ * roboter kan lese dem, og bruker derfor ikke innloggingsveggen mot disse
+ * spesifikt (se user-agenten importFromSocialUrl bruker i recipe-import.ts). */
+export function extractMetaContent(html: string, property: string): string | null {
+  const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const patterns = [
+    new RegExp(`<meta[^>]+property=["']${escaped}["'][^>]+content=["']([^"']*)["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+property=["']${escaped}["']`, "i"),
+    new RegExp(`<meta[^>]+name=["']${escaped}["'][^>]+content=["']([^"']*)["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+name=["']${escaped}["']`, "i"),
+  ];
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) return decodeHtmlEntities(match[1]).trim();
+  }
+  return null;
+}
+
+/** Instagram/TikTok sin og:description er ALDRI bare bildeteksten alene –
+ * plattformen legger alltid til en maskinlesbar prefiks foran den ("1 234
+ * likes, 56 comments - brukernavn on Instagram: ", "12K Likes, 340 Comments.
+ * TikTok video from brukernavn (@brukernavn): ") og pakker selve
+ * bildeteksten inn i anførselstegn til slutt i strengen. Strippes bort
+ * deterministisk (samme "kjent, fast mønster"-prinsipp som resten av denne
+ * fila – ingen AI her) slik at AI-tolkningen i recipe-import.ts kun ser den
+ * FAKTISKE bildeteksten, ikke plattformens boilerplate rundt den. Returnerer
+ * originalteksten uendret dersom ingen av de to mønstrene kjennes igjen
+ * (nytt/endret format hos plattformen) – bedre å sende med litt boilerplate
+ * enn å risikere å kutte bort ekte innhold ved en feilaktig antakelse. */
+export function stripSocialCaptionBoilerplate(ogDescription: string): string {
+  const trimmed = ogDescription.trim();
+  const igMatch = trimmed.match(/on Instagram:\s*"([\s\S]*)"\s*$/i);
+  if (igMatch?.[1]) return igMatch[1].trim();
+  const ttMatch = trimmed.match(/TikTok video from[^:]*:\s*"([\s\S]*)"\s*$/i);
+  if (ttMatch?.[1]) return ttMatch[1].trim();
+  return trimmed;
+}
+
 /** Fallback for sider UTEN JSON-LD-oppskriftsdata: strekker rå HTML om til
  * lesbar ren tekst en AI kan tolke – fjerner script/style/nav/footer-
  * innhold (rent støy for en oppskrift), alle resterende tagger, og

@@ -28,6 +28,19 @@ const MOOD_ICONS = {
  * hvorfor de er faste, ikke fritekst); resultatet lastes først når
  * besøkende faktisk velger en stemning – ingen AI-kall bare av å laste
  * forsiden.
+ *
+ * Redesignet 26.08.2026 (tilbakemelding: føltes for lite/lett å scrolle
+ * forbi, mindre luft over enn under teksten). Nå et tydelig, luftig bånd
+ * – prøvde en stund et svakt bakgrunnsbilde her (public/images/mood-
+ * section.jpg via ParallaxBackdrop, samme som AtmosphereSection), men
+ * Henrik tok det tilbake samme dag ("tror det blir bedre med svart") –
+ * ren mørk bakgrunn (samme bg-cream som resten av siden) igjen. Bildet og
+ * ParallaxBackdrop-bruken ligger fortsatt urørt i hhv. public/images/ og
+ * components/home/ hvis det skulle bli aktuelt igjen senere. py-verdien
+ * er bevisst symmetrisk (samme verdi over og under), og page.tsx sin
+ * påfølgende seksjon fikk sin egen toppmargin fjernet slik at luften ned
+ * til "Ukens utvalg" faktisk matcher luften opp mot heroen, i stedet for
+ * å dobles opp.
  */
 export function MoodModeSection({ lang }: { lang: Lang }) {
   const [activeMood, setActiveMood] = useState<MoodId | null>(null);
@@ -36,6 +49,18 @@ export function MoodModeSection({ lang }: { lang: Lang }) {
   const [error, setError] = useState<string | null>(null);
 
   async function handlePick(moodId: MoodId) {
+    // Trykker man på den ALLEREDE aktive stemningen igjen, "unclicker" man
+    // den – lukker resultatet i stedet for å hente det på nytt. Matcher
+    // aria-pressed-oppførselen knappen allerede annonserer (en toggle-knapp,
+    // ikke en ren "velg"-knapp).
+    if (activeMood === moodId) {
+      setActiveMood(null);
+      setRecipes(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setActiveMood(moodId);
     setRecipes(null);
     setError(null);
@@ -51,14 +76,14 @@ export function MoodModeSection({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div className="py-16 sm:py-20">
+    <div className="py-28 sm:py-36 lg:py-40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-xl text-center">
-          <h2 className="font-serif text-2xl text-ink sm:text-3xl">{t(lang, "moodMode.heading")}</h2>
-          <p className="mt-2 text-sm text-ink-soft">{t(lang, "moodMode.intro")}</p>
+          <h2 className="font-serif text-4xl text-ink sm:text-5xl">{t(lang, "moodMode.heading")}</h2>
+          <p className="mt-3 text-base text-ink-soft">{t(lang, "moodMode.intro")}</p>
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-2.5">
           {MOOD_DEFINITIONS.map((mood) => {
             const Icon = MOOD_ICONS[mood.id];
             const active = activeMood === mood.id;

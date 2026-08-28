@@ -42,6 +42,7 @@ export async function createCategory(input: {
 
   revalidatePath("/admin/kategorier");
   revalidatePath("/oppskrifter");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -112,5 +113,6 @@ export async function deleteCategory(id: string): Promise<CategoryActionResult> 
 
   revalidatePath("/admin/kategorier");
   revalidatePath("/oppskrifter");
+  revalidatePath("/");
   return { success: true };
 }

@@ -68,6 +68,25 @@ export function ChevronDownIcon(props: IconProps) {
   );
 }
 
+/** "Grip"-håndtak for dra-for-å-endre-rekkefølge (f.eks.
+ * IngredientGroupsEditor.tsx sine ingrediensrader) – seks små, faste
+ * prikker (IKKE strek, i unntak fra resten av ikonsettets rene strek-stil,
+ * se filheaderen over) er den mest universelt gjenkjente
+ * dra-håndtak-formen, og treffer derfor bedre enn f.eks. tre horisontale
+ * streker (som lettere leses som en meny-knapp). */
+export function GripIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function ChevronUpIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -101,10 +120,27 @@ export function MenuIcon(props: IconProps) {
 }
 
 export function ShoppingBagIcon(props: IconProps) {
+  // Byttet ut 26.08.2026 (Henrik: "det ser ut som en lås nå") – forrige
+  // versjon hadde et handtak-buer som stakk opp over hele bredden av en
+  // rett firkant, akkurat som bøylen på en hengelås. Denne varianten (samme
+  // form som brukes bredt for "handlekurv" ellers på nettet) har ISTEDET en
+  // vinklet toppkant og et handtak tegnet SOM en bue INNI posen, under selve
+  // åpningslinjen – ingenting stikker opp over silhuetten, så den kan ikke
+  // leses som en lås.
   return (
     <svg {...base} {...props}>
-      <path d="M6 8V6a6 6 0 0 1 12 0v2" />
-      <rect x="3.5" y="8" width="17" height="13" rx="2" />
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+      <path d="M3 6h18" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  );
+}
+
+export function EditIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
     </svg>
   );
 }
@@ -308,6 +344,59 @@ export function SmartphoneIcon(props: IconProps) {
     <svg {...base} {...props}>
       <rect x="7" y="2.5" width="10" height="19" rx="2.2" />
       <path d="M11 18.2h2" />
+    </svg>
+  );
+}
+
+/** Spørsmålstegn-i-sirkel – brukt for "Hvordan gjør jeg det?"-biblioteket
+ * (nav.guides, se BottomNav.tsx/Header.tsx og
+ * app/hvordan-gjor-jeg-det/*). Egen, rolig strektegning i samme stil som
+ * resten av settet, ingen ekstern ikonpakke. */
+export function HelpCircleIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.3 9.3c.3-1.4 1.5-2.3 2.9-2.2 1.5.1 2.6 1.1 2.6 2.4 0 1.5-1.3 1.9-2.2 2.6-.5.4-.7.9-.7 1.6" />
+      <path d="M12 17.2v.05" />
+    </svg>
+  );
+}
+
+/** Blad – brukt for "I sesong" (nav.season, se Header.tsx og app/sesong/*).
+ * Egen, rolig strektegning i samme stil som resten av settet. */
+export function LeafIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M6 20c-1-6.5 2-13 12-15 1.5 9-3.5 14.5-12 15Z" />
+      <path d="M7 19c2-3 4.5-6.5 10-12.5" />
+    </svg>
+  );
+}
+
+/** Enkel skål sett fra siden, med to små damp-krøller over – brukt for
+ * "Hva skal vi spise?" (nav.whatToEat, se Header.tsx og
+ * WhatToEatTeaser.tsx). Erstatter SparklesIcon 28.08.2026 (Henrik: selve
+ * stjerne-formen antydet at funksjonen er AI-drevet – den ER det til dels
+ * (se lib/kitchen-intelligence/what-to-eat.ts), men et generelt
+ * "sparkles"-symbol er for tett koblet til "AI-magi" som visuelt språk til
+ * å bruke for en helt vanlig nav-lenke/teaser). */
+export function BowlIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 12h18a9 9 0 0 1-18 0Z" />
+      <path d="M9 3c-.6.8-.6 1.7 0 2.5" />
+      <path d="M13 3c-.6.8-.6 1.7 0 2.5" />
+    </svg>
+  );
+}
+
+/** Liten diskret pil-ut-av-boks – kun brukt til eksterne kildelenker (se
+ * IngredientDetail.tsx), aldri i navigasjonen. */
+export function ExternalLinkIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9 6h9v9" />
+      <path d="M18 6 6 18" />
     </svg>
   );
 }

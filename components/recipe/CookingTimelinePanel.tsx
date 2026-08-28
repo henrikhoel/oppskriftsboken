@@ -129,7 +129,9 @@ export function CookingTimelinePanel({
                 type="time"
                 value={readyAt}
                 onChange={(e) => setReadyAt(e.target.value)}
-                className="w-full rounded-lg border border-line bg-cream px-3 py-2 text-sm text-ink"
+                // text-base på mobil (unngår iOS-innzooming ved fokus, gjelder
+                // også type="time"-input).
+                className="w-full rounded-lg border border-line bg-cream px-3 py-2 text-base text-ink sm:text-sm"
               />
             </label>
             <button

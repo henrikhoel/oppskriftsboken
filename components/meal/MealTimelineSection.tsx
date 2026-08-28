@@ -107,7 +107,8 @@ export function MealTimelineSection({
             type="time"
             value={readyAt}
             onChange={(e) => onReadyAtChange(e.target.value)}
-            className="w-full rounded-lg border border-line bg-cream px-3 py-2 text-sm text-ink"
+            // text-base på mobil (unngår iOS-innzooming ved fokus).
+            className="w-full rounded-lg border border-line bg-cream px-3 py-2 text-base text-ink sm:text-sm"
           />
         </label>
         <button

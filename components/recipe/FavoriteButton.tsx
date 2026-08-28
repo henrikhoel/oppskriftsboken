@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { HeartIcon } from "@/components/ui/icons";
@@ -28,7 +28,14 @@ export function FavoriteButton({
 
   const favorited = isAdmin ? adminFavorited : hydrated ? isFavorite(recipeId) : initialFavorited;
 
-  function handleClick() {
+  function handleClick(e: MouseEvent) {
+    // stopPropagation+preventDefault – FavoriteButton rendres i noen
+    // sammenhenger INNI et helt-kort-er-en-lenke (se RecipeCard.tsx sitt
+    // hjerte i hjørnet), og uten disse ville et klikk på hjertet også
+    // trigget kortets navigasjon til oppskriftssiden. Helt trygt/no-op når
+    // knappen ikke står i en lenke (f.eks. på selve oppskriftssiden).
+    e.preventDefault();
+    e.stopPropagation();
     if (isAdmin) {
       const next = !adminFavorited;
       setAdminFavorited(next);

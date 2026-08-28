@@ -23,6 +23,24 @@ export function AdminNav({ userEmail }: { userEmail: string | null }) {
             >
               Kategorier
             </Link>
+            <Link
+              href="/admin/guider"
+              className="rounded-full px-3 py-1.5 font-medium text-ink-soft hover:bg-cream-dark hover:text-ink"
+            >
+              Guider
+            </Link>
+            <Link
+              href="/admin/utvalg"
+              className="rounded-full px-3 py-1.5 font-medium text-ink-soft hover:bg-cream-dark hover:text-ink"
+            >
+              Utvalg
+            </Link>
+            <Link
+              href="/admin/sesonger"
+              className="rounded-full px-3 py-1.5 font-medium text-ink-soft hover:bg-cream-dark hover:text-ink"
+            >
+              Sesonger
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm text-ink-faint">

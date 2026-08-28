@@ -81,7 +81,9 @@ function CategoryRow({
           onChange={(e) => setNameEn(e.target.value)}
           placeholder="Engelsk navn"
           aria-label={`Engelsk navn for kategorien ${category.name}`}
-          className="w-36 rounded-lg border border-line-strong bg-cream px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-faint focus:outline-none"
+          // text-base på mobil, ikke text-xs – unngår iOS Safari sin
+          // automatiske innzooming ved fokus på input med skrift under 16px.
+          className="w-36 rounded-lg border border-line-strong bg-cream px-2.5 py-1.5 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-xs"
         />
         <button
           type="button"

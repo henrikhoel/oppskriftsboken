@@ -15,10 +15,18 @@ const DICT = {
   "nav.shoppingList": { no: "Handleliste", en: "Shopping list" },
   "nav.search": { no: "Søk", en: "Search" },
   "nav.admin": { no: "Admin", en: "Admin" },
+  // "+"-snarveien i Header.tsx, kun synlig server-side for innlogget admin.
+  "nav.newRecipe": { no: "Ny oppskrift", en: "New recipe" },
   "nav.mainNav": { no: "Hovednavigasjon", en: "Main navigation" },
   "nav.mainNavMobile": { no: "Hovednavigasjon, mobil", en: "Main navigation, mobile" },
   "nav.home": { no: "Hjem", en: "Home" },
-  "nav.pantry": { no: "Ingrediens-søk", en: "Ingredient search" },
+  // Endret fra "Ingrediens-søk" 26.08.2026 (ønsket av Henrik – "vagt og
+  // rart") til å matche siden sin EGEN tittel (pantryPage.title, se
+  // app/hva-kan-jeg-lage/page.tsx – både <h1> og fane-tittel er allerede
+  // "Hva kan jeg lage?", og selve URL-en er allerede /hva-kan-jeg-lage).
+  // Kun nav-lenken (her og i BottomNav.tsx, som deler denne nøkkelen) hadde
+  // stått igjen med det gamle, mer kliniske navnet.
+  "nav.pantry": { no: "Hva kan jeg lage?", en: "What can I make?" },
   "nav.language": { no: "Språk", en: "Language" },
 
   // --- AppDownloadBanner: forhåndsvisning av "har vi en app"-tanken, ikke
@@ -43,7 +51,7 @@ const DICT = {
   "home.eyebrow": { no: "Din digitale kokebok", en: "Your digital cookbook" },
   "home.title": {
     no: "Oppskriftene du faktisk lager – igjen og igjen",
-    en: "The recipes you actually cook — again and again",
+    en: "The recipes you actually cook, again and again",
   },
   "home.subtitleRest": {
     no: "Det beste skjer rundt bordet.",
@@ -62,7 +70,6 @@ const DICT = {
   "home.featuredRecipes": { no: "Utvalgte oppskrifter", en: "Featured recipes" },
   "home.browseByCategory": { no: "Bla etter kategori", en: "Browse by category" },
   "home.newestRecipes": { no: "Nyeste oppskrifter", en: "Newest recipes" },
-  "home.houseFavorites": { no: "Husets favoritter", en: "House favorites" },
   "home.seeAll": { no: "Se alle", en: "See all" },
   "home.scrollDown": { no: "Bla nedover", en: "Scroll down" },
 
@@ -89,8 +96,11 @@ const DICT = {
   },
 
   // --- Redesignet forside under hero: editorial utvalg-seksjon ---
-  "home.editorial.eyebrow": { no: "Ukens utvalg", en: "Pick of the week" },
-  "home.editorial.also": { no: "Også verdt å prøve", en: "Also worth trying" },
+  // Omdøpt fra "Ukens utvalg" 26.08.2026 (Henrik: trengte ikke lenger et
+  // separat "Husets favoritter"-avsnitt lenger ned på siden – denne
+  // redaksjonelle utvalgs-seksjonen (styrt fra /admin/utvalg) overtar nå
+  // navnet i stedet).
+  "home.editorial.eyebrow": { no: "Husets favoritter", en: "House favorites" },
   "home.editorial.viewRecipe": { no: "Se oppskrift", en: "See recipe" },
   // Oversettelse av det avsluttende sitatet (Brillat-Savarin) nederst i
   // "Nyeste oppskrifter" – selve sitatet/attribusjonen er bevisst alltid på
@@ -156,6 +166,12 @@ const DICT = {
 
   // --- Kategori-seksjon ---
   "home.categories.eyebrow": { no: "Utforsk", en: "Explore" },
+  // Se-alle/se-færre-pilen i CategoryShowcase (lagt til 26.08.2026 – kun de
+  // første CATEGORIES_VISIBLE_COUNT kategoriene vises til vanlig, resten
+  // skjules bak en liten, sprettende pil med denne teksten under – samme
+  // visuelle idé som "bla nedover"-pilen i heroen øverst på siden).
+  "home.categories.showAll": { no: "Se alle kategorier", en: "See all categories" },
+  "home.categories.showLess": { no: "Se færre", en: "See less" },
 
   "recipesPage.title": { no: "Alle oppskrifter", en: "All recipes" },
   "recipesPage.description": {
@@ -221,6 +237,9 @@ const DICT = {
   "pantryPage.removeIngredientAria": { no: "Fjern {name}", en: "Remove {name}" },
   "pantryPage.searchButton": { no: "Finn oppskrifter", en: "Find recipes" },
   "pantryPage.searching": { no: "Leter …", en: "Searching …" },
+  // (27.08.2026) – nullstiller ingredienser/søk/AI-forslag tilbake til tom
+  // tilstand, se handleResetAll i PantryMatchView.tsx.
+  "pantryPage.resetAllButton": { no: "Tilbakestill alt", en: "Reset everything" },
   "pantryPage.searchError": {
     no: "Klarte ikke å søke akkurat nå. Prøv igjen.",
     en: "Couldn't search right now. Please try again.",
@@ -232,11 +251,64 @@ const DICT = {
   },
   "pantryPage.coverage": { no: "{matched} av {total} ingredienser", en: "{matched} of {total} ingredients" },
   "pantryPage.missing": { no: "Mangler", en: "Missing" },
+  "pantryPage.missingAddButton": { no: "Legg i handleliste", en: "Add to shopping list" },
+  "pantryPage.missingAdding": { no: "Legger til …", en: "Adding …" },
+  "pantryPage.missingAdded": { no: "Lagt til i handlelista →", en: "Added to shopping list →" },
+  "pantryPage.missingAddError": {
+    no: "Fikk ikke lagt til. Prøv igjen.",
+    en: "Couldn't add. Try again.",
+  },
   "pantryPage.emptyStateTitle": { no: "Hva har du liggende?", en: "What do you have on hand?" },
   "pantryPage.emptyStateDescription": {
     no: "Legg til noen ingredienser over, så viser vi oppskrifter som passer.",
     en: "Add a few ingredients above, and we'll show recipes that fit.",
   },
+
+  // Admin-only "Foreslå nye retter" (27.08.2026) – dikter opp NYE retteideer
+  // fra ingrediensene over, i motsetning til søket over som kun finner
+  // eksisterende oppskrifter. Se PantryMatchView.tsx.
+  "pantryPage.adminSuggestToggle": { no: "Foreslå nye retter", en: "Suggest new dishes" },
+  "pantryPage.adminSuggestBadgeOpen": { no: "Admin", en: "Admin" },
+  "pantryPage.adminSuggestBadgeClose": { no: "Skjul", en: "Hide" },
+  "pantryPage.adminSuggestIntro": {
+    no: "Bruker ingrediensene over til å foreslå helt nye retteideer som ikke finnes på nettstedet fra før.",
+    en: "Uses the ingredients above to suggest brand new dish ideas that aren't already on the site.",
+  },
+  "pantryPage.adminSuggestTypePlaceholder": {
+    no: "Type mat (valgfritt), f.eks. «noe asiatisk»",
+    en: "Type of food (optional), e.g. \"something Asian\"",
+  },
+  "pantryPage.adminSuggestTypeAria": { no: "Ønsket type mat", en: "Desired type of food" },
+  "pantryPage.adminSuggestButton": { no: "Foreslå nye retter", en: "Suggest new dishes" },
+  "pantryPage.adminSuggestLoading": { no: "Tenker …", en: "Thinking …" },
+  "pantryPage.adminSuggestNeedIngredients": {
+    no: "Legg til minst én ingrediens over først.",
+    en: "Add at least one ingredient above first.",
+  },
+  "pantryPage.adminSuggestError": {
+    no: "Kunne ikke generere retteforslag. Prøv igjen.",
+    en: "Couldn't generate dish suggestions. Try again.",
+  },
+  "pantryPage.adminSuggestUses": { no: "Bruker", en: "Uses" },
+  "pantryPage.adminSuggestCreateLink": { no: "Opprett som oppskrift →", en: "Create as recipe →" },
+
+  // "Finn oppskrifter andre steder" (27.08.2026) – søker EKTE eksterne
+  // matsider (Matprat m.fl.), til forskjell fra "Foreslå nye retter" over
+  // som dikter opp helt nye ideer. Se PantryMatchView.tsx.
+  "pantryPage.adminExternalButton": { no: "Finn oppskrifter andre steder", en: "Find recipes elsewhere" },
+  "pantryPage.adminExternalLoading": { no: "Søker …", en: "Searching …" },
+  "pantryPage.adminExternalError": {
+    no: "Kunne ikke søke etter oppskrifter. Prøv igjen.",
+    en: "Couldn't search for recipes. Try again.",
+  },
+  "pantryPage.adminExternalSourceNote": {
+    no: "Søker på Matprat, Godt.no, TINE Kjøkken og andre kjente norske matsider.",
+    en: "Searches Matprat, Godt.no, TINE Kjøkken and other well-known Norwegian food sites.",
+  },
+  // (27.08.2026) – forhåndsutfyller "Importer fra lenke" på ny-oppskrift-siden
+  // med treffets URL og starter importen automatisk, se
+  // app/admin/(dashboard)/oppskrifter/ny/page.tsx og RecipeForm.tsx.
+  "pantryPage.adminExternalCreateLink": { no: "Opprett som egen oppskrift →", en: "Create as your own recipe →" },
 
   "shoppingPage.title": { no: "Handleliste", en: "Shopping list" },
   "shoppingPage.metaDescription": {
@@ -255,7 +327,26 @@ const DICT = {
   "shoppingPage.clearChecked": { no: "Fjern avhukede", en: "Remove checked" },
   "shoppingPage.clearAll": { no: "Tøm listen", en: "Clear list" },
   "shoppingPage.from": { no: "Fra", en: "From" },
+  "shoppingPage.pantryStapleHint": {
+    no: "Basisvare – antatt at du har den fra før",
+    en: "Pantry staple – assumed you already have it",
+  },
+  "shoppingPage.buyingTipLabel": { no: "Tips", en: "Tip" },
   "shoppingPage.removeAria": { no: "Fjern {name} fra handlelisten", en: "Remove {name} from the shopping list" },
+  // Bruker telefonens/nettleserens EGEN delemeny (Web Share API) – Notater
+  // (iPhone) er ett av valgene som dukker opp der, sammen med f.eks. Keep,
+  // meldinger e.l. på Android. Ingen egen "lagre i Notater"-integrasjon
+  // finnes (eller kan finnes fra en nettside) – se ShoppingListView.tsx.
+  "shoppingPage.shareButton": { no: "Del handleliste", en: "Share shopping list" },
+  "shoppingPage.shareError": {
+    no: "Fikk ikke delt listen. Prøv igjen, eller bruk «Skriv ut / lagre som PDF» i stedet.",
+    en: "Couldn't share the list. Try again, or use \"Print / save as PDF\" instead.",
+  },
+  "shoppingPage.shareInsecureContext": {
+    no: "Del handleliste krever en sikker (https) tilkobling, og virker derfor ikke når man tester via en vanlig http-adresse. Fungerer av seg selv når siden er publisert.",
+    en: "Sharing the list requires a secure (https) connection, so it won't work when testing over a plain http address. It will work on its own once the site is live.",
+  },
+  "shoppingPage.printAlreadyBought": { no: "Allerede handlet", en: "Already bought" },
 
   "categoryPage.eyebrow": { no: "Kategori", en: "Category" },
   "categoryPage.metaDescription": {
@@ -342,11 +433,26 @@ const DICT = {
     en: "No active timers yet. Start one from a step that mentions a duration.",
   },
   "cookMode.startTimerForStep": { no: "Sett timer: {minutes} min", en: "Start timer: {minutes} min" },
+  // Umiddelbar tilbakemelding når "Sett timer"-knappen trykkes (27.08.2026 –
+  // bruker-tilbakemelding: uten dette var det ingen synlig endring, så man
+  // endte med å trykke flere ganger og sette flere timere på det samme
+  // steget). timerStartedButton = selve knappens tekst i det korte
+  // vinduet den er deaktivert rett etter trykk; timerStartedToast = den
+  // flytende bekreftelsen øverst på skjermen, samme mønster som
+  // implementNotice i RecipeForm.tsx.
+  "cookMode.timerStartedButton": { no: "Timer startet", en: "Timer started" },
+  "cookMode.timerStartedToast": { no: "Timer startet: {label} · {minutes} min", en: "Timer started: {label} · {minutes} min" },
   "cookMode.timerDone": { no: "Ferdig!", en: "Done!" },
   "cookMode.pauseTimerAria": { no: "Pause tidtaker", en: "Pause timer" },
   "cookMode.resumeTimerAria": { no: "Gjenoppta tidtaker", en: "Resume timer" },
   "cookMode.removeTimerAria": { no: "Fjern tidtaker", en: "Remove timer" },
   "cookMode.timerStepLabel": { no: "Steg {number}", en: "Step {number}" },
+
+  // "Se alle steg" (26.08.2026) – se CookMode.tsx sin kommentar ved
+  // showAllSteps-tilstanden.
+  "cookMode.allStepsButtonAria": { no: "Se alle steg", en: "See all steps" },
+  "cookMode.allStepsTitle": { no: "Alle steg", en: "All steps" },
+  "cookMode.closeAllStepsAria": { no: "Lukk stegoversikten", en: "Close the step overview" },
 
   "recipeDetail.timelineHeading": { no: "Når bør jeg starte?", en: "When should I start?" },
   "recipeDetail.timelineIntro": {
@@ -398,8 +504,8 @@ const DICT = {
   "wine.viewProduct": { no: "Til Vinmonopolet", en: "To Vinmonopolet" },
   "wine.priceLabel": { no: "Pris", en: "Price" },
   "wine.vinmonopoletDisclaimer": {
-    no: "Produktnavn, bilde og pris er hentet direkte fra Vinmonopolets egen produktside akkurat nå — ikke et anslag. Katalogen skiller likevel ikke mellom aktive og utgåtte produkter, så sjekk gjerne at varen fortsatt er på lager på produktsiden. Utgått, eller ikke helt det du så for deg? Prøv «Prøv et nytt forslag» under.",
-    en: "The product name, image, and price are fetched directly from Vinmonopolet's own product page right now — not an estimate. The catalog still doesn't distinguish active from discontinued products, so it's worth checking stock on the product page. Discontinued, or not quite what you had in mind? Use \"Try a new suggestion\" below.",
+    no: "Produktnavn, bilde og pris er hentet direkte fra Vinmonopolets egen produktside akkurat nå, ikke et anslag. Katalogen skiller likevel ikke mellom aktive og utgåtte produkter, så sjekk gjerne at varen fortsatt er på lager på produktsiden. Utgått, eller ikke helt det du så for deg? Prøv «Prøv et nytt forslag» under.",
+    en: "The product name, image, and price are fetched directly from Vinmonopolet's own product page right now, not an estimate. The catalog still doesn't distinguish active from discontinued products, so it's worth checking stock on the product page. Discontinued, or not quite what you had in mind? Use \"Try a new suggestion\" below.",
   },
   "wine.vinmonopoletNewSuggestion": { no: "Prøv et nytt forslag", en: "Try a new suggestion" },
   "wine.fetchingNew": { no: "Henter …", en: "Fetching …" },
@@ -425,7 +531,22 @@ const DICT = {
   "wine.or": { no: "eller", en: "or" },
   "wine.retakePhoto": { no: "Ta nytt bilde", en: "Take another photo" },
 
+  "recipeQuestion.title": { no: "Lurer du på noe?", en: "Wondering about something?" },
+  "recipeQuestion.desc": {
+    no: "Still et spørsmål om akkurat denne oppskriften, så gjør vi vårt beste for å svare.",
+    en: "Ask a question about this exact recipe, and we'll do our best to answer.",
+  },
+  "recipeQuestion.placeholder": {
+    no: "F.eks. «Kan jeg fryse resten av dette?»",
+    en: "E.g. \"Can I freeze the leftovers?\"",
+  },
+  "recipeQuestion.ask": { no: "Spør", en: "Ask" },
+  "recipeQuestion.asking": { no: "Tenker …", en: "Thinking …" },
+  "recipeQuestion.askAnother": { no: "Still et nytt spørsmål", en: "Ask another question" },
+  "recipeQuestion.error": { no: "Klarte ikke å svare akkurat nå. Prøv igjen.", en: "Couldn't answer right now. Please try again." },
+
   "recipeDetail.draft": { no: "Utkast", en: "Draft" },
+  "recipeDetail.editButton": { no: "Rediger", en: "Edit" },
   "recipeDetail.allRecipesLink": { no: "Alle oppskrifter", en: "All recipes" },
   "recipeDetail.imagePending": { no: "Bilde kommer", en: "Image coming" },
   "recipeDetail.ingredientsHeading": { no: "Ingredienser", en: "Ingredients" },
@@ -433,16 +554,16 @@ const DICT = {
   "servings.chooseAria": { no: "Velg antall porsjoner", en: "Choose number of servings" },
   "recipeDetail.stepsHeading": { no: "Fremgangsmåte", en: "Method" },
   "recipeDetail.stepStartTime": { no: "Start kl. {time}", en: "Start at {time}" },
+  // Vegetarversjonen er nå admin-forhåndslagret (se vegetarianVariant i
+  // lib/types.ts) – knappen/avkrysningen vises kun når en variant faktisk
+  // finnes, og trenger derfor verken lasting- eller feil-tekst lenger.
   "recipeDetail.vegPrompt": { no: "Ønsker du en vegetarversjon?", en: "Want a vegetarian version?" },
-  "recipeDetail.vegLoading": { no: "Lager vegetarforslag …", en: "Preparing a vegetarian version …" },
-  "recipeDetail.vegError": { no: "Kunne ikke lage vegetarforslag. Prøv igjen.", en: "Couldn't create a vegetarian version. Please try again." },
-  "recipeDetail.showVeg": { no: "Vis vegetarversjon", en: "Show vegetarian version" },
-  "recipeDetail.newSuggestion": { no: "Lag et nytt forslag", en: "Make a new suggestion" },
-  "recipeDetail.newSuggestionLoading": { no: "Lager nytt forslag …", en: "Preparing a new suggestion …" },
   "recipeDetail.engTranslating": { no: "Oversetter til engelsk …", en: "Translating to English …" },
   "recipeDetail.engError": { no: "Kunne ikke oversette til engelsk. Prøv igjen.", en: "Couldn't translate to English. Please try again." },
   "recipeDetail.reTranslate": { no: "Oversett på nytt", en: "Translate again" },
   "recipeDetail.reTranslating": { no: "Oversetter på nytt …", en: "Translating again …" },
+  "recipeDetail.substituteModeOn": { no: "Bytt ut en ingrediens", en: "Substitute an ingredient" },
+  "recipeDetail.substituteModeOff": { no: "Skjul bytt ut-forslag", en: "Hide substitute suggestions" },
   "recipeDetail.substitutePrompt": { no: "Bytt ut", en: "Substitute" },
   "recipeDetail.substituteLoading": { no: "Finner erstatning …", en: "Finding a substitute …" },
   "recipeDetail.substituteUndo": { no: "Angre bytte", en: "Undo swap" },
@@ -517,9 +638,14 @@ const DICT = {
   "mealBuilder.role.dessert": { no: "Dessert", en: "Dessert" },
   "mealBuilder.heading": { no: "Bygg en meny rundt denne retten", en: "Build a menu around this dish" },
   "mealBuilder.intro": {
-    no: "La AI-en sette sammen en hel meny rundt denne retten – hentet fra oppskriftsboken der det passer, foreslått nytt der det ikke gjør det.",
-    en: "Let AI put together a full menu around this dish – drawn from your cookbook where it fits, suggested fresh where it doesn't.",
+    no: "Vi setter sammen en hel meny rundt denne retten – hentet fra oppskriftsboken der det passer, foreslått nytt der det ikke gjør det.",
+    en: "We put together a full menu around this dish – drawn from your cookbook where it fits, suggested fresh where it doesn't.",
   },
+  // Anledning (5.12) / tilgjengelig tid (5.13) – valgfrie hint FØR selve
+  // genereringen, se MealBuilder.tsx.
+  "mealBuilder.occasionLabel": { no: "Anledning (valgfritt)", en: "Occasion (optional)" },
+  "mealBuilder.availableMinutesLabel": { no: "Jeg har (minutter, valgfritt)", en: "I have (minutes, optional)" },
+  "mealBuilder.availableMinutesPlaceholder": { no: "f.eks. 60", en: "e.g. 60" },
   "mealBuilder.button": { no: "Bygg en meny", en: "Build a menu" },
   "mealBuilder.loading": { no: "Setter sammen menyen …", en: "Putting the menu together …" },
   "mealBuilder.error": {
@@ -538,13 +664,19 @@ const DICT = {
   },
   "mealBuilder.servingsLabel": { no: "Porsjoner", en: "Servings" },
   "mealBuilder.titleLabel": { no: "Menynavn", en: "Menu name" },
-  "mealBuilder.save": { no: "Lagre menyen", en: "Save menu" },
-  "mealBuilder.saving": { no: "Lagrer …", en: "Saving …" },
+  // Endret fra "Lagre menyen" til "Gå videre" 26.08.2026 (ønsket av Henrik –
+  // "lagre meny høres litt rart ut" for en knapp som faktisk navigerer videre
+  // til selve menysiden med det samme, ikke bare lagrer og blir stående).
+  // Selve lagringen (til localStorage) skjer fortsatt akkurat likt, kun
+  // teksten er endret – se handleSave i MealBuilder.tsx.
+  "mealBuilder.save": { no: "Gå videre", en: "Continue" },
+  "mealBuilder.saving": { no: "Går videre …", en: "Continuing …" },
   "mealBuilder.saveError": {
     no: "Klarte ikke å lagre menyen på denne enheten.",
     en: "Couldn't save the menu on this device.",
   },
   "mealBuilder.viewSaved": { no: "Se den lagrede menyen", en: "View the saved menu" },
+  "mealBuilder.reset": { no: "Nullstill og begynn på nytt", en: "Reset and start over" },
 
   // Den lagrede menysiden – app/meny/[id]/page.tsx.
   "mealPage.metaTitle": { no: "Din meny", en: "Your menu" },
@@ -554,12 +686,17 @@ const DICT = {
     en: "This menu doesn't exist on this device – menus are only stored locally in the browser they were created in.",
   },
   "mealPage.emptyState": { no: "Denne menyen er tom.", en: "This menu is empty." },
+  // Lenke tilbake til oppskriften menyen ble bygget rundt (26.08.2026,
+  // Henrik: "på menysiden må man ha en mulighet til å gå tilbake til
+  // oppskriften man kom fra") – se anchorSlot i MealView.tsx.
+  "mealPage.backToRecipe": { no: "← Tilbake til {title}", en: "← Back to {title}" },
   "mealPage.notesLabel": { no: "Notater", en: "Notes" },
   "mealPage.notesPlaceholder": {
     no: "Egne notater om menyen – f.eks. hvem som kommer, eller ting å huske …",
     en: "Your own notes about the menu – e.g. who's coming, or things to remember …",
   },
   "mealPage.suggestedDescriptionLabel": { no: "Om forslaget", en: "About the suggestion" },
+  "mealPage.createFromSuggestion": { no: "Opprett som oppskrift", en: "Create as recipe" },
 
   // Menynivå-vin (Fase 5 – Experience, 5.6) – se
   // components/meal/MealWineSection.tsx og getMealWineRecommendation i
@@ -578,6 +715,21 @@ const DICT = {
     no: "Klarte ikke å hente et vinforslag akkurat nå. Prøv igjen.",
     en: "Couldn't get a wine suggestion right now. Please try again.",
   },
+
+  "mealMood.heading": { no: "Gjør det til en kveld", en: "Make it an evening" },
+  "mealMood.description": {
+    no: "Få et forslag til stemning rundt måltidet – musikk, borddekning og tonen for kvelden.",
+    en: "Get a mood suggestion for the meal – music, table setting and the tone for the evening.",
+  },
+  "mealMood.button": { no: "Foreslå stemning", en: "Suggest a mood" },
+  "mealMood.fetching": { no: "Tenker …", en: "Thinking …" },
+  "mealMood.getNew": { no: "Foreslå på nytt", en: "Suggest again" },
+  "mealMood.error": {
+    no: "Klarte ikke å hente et stemningsforslag akkurat nå. Prøv igjen.",
+    en: "Couldn't get a mood suggestion right now. Please try again.",
+  },
+
+  "mealPrint.button": { no: "Skriv ut / lagre som PDF", en: "Print / save as PDF" },
 
   // Kombinert handleliste (Fase 5 – Experience, 5.7) – se
   // components/meal/MealShoppingListSection.tsx og
@@ -644,7 +796,63 @@ const DICT = {
     en: "None of the dishes in the menu have steps to build cook mode from.",
   },
   "mealCookMode.closeButton": { no: "Lukk", en: "Close" },
+  // "mealCookMode.switcherAria" var en periode ubrukt (erstattet av den
+  // kryssrett-orkestrerte tasksstrømmen, 5.16/5.17), men er nå TILBAKE i
+  // bruk (26.08.2026) som aria-label for rette-fanene i MultiCookMode.tsx –
+  // se filheaderen der: fanene hopper i den samme flate strømmen, de
+  // erstatter den ikke.
   "mealCookMode.switcherAria": { no: "Bytt mellom rettene i menyen", en: "Switch between the dishes in the menu" },
+  "mealCookMode.taskOf": { no: "Oppgave {current} av {total}", en: "Task {current} of {total}" },
+  "mealCookMode.noReadyAt": {
+    no: "Sett et ønsket spisetidspunkt i tidslinjen for menyen først, så vi kan planlegge rekkefølgen på tvers av rettene.",
+    en: "Set a desired time to eat in the menu's timeline first, so we can plan the order across the dishes.",
+  },
+  "mealCookMode.allTasksButtonAria": { no: "Se alle gjøremål", en: "See all tasks" },
+  "mealCookMode.allTasksTitle": { no: "Alle gjøremål", en: "All tasks" },
+  "mealCookMode.closeAllTasksAria": { no: "Lukk gjøremålsoversikten", en: "Close the task overview" },
+
+  // "GJØR DET TIL EN KVELD" (Fase 5-finale, 5.9–5.11/5.14) – se
+  // components/meal/EveningExperience.tsx. Denne nøkkel-familien EIER nå den
+  // cinematic sluttopplevelsen – MealMoodSection.tsx/MealWineSection.tsx sine
+  // egne "mealMood.*"/"mealWine.*"-nøkler lenger ned står urørt (de to
+  // filene finnes fortsatt på disk, bare ikke montert fra MealView.tsx
+  // lenger, se filheaderen der).
+  "eveningExperience.entryHeading": { no: "Gjør det til en kveld", en: "Make it an evening" },
+  "eveningExperience.entryDescription": {
+    no: "Vin, bord, stemning og musikk – kuratert rundt akkurat denne menyen.",
+    en: "Wine, table, mood and music – curated around this exact menu.",
+  },
+  "eveningExperience.dialogAria": { no: "Gjør det til en kveld", en: "Make it an evening" },
+  "eveningExperience.eyebrow": { no: "À TABLE", en: "À TABLE" },
+  "eveningExperience.menuHeading": { no: "Meny", en: "Menu" },
+  "eveningExperience.wineHeading": { no: "I glasset", en: "In the glass" },
+  "eveningExperience.tableHeading": { no: "På bordet", en: "On the table" },
+  "eveningExperience.moodHeading": { no: "Stemning", en: "Mood" },
+  "eveningExperience.musicHeading": { no: "Musikk", en: "Music" },
+  "eveningExperience.servingHeading": { no: "Ved servering", en: "When serving" },
+  "eveningExperience.loading": { no: "Setter sammen kvelden …", en: "Putting the evening together …" },
+  "eveningExperience.error": {
+    no: "Klarte ikke å hente forslag til kvelden akkurat nå. Resten av menyen fungerer som normalt.",
+    en: "Couldn't fetch suggestions for the evening right now. The rest of the menu still works as normal.",
+  },
+  "eveningExperience.shoppingListButton": { no: "Handleliste", en: "Shopping list" },
+  "eveningExperience.planButton": { no: "Planlegg kvelden", en: "Plan the evening" },
+  "eveningExperience.startCookingButton": { no: "Start matlaging", en: "Start cooking" },
+  // "Hvorfor?"/ordforklaring (26.08.2026) – se GlossaryText/WhyToggle i
+  // EveningExperience.tsx. Kun brukt i DENNE komponenten (ikke en delt nøkkel
+  // som f.eks. wine.vinmonopoletPrompt under er), så trygt å style teksten
+  // eksakt slik den redaksjonelle redesignen (26.08.2026) ønsker.
+  "eveningExperience.whyShow": { no: "Se hvorfor →", en: "See why →" },
+  "eveningExperience.whyHide": { no: "Skjul", en: "Hide" },
+  // Samme toggle-mekanikk som over (WhyToggle), men egen ordlyd for
+  // PÅ BORDET-seksjonen – "Se detaljer →" passer bedre der enn "Se hvorfor →".
+  "eveningExperience.detailsShow": { no: "Se detaljer →", en: "See details →" },
+  "eveningExperience.detailsHide": { no: "Skjul", en: "Hide" },
+  // Egen, kortere ordlyd for "finn en konkret vin"-knappen HER (i stedet for
+  // den delte wine.vinmonopoletPrompt-nøkkelen, som fortsatt brukes uendret
+  // andre steder – f.eks. MealWineSection.tsx/RecipeInteractive.tsx – og
+  // derfor ikke skal endres).
+  "eveningExperience.findWineButton": { no: "Finn en konkret vin →", en: "Find a specific wine →" },
 
   "recipeDetail.unitsAria": { no: "Målenhet", en: "Unit system" },
   "recipeDetail.unitsMetric": { no: "Metrisk", en: "Metric" },
@@ -654,9 +862,18 @@ const DICT = {
   "recipeDetail.unitsRetry": { no: "Prøv igjen", en: "Try again" },
   "recipeDetail.notes": { no: "Notater", en: "Notes" },
   "recipeDetail.tips": { no: "Tips", en: "Tips" },
+  "recipeDetail.warnings": { no: "Pass på", en: "Watch out for" },
   "recipeDetail.startCooking": { no: "Start matlaging", en: "Start cooking" },
+  // Vises i stedet for startCooking når man har vært i Cook Mode for denne
+  // oppskriften før og har lagret fremgang der (avhukede steg/ingredienser
+  // eller kommet forbi første steg – se hasCookModeProgress i
+  // RecipeInteractive.tsx). Samme lagrede tilstand som Cook Mode selv
+  // gjenopptar fra (useCookModeState), kun brukt her til å velge riktig
+  // knappetekst FØR man i det hele tatt åpner Cook Mode igjen.
+  "recipeDetail.continueCooking": { no: "Fortsett matlaging", en: "Continue cooking" },
   "recipeDetail.addedToList": { no: "Lagt til!", en: "Added!" },
   "recipeDetail.addToList": { no: "Legg til i handleliste", en: "Add to shopping list" },
+  "recipeDetail.goToShoppingList": { no: "Gå til handleliste →", en: "Go to shopping list →" },
   "recipeDetail.source": { no: "Kilde/opprinnelse", en: "Source" },
 
   "notFound.title": { no: "Siden ble ikke funnet", en: "Page not found" },
@@ -670,6 +887,150 @@ const DICT = {
     no: "Den kan være slettet, avpublisert, eller så er lenken feil.",
     en: "It may have been deleted, unpublished, or the link is wrong.",
   },
+
+  // --- "Hvordan gjør jeg det?" – À TABLEs kunnskapsbibliotek for
+  // kjøkkenteknikker og problemløsning (bygget 27.08.2026, se
+  // supabase/migrations/0013_knowledge_guides.sql). Oppskriften forteller
+  // HVA som skal gjøres; denne delen av siden lærer brukeren HVORDAN. Egen
+  // seksjon fra "recipeDetail.*"/"nav.*" over siden dette er et helt eget
+  // innholdsområde, ikke en utvidelse av oppskriftsvisningen.
+  //
+  // nav.guides = full tittel, brukt i BottomNav.tsx (mobil har plass) og
+  // som <h1>/fane-tittel på selve landingssiden. nav.guidesShort = kortere
+  // variant KUN til Header.tsx sin desktop-nav (spesifikasjonens eksplisitte
+  // "kortere navn i header er ok, men ikke bytt konseptnavnet andre steder").
+  "nav.guides": { no: "Hvordan gjør jeg det?", en: "How do I do that?" },
+  "nav.guidesShort": { no: "Guider", en: "Guides" },
+
+  "guides.pageEyebrow": { no: "Kunnskap", en: "Knowledge" },
+  "guides.pageIntro": {
+    no: "Praktiske svar på kjøkkenets store og små spørsmål, fra grunnteknikker til hvordan du redder en mislykket saus.",
+    en: "Practical answers to the kitchen's big and small questions, from basic techniques to rescuing a sauce gone wrong.",
+  },
+  "guides.searchPlaceholder": {
+    no: "Søk, f.eks. «sausen er for tynn»",
+    en: "Search, e.g. “the sauce is too thin”",
+  },
+  "guides.searchLabel": { no: "Søk i Hvordan gjør jeg det?", en: "Search How do I do that?" },
+  "guides.categoriesHeading": { no: "Kategorier", en: "Categories" },
+  "guides.allCategories": { no: "Alle", en: "All" },
+  "guides.noResults": {
+    no: "Fant ingen guider for «{query}».",
+    en: "No guides found for “{query}”.",
+  },
+  "guides.searchHint": {
+    no: "Prøv et annet ord, eller bla i kategoriene under.",
+    en: "Try a different word, or browse the categories below.",
+  },
+  "guides.emptyLibrary": {
+    no: "Ingen guider er publisert ennå.",
+    en: "No guides published yet.",
+  },
+  // Synlig merkelapp på de få demo-/placeholder-guidene (knowledge_guides.is_demo,
+  // se migrasjon 0013) – bevisst synlig for alle, ikke bare admin, siden
+  // spesifikasjonen ber om at placeholder-innhold skal være "tydelig
+  // markert" mens ekte innhold fylles inn.
+  "guides.demoBadge": { no: "Demo", en: "Demo" },
+  "guides.readGuide": { no: "Les guiden", en: "Read guide" },
+  "guides.backToLibrary": { no: "Hvordan gjør jeg det?", en: "How do I do that?" },
+  "guides.categoryEmpty": {
+    no: "Ingen guider i denne kategorien ennå.",
+    en: "No guides in this category yet.",
+  },
+
+  "guide.quickAnswerHeading": { no: "Kort svar", en: "Quick answer" },
+  "guide.stepsHeading": { no: "Fremgangsmåte", en: "Steps" },
+  "guide.tipsHeading": { no: "Tips", en: "Tips" },
+  // "Pass på" er bevisst en nøktern, liten overskrift – IKKE en stor gul
+  // varselboks (spesifikasjonens eksplisitte "understated, not big yellow
+  // boxes"-krav for warnings-feltet).
+  "guide.warningsHeading": { no: "Pass på", en: "Watch out for" },
+  "guide.relatedHeading": { no: "Relatert", en: "Related" },
+  "guide.timeLabel": { no: "Tid", en: "Time" },
+  "guide.levelLabel": { no: "Nivå", en: "Level" },
+
+  // "Hva skal vi spise?" – deterministisk-først beslutningshjelper, se
+  // filheaderen til components/whattoeat/WhatToEatView.tsx.
+  "whatToEat.title": { no: "Hva skal vi spise?", en: "What should we eat?" },
+  "whatToEat.metaDescription": {
+    no: "Velg tid, stemning eller anledning – få middagsforslag som faktisk passer akkurat nå.",
+    en: "Pick time, mood or occasion – get dinner suggestions that actually fit right now.",
+  },
+  "whatToEat.intro": {
+    no: "Velg det som stemmer akkurat nå – tid, stemning, protein, anledning – så mye eller lite du vil. Ingen valg er påkrevd.",
+    en: "Pick whatever fits right now – time, mood, protein, occasion – as much or as little as you like. Nothing is required.",
+  },
+  "whatToEat.vibeLabel": { no: "Stemning", en: "Mood" },
+  "whatToEat.proteinLabel": { no: "Hva har du lyst på?", en: "What are you in the mood for?" },
+  "whatToEat.occasionLabel": { no: "Anledning", en: "Occasion" },
+  "whatToEat.ambitionLabel": { no: "Ambisjon", en: "Ambition" },
+  "whatToEat.minutesLabel": { no: "minutter tilgjengelig", en: "minutes available" },
+  "whatToEat.guestsLabel": { no: "gjester", en: "guests" },
+  "whatToEat.findButton": { no: "Finn middagsforslag", en: "Find dinner suggestions" },
+  "whatToEat.loading": { no: "Ser gjennom oppskriftene …", en: "Looking through the recipes …" },
+  "whatToEat.error": { no: "Klarte ikke å finne forslag akkurat nå. Prøv igjen.", en: "Couldn't find suggestions right now. Please try again." },
+  "whatToEat.emptyTitle": { no: "Fant ingen oppskrifter ennå", en: "No recipes found yet" },
+  "whatToEat.emptyDescription": {
+    no: "Prøv å fjerne et par valg, så åpner det seg flere muligheter.",
+    en: "Try clearing a choice or two to open up more options.",
+  },
+  "whatToEat.showSomethingElse": { no: "Vis meg noe annet", en: "Show me something else" },
+
+  // "I sesong" – strukturert, redaksjonelt sesonginnhold, se
+  // filheaderen til lib/kitchen-intelligence/seasonal.ts.
+  "season.peakNow": { no: "På sitt beste nå", en: "At its best now" },
+  "season.recipesLabel": { no: "Oppskrifter:", en: "Recipes:" },
+  "seasonPage.title": { no: "I sesong", en: "In season" },
+  "seasonPage.metaDescription": {
+    no: "Hva som er i sesong akkurat nå i Norge, og oppskriftene som bruker det.",
+    en: "What's in season right now in Norway, and the recipes that use it.",
+  },
+  "seasonPage.eyebrow": { no: "I sesong nå", en: "In season now" },
+  "seasonPage.nowHeading": { no: "Akkurat nå", en: "Right now" },
+  "seasonPage.noneNow": {
+    no: "Ingen råvarer registrert for akkurat nå ennå.",
+    en: "No ingredients registered for right now yet.",
+  },
+  "seasonPage.otherSeasonsHeading": { no: "Andre sesonger", en: "Other seasons" },
+  "seasonPage.backToIndex": { no: "I sesong", en: "In season" },
+  "seasonPage.currentBadge": { no: "Nå", en: "Now" },
+
+  // Utvidelsen 28.08.2026 (komplett, kildebasert råvareguide) – råvaresøk,
+  // status "akkurat nå", og selve råvaresiden. Se filheaderen til
+  // IngredientDetail.tsx og IngredientSearch.tsx.
+  "season.searchHeading": { no: "Når er det i sesong?", en: "When is it in season?" },
+  "season.searchPlaceholder": { no: "Søk etter råvare …", en: "Search for an ingredient …" },
+  "season.searchNoResults": { no: "Fant ingen råvare med det navnet.", en: "No ingredient found with that name." },
+  "season.seasonRangeLabel": { no: "Sesong:", en: "Season:" },
+  "season.peakRangeLabel": { no: "På sitt beste:", en: "At its best:" },
+  "season.source": { no: "Kilde", en: "Source" },
+  "season.recipesWithIngredient": { no: "Oppskrifter med {name}", en: "Recipes with {name}" },
+  "season.noRecipesYet": { no: "Ingen oppskrifter med denne råvaren ennå.", en: "No recipes with this ingredient yet." },
+  "seasonPage.ingredientNotFound": { no: "Fant ikke råvaren", en: "Ingredient not found" },
+
+  // Nytt master-detail-oppsett i SeasonIngredientList.tsx (28.08.2026,
+  // Henriks ønske): på lg+ vises råvaredetaljen til høyre for listen i
+  // stedet for inline under raden, med denne rolige teksten som
+  // tomme-tilstand før noe er valgt.
+  "season.selectIngredientPrompt": {
+    no: "Velg en råvare i listen for å se mer om den.",
+    en: "Select an ingredient from the list to see more about it.",
+  },
+
+  // Forsideteasere (spesifikasjon punkt 6) for begge funksjonene over.
+  "home.whatToEatTeaser.eyebrow": { no: "Beslutningshjelp", en: "Decision help" },
+  "home.whatToEatTeaser.heading": { no: "Hva skal vi spise?", en: "What should we eat?" },
+  "home.whatToEatTeaser.body": {
+    no: "Velg tid, stemning eller anledning – få middagsforslag på et blunk.",
+    en: "Pick time, mood or occasion – get dinner suggestions in a blink.",
+  },
+  "home.whatToEatTeaser.cta": { no: "Finn middag", en: "Find dinner" },
+  "home.seasonTeaser.eyebrow": { no: "I sesong nå", en: "In season now" },
+  "home.seasonTeaser.cta": { no: "Se hva som er i sesong", en: "See what's in season" },
+
+  // Nav-lenker for de to nye sidene (se Header.tsx).
+  "nav.whatToEat": { no: "Hva skal vi spise?", en: "What to eat?" },
+  "nav.season": { no: "I sesong", en: "In season" },
 } as const;
 
 export type DictKey = keyof typeof DICT;
@@ -689,4 +1050,13 @@ export function t(lang: Lang, key: DictKey, vars?: Record<string, string | numbe
 export function recipeCountLabel(lang: Lang, count: number): string {
   if (lang === "en") return `${count} ${count === 1 ? "recipe" : "recipes"}`;
   return `${count} ${count === 1 ? "oppskrift" : "oppskrifter"}`;
+}
+
+/** "1 gjest" / "4 gjester" / "1 guest" / "4 guests" – brukt i
+ * EveningExperience.tsx sin cinematic åpningslinje (26.08.2026-redesignet,
+ * "FREDAGSKVELD · 20:00 · 4 GJESTER"). Samme mønster som recipeCountLabel
+ * over. */
+export function guestCountLabel(lang: Lang, count: number): string {
+  if (lang === "en") return `${count} ${count === 1 ? "guest" : "guests"}`;
+  return `${count} ${count === 1 ? "gjest" : "gjester"}`;
 }

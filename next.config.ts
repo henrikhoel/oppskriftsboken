@@ -17,6 +17,22 @@ function supabaseImageHostname(): string | null {
 const supabaseHost = supabaseImageHostname();
 
 const nextConfig: NextConfig = {
+  // Server Actions har som standard en grense på 1 MB per forespørsel – for
+  // lite til "Last opp skjermbilde(r) av bildeteksten" (RecipeForm.tsx ->
+  // extractCaptionTextFromImages), der FLERE skjermbilder (base64-kodet,
+  // som legger på ~33 % i størrelse) kan sendes inn i samme kall for en lang
+  // Instagram/TikTok-bildetekst som ikke fikk plass i ett skjermbilde. Uten
+  // dette feiler opplastingen med "Body exceeded 1 MB limit" så snart admin
+  // velger mer enn ett-to skjermbilder (26.08.2026). 10 MB gir god margin for
+  // flere skjermbilder samtidig, uten å åpne unødvendig mye – bildene
+  // resizes/komprimeres allerede klient-side til maks 1280px JPEG
+  // (lib/utils/image.ts) før de sendes, så selv mange skjermbilder holder
+  // seg godt under dette i praksis.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   // Next.js 15.3+ blokkerer som standard forespørsler til dev-serveren fra
   // andre "origins" enn localhost (en sikkerhetsendring) – uten dette listet
   // opp her avviser dev-serveren stille alt av Server Actions/RSC-kall fra

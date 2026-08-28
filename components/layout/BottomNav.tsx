@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import { BookIcon, CameraIcon, HeartIcon, HomeIcon, ShoppingBagIcon } from "@/components/ui/icons";
+import { BookIcon, CameraIcon, HeartIcon, HelpCircleIcon, HomeIcon, ShoppingBagIcon } from "@/components/ui/icons";
 import { ShoppingListBadgeCount } from "@/components/shopping/ShoppingListBadgeCount";
 import { t, type Lang } from "@/lib/i18n";
 
@@ -11,6 +11,14 @@ const NAV_ITEMS = [
   { href: "/", labelKey: "nav.home", icon: HomeIcon },
   { href: "/oppskrifter", labelKey: "nav.recipes", icon: BookIcon },
   { href: "/hva-kan-jeg-lage", labelKey: "nav.pantry", icon: CameraIcon },
+  // "Hvordan gjør jeg det?" (27.08.2026) – kunnskapsbiblioteket for
+  // kjøkkenteknikker, se app/hvordan-gjor-jeg-det/*. Bruker den KORTE
+  // nav.guidesShort-teksten her (samme nøkkel spesifikasjonen egentlig kun
+  // ga unntak for i desktop-headeren) fordi 6 like brede kolonner i
+  // bunnmenyen ikke har plass til hele "Hvordan gjør jeg det?" på én linje
+  // uten å bryte layouten – selve siden sin <h1> viser fortsatt hele,
+  // riktige konseptnavnet uendret, se app/hvordan-gjor-jeg-det/page.tsx.
+  { href: "/hvordan-gjor-jeg-det", labelKey: "nav.guidesShort", icon: HelpCircleIcon },
   { href: "/handleliste", labelKey: "nav.shoppingList", icon: ShoppingBagIcon, badge: true },
   { href: "/favoritter", labelKey: "nav.favorites", icon: HeartIcon },
 ] as const;
@@ -29,7 +37,7 @@ export function BottomNav({ lang }: { lang: Lang }) {
       aria-label={t(lang, "nav.mainNavMobile")}
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-6">
         {NAV_ITEMS.map(({ href, labelKey, icon: Icon, badge }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (

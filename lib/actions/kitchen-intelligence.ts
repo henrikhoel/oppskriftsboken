@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  callClaude,
   callClaudeJSON,
   callClaudeVisionJSON,
   SUPPORTED_IMAGE_MEDIA_TYPES,
@@ -9,8 +10,12 @@ import {
 import { getCachedAiSuggestion, setCachedAiSuggestion } from "@/lib/kitchen-intelligence/ai-cache";
 import { matchRecipesToPantry, type PantryMatchResult } from "@/lib/kitchen-intelligence/pantry-match";
 import type { MoodId } from "@/lib/kitchen-intelligence/moods";
-import { ALL_MEAL_COURSE_ROLES, inferCourseRoleFromCategory } from "@/lib/kitchen-intelligence/meal-session";
-import type { MealCourseRole } from "@/lib/kitchen-intelligence/types";
+import {
+  ALL_MEAL_COURSE_ROLES,
+  inferCourseRoleFromCategory,
+  MEAL_OCCASION_LABELS,
+} from "@/lib/kitchen-intelligence/meal-session";
+import type { MealCourseRole, MealOccasion } from "@/lib/kitchen-intelligence/types";
 import { getSearchableRecipes, getPublishedRecipeSummaries } from "@/lib/data/recipes";
 import type { RecipeSummary } from "@/lib/types";
 import type { Lang } from "@/lib/i18n/lang";
@@ -95,6 +100,61 @@ export async function getParallelTaskHints(
 /** Re-eksportert for bekvemmelighet – lar UI-komponenter importere typen fra
  * samme sted som selve funksjonen som produserer den. */
 export type { PantryMatchResult };
+
+/** Korte, gjenkjennelige tidtaker-navn ("Gryten koker") for steg som har en
+ * tidtaker-verdig varighet (se lib/kitchen-intelligence/timers.ts sin
+ * parseStepDurationMs, som avgjør hvilke steg dette i det hele tatt kalles
+ * for) – i stedet for det generiske "Steg 3" som gjør det vanskelig å
+ * huske hvilken tidtaker som er hvilken når flere kjører samtidig i Cook
+ * Mode/meny-Cook Mode (se tilbakemelding 26.08.2026: "de legger seg
+ * nedover med steg 1, steg 2... vil ikke ha hele steget som tekst, men
+ * forkortet"). Samme svar for alle besøkende som ser de samme stegene →
+ * cachet, samme mønster som getParallelTaskHints over. */
+export async function getStepTimerLabels(
+  recipeId: string,
+  steps: StepInput[],
+  lang: Lang = "no",
+): Promise<Record<string, string>> {
+  if (steps.length === 0) return {};
+
+  const cacheKey = `${lang}:${steps.map((s) => s.id).join(",")}`;
+  const cached = await getCachedAiSuggestion<Record<string, string>>(recipeId, "step_timer_labels", cacheKey);
+  if (cached) return cached;
+
+  const stepsList = steps.map((s) => `(id: ${s.id}) ${s.text}`).join("\n");
+
+  const system =
+    lang === "en"
+      ? "You give home cooks short, memorable names for a kitchen timer, so several timers running at once can be " +
+        "told apart at a glance. For EACH step below, write a short label (2-4 words, no ending punctuation) " +
+        "describing WHAT is happening/cooking during that step's wait – a short present-tense state, NOT a full " +
+        'instruction and NOT a truncated copy of the sentence. Example: the step "Cover the pot and let it ' +
+        "simmer for 2-2½ hours or until the beef is tender enough to shred. Check after 2 hours first. " +
+        'Well-marbled meat cooks faster than tough, lean meat." should become "Pot simmering" – nothing longer. ' +
+        'Respond with ONLY JSON: {"labels": [{"stepId": "...", "label": "..."}]} – exactly one entry per step given.'
+      : "Du gir hjemmekokker korte, gjenkjennelige navn til en kjøkken-tidtaker, slik at flere tidtakere som går " +
+        "samtidig kan skilles fra hverandre med et raskt blikk. For HVERT steg under, skriv en kort merkelapp " +
+        "(2-4 ord, ingen avsluttende tegnsetting) som beskriver HVA som skjer/koker mens man venter i det steget " +
+        "– en kort, nåtids tilstand, IKKE en full instruksjon og IKKE en forkortet kopi av setningen. Eksempel: " +
+        'steget "Dekk gryten og la den koke i 2-2 1/2 timer eller til oksekjøttet er mykt nok til å shredde. ' +
+        'Sjekk først etter 2 timer. Godt marmorert kjøtt koker raskere enn tøft, magert kjøtt." skal bli "Gryten ' +
+        'koker" – ikke noe lengre. Svar KUN med JSON: {"labels": [{"stepId": "...", "label": "..."}]} – nøyaktig ' +
+        "én oppføring per steg gitt.";
+
+  const prompt = lang === "en" ? `Recipe steps:\n${stepsList}` : `Oppskriftens steg:\n${stepsList}`;
+
+  const result = await callClaudeJSON<{ labels: Array<{ stepId: string; label: string }> }>(system, prompt, 400, 0.3);
+  const validStepIds = new Set(steps.map((s) => s.id));
+  const labels: Record<string, string> = {};
+  for (const entry of result.labels ?? []) {
+    if (entry?.stepId && validStepIds.has(entry.stepId) && typeof entry.label === "string" && entry.label.trim()) {
+      labels[entry.stepId] = entry.label.trim().slice(0, 40);
+    }
+  }
+
+  await setCachedAiSuggestion(recipeId, "step_timer_labels", cacheKey, labels);
+  return labels;
+}
 
 /**
  * Gjenkjenner matvarer på et bilde (kjøleskap, skap, kjøkkenbenk) – brukt av
@@ -541,15 +601,58 @@ function resolveCourse(
   };
 }
 
+/** «JEG HAR X MINUTTER» (5.13) – grov bøtte-inndeling av en fritt oppgitt
+ * minuttverdi, brukt BÅDE i cache-nøkkelen (holder antall unike cache-rader
+ * nede – en cache-rad per eksakt minuttall ville gitt tilnærmet null
+ * gjenbruk) og i selve AI-prompten (en bøtte som "rundt 60 minutter" er en
+ * like nyttig hint til AI-en som et eksakt tall, og mer stabilt å resonnere
+ * rundt). Bevisst IKKE en full parallell tidsbudsjett-løser (regne ut om
+ * summen av retter faktisk går opp mot en tidslinje) – det er en vesentlig
+ * tyngre oppgave som overlapper med hel-meny-timelinen (5.8) sitt ansvar;
+ * denne bøtten er kun en MYK hint til meny-GENERERINGEN, ikke en garanti. */
+function bucketAvailableMinutes(minutes: number | null | undefined): string {
+  if (minutes == null || !Number.isFinite(minutes) || minutes <= 0) return "none";
+  if (minutes <= 30) return "30";
+  if (minutes <= 60) return "60";
+  if (minutes <= 90) return "90";
+  if (minutes <= 120) return "120";
+  return "120+";
+}
+
+function availableMinutesPromptLine(minutes: number | null | undefined, lang: Lang): string {
+  const bucket = bucketAvailableMinutes(minutes);
+  if (bucket === "none") return "";
+  const label = bucket === "120+" ? (lang === "en" ? "more than 120 minutes" : "mer enn 120 minutter") : `${bucket} ${lang === "en" ? "minutes" : "minutter"}`;
+  return lang === "en"
+    ? `\n\nTime available: around ${label} in total, from start of prep to the meal being ready. Keep the whole menu realistic within that – don't suggest courses that would blow this budget.`
+    : `\n\nTilgjengelig tid: rundt ${label} totalt, fra forberedelser starter til måltidet er klart. Hold hele menyen realistisk innenfor dette – ikke foreslå retter som sprenger dette budsjettet.`;
+}
+
+function occasionPromptLine(occasion: MealOccasion | null | undefined, lang: Lang): string {
+  if (!occasion) return "";
+  const label = lang === "en" ? MEAL_OCCASION_LABELS[occasion].en : MEAL_OCCASION_LABELS[occasion].no;
+  return lang === "en"
+    ? `\n\nOccasion: ${label}. Let this softly guide ambition level, number of courses that feel natural, and tone – never override what the user has already chosen.`
+    : `\n\nAnledning: ${label}. La dette myk-styre ambisjonsnivå, hva som føles naturlig antall retter, og tone – overstyr aldri det brukeren allerede har valgt.`;
+}
+
 /**
  * Foreslår en HEL meny rundt en gitt ankerrett (typisk oppskriften brukeren
  * står på når de trykker "Bygg en meny"). Ankerretten selv er IKKE med i
  * returnerte `courses` – kun de tre andre rollene, se filheaderen over.
+ *
+ * `occasion` (5.12) og `availableMinutes` (5.13) er BEGGE valgfrie, MYKE
+ * hint til AI-en – de går inn i cache-nøkkelen (occasion direkte,
+ * availableMinutes bøttet, se bucketAvailableMinutes over) slik at
+ * forskjellige kombinasjoner ikke kolliderer i cachen, men de skal aldri
+ * overstyre brukerens faktiske senere valg i menybyggeren (spesifikasjonen,
+ * 5.12) – kun påvirke SELVE FORSLAGET som genereres.
  */
 export async function generateMealPlan(
   anchorRecipeId: string,
   anchor: { title: string; description: string; categoryName: string | null },
   lang: Lang = "no",
+  context?: { occasion?: MealOccasion | null; availableMinutes?: number | null },
 ): Promise<MealPlanSuggestion> {
   const anchorRole = inferCourseRoleFromCategory(anchor.categoryName);
   const otherRoles = ALL_MEAL_COURSE_ROLES.filter((role) => role !== anchorRole);
@@ -560,7 +663,9 @@ export async function generateMealPlan(
   const validIds = new Set(others.map((r) => r.id));
   const byId = new Map(others.map((r) => [r.id, r]));
 
-  const cacheKey = `${lang}:${anchorRole}`;
+  const occasion = context?.occasion ?? null;
+  const minutesBucket = bucketAvailableMinutes(context?.availableMinutes);
+  const cacheKey = `${lang}:${anchorRole}:${occasion ?? "none"}:${minutesBucket}`;
   let plan = await getCachedAiSuggestion<CachedMealPlan>(anchorRecipeId, "meal_plan", cacheKey);
 
   if (!plan) {
@@ -574,36 +679,59 @@ export async function generateMealPlan(
     const system =
       lang === "en"
         ? "You help build a complete, well-composed meal around a given anchor dish. The anchor dish already fills " +
-          `the "${anchorRole}" (${roleLabel(anchorRole)}) course. Suggest the remaining courses: ${otherRoleList}. ` +
-          "For EACH remaining role, either (a) pick the best-fitting EXISTING recipe from the candidate list (by id), " +
-          "or (b) if nothing in the list genuinely fits well, invent a plausible NEW dish suggestion (title + short " +
-          "description) for that role. Prefer existing recipes when something actually fits – the point is to help " +
-          "the user discover dishes they already have, not to always invent something new. Aim for real variety " +
-          "across the whole menu (don't repeat the anchor dish's main ingredient/style unnecessarily). Respond with " +
-          'ONLY JSON: {"menuTitle": "short, appetizing name for the whole menu, max 6 words", "courses": [{"role": ' +
-          '"one of the roles listed above, each exactly once", "source": "existing"|"suggested", "recipeId": "ONLY ' +
-          'when source is existing, an id from the candidate list – never invent one", "title": "ONLY when source is ' +
-          'suggested", "description": "1-2 sentences, ONLY when source is suggested", "note": "short note in ' +
-          'English, max 1 sentence, on why this dish fits the menu"}]}.'
+          `the "${anchorRole}" (${roleLabel(anchorRole)}) course. Consider the remaining courses: ${otherRoleList}. ` +
+          "IMPORTANT: not every remaining role should always be filled – judge each one on whether it genuinely " +
+          "adds something. In particular, SKIP the \"side\" course whenever the anchor dish already stands well on " +
+          "its own (e.g. a pasta dish, a stew or one-pot dish that already includes starch/vegetables, a dish " +
+          "normally eaten without a separate side) – forcing a side onto a dish that doesn't need one makes for a " +
+          "worse menu, not a better one. Starter and dessert are usually still worth suggesting for a proper meal, " +
+          "but skip them too if truly nothing fits well. For each role you DO include, either (a) pick the " +
+          "best-fitting EXISTING recipe from the candidate list (by id), or (b) if nothing in the list genuinely " +
+          "fits well, invent a plausible NEW dish suggestion (title + short description) for that role. Prefer " +
+          "existing recipes when something actually fits – the point is to help the user discover dishes they " +
+          "already have, not to always invent something new. Aim for real variety across the whole menu (don't " +
+          "repeat the anchor dish's main ingredient/style unnecessarily) – and specifically avoid always defaulting " +
+          "to the single most generic, \"safe\" starter or dessert. Different anchor dishes should genuinely lead " +
+          "to different starter/dessert choices, not the same go-to pick every time. Respond with ONLY JSON: " +
+          '{"menuTitle": "short, appetizing name for the whole menu, max 6 words", "courses": [{"role": "one of the ' +
+          'roles listed above – OMIT a role from this array entirely if you decided to skip it", "source": ' +
+          '"existing"|"suggested", "recipeId": "ONLY when source is existing, an id from the candidate list – never ' +
+          'invent one", "title": "ONLY when source is suggested", "description": "1-2 sentences, ONLY when source is ' +
+          'suggested", "note": "short note in English, max 1 sentence, on why this dish fits the menu"}]}.'
         : "Du hjelper til med å sette sammen en komplett, helhetlig meny rundt en gitt ankerrett. Ankerretten fyller " +
-          `allerede rollen "${anchorRole}" (${roleLabel(anchorRole)}). Foreslå de resterende rollene: ${otherRoleList}. ` +
-          "For HVER gjenværende rolle, enten (a) velg den best passende EKSISTERENDE oppskriften fra kandidatlisten " +
-          "(oppgi id-en), eller (b) hvis ingenting i listen genuint passer godt, finn opp et plausibelt NYTT " +
-          "rett-forslag (tittel + kort beskrivelse) for den rollen. Prioriter eksisterende oppskrifter når noe " +
-          "faktisk passer – poenget er å hjelpe brukeren oppdage retter de allerede har, ikke å alltid finne opp noe " +
-          "nytt. Sikt mot ekte variasjon i hele menyen (ikke gjenta ankerrettens hovedingrediens/stil unødig). Svar " +
-          'KUN med JSON: {"menuTitle": "kort, appetittvekkende navn på hele menyen, maks 6 ord", "courses": [{"role": ' +
-          '"én av rollene listet over, hver nøyaktig én gang", "source": "existing"|"suggested", "recipeId": "KUN når ' +
-          'source er existing, en id fra kandidatlisten – finn aldri opp en selv", "title": "KUN når source er ' +
-          'suggested", "description": "1-2 setninger, KUN når source er suggested", "note": "kort forklaring på ' +
-          'norsk, maks 1 setning, om hvorfor denne retten passer i menyen"}]}.';
+          `allerede rollen "${anchorRole}" (${roleLabel(anchorRole)}). Vurder de resterende rollene: ${otherRoleList}. ` +
+          "VIKTIG: ikke alle gjenværende roller skal alltid fylles – vurder hver enkelt ut fra om den faktisk gir " +
+          "noe ekstra. Spesielt: HOPP OVER tilbehør ('side') når ankerretten allerede står godt på egen hånd (f.eks. " +
+          "en pastarett, en gryte/wok-rett som allerede inneholder stivelse/grønnsaker, eller en rett som normalt " +
+          "spises uten eget tilbehør) – å presse på et tilbehør en rett ikke trenger gjør menyen dårligere, ikke " +
+          "bedre. Forrett og dessert er vanligvis fortsatt verdt å foreslå for et helstøpt måltid, men hopp over " +
+          "også dem hvis virkelig ingenting passer godt. For HVER rolle du VELGER å inkludere, enten (a) velg den " +
+          "best passende EKSISTERENDE oppskriften fra kandidatlisten (oppgi id-en), eller (b) hvis ingenting i " +
+          "listen genuint passer godt, finn opp et plausibelt NYTT rett-forslag (tittel + kort beskrivelse) for den " +
+          "rollen. Prioriter eksisterende oppskrifter når noe faktisk passer – poenget er å hjelpe brukeren oppdage " +
+          "retter de allerede har, ikke å alltid finne opp noe nytt. Sikt mot ekte variasjon i hele menyen (ikke " +
+          "gjenta ankerrettens hovedingrediens/stil unødig) – og unngå spesielt å alltid falle tilbake på den ene " +
+          "mest generiske, \"trygge\" forretten eller desserten. Ulike ankerretter bør genuint gi ulike " +
+          "forrett-/dessertvalg, ikke det samme faste svaret hver gang. Svar KUN med JSON: {\"menuTitle\": \"kort, " +
+          'appetittvekkende navn på hele menyen, maks 6 ord", "courses": [{"role": "én av rollene listet over – ' +
+          'UTELAT en rolle helt fra denne listen dersom du valgte å hoppe over den", "source": "existing"|' +
+          '"suggested", "recipeId": "KUN når source er existing, en id fra kandidatlisten – finn aldri opp en selv", ' +
+          '"title": "KUN når source er suggested", "description": "1-2 setninger, KUN når source er suggested", ' +
+          '"note": "kort forklaring på norsk, maks 1 setning, om hvorfor denne retten passer i menyen"}]}.';
 
     const prompt =
-      lang === "en"
+      (lang === "en"
         ? `Anchor dish (${roleLabel(anchorRole)}): ${anchor.title}\n${anchor.description}\n\nOther recipes available:\n${candidateList}`
-        : `Ankerrett (${roleLabel(anchorRole)}): ${anchor.title}\n${anchor.description}\n\nAndre tilgjengelige oppskrifter:\n${candidateList}`;
+        : `Ankerrett (${roleLabel(anchorRole)}): ${anchor.title}\n${anchor.description}\n\nAndre tilgjengelige oppskrifter:\n${candidateList}`) +
+      occasionPromptLine(occasion, lang) +
+      availableMinutesPromptLine(context?.availableMinutes, lang);
 
-    const result = await callClaudeJSON<RawMealPlan>(system, prompt, 900, 0.4);
+    // Temperatur hevet fra 0.4 til 0.75 (etter tilbakemelding: samme
+    // forrett/dessert gikk igjen på tvers av ulike ankerretter) – kombinert
+    // med promptens nye eksplisitte variasjons-krav over, ikke temperatur
+    // alene, siden en liten katalog ellers lett konvergerer mot ett "trygt"
+    // svar uansett temperatur.
+    const result = await callClaudeJSON<RawMealPlan>(system, prompt, 900, 0.75);
 
     const seenRoles = new Set<MealCourseRole>();
     const courses: CachedMealPlanCourse[] = [];
@@ -709,4 +837,387 @@ export async function regenerateMealPlanCourse(
     description: validated.description,
     note: validated.note,
   };
+}
+
+/**
+ * "GJØR DET TIL EN KVELD" – KURATERT KVELD (Fase 5-finale, 5.9–5.11/5.14).
+ * ÉN strukturert AI-handling for HELE menyen under ett, brukt av
+ * EveningExperience.tsx – ULIK getMealMoodSuggestion/getMealWineRecommendation
+ * i lib/actions/ai.ts (som returnerer fri, ucachet prosa for ÉN ting om
+ * gangen): denne returnerer alle seksjonene fra spesifikasjonens 5.9-mock
+ * (vin/bord/stemning/musikk, pluss en valgfri serveringstips) i ETT kall,
+ * som ETT strukturert, cachet objekt – matcher mock-oppsettets diskrete
+ * seksjoner (MENY/I GLASSET/PÅ BORDET/STEMNING/MUSIKK) direkte, i stedet for
+ * å måtte parse dem ut av løpende tekst.
+ *
+ * IKKE knyttet til én bestemt oppskrift (recipeId: null, samme presedens som
+ * "mood_mode") – cache-nøkkelen bæres i stedet av språk + anledning + selve
+ * rettesammensetningen (roller+titler), slik at to besøkende som bygger
+ * NØYAKTIG samme meny (høyst sannsynlig når begge tar utgangspunkt i samme
+ * katalog-oppskrifter) deler ett AI-kall i stedet for ett hver.
+ *
+ * "HVORFOR?" OG ORDFORKLARINGER (26.08.2026, Henrik: "hva om man kan trykke
+ * på noe på hver av disse og få en forklaring på hvorfor det bør gjøres
+ * sånn? ... og hvis det brukes avanserte ord ... så bør det gå an å få en
+ * forklaring på hva det er"). Begge deler genereres i DETTE ene kallet
+ * sammen med resten (ikke et eget AI-kall trigget av selve trykket) – all
+ * begrunnelse/ordforklaring er dermed allerede klar og cachet når brukeren
+ * trykker, ingen ekstra ventetid. why-feltene og `glossary` er BEVISST
+ * valgfrie (`?`) i typen, ikke fordi AI-en får lov å utelate dem i en fersk
+ * respons (se prompten – de er påkrevd der), men fordi ELDRE cache-rader
+ * (skrevet før denne utvidelsen) mangler dem helt – uten `?` ville en gammel
+ * cachet rad blitt lest inn med `undefined` på et felt typen påsto alltid
+ * fantes. UI-et (EveningExperience.tsx) skjuler ganske enkelt
+ * "hvorfor?"-knappen der feltet mangler, i stedet for å krasje – se samme
+ * "gamle cache-rader har ikke det nye feltet"-resonnement i
+ * AI_CACHE_FEATURES sin kommentar til "evening_curation" i types.ts.
+ */
+
+export interface EveningGlossaryTerm {
+  term: string;
+  definition: string;
+}
+
+export interface EveningCuration {
+  wine: {
+    style: string;
+    /** Kort, 1-4 ords "overskrift" for vinstilen (f.eks. "Pinot Grigio",
+     * eller "Lett, tørr hvit" når ingen kjent drue passer presist) – lagt
+     * til 26.08.2026 for den redaksjonelle "I GLASSET"-scenen (se
+     * EveningExperience.tsx), IKKE en produsent/flaske. Valgfri (`?`) av
+     * samme "eldre cache-rader mangler feltet"-grunn som why/glossary
+     * under – UI-et faller da tilbake til å vise `style` som eneste
+     * overskrift. */
+    label?: string;
+    /** 2-4 korte stikkord (f.eks. ["Italia", "Hvit", "Frisk"]) – dynamisk
+     * fra AI-en ut fra DENNE vinstilen, ALDRI hardkodet. Samme
+     * eldre-cache-fallback som `label`. */
+    tags?: string[];
+    note: string;
+    why?: string | null;
+  } | null;
+  tableAccompaniments: string[];
+  /** Nøkkelen er den EKSAKTE strengen fra tableAccompaniments – begge er
+   * utledet fra samme rå AI-par (se RawEveningCuration.tableAccompaniments
+   * under), aldri sammenlignet/matchet i etterkant, så de kan aldri komme ut
+   * av synk med hverandre. */
+  tableAccompanimentsWhy?: Record<string, string>;
+  mood: string;
+  moodWhy?: string | null;
+  musicDirection: string;
+  musicDirectionWhy?: string | null;
+  servingTip: string | null;
+  servingTipWhy?: string | null;
+  /** Avanserte/fremmede fagord brukt et sted i teksten over (f.eks. "fleur
+   * de sel"), med en kort forklaring – tom liste er det normale/forventede
+   * svaret når ingenting uvanlig ble brukt. */
+  glossary?: EveningGlossaryTerm[];
+}
+
+interface RawEveningCuration {
+  wineStyle?: string;
+  wineLabel?: string;
+  wineTags?: string[];
+  wineNote?: string;
+  wineWhy?: string;
+  // Ett objekt per bord-ting (IKKE et parallelt array til
+  // tableAccompaniments) – garanterer at teksten og begrunnelsen aldri kan
+  // havne på feil indeks i forhold til hverandre.
+  tableAccompaniments?: Array<{ item?: string; why?: string }>;
+  mood?: string;
+  moodWhy?: string;
+  musicDirection?: string;
+  musicDirectionWhy?: string;
+  servingTip?: string | null;
+  servingTipWhy?: string | null;
+  glossary?: Array<{ term?: string; definition?: string }>;
+}
+
+/** Stabil, kort signatur for HVILKE retter menyen faktisk består av – del av
+ * cache-nøkkelen, se filheaderen over. Rekkefølge (rolle-sortert) gjør at
+ * samme rettesett alltid gir samme signatur uansett i hvilken rekkefølge
+ * slotsene ligger i selve MealSession. */
+function courseSignature(courses: { roleLabel: string; title: string }[]): string {
+  return courses
+    .map((c) => `${c.roleLabel}:${c.title}`)
+    .join("|")
+    .toLowerCase()
+    .slice(0, 300);
+}
+
+export async function getEveningCuration(
+  meal: { title: string; courses: { roleLabel: string; title: string }[] },
+  occasion: MealOccasion | null,
+  lang: Lang = "no",
+): Promise<EveningCuration> {
+  const cacheKey = `${lang}:${occasion ?? "none"}:${courseSignature(meal.courses)}`;
+  const cached = await getCachedAiSuggestion<EveningCuration>(null, "evening_curation", cacheKey);
+  if (cached) return cached;
+
+  const courseList = meal.courses.map((c) => `${c.roleLabel}: ${c.title}`).join("\n");
+  const occasionLine = occasionPromptLine(occasion, lang);
+
+  // 5.10 er eksplisitt om HVA som skal unngås – de faktiske, navngitte
+  // dårlige eksemplene fra spesifikasjonen sendes inn som negative eksempler
+  // i selve prompten (samme "vis AI-en hva den IKKE skal gjøre"-mønster som
+  // getParallelTaskHints/getMenuSuggestions bruker for gyldige id-er).
+  const system =
+    lang === "en"
+      ? "You curate the frame around a complete home-cooked meal – NOT the food itself, but the wine, table, mood " +
+        "and music that go around it. Tone is the single most important thing here: short, confident, sophisticated, " +
+        "concrete, understated. NEVER write generic lifestyle-AI poetry. Bad examples to actively avoid – do not " +
+        'write anything resembling: "Let the aroma fill the room as the magic unfolds.", "Create unforgettable ' +
+        'moments around the table.", "A symphony of flavors." A good mood line looks like: "Dim the lights. Chill ' +
+        'the wine. Let dinner take the time it takes." – one or two short, concrete sentences, never a long romantic ' +
+        "paragraph.\n\n" +
+        "Wine: suggest a WINE STYLE/GRAPE (e.g. \"a bright, medium-bodied red like Pinot Noir\") that fits the " +
+        "meal's arc as a whole, never a specific producer/bottle. If truly nothing sensible fits (e.g. a very " +
+        "casual weeknight meal), you may omit wine entirely. ALSO give a short 1-4 word LABEL for it – a known " +
+        "grape/style name if one genuinely fits (e.g. \"Pinot Grigio\", \"Chianti-style red\") or otherwise a " +
+        "short generic descriptor (e.g. \"Crisp dry rosé\") – never a producer/bottle name. ALSO give 2-4 short " +
+        "one-or-two-word TAGS describing it (e.g. [\"Italy\", \"White\", \"Crisp\"] – country/region if relevant, " +
+        "color, character).\n" +
+        "Table: 2-4 short, concrete, modest items actually placed on the table (e.g. \"a simple green salad\", " +
+        "\"good bread\", \"cold water\") – never anything expensive or elaborate to buy.\n" +
+        "Music: a short GENRE or search phrase only (e.g. \"Warm Italian dinner\", \"Soul & jazz\", \"Late-night " +
+        "acoustic\") – NEVER invent a specific playlist name, a fake streaming link, or claim integration with any " +
+        "music service. Just a direction someone could type into their own player.\n" +
+        "Serving tip: ONLY include one if genuinely relevant to this specific meal (e.g. a dish that needs to be " +
+        "served immediately, or benefits from warm plates) – omit it entirely rather than inventing decorative " +
+        "advice just to fill space.\n\n" +
+        "Reasoning (\"why\" fields): for wine/table items/mood/music, ALSO give a short, factual one-sentence " +
+        "reason for that specific suggestion – not a repeat of the suggestion itself, the actual REASONING behind " +
+        'it (e.g. for "good bread + butter" on the table: "balances the richness of the sauce and gives something ' +
+        'to mop it up with", NOT "bread and butter are tasty"). Keep these matter-of-fact, never salesy.\n\n' +
+        "Glossary: scan everything you just wrote (wine note, table items, mood, music, serving tip) for any " +
+        'non-obvious, foreign, or specialist culinary/wine term you used (e.g. "fleur de sel", "beurre blanc", a ' +
+        "specific grape variety) and give each a short, plain-language definition a home cook without specialist " +
+        "knowledge would understand. Empty list if you used no such terms – do NOT force an entry just to fill " +
+        "the list.\n\n" +
+        'Respond with ONLY JSON in exactly this shape: {"wineStyle": string|omit if none, "wineLabel": "1-4 word ' +
+        'label, omit if no wine", "wineTags": ["...", ...] (2-4 short tags, omit if no wine), "wineNote": "max 1 short ' +
+        'sentence, omit if no wine", "wineWhy": "max 1 short sentence reasoning, omit if no wine", ' +
+        '"tableAccompaniments": [{"item": "...", "why": "max 1 short sentence reasoning"}, ...] (2-4 items), ' +
+        '"mood": "1-2 short, concrete sentences, imperative/instructional tone", "moodWhy": "max 1 short sentence ' +
+        'reasoning", "musicDirection": "a short genre/search phrase, never a specific song/playlist/link", ' +
+        '"musicDirectionWhy": "max 1 short sentence reasoning", "servingTip": "1 short sentence, or omit/null if ' +
+        'not genuinely relevant", "servingTipWhy": "max 1 short sentence reasoning, omit/null if no serving tip", ' +
+        '"glossary": [{"term": "...", "definition": "max 1 short plain-language sentence"}, ...] (empty array if none)}'
+      : "Du kuraterer rammen rundt et komplett hjemmelaget måltid – IKKE selve maten, men vinen, bordet, stemningen " +
+        "og musikken rundt. Tonen er det aller viktigste her: kort, trygg, sofistikert, konkret, understated. " +
+        'Skriv ALDRI generisk livsstils-AI-poesi. Dårlige eksempler du aktivt skal unngå – skriv ikke noe som ' +
+        'ligner: «La duften fylle rommet mens magien utfolder seg.», «Skap uforglemmelige øyeblikk rundt bordet.», ' +
+        '«En symfoni av smaker.» En god stemningslinje ser slik ut: «Demp lyset. Sett vinen kaldt. La middagen ta ' +
+        "den tiden den tar.» – én eller to korte, konkrete setninger, aldri et langt romantisk avsnitt.\n\n" +
+        "Vin: foreslå en VINSTIL/DRUE (f.eks. «en frisk, middels fyldig rødvin som Pinot Noir») som passer hele " +
+        "måltidets bue – aldri en bestemt produsent/flaske. Hvis virkelig ingenting fornuftig passer (f.eks. en " +
+        "veldig avslappet hverdagsmiddag), kan vin utelates helt. Gi OGSÅ en kort 1-4 ords ETIKETT for den – et " +
+        "kjent drue-/stilnavn dersom ett genuint passer (f.eks. «Pinot Grigio», «Chianti-aktig rødvin») eller " +
+        "ellers en kort, generisk beskrivelse (f.eks. «Frisk, tørr rosé») – aldri et produsent-/flaskenavn. Gi " +
+        "OGSÅ 2-4 korte stikkord om den (f.eks. [«Italia», «Hvit», «Frisk»] – land/region der relevant, farge, " +
+        "karakter).\n" +
+        "Bord: 2-4 korte, konkrete, nøkterne ting som faktisk står på bordet (f.eks. «en enkel grønn salat», «godt " +
+        "brød», «kaldt vann») – aldri noe dyrt eller ambisiøst å kjøpe inn.\n" +
+        "Musikk: KUN en kort SJANGER eller søkefrase (f.eks. «Warm Italian dinner», «Soul & jazz», «Late-night " +
+        "acoustic») – finn ALDRI opp et konkret spillelistenavn, en falsk strømmelenke, eller påstå integrasjon med " +
+        "noen musikktjeneste. Bare en retning noen kan skrive inn i sin egen spiller.\n" +
+        "Serveringstips: KUN med dersom det er genuint relevant for akkurat dette måltidet (f.eks. en rett som må " +
+        "serveres umiddelbart, eller trenger varme tallerkener) – utelat det helt fremfor å finne opp dekorative " +
+        "råd bare for å fylle plass.\n\n" +
+        "Begrunnelser («hvorfor»-feltene): for vin/bord-ting/stemning/musikk skal du OGSÅ gi en kort, saklig " +
+        "setning som forklarer HVORFOR akkurat det forslaget – ikke en gjentagelse av selve forslaget, men den " +
+        'FAKTISKE begrunnelsen (f.eks. for «godt brød + smør» på bordet: «balanserer den kraftige sausen og gir ' +
+        'noe å dyppe i», IKKE «brød og smør er godt»). Hold disse nøkterne og saklige, aldri selgende.\n\n' +
+        "Ordforklaringer: se gjennom alt du nettopp skrev (vinnote, bord-ting, stemning, musikk, serveringstips) " +
+        'etter avanserte, fremmede eller fagspesifikke mat-/vinord du selv brukte (f.eks. «fleur de sel», «beurre ' +
+        "blanc», en bestemt drue) og gi hver av dem en kort, enkel forklaring en hjemmekokk uten fagkunnskap ville " +
+        "forstått. Tom liste dersom du ikke brukte noen slike ord – ikke tving frem en oppføring bare for å fylle " +
+        "listen.\n\n" +
+        'Svar KUN med JSON på nøyaktig denne formen: {"wineStyle": streng|utelates hvis ingen, "wineLabel": "1-4 ' +
+        'ords etikett, utelat hvis ingen vin", "wineTags": ["...", ...] (2-4 korte stikkord, utelat hvis ingen ' +
+        'vin), "wineNote": "maks 1 ' +
+        'kort setning, utelat hvis ingen vin", "wineWhy": "maks 1 kort begrunnelsessetning, utelat hvis ingen ' +
+        'vin", "tableAccompaniments": [{"item": "...", "why": "maks 1 kort begrunnelsessetning"}, ...] (2-4 ting), ' +
+        '"mood": "1-2 korte, konkrete setninger, imperativ/instruerende tone", "moodWhy": "maks 1 kort ' +
+        'begrunnelsessetning", "musicDirection": "en kort sjanger/søkefrase, aldri en konkret sang/spilleliste/' +
+        'lenke", "musicDirectionWhy": "maks 1 kort begrunnelsessetning", "servingTip": "1 kort setning, eller ' +
+        'utelat/null hvis ikke genuint relevant", "servingTipWhy": "maks 1 kort begrunnelsessetning, utelat/null ' +
+        'hvis intet serveringstips", "glossary": [{"term": "...", "definition": "maks 1 kort, enkel setning"}, ' +
+        '...] (tom liste hvis ingen)}';
+
+  const prompt =
+    (lang === "en"
+      ? `Menu: ${meal.title}\n\nCourses:\n${courseList}`
+      : `Meny: ${meal.title}\n\nRetter:\n${courseList}`) + occasionLine;
+
+  // Hevet fra 500 (før why-feltene/glossary ble lagt til) – samme
+  // begrunnelse som 6000-grensen i lib/actions/recipe-import.ts: et for lavt
+  // tak kutter JSON-svaret av midt inne og gir en uleselig parse-feil i
+  // stedet for et faktisk resultat.
+  const raw = await callClaudeJSON<RawEveningCuration>(system, prompt, 900, 0.6);
+
+  const wineStyle = (raw.wineStyle ?? "").trim().slice(0, 120);
+  const wineLabel = (raw.wineLabel ?? "").toString().trim().slice(0, 40);
+  const wineTags = Array.isArray(raw.wineTags)
+    ? raw.wineTags
+        .map((tagValue) => (tagValue ?? "").toString().trim().slice(0, 24))
+        .filter((tagValue) => tagValue !== "")
+        .slice(0, 4)
+    : [];
+
+  // Ett rå-objekt per bord-ting (item+why sammen, se RawEveningCuration sin
+  // kommentar) – tableAccompaniments (listen som faktisk vises) og
+  // tableAccompanimentsWhy (oppslag for "hvorfor?"-knappen) utledes BEGGE
+  // herfra, aldri matchet mot hverandre i etterkant.
+  const accompanimentEntries = (raw.tableAccompaniments ?? [])
+    .map((entry) => ({
+      item: (entry?.item ?? "").toString().trim().slice(0, 80),
+      why: (entry?.why ?? "").toString().trim().slice(0, 200),
+    }))
+    .filter((entry) => entry.item !== "")
+    .slice(0, 4);
+  const tableAccompaniments = accompanimentEntries.map((entry) => entry.item);
+  const tableAccompanimentsWhy: Record<string, string> = {};
+  for (const entry of accompanimentEntries) {
+    if (entry.why) tableAccompanimentsWhy[entry.item] = entry.why;
+  }
+
+  const glossary: EveningGlossaryTerm[] = (raw.glossary ?? [])
+    .map((entry) => ({
+      term: (entry?.term ?? "").toString().trim().slice(0, 60),
+      definition: (entry?.definition ?? "").toString().trim().slice(0, 220),
+    }))
+    .filter((entry) => entry.term !== "" && entry.definition !== "")
+    .slice(0, 10);
+
+  const curation: EveningCuration = {
+    wine: wineStyle
+      ? {
+          style: wineStyle,
+          label: wineLabel || undefined,
+          tags: wineTags.length > 0 ? wineTags : undefined,
+          note: (raw.wineNote ?? "").trim().slice(0, 200),
+          why: (raw.wineWhy ?? "").toString().trim().slice(0, 200) || null,
+        }
+      : null,
+    tableAccompaniments,
+    tableAccompanimentsWhy,
+    mood: (raw.mood ?? "").trim().slice(0, 300),
+    moodWhy: (raw.moodWhy ?? "").toString().trim().slice(0, 200) || null,
+    musicDirection: (raw.musicDirection ?? "").trim().slice(0, 120),
+    musicDirectionWhy: (raw.musicDirectionWhy ?? "").toString().trim().slice(0, 200) || null,
+    servingTip: raw.servingTip ? raw.servingTip.toString().trim().slice(0, 200) || null : null,
+    servingTipWhy: raw.servingTipWhy ? raw.servingTipWhy.toString().trim().slice(0, 200) || null : null,
+    glossary,
+  };
+
+  await setCachedAiSuggestion(null, "evening_curation", cacheKey, curation);
+  return curation;
+}
+
+/**
+ * "LURER DU PÅ NOE?" (27.08.2026) – fritt spørsmål om ÉN BESTEMT oppskrift,
+ * stilt av en besøkende direkte på oppskriftssiden (f.eks. "Kan jeg lage
+ * pannebrødet først og la det ligge klart på benken under et håndkle?").
+ * Svaret baserer seg KUN på selve oppskriften som gis inn (ingredienser,
+ * fremgangsmåte, tips) pluss AI-ens generelle kokkekunnskap – ingen egen
+ * database å slå opp i utover det.
+ *
+ * Bevisst uten strukturert JSON (callClaude, ikke callClaudeJSON/ToolJSON) –
+ * svaret ER selve teksten, ingen felter å skille fra hverandre, så det
+ * enklere, rå tekst-kallet er tilstrekkelig og litt raskere.
+ *
+ * Cachet (i motsetning til f.eks. getWineRecommendation i lib/actions/ai.ts,
+ * som er bevisst UCACHET) – her er det reell sannsynlighet for at flere
+ * besøkende stiller nøyaktig det samme, vanlige spørsmålet om samme rett
+ * ("kan denne fryses?", "kan jeg bruke X i stedet for Y?"), og cache-nøkkelen
+ * (normalisert spørsmålstekst) fanger nettopp det gjenbrukstilfellet uten å
+ * late som ULIKE spørsmål har samme svar.
+ */
+interface RecipeQuestionIngredientInput {
+  amount: string | null;
+  unit: string | null;
+  name: string;
+  note: string | null;
+}
+
+interface RecipeQuestionGroupInput {
+  title: string | null;
+  items: RecipeQuestionIngredientInput[];
+}
+
+interface RecipeQuestionStepInput {
+  groupTitle: string | null;
+  stepNumber: number;
+  text: string;
+}
+
+export interface RecipeQuestionContextInput {
+  title: string;
+  description: string;
+  ingredientGroups: RecipeQuestionGroupInput[];
+  steps: RecipeQuestionStepInput[];
+  tips?: string | null;
+}
+
+/** Maks lengde på selve spørsmålsteksten – rundhåndet nok for et ekte
+ * kjøkkenspørsmål, stramt nok til å holde både prompten og cache-nøkkelen
+ * fornuftige (se ai-cache.ts sin "hold nøkkelen kort"-anbefaling). */
+const MAX_QUESTION_LENGTH = 500;
+
+export async function answerRecipeQuestion(
+  recipeId: string,
+  recipe: RecipeQuestionContextInput,
+  question: string,
+  lang: Lang = "no",
+): Promise<string> {
+  const trimmedQuestion = question.trim().slice(0, MAX_QUESTION_LENGTH);
+  if (!trimmedQuestion) {
+    throw new Error(lang === "en" ? "Write a question first." : "Skriv et spørsmål først.");
+  }
+
+  // Normalisering er bevisst enkel (kun trim+lowercase via toLowerCase(),
+  // ikke f.eks. fjerning av tegnsetting/dobbeltmellomrom) – to spørsmål som
+  // er nesten, men ikke helt like, bør fortsatt kunne gi litt ulike svar. Vi
+  // vil bare unngå å betale for et rent ordrett duplikat.
+  const cacheKey = `${lang}:${trimmedQuestion.toLowerCase()}`;
+  const cached = await getCachedAiSuggestion<string>(recipeId, "recipe_question", cacheKey);
+  if (cached) return cached;
+
+  const ingredientsText =
+    recipe.ingredientGroups
+      .flatMap((group) =>
+        group.items.map((item) => {
+          const line = [item.amount, item.unit, item.name].filter(Boolean).join(" ");
+          return item.note ? `- ${line} (${item.note})` : `- ${line}`;
+        }),
+      )
+      .join("\n") || (lang === "en" ? "(none listed)" : "(ingen oppgitt)");
+
+  const stepsText =
+    recipe.steps.map((step) => `${step.stepNumber}. ${step.text}`).join("\n") ||
+    (lang === "en" ? "(none listed)" : "(ingen oppgitt)");
+
+  const system =
+    lang === "en"
+      ? "You are a friendly, knowledgeable cooking assistant answering a home cook's SPECIFIC question about the " +
+        "exact recipe they are looking at right now. Base your answer ONLY on the recipe given below plus general, " +
+        "sound cooking knowledge - never invent ingredients or steps that aren't there. Answer directly and " +
+        'practically, max 3-4 sentences, no heading, no preamble like "Great question!". If the question has ' +
+        "nothing to do with cooking or this recipe, politely say you can only help with questions about this dish."
+      : "Du er en vennlig, kunnskapsrik kjøkkenassistent som svarer på et konkret spørsmål en besøkende har om " +
+        "NØYAKTIG den oppskriften de ser på akkurat nå. Basér svaret KUN på oppskriften under, pluss generell, " +
+        "sunn kokkekunnskap - finn aldri på ingredienser eller steg som ikke står der. Svar direkte og praktisk, " +
+        "maks 3-4 setninger, ingen overskrift, ingen innledning som «Godt spørsmål!». Dersom spørsmålet ikke har " +
+        "noe med matlaging eller denne oppskriften å gjøre, si vennlig at du kun kan hjelpe med spørsmål om denne retten.";
+
+  const prompt =
+    lang === "en"
+      ? `Recipe: ${recipe.title}\n${recipe.description ? `Description: ${recipe.description}\n` : ""}\nIngredients:\n${ingredientsText}\n\nSteps:\n${stepsText}\n${recipe.tips ? `\nTips: ${recipe.tips}\n` : ""}\nQuestion: ${trimmedQuestion}`
+      : `Oppskrift: ${recipe.title}\n${recipe.description ? `Beskrivelse: ${recipe.description}\n` : ""}\nIngredienser:\n${ingredientsText}\n\nFremgangsmåte:\n${stepsText}\n${recipe.tips ? `\nTips: ${recipe.tips}\n` : ""}\nSpørsmål: ${trimmedQuestion}`;
+
+  const answer = (await callClaude(system, prompt, 400, 0.4)).trim();
+
+  await setCachedAiSuggestion(recipeId, "recipe_question", cacheKey, answer);
+  return answer;
 }

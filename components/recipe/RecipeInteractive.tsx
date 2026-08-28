@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { clsx } from "clsx";
 import type { IngredientGroup, Recipe, RecipeStep, VegetarianIngredientGroup, VegetarianStep } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
@@ -10,22 +11,23 @@ import { CookMode } from "@/components/recipe/CookMode";
 import { CookingTimelinePanel } from "@/components/recipe/CookingTimelinePanel";
 import { TasteProfileDisplay } from "@/components/recipe/TasteProfileDisplay";
 import { NutritionPanel } from "@/components/recipe/NutritionPanel";
-import { MenuSuggestions } from "@/components/recipe/MenuSuggestions";
 import { MealBuilder } from "@/components/recipe/MealBuilder";
 import { ParallelTaskBadge } from "@/components/recipe/ParallelTaskBadge";
 import type { CookingTimeline } from "@/lib/kitchen-intelligence/timeline";
 import { groupInfoByStepId } from "@/lib/kitchen-intelligence/parallel-tasks";
 import type { ParallelTaskGroup } from "@/lib/actions/kitchen-intelligence";
 import { WineSection } from "@/components/recipe/WineSection";
+import { RecipeQuestionSection } from "@/components/recipe/RecipeQuestionSection";
 import { FavoriteButton } from "@/components/recipe/FavoriteButton";
 import { RatingStars } from "@/components/recipe/RatingStars";
 import { RecipeMeta } from "@/components/recipe/RecipeMeta";
 import { Button } from "@/components/ui/Button";
-import { CheckIcon, PlayIcon, ShoppingBagIcon } from "@/components/ui/icons";
+import { CheckIcon, EditIcon, PlayIcon, ShoppingBagIcon } from "@/components/ui/icons";
 import { scaleAmount } from "@/lib/utils/scale";
 import { convertAmountToUs, type UnitSystem } from "@/lib/utils/units";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
-import { getVegetarianVariant, getEnglishVariant, getUsMeasurementsVariant } from "@/lib/actions/ai";
+import { useCookModeState } from "@/lib/hooks/useCookModeState";
+import { getEnglishVariant, getUsMeasurementsVariant } from "@/lib/actions/ai";
 import { getIngredientSubstitution, type SubstitutionSuggestion } from "@/lib/actions/kitchen-intelligence";
 import { localizedCategoryName } from "@/lib/utils/format";
 import { t, type Lang } from "@/lib/i18n";
@@ -78,6 +80,23 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
   const stepToGroupInfo = groupInfoByStepId(parallelGroups);
   const { addFromRecipe } = useShoppingList();
 
+  // "Fortsett matlaging" i stedet for "Start matlaging" når man har vært i
+  // Cook Mode for DENNE oppskriften før og faktisk kommet i gang (ønsket av
+  // Henrik 27.08.2026: gå ut og inn igjen viste fortsatt "Start", selv om
+  // fremgangen lå lagret og ventet). Samme localStorage-nøkkel Cook Mode
+  // selv leser/skriver til (useCookModeState) – kun lest her, aldri
+  // skrevet. `hydrated` sjekkes eksplisitt: localStorage finnes ikke under
+  // SSR, så uten denne sjekken ville knappen alltid vist "Start" ved første
+  // server-rendring og deretter kunne hoppe til "Fortsett" et lite øyeblikk
+  // etter innlasting – venter i stedet stille til den ekte lagrede
+  // tilstanden er lest inn.
+  const { state: cookModeState, hydrated: cookModeStateHydrated } = useCookModeState(recipe.id);
+  const hasCookModeProgress =
+    cookModeStateHydrated &&
+    (cookModeState.currentStepIndex > 0 ||
+      cookModeState.checkedSteps.length > 0 ||
+      cookModeState.checkedIngredients.length > 0);
+
   // Smart ingrediens-erstatning – bevisst en LOKAL, additiv oversikt (nøkkel:
   // ingrediens-id) og IKKE en del av RecipeSession/lib/kitchen-intelligence
   // sin delte state ennå: forslaget vises kun oppå den originale ingrediensen
@@ -90,12 +109,29 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
   const [substitutions, setSubstitutions] = useState<Record<string, SubstitutionSuggestion>>({});
   const [substitutionLoadingIds, setSubstitutionLoadingIds] = useState<Set<string>>(new Set());
   const [substitutionErrors, setSubstitutionErrors] = useState<Record<string, string>>({});
+  // "Bytt ut"-knappen sto tidligere under HVER ENESTE ingrediens hele
+  // tiden, uansett om man faktisk ønsket å bytte ut noe eller ikke – rotete
+  // for de fleste besøkende (ønsket av Henrik 25.08.2026). Nå skjult bak én
+  // egen av/på-knapp for hele listen; en allerede valgt erstatning
+  // (substitutions-mappet over) vises uansett, selv om denne er av, siden
+  // det ville vært rart å skjule et bytte man allerede har gjort.
+  const [substituteMode, setSubstituteMode] = useState(false);
 
-  const [vegResult, setVegResult] = useState<{ note: string; groups: IngredientGroup[]; steps: RecipeStep[] } | null>(
-    null,
-  );
-  const [vegLoading, setVegLoading] = useState(false);
-  const [vegError, setVegError] = useState<string | null>(null);
+  // Vegetarversjonen er nå et admin-forhåndslagret editorial-felt (se
+  // vegetarianVariant i lib/types.ts og RecipeForm.tsx sin "Vegetarversjon"-
+  // seksjon) heller enn noe som genereres live av en hvilken som helst
+  // besøkende – ingen AI-kall her lenger, kun en ren utledning fra
+  // recipe.vegetarianVariant med samme withSyntheticIds-mønster som
+  // engResult/usResult bruker.
+  const vegResult = useMemo(() => {
+    if (!recipe.vegetarianVariant) return null;
+    const { groups, steps } = withSyntheticIds(
+      "veg",
+      recipe.vegetarianVariant.ingredientGroups,
+      recipe.vegetarianVariant.steps,
+    );
+    return { note: recipe.vegetarianVariant.note, groups, steps };
+  }, [recipe.vegetarianVariant]);
   const [showVegetarian, setShowVegetarian] = useState(false);
 
   const [engResult, setEngResult] = useState<{
@@ -105,6 +141,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
     steps: RecipeStep[];
     notes: string | null;
     tips: string | null;
+    warnings: string | null;
   } | null>(null);
   const [engLoading, setEngLoading] = useState(false);
   const [engError, setEngError] = useState<string | null>(null);
@@ -115,12 +152,20 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
   // fri tekst (ovnstemperatur, formstørrelser o.l.) konverteres av AI-en,
   // uavhengig av hvilket språk/vegetar-valg som er aktivt.
   const [unitSystem, setUnitSystem] = useState<UnitSystem>("metric");
-  const [usResult, setUsResult] = useState<{ steps: RecipeStep[]; notes: string | null; tips: string | null } | null>(
-    null,
-  );
+  const [usResult, setUsResult] = useState<{
+    steps: RecipeStep[];
+    notes: string | null;
+    tips: string | null;
+    warnings: string | null;
+  } | null>(null);
   const [usLoading, setUsLoading] = useState(false);
   const [usError, setUsError] = useState<string | null>(null);
-  const lastUsSourceRef = useRef<{ steps: RecipeStep[]; notes: string | null; tips: string | null } | null>(null);
+  const lastUsSourceRef = useRef<{
+    steps: RecipeStep[];
+    notes: string | null;
+    tips: string | null;
+    warnings: string | null;
+  } | null>(null);
 
   async function handleGetEnglish() {
     setEngError(null);
@@ -136,6 +181,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
         steps: recipe.steps.map((s) => ({ groupTitle: s.groupTitle, text: s.text })),
         notes: recipe.notes,
         tips: recipe.tips,
+        warnings: recipe.warnings ?? null,
       });
       const { groups, steps } = withSyntheticIds("eng", result.ingredientGroups, result.steps);
       setEngResult({
@@ -145,6 +191,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
         steps,
         notes: result.notes,
         tips: result.tips,
+        warnings: result.warnings,
       });
     } catch (err) {
       setEngError(err instanceof Error ? err.message : t(lang, "recipeDetail.engError"));
@@ -171,6 +218,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
   const displayDescription = useEnglish && engResult ? engResult.description : recipe.description;
   const displayNotes = useEnglish && engResult ? engResult.notes : recipe.notes;
   const displayTips = useEnglish && engResult ? engResult.tips : recipe.tips;
+  const displayWarnings = useEnglish && engResult ? engResult.warnings : recipe.warnings ?? null;
 
   const baseGroups = useEnglish && engResult ? engResult.groups : useVegetarian && vegResult ? vegResult.groups : recipe.ingredientGroups;
   const baseSteps = useEnglish && engResult ? engResult.steps : useVegetarian && vegResult ? vegResult.steps : recipe.steps;
@@ -215,9 +263,10 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
         steps: baseSteps.map((s) => ({ groupTitle: s.groupTitle, text: s.text })),
         notes: displayNotes,
         tips: displayTips,
+        warnings: displayWarnings,
       });
       const { steps } = withSyntheticIds("us", [], result.steps);
-      setUsResult({ steps, notes: result.notes, tips: result.tips });
+      setUsResult({ steps, notes: result.notes, tips: result.tips, warnings: result.warnings });
     } catch (err) {
       setUsError(err instanceof Error ? err.message : t(lang, "recipeDetail.unitsError"));
     } finally {
@@ -234,16 +283,18 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
     const sourceChanged =
       lastUsSourceRef.current?.steps !== baseSteps ||
       lastUsSourceRef.current?.notes !== displayNotes ||
-      lastUsSourceRef.current?.tips !== displayTips;
+      lastUsSourceRef.current?.tips !== displayTips ||
+      lastUsSourceRef.current?.warnings !== displayWarnings;
     if (!sourceChanged && usResult) return;
-    lastUsSourceRef.current = { steps: baseSteps, notes: displayNotes, tips: displayTips };
+    lastUsSourceRef.current = { steps: baseSteps, notes: displayNotes, tips: displayTips, warnings: displayWarnings };
     handleGetUsMeasurements();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unitSystem, baseSteps, displayNotes, displayTips]);
+  }, [unitSystem, baseSteps, displayNotes, displayTips, displayWarnings]);
 
   const finalSteps = unitSystem === "us" && usResult ? usResult.steps : baseSteps;
   const finalNotes = unitSystem === "us" && usResult ? usResult.notes : displayNotes;
   const finalTips = unitSystem === "us" && usResult ? usResult.tips : displayTips;
+  const finalWarnings = unitSystem === "us" && usResult ? usResult.warnings : displayWarnings;
 
   function toggleChecked(id: string) {
     setCheckedItems((prev) => {
@@ -257,7 +308,9 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
   function handleAddToShoppingList() {
     addFromRecipe(baseGroups, displayTitle, servings / recipe.servings);
     setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 2200);
+    // Var 2200ms – for kort til at "Gå til handleliste"-lenken rakk å bli
+    // lagt merke til/trykket på før den forsvant igjen.
+    setTimeout(() => setJustAdded(false), 6000);
   }
 
   async function handleSubstitute(item: { id: string; name: string; amount: string | null; unit: string | null; note: string | null }) {
@@ -300,28 +353,6 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
     });
   }
 
-  async function handleGetVegetarian() {
-    setVegError(null);
-    setVegLoading(true);
-    try {
-      const result = await getVegetarianVariant({
-        title: recipe.title,
-        ingredientGroups: recipe.ingredientGroups.map((g) => ({
-          title: g.title,
-          items: g.items.map((i) => ({ amount: i.amount, unit: i.unit, name: i.name, note: i.note })),
-        })),
-        steps: recipe.steps.map((s) => ({ groupTitle: s.groupTitle, text: s.text })),
-      });
-      const { groups, steps } = withSyntheticIds("veg", result.ingredientGroups, result.steps);
-      setVegResult({ note: result.note, groups, steps });
-      setShowVegetarian(true);
-    } catch (err) {
-      setVegError(err instanceof Error ? err.message : t(lang, "recipeDetail.vegError"));
-    } finally {
-      setVegLoading(false);
-    }
-  }
-
   return (
     <>
       <header className="relative -mt-16 rounded-t-3xl bg-cream pb-6 pt-6 sm:-mt-20 sm:pb-8 sm:pt-8">
@@ -339,7 +370,18 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
           <h1 className="text-balance font-serif text-3xl leading-tight text-ink sm:text-4xl md:text-5xl">
             {displayTitle}
           </h1>
-          <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.favoritedByAdmin} isAdmin={isAdmin} lang={lang} />
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Link
+                href={`/admin/oppskrifter/${recipe.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-line-strong bg-paper px-4 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream-dark"
+              >
+                <EditIcon className="h-4 w-4" />
+                {t(lang, "recipeDetail.editButton")}
+              </Link>
+            )}
+            <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.favoritedByAdmin} isAdmin={isAdmin} lang={lang} />
+          </div>
         </div>
 
         <p className="mt-3 max-w-2xl text-base text-ink-soft sm:text-lg">{displayDescription}</p>
@@ -369,6 +411,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
           <RecipeMeta
             prepTimeMinutes={recipe.prepTimeMinutes}
             cookTimeMinutes={recipe.cookTimeMinutes}
+            cookTimeMinutesMax={recipe.cookTimeMinutesMax}
             totalTimeMinutes={recipe.totalTimeMinutes}
             servings={recipe.servings}
             difficulty={recipe.difficulty}
@@ -427,44 +470,34 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
               </p>
             )}
 
-            {lang === "no" && (
+            {lang === "no" && vegResult && (
               <div className="mt-4 space-y-2">
-                {!vegResult && (
-                  <button
-                    type="button"
-                    onClick={handleGetVegetarian}
-                    disabled={vegLoading}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-olive-light bg-olive-light/40 px-3 py-2.5 text-sm font-medium text-olive-dark transition-colors hover:bg-olive-light disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {vegLoading ? t(lang, "recipeDetail.vegLoading") : t(lang, "recipeDetail.vegPrompt")}
-                  </button>
-                )}
-                {vegError && <p className="text-xs text-clay-dark">{vegError}</p>}
-
-                {vegResult && (
-                  <div className="space-y-2">
-                    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-olive-light bg-olive-light/40 px-3 py-2.5 text-sm text-olive-dark">
-                      <input
-                        type="checkbox"
-                        checked={showVegetarian}
-                        onChange={(e) => setShowVegetarian(e.target.checked)}
-                        className="h-4 w-4 accent-olive"
-                      />
-                      {t(lang, "recipeDetail.showVeg")}
-                    </label>
-                    {showVegetarian && <p className="text-xs leading-relaxed text-ink-faint">{vegResult.note}</p>}
-                    <button
-                      type="button"
-                      onClick={handleGetVegetarian}
-                      disabled={vegLoading}
-                      className="text-xs font-medium text-clay hover:text-clay-dark disabled:cursor-not-allowed disabled:text-ink-faint"
-                    >
-                      {vegLoading ? t(lang, "recipeDetail.newSuggestionLoading") : t(lang, "recipeDetail.newSuggestion")}
-                    </button>
-                  </div>
+                <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-olive-light bg-olive-light/40 px-3 py-2.5 text-sm font-medium text-olive-dark transition-colors hover:bg-olive-light">
+                  <input
+                    type="checkbox"
+                    checked={showVegetarian}
+                    onChange={(e) => setShowVegetarian(e.target.checked)}
+                    className="h-4 w-4 accent-olive"
+                  />
+                  {t(lang, "recipeDetail.vegPrompt")}
+                </label>
+                {showVegetarian && vegResult.note && (
+                  <p className="text-xs leading-relaxed text-ink-faint">{vegResult.note}</p>
                 )}
               </div>
             )}
+
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setSubstituteMode((v) => !v)}
+                className="text-xs font-medium text-clay hover:text-clay-dark"
+              >
+                {substituteMode
+                  ? t(lang, "recipeDetail.substituteModeOff")
+                  : t(lang, "recipeDetail.substituteModeOn")}
+              </button>
+            </div>
 
             <div className="mt-6 space-y-6">
               {displayGroups.map((group) => (
@@ -522,10 +555,10 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
                                 </button>
                               </div>
                             )}
-                            {!substitution && substitutionLoading && (
+                            {!substitution && substituteMode && substitutionLoading && (
                               <p className="text-xs text-ink-faint">{t(lang, "recipeDetail.substituteLoading")}</p>
                             )}
-                            {!substitution && !substitutionLoading && substitutionError && (
+                            {!substitution && substituteMode && !substitutionLoading && substitutionError && (
                               <p className="text-xs text-clay-dark">
                                 {substitutionError}{" "}
                                 <button
@@ -537,7 +570,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
                                 </button>
                               </p>
                             )}
-                            {!substitution && !substitutionLoading && !substitutionError && (
+                            {!substitution && substituteMode && !substitutionLoading && !substitutionError && (
                               <button
                                 type="button"
                                 onClick={() => handleSubstitute(item)}
@@ -569,7 +602,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             <div className="mt-4 flex flex-col gap-3">
               <Button variant="primary" size="lg" onClick={() => setCookModeOpen(true)}>
                 <PlayIcon className="h-4 w-4" />
-                {t(lang, "recipeDetail.startCooking")}
+                {t(lang, hasCookModeProgress ? "recipeDetail.continueCooking" : "recipeDetail.startCooking")}
               </Button>
               <Button variant="outline" size="md" onClick={handleAddToShoppingList}>
                 {justAdded ? (
@@ -584,6 +617,19 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
                   </>
                 )}
               </Button>
+              {/* Vises samtidig som "Lagt til!"-tilstanden over (samme
+               * justAdded-state, samme 6000ms-vindu, se
+               * handleAddToShoppingList) – gir brukeren et direkte neste
+               * steg i stedet for at bekreftelsen bare blafrer forbi uten
+               * noen handling å ta. */}
+              {justAdded && (
+                <Link
+                  href="/handleliste"
+                  className="text-center text-sm font-medium text-clay underline underline-offset-2 hover:text-clay-dark"
+                >
+                  {t(lang, "recipeDetail.goToShoppingList")}
+                </Link>
+              )}
             </div>
           </div>
         </section>
@@ -632,7 +678,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             })}
           </ol>
 
-          {(finalNotes || finalTips) && (
+          {(finalNotes || finalTips || finalWarnings) && (
             <div className="mt-10 space-y-4">
               {finalNotes && (
                 <div className="rounded-card border border-line bg-cream-dark/60 p-5">
@@ -646,15 +692,14 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
                   <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{finalTips}</p>
                 </div>
               )}
+              {finalWarnings && (
+                <div className="rounded-card border border-clay/30 bg-clay-light/30 p-5">
+                  <h3 className="font-serif text-lg text-clay-dark">{t(lang, "recipeDetail.warnings")}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{finalWarnings}</p>
+                </div>
+              )}
             </div>
           )}
-
-          <MenuSuggestions
-            recipeId={recipe.id}
-            title={displayTitle}
-            description={displayDescription}
-            lang={lang}
-          />
 
           <MealBuilder
             recipe={{
@@ -676,6 +721,18 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             }}
             lang={lang}
           />
+
+          <RecipeQuestionSection
+            recipeId={recipe.id}
+            recipeContext={{
+              title: displayTitle,
+              description: displayDescription,
+              ingredientGroups: displayGroups,
+              steps: finalSteps,
+              tips: finalTips,
+            }}
+            lang={lang}
+          />
         </section>
       </div>
 
@@ -685,6 +742,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
           title={displayTitle}
           ingredientGroups={displayGroups}
           steps={finalSteps}
+          cookingTimeline={cookingTimeline}
           onClose={() => setCookModeOpen(false)}
           lang={lang}
         />

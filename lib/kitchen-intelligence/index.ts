@@ -14,6 +14,7 @@ export type {
   ImprovementTier,
   MealCourseRole,
   MealCourseSlot,
+  MealOccasion,
   MealSession,
   RecipeSession,
   RecipeSessionContext,
@@ -37,21 +38,66 @@ export {
   addExistingSlot,
   addSuggestedSlot,
   ALL_MEAL_COURSE_ROLES,
+  ALL_MEAL_OCCASIONS,
   countSlotsBySource,
   createEmptyMealSession,
   inferCourseRoleFromCategory,
   markSuggestionConverted,
+  MEAL_OCCASION_LABELS,
   removeSlot,
   renameMeal,
   replaceSlotContent,
   setMealDesiredReadyAt,
   setMealNotes,
+  setMealOccasion,
   setSlotServings,
   sortSlotsByRole,
 } from "@/lib/kitchen-intelligence/meal-session";
 export type {
+  MealTaskStreamEntry,
   MealTimeline,
   MealTimelineDishEntry,
   MealTimelineDishInput,
 } from "@/lib/kitchen-intelligence/meal-timeline";
-export { computeMealTimeline } from "@/lib/kitchen-intelligence/meal-timeline";
+export { computeMealTaskStream, computeMealTimeline } from "@/lib/kitchen-intelligence/meal-timeline";
+export type {
+  Ambition,
+  ProteinPreference,
+  VibeFacet,
+  WhatToEatCriteria,
+  WhatToEatMatch,
+} from "@/lib/kitchen-intelligence/what-to-eat";
+export {
+  ALL_AMBITIONS,
+  ALL_PROTEIN_PREFERENCES,
+  ALL_VIBE_FACETS,
+  AMBITION_LABELS,
+  buildReasonText,
+  PROTEIN_PREFERENCE_LABELS,
+  scoreRecipesForDecision,
+  VIBE_FACET_LABELS,
+} from "@/lib/kitchen-intelligence/what-to-eat";
+export type {
+  InSeasonIngredient,
+  IngredientStatus,
+  RecipeSeasonalMatch,
+  SeasonPageIngredient,
+} from "@/lib/kitchen-intelligence/seasonal";
+export {
+  computeIngredientStatus,
+  effectivePeakRange,
+  effectiveSeasonRange,
+  expandMonthsInRange,
+  findNextMonthInSet,
+  findRecipesForIngredient,
+  findRecipesForInSeasonIngredients,
+  groupIngredientsByOriginGroup,
+  ingredientAppliesToSeasonPage,
+  matchRecipeToSeasonalIngredients,
+  monthsToRange,
+  ORIGIN_GROUP_ORDER,
+  resolveCurrentSeason,
+  resolveInSeasonIngredients,
+  resolveIngredientsForSeasonPage,
+  searchIngredients,
+} from "@/lib/kitchen-intelligence/seasonal";

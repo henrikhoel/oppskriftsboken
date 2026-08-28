@@ -88,3 +88,82 @@ export function computeMealTimeline(dishes: MealTimelineDishInput[], readyAt: st
     earliestStartClockTime: dishStartClockTime(entries[0]),
   };
 }
+
+/**
+ * KRYSSRETT STEG-TIDSLINJE / "TASK STREAM" (Fase 5-finale, 5.16/5.17) – der
+ * computeMealTimeline over stopper på RETT-nivå (når må HVER RETT starte),
+ * flater denne ut til STEG-nivå: hvert steg i hver rett blir sin egen
+ * oppføring, med rettens EGEN reverse-tidslinje (samme
+ * computeReverseCookingTimeline-kall) som kilde – deretter én global,
+ * kronologisk sortering på tvers av ALLE rettene. Dette ER selve manuset
+ * MultiCookMode.tsx bruker: "det neste riktige jeg bør gjøre på kjøkkenet",
+ * ikke "stegene i én oppskrift" (spesifikasjonens presise formulering, 5.17).
+ *
+ * `taskId` (`${slotId}:${stepId}`) er stabil og unik på tvers av retter –
+ * brukes direkte som nøkkel i useMealCookModeState sin `checkedTaskIds`.
+ *
+ * Samme bevisste begrensning som computeMealTimeline (se filheaderen over):
+ * INGEN modellering av delt kjøkkenkapasitet (kun én ovn/komfyr) – kun en
+ * ærlig, kronologisk rekkefølge på når hvert steg BØR starte om hver rett
+ * lages for seg selv. Sortering ved likt klokkeslett er sekundært stabil på
+ * rettens posisjon i `dishes`-arrayet (IKKE tilfeldig), slik at et refresh
+ * eller ny beregning med samme input alltid gir samme rekkefølge.
+ */
+export interface MealTaskStreamEntry {
+  taskId: string;
+  slotId: string;
+  role: MealCourseRole;
+  dishTitle: string;
+  stepId: string;
+  stepNumber: number;
+  text: string;
+  startClockTime: string;
+  durationMinutes: number;
+  isEstimated: boolean;
+}
+
+export function computeMealTaskStream(dishes: MealTimelineDishInput[], readyAt: string): MealTaskStreamEntry[] | null {
+  const tasks: MealTaskStreamEntry[] = [];
+
+  for (const dish of dishes) {
+    const timeline = computeReverseCookingTimeline(dish.steps, readyAt, {
+      prepTimeMinutes: dish.prepTimeMinutes,
+    });
+    if (!timeline) continue;
+
+    const stepById = new Map(dish.steps.map((step) => [step.id, step]));
+
+    for (const entry of timeline.steps) {
+      const step = stepById.get(entry.stepId);
+      if (!step) continue;
+      tasks.push({
+        taskId: `${dish.slotId}:${entry.stepId}`,
+        slotId: dish.slotId,
+        role: dish.role,
+        dishTitle: dish.title,
+        stepId: entry.stepId,
+        stepNumber: entry.stepNumber,
+        text: step.text,
+        startClockTime: entry.startClockTime,
+        durationMinutes: entry.durationMinutes,
+        isEstimated: entry.isEstimated,
+      });
+    }
+  }
+
+  if (tasks.length === 0) return null;
+
+  // Primær: klokkeslett. Sekundær (likt klokkeslett): rettens rekkefølge i
+  // `dishes` – se filheaderen over for hvorfor dette må være stabilt, ikke
+  // avhengig av innbyrdes array-rekkefølge fra Array.prototype.sort alene
+  // (som riktignok ER stabil i moderne JS-motorer, men vi vil ikke stole på
+  // det implisitt når en eksplisitt tie-breaker er like billig å skrive).
+  const dishOrder = new Map(dishes.map((dish, index) => [dish.slotId, index]));
+  tasks.sort((a, b) => {
+    const byClock = clockMinutes(a.startClockTime) - clockMinutes(b.startClockTime);
+    if (byClock !== 0) return byClock;
+    return (dishOrder.get(a.slotId) ?? 0) - (dishOrder.get(b.slotId) ?? 0);
+  });
+
+  return tasks;
+}

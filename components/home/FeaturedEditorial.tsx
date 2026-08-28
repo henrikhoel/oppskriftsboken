@@ -18,38 +18,55 @@ import { t, type Lang } from "@/lib/i18n";
  * (favoritt/featured-utvalg gjort i app/page.tsx), ingen hardkoding.
  */
 
-function SmallPick({ recipe, lang }: { recipe: RecipeSummary; lang: Lang }) {
+/**
+ * Sekundærbilde til høyre for hovedoppslaget. Samme visuelle språk som
+ * hovedbildet (bilde + mørk nedtoning + tekst lagt over) i stedet for den
+ * gamle "liten firkant + tekst ved siden av"-thumben – det gjør at de to
+ * her faktisk kan strekke seg og fylle hele høyden til hovedbildet
+ * (ønsket av Henrik 26.08.2026) uten at det ser ut som et løsrevet
+ * miniatyr-rutenett. aspect-[4/3] er kun en fallback-minstehøyde for
+ * mobil (der de stables under hverandre, ikke ved siden av hovedbildet);
+ * fra lg og opp overstyres den av flex-1 i den flex-kolonnen som pakker
+ * dem inn (se under), slik at de to sammen deler nøyaktig hovedbildets
+ * fulle høyde.
+ */
+function SecondaryPick({ recipe, lang }: { recipe: RecipeSummary; lang: Lang }) {
   return (
     <Link
       href={`/oppskrifter/${recipe.slug}`}
-      className="group flex gap-4 overflow-hidden rounded-card"
+      className="group relative flex aspect-[4/3] w-full overflow-hidden rounded-card bg-paper lg:aspect-auto lg:flex-1"
     >
-      <div className="relative aspect-square w-28 shrink-0 overflow-hidden rounded-card bg-paper sm:w-32">
-        {recipe.heroImageUrl ? (
-          <Image
-            src={recipe.heroImageUrl}
-            alt={recipe.heroImageAlt || localizedTitle(recipe, lang)}
-            fill
-            sizes="160px"
-            className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-ink-faint">
-            <span className="font-serif text-sm">{t(lang, "recipeCard.imageComing")}</span>
-          </div>
-        )}
-      </div>
-      <div className="flex min-w-0 flex-col justify-center py-1">
-        {recipe.category && (
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.15em] text-clay">
-            {localizedCategoryName(recipe.category, lang)}
-          </p>
-        )}
-        <h3 className="mt-1 text-balance font-serif text-lg leading-snug text-ink transition-colors group-hover:text-clay-dark">
+      {recipe.heroImageUrl ? (
+        <Image
+          src={recipe.heroImageUrl}
+          alt={recipe.heroImageAlt || localizedTitle(recipe, lang)}
+          fill
+          sizes="(min-width: 1024px) 40vw, 100vw"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-ink-faint">
+          <span className="font-serif text-sm">{t(lang, "recipeCard.imageComing")}</span>
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+      {recipe.category && (
+        <span className="absolute left-4 top-4 rounded-full bg-cream/85 px-2.5 py-1 text-[0.7rem] font-medium tracking-wide text-ink backdrop-blur-sm">
+          {localizedCategoryName(recipe.category, lang)}
+        </span>
+      )}
+      <div className="relative mt-auto w-full p-4 sm:p-5">
+        {/* text-ink (IKKE text-cream – "cream" er nær-sort i denne
+            paletten, se globals.css, og var derfor praktisk talt usynlig
+            her). text-ink er den faktiske lyse/krembeige tekstfargen, samme
+            prinsipp som h1-en i heroen lenger opp på siden bruker oppå sitt
+            mørke bilde. Litt mindre skrift på mobil (Henrik 26.08.2026: må
+            være synlig der også, gjerne i mindre skrift). */}
+        <h3 className="text-balance font-serif text-sm leading-snug text-ink transition-colors group-hover:text-clay-dark sm:text-base lg:text-lg">
           {localizedTitle(recipe, lang)}
         </h3>
-        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-faint">
-          <ClockIcon className="h-3.5 w-3.5" />
+        <div className="mt-1.5 flex items-center gap-1.5 text-[0.7rem] text-ink/80 sm:text-xs">
+          <ClockIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           <span>{formatMinutes(recipe.totalTimeMinutes, lang)}</span>
         </div>
       </div>
@@ -72,7 +89,7 @@ export function FeaturedEditorial({
         {t(lang, "home.editorial.eyebrow")}
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-5 lg:gap-12">
+      <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-5 lg:items-stretch lg:gap-12">
         <Link
           href={`/oppskrifter/${main.slug}`}
           className="group lg:col-span-3"
@@ -116,17 +133,15 @@ export function FeaturedEditorial({
         </Link>
 
         {others.length > 0 && (
-          <div className="lg:col-span-2">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-ink-faint">
-              {t(lang, "home.editorial.also")}
-            </p>
-            <div className="mt-4 space-y-5 divide-y divide-line lg:space-y-0 lg:divide-y-0">
-              {others.map((recipe) => (
-                <div key={recipe.id} className="pt-5 first:pt-0 lg:border-t lg:border-line lg:pt-5 lg:first:border-t-0 lg:first:pt-0">
-                  <SmallPick recipe={recipe} lang={lang} />
-                </div>
-              ))}
-            </div>
+          // flex-col + lg:h-full: sammen med lg:items-stretch på griden over
+          // gir dette de to (eller ett, hvis kun 2 oppskrifter totalt) bildene
+          // her nøyaktig hovedbildets fulle høyde å dele på (via flex-1 i
+          // SecondaryPick), i stedet for å stoppe når egen tekst/bilde-innhold
+          // er brukt opp og etterlate tomrom nederst.
+          <div className="flex flex-col gap-5 lg:col-span-2 lg:h-full">
+            {others.map((recipe) => (
+              <SecondaryPick key={recipe.id} recipe={recipe} lang={lang} />
+            ))}
           </div>
         )}
       </div>

@@ -64,7 +64,10 @@ export async function getSearchableRecipes(): Promise<SearchableRecipe[]> {
 
 export async function getFeaturedRecipes(limit = 3): Promise<RecipeSummary[]> {
   const all = await getPublishedRecipeSummaries();
-  return all.filter((r) => r.isFeatured).slice(0, limit);
+  return all
+    .filter((r) => r.isFeatured)
+    .sort((a, b) => (a.featuredSortOrder ?? Infinity) - (b.featuredSortOrder ?? Infinity))
+    .slice(0, limit);
 }
 
 export async function getNewestRecipes(limit = 6): Promise<RecipeSummary[]> {

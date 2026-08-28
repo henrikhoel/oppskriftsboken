@@ -107,7 +107,8 @@ export function FilterPanel({
             onChange={(e) => onChange({ ...filters, ingredient: e.target.value || undefined })}
             placeholder={t(lang, "filter.ingredientPlaceholder")}
             aria-label={t(lang, "filter.ingredientAria")}
-            className="w-full rounded-full border border-line-strong bg-cream px-4 py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none"
+            // text-base på mobil (unngår iOS-innzooming ved fokus).
+            className="w-full rounded-full border border-line-strong bg-cream px-4 py-2 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-sm"
           />
         </div>
 

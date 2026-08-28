@@ -7,4 +7,4 @@
  * "@/lib/i18n/lang" i stedet for herfra.
  */
 export type { Lang } from "@/lib/i18n/types";
-export { t, recipeCountLabel, type DictKey } from "@/lib/i18n/dictionary";
+export { t, recipeCountLabel, guestCountLabel, type DictKey } from "@/lib/i18n/dictionary";

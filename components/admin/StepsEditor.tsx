@@ -37,7 +37,9 @@ export function StepsEditor({
               onChange={(e) => updateStep(index, { ...step, groupTitle: e.target.value })}
               placeholder="Delsteg-gruppe (valgfritt, f.eks. «Saus»)"
               aria-label={`Gruppenavn for steg ${index + 1}`}
-              className="w-full rounded-lg border border-line-strong bg-paper px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint focus:outline-none"
+              // text-base på mobil (unngår iOS-innzooming ved fokus, se
+              // WinePairing.tsx), krymper igjen til text-xs fra sm:.
+              className="w-full rounded-lg border border-line-strong bg-paper px-3 py-1.5 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-xs"
             />
             <textarea
               value={step.text}
@@ -45,7 +47,7 @@ export function StepsEditor({
               placeholder="Beskriv steget …"
               aria-label={`Tekst for steg ${index + 1}`}
               rows={2}
-              className="w-full resize-y rounded-lg border border-line-strong bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none"
+              className="w-full resize-y rounded-lg border border-line-strong bg-paper px-3 py-2 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-sm"
             />
           </div>
           <div className="flex shrink-0 flex-col gap-1">

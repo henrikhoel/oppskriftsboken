@@ -11,6 +11,13 @@ import { t, type Lang } from "@/lib/i18n";
  * vinanbefaling), i stedet for at det lastes automatisk for alle. Selve
  * forslaget er cachet server-side (getMenuSuggestions), så gjentatte
  * besøkende på samme oppskrift trigger normalt ikke et nytt AI-kall.
+ *
+ * IKKE LENGER BRUKT (fjernet fra RecipeInteractive.tsx etter tilbakemelding
+ * – for lik den rikere Menybyggeren (MealBuilder.tsx, Fase 5) til å
+ * rettferdiggjøre begge på samme side). Selve filen og den underliggende
+ * getMenuSuggestions-handlingen i lib/actions/kitchen-intelligence.ts står
+ * fortsatt igjen urørt (kan ikke slettes fra denne økten – se andre
+ * filheadere om samme begrensning), men refereres ikke lenger noe sted.
  */
 export function MenuSuggestions({
   recipeId,

@@ -20,6 +20,27 @@ import { DEFAULT_STEP_MINUTES, parseStepDurationMs } from "@/lib/kitchen-intelli
 
 const DEFAULT_PREP_MINUTES = 10;
 
+/** Hvor "grovt" DET INNLEDENDE "sett i gang nå"-tidspunktet VISES (kun
+ * `prepStartClockTime` – se bruk lenger ned). (26.08.2026 – brukerønske:
+ * "jeg må begynne 15:38" oppleves for spesifikt for et tall som uansett bare
+ * er en løs påminnelse om når man bør begynne å tenke på middagen; "15:30"
+ * er like nyttig og mindre falskt presist.) Rundes NED (aldri opp) – et
+ * startpunkt som vises for tidlig er ufarlig (man venter litt), et som vises
+ * for sent kunne gjort at retten ikke er klar til `readyAt`.
+ *
+ * VIKTIG – runder BEVISST IKKE hvert enkelt steg sin `startClockTime`
+ * (26.08.2026, rettet etter bruker-tilbakemelding): steg vises i rekkefølge
+ * tett etter hverandre (ofte 3-5 minutter mellom), og siden de her ble
+ * uavhengig avrundet til hver sin nærmeste 10-minutters-strek, kunne to
+ * suksessive steg ende opp med IDENTISK vist klokkeslett (f.eks. "stek
+ * kjøttet" og "ha i løk i samme panne" begge vist som "16:00"), som så ut
+ * som om de skulle gjøres samtidig – misvisende, siden dette er tall man
+ * faktisk følger live mens man lager mat (både her og inline i Cook Mode),
+ * ikke bare et overordnet planleggingstall. Steg-tidspunkter og
+ * `readyAt` forblir derfor eksakte til minuttet; kun den ENE innledende
+ * påminnelsen rundes. */
+const PREP_START_ROUNDING_MINUTES = 10;
+
 export interface TimelineStepEntry {
   stepId: string;
   stepNumber: number;
@@ -52,11 +73,17 @@ function parseClockTime(hhmm: string): number | null {
 }
 
 /** Normaliserer til 0–1439 (kan "pakke" over midnatt begge veier – naturlig
- * for en tidslinje som regnes baklengs og fint kan starte kvelden før). */
-function formatClockTime(totalMinutes: number): string {
+ * for en tidslinje som regnes baklengs og fint kan starte kvelden før).
+ * `roundDownToMinutes` (valgfri) runder resultatet NED til nærmeste multiplum
+ * – se PREP_START_ROUNDING_MINUTES over for hvorfor og når dette brukes. */
+function formatClockTime(totalMinutes: number, roundDownToMinutes?: number): string {
   const normalized = ((Math.round(totalMinutes) % 1440) + 1440) % 1440;
-  const h = Math.floor(normalized / 60);
-  const m = normalized % 60;
+  const rounded =
+    roundDownToMinutes && roundDownToMinutes > 1
+      ? Math.floor(normalized / roundDownToMinutes) * roundDownToMinutes
+      : normalized;
+  const h = Math.floor(rounded / 60);
+  const m = rounded % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
@@ -102,7 +129,8 @@ export function computeReverseCookingTimeline(
   });
 
   const prepMinutes = options?.prepTimeMinutes ?? DEFAULT_PREP_MINUTES;
-  const prepStartClockTime = prepMinutes > 0 ? formatClockTime(firstStepStart - prepMinutes) : null;
+  const prepStartClockTime =
+    prepMinutes > 0 ? formatClockTime(firstStepStart - prepMinutes, PREP_START_ROUNDING_MINUTES) : null;
 
   return {
     readyAt: formatClockTime(readyMinutes),

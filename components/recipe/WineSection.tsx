@@ -245,11 +245,14 @@ function WineMatchChecker({ recipeContext, lang }: { recipeContext: RecipeContex
       <p className="mt-1 text-sm text-ink-faint">{t(lang, "wine.matchDesc")}</p>
 
       <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-2 sm:flex-row">
+        {/* text-base (16px) på mobil, ikke text-sm (14px) – iOS Safari
+         * zoomer automatisk inn siden ved fokus på et input med skrift
+         * under 16px (samme fiks/kommentar som WinePairing.tsx). */}
         <input
           value={wineName}
           onChange={(e) => setWineName(e.target.value)}
           placeholder={t(lang, "wine.matchPlaceholder")}
-          className="w-full rounded-xl border border-line-strong bg-paper px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none sm:flex-1"
+          className="w-full rounded-xl border border-line-strong bg-paper px-3.5 py-2.5 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:flex-1 sm:text-sm"
         />
         <div className="flex shrink-0 gap-2">
           <button

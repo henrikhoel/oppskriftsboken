@@ -20,14 +20,47 @@ const FRACTIONS: Array<{ value: number; label: string }> = [
 
 const FRACTION_TOLERANCE = 0.04;
 
+/** Unicode-brøktegn ("½" osv.) som `formatWithFraction` under (og
+ * `lib/utils/units.ts` sine egne brøk-formattere) kan produsere som DEL av
+ * en allerede skalert/konvertert mengde-streng (f.eks. "1½"). Disse må
+ * `parseAmount` også forstå – ikke bare de rå ASCII-formatene fra databasen
+ * – siden f.eks. `RecipeInteractive.tsx` kjører mengden gjennom
+ * `scaleAmount` (som kan produsere "1½") og deretter `convertAmountToUs`
+ * (som kaller `parseAmount` på NYTT på det allerede formaterte resultatet).
+ * Uten dette bommer den andre parse-runden stille, og hele linjen
+ * (mengde OG enhet) blir stående uendret i US-visning – se tilbakemelding
+ * 26.08.2026 ("kjøttet sto fortsatt som kg selv om alt annet ble endret",
+ * ingrediens "1 1/2 kg oksekjøtt": scaleAmount("1 1/2", ...) -> "1½" ->
+ * convertAmountToUs klarer ikke å parse "1½" -> bailer ut uendret). */
+const VULGAR_FRACTIONS: Record<string, number> = {
+  "⅛": 1 / 8,
+  "¼": 1 / 4,
+  "⅓": 1 / 3,
+  "⅜": 3 / 8,
+  "½": 1 / 2,
+  "⅝": 5 / 8,
+  "⅔": 2 / 3,
+  "¾": 3 / 4,
+  "⅞": 7 / 8,
+};
+
 /**
  * Parser en mengde-streng til et tall dersom mulig. Støtter vanlige norske
- * skrivemåter: "200", "1,5", "1.5", "1/2", "1 1/2".
+ * skrivemåter: "200", "1,5", "1.5", "1/2", "1 1/2" – i tillegg til
+ * Unicode-brøkformatet ("½", "1½") som appens egne skaleringsfunksjoner selv
+ * kan produsere (se VULGAR_FRACTIONS over).
  */
 export function parseAmount(raw: string | null | undefined): number | null {
   if (!raw) return null;
   const trimmed = raw.trim().replace(",", ".");
   if (trimmed === "") return null;
+
+  // "1½" eller "½" -> heltall (valgfritt) + Unicode-brøktegn
+  const vulgarMatch = trimmed.match(/^(\d+)?\s*([⅛¼⅓⅜½⅝⅔¾⅞])$/);
+  if (vulgarMatch) {
+    const [, whole, glyph] = vulgarMatch;
+    return (whole ? Number(whole) : 0) + VULGAR_FRACTIONS[glyph];
+  }
 
   // "1 1/2" -> blandet tall
   const mixedMatch = trimmed.match(/^(\d+)\s+(\d+)\/(\d+)$/);

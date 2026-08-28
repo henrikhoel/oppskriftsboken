@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config";
 import { getLang } from "@/lib/i18n/lang";
@@ -12,10 +11,9 @@ import {
 } from "@/lib/data/recipes";
 import { getAllCategories, getCategoryRecipeCounts } from "@/lib/data/categories";
 import type { RecipeSummary } from "@/lib/types";
-import { RecipeGrid } from "@/components/recipe/RecipeGrid";
 import { SearchBar } from "@/components/search/SearchBar";
 import { Button } from "@/components/ui/Button";
-import { ChevronRightIcon, ChevronDownIcon } from "@/components/ui/icons";
+import { ChevronDownIcon } from "@/components/ui/icons";
 import { FeaturedEditorial } from "@/components/home/FeaturedEditorial";
 import { WinePairing } from "@/components/home/WinePairing";
 import { CookModeShowcase } from "@/components/home/CookModeShowcase";
@@ -23,42 +21,25 @@ import { AtmosphereSection } from "@/components/home/AtmosphereSection";
 import { MoodModeSection } from "@/components/home/MoodModeSection";
 import { CategoryShowcase } from "@/components/home/CategoryShowcase";
 import { NewestRecipesFeed } from "@/components/home/NewestRecipesFeed";
+import { WhatToEatTeaser } from "@/components/home/WhatToEatTeaser";
+import { SeasonTeaser } from "@/components/home/SeasonTeaser";
 
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLang();
   return { description: lang === "en" ? siteConfig.descriptionEn : siteConfig.description };
 }
 
-function SectionHeader({
-  title,
-  href,
-  lang,
-}: {
-  title: string;
-  href?: string;
-  lang: Lang;
-}) {
-  return (
-    <div className="mb-6 flex items-end justify-between gap-4">
-      <h2 className="font-serif text-2xl text-ink sm:text-3xl">{title}</h2>
-      {href && (
-        <Link
-          href={href}
-          className="flex shrink-0 items-center gap-1 text-sm font-medium text-clay hover:text-clay-dark"
-        >
-          {t(lang, "home.seeAll")}
-          <ChevronRightIcon className="h-4 w-4" />
-        </Link>
-      )}
-    </div>
-  );
-}
-
 /** Plukker ut inntil 3 oppskrifter til den redaksjonelle "utvalgte"-
- * seksjonen (FeaturedEditorial), prioritert husets favoritter > featured
- * > nyeste – ingen hardkoding av en bestemt oppskrift. Returnerer også
- * hvilke id-er som ble brukt, slik at de samme oppskriftene ikke også
- * dukker opp dobbelt i "nyeste"/"husets favoritter"-gridet lenger ned. */
+ * seksjonen (FeaturedEditorial) – vises under overskriften "Husets
+ * favoritter" (tidligere "Ukens utvalg", omdøpt 26.08.2026 når det
+ * separate hjerte-baserte "Husets favoritter"-gridet lenger ned på siden
+ * ble fjernet). Prioriterer featured (admin-satt rekkefølge fra
+ * /admin/utvalg, se getFeaturedRecipes) > hjerte-favoritter
+ * (favoritedByAdmin) > nyeste – featured er den EKSPLISITTE, tiltenkte
+ * kilden; hjerte-favoritter/nyeste er kun FYLL når for få oppskrifter er
+ * lagt i utvalget. Ingen hardkoding av en bestemt oppskrift. Returnerer
+ * også hvilke id-er som ble brukt, slik at de samme oppskriftene ikke også
+ * dukker opp dobbelt i "nyeste"-gridet lenger ned. */
 function pickEditorial(
   favorites: RecipeSummary[],
   featured: RecipeSummary[],
@@ -66,7 +47,7 @@ function pickEditorial(
 ): { picks: RecipeSummary[]; usedIds: Set<string> } {
   const usedIds = new Set<string>();
   const picks: RecipeSummary[] = [];
-  for (const recipe of [...favorites, ...featured, ...newest]) {
+  for (const recipe of [...featured, ...favorites, ...newest]) {
     if (usedIds.has(recipe.id)) continue;
     usedIds.add(recipe.id);
     picks.push(recipe);
@@ -97,7 +78,6 @@ export default async function HomePage() {
   // en løsrevet blokk under hele seksjonen i stedet, og hele oppsettet ser
   // brutt ut.
   const newestForGrid = newest.filter((r) => !usedIds.has(r.id)).slice(0, 5);
-  const favoritesForGrid = favorites.filter((r) => !usedIds.has(r.id));
 
   return (
     <div>
@@ -109,7 +89,7 @@ export default async function HomePage() {
           "header + hero + evt. bunnmeny = akkurat én skjerm"-oppførsel,
           uansett iPhone-modell/safe-area:
             - For lav ville gitt et gjenværende "hull" der neste seksjon
-              ("Ukens utvalg") titter opp bak/over bunnmenyen.
+              ("Husets favoritter") titter opp bak/over bunnmenyen.
             - For høy ville dyttet "bla nedover"-pilen (som sitter nær
               heroens bunn) ned under bunnmenyen eller helt utenfor synlig
               skjerm – begge deler faktisk observert med faste
@@ -205,7 +185,12 @@ export default async function HomePage() {
         <MoodModeSection lang={lang} />
 
         {editorialMain && (
-          <div className="py-16 sm:py-20">
+          // pb (ikke py) med vilje – MoodModeSection over har allerede sin
+          // egen sjenerøse bunnpadding, se filheaderen i MoodModeSection.tsx.
+          // En pt her i tillegg ville doblet luften ned til denne seksjonen
+          // sammenlignet med luften mellom heroen og MoodModeSection over
+          // (nøyaktig tilbakemeldingen fra Henrik 26.08.2026).
+          <div className="pb-16 sm:pb-20">
             <FeaturedEditorial main={editorialMain} others={editorialOthers} lang={lang} />
           </div>
         )}
@@ -215,6 +200,17 @@ export default async function HomePage() {
         <CookModeShowcase lang={lang} recipeSlug={editorialMain?.slug ?? newest[0]?.slug ?? null} />
 
         <AtmosphereSection lang={lang} />
+
+        {/* To små, rolige inngangs-teasere (spesifikasjon punkt 6) – "Hva
+            skal vi spise?" og "I sesong". Bevisst KUN lenke-kort her, ikke
+            selve funksjonene (de bor på egne sider, se
+            components/whattoeat/WhatToEatView.tsx og app/sesong/). */}
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <WhatToEatTeaser lang={lang} />
+            <SeasonTeaser lang={lang} />
+          </div>
+        </div>
 
         <div className="py-16 sm:py-20">
           <CategoryShowcase categories={categories} counts={categoryCounts} lang={lang} />
@@ -227,13 +223,6 @@ export default async function HomePage() {
           {newestForGrid.length > 0 && (
             <section aria-labelledby="nyeste">
               <NewestRecipesFeed recipes={newestForGrid} lang={lang} />
-            </section>
-          )}
-
-          {favoritesForGrid.length > 0 && (
-            <section aria-labelledby="favoritter">
-              <SectionHeader title={t(lang, "home.houseFavorites")} href="/favoritter" lang={lang} />
-              <RecipeGrid recipes={favoritesForGrid} lang={lang} />
             </section>
           )}
         </div>

@@ -49,7 +49,14 @@ export function Drawer({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-40 flex flex-col justify-end bg-black/50"
+      // z-50 (IKKE z-40): RecipeForm.tsx sin faste "Lagre endringer"-bunnlinje
+      // bruker z-40 – med samme z-index vinner den som kommer SENERE i
+      // DOM-rekkefølgen, som i praksis var bunnlinjen (den ligger lenger ned
+      // i JSX-treet enn f.eks. IngredientGroupsEditor sin Drawer), og dekket
+      // dermed over selve ark-innholdet (26.08.2026, oppdaget via Henriks
+      // skjermbilde av "tomt" navneredigerings-ark). z-50 garanterer at
+      // arket alltid ligger øverst, uansett hvor i treet det rendres fra.
+      className="fixed inset-0 z-50 flex flex-col justify-end bg-black/50"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="max-h-[80vh] overflow-y-auto rounded-t-3xl bg-paper px-5 pb-8 pt-5 text-ink shadow-card sm:px-8">

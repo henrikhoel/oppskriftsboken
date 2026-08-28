@@ -2,7 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import type { RecipeSummary } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
-import { ClockIcon, HeartIcon } from "@/components/ui/icons";
+import { ClockIcon } from "@/components/ui/icons";
+import { FavoriteButton } from "@/components/recipe/FavoriteButton";
 import {
   formatMinutes,
   difficultyLabel,
@@ -16,10 +17,17 @@ import { t, type Lang } from "@/lib/i18n";
 export function RecipeCard({
   recipe,
   priority = false,
+  isAdmin = false,
   lang = "no",
 }: {
   recipe: RecipeSummary;
   priority?: boolean;
+  /** Kun sant på sider som faktisk henter innlogget bruker server-side (se
+   * app/oppskrifter/page.tsx) – avgjør om hjertet i hjørnet skriver til den
+   * DELTE admin-favoritten (favoritedByAdmin i databasen) eller til
+   * besøkendes EGEN, lokale favorittliste (useFavorites-hooken inni
+   * FavoriteButton). Samme skille som på selve oppskriftssiden. */
+  isAdmin?: boolean;
   lang?: Lang;
 }) {
   return (
@@ -42,12 +50,15 @@ export function RecipeCard({
             <span className="font-serif text-lg">{t(lang, "recipeCard.imageComing")}</span>
           </div>
         )}
-        {recipe.favoritedByAdmin && (
-          <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-paper/90 text-clay shadow-card">
-            <HeartIcon filled className="h-4 w-4" />
-            <span className="sr-only">{t(lang, "recipeCard.favoriteSr")}</span>
-          </span>
-        )}
+        <div className="absolute right-3 top-3 shadow-card">
+          <FavoriteButton
+            recipeId={recipe.id}
+            initialFavorited={recipe.favoritedByAdmin}
+            isAdmin={isAdmin}
+            size="sm"
+            lang={lang}
+          />
+        </div>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex flex-wrap items-center gap-2">

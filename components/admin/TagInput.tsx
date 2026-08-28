@@ -55,7 +55,8 @@ export function TagInput({
           onBlur={commitDraft}
           placeholder={tags.length === 0 ? "Legg til tags, trykk Enter" : "Legg til flere …"}
           aria-label="Legg til tag"
-          className="min-w-[8rem] flex-1 bg-transparent px-1 py-1 text-sm text-ink placeholder:text-ink-faint focus:outline-none"
+          // text-base på mobil (unngår iOS-innzooming ved fokus).
+          className="min-w-[8rem] flex-1 bg-transparent px-1 py-1 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-sm"
         />
       </div>
     </div>

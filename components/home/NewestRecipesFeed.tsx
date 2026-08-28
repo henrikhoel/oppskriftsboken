@@ -130,7 +130,7 @@ function FeatureBeat({ recipe, number, lang }: { recipe: RecipeSummary; number: 
         <div className="max-w-2xl">
           <p className="text-[11px] uppercase tracking-[0.2em] text-ink-faint">
             <span className="text-clay-dark">{number}</span>
-            <span className="mx-2 text-ink-faint">—</span>
+            <span className="mx-2 text-ink-faint">·</span>
             {recipe.category && (
               <span className="text-clay">{localizedCategoryName(recipe.category, lang)}</span>
             )}
@@ -415,7 +415,7 @@ function ClosingQuote({ lang }: { lang: Lang }) {
       <p className="text-balance font-serif text-lg italic leading-snug text-ink sm:text-2xl">
         «Dis-moi ce que tu manges, je te dirai ce que tu es.»
       </p>
-      <p className="mt-3 text-sm tracking-wide text-clay-dark">— Jean Anthelme Brillat-Savarin, 1825</p>
+      <p className="mt-3 text-sm tracking-wide text-clay-dark">Jean Anthelme Brillat-Savarin, 1825</p>
       <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-ink-faint">
         {t(lang, "home.editorial.closingQuoteTranslation")}
       </p>

@@ -6,6 +6,7 @@ import type {
   RecipeStep,
   RecipeSummary,
   Tag,
+  VegetarianVariant,
 } from "@/lib/types";
 import type { Difficulty } from "@/lib/config";
 import type { SearchableRecipe } from "@/lib/utils/search";
@@ -34,19 +35,25 @@ export interface RawRecipeRow {
   // jsonb – se lib/kitchen-intelligence/nutrition.ts. Samme
   // unknown-frem-for-NutritionInfo-begrunnelse som taste_profile over.
   nutrition_info: unknown | null;
+  // jsonb – se VegetarianVariant i lib/types.ts. Samme
+  // unknown-frem-for-egen-type-begrunnelse som taste_profile/nutrition_info over.
+  vegetarian_variant: unknown | null;
   hero_image_url: string | null;
   hero_image_alt: string | null;
   hero_image_is_ai_generated: boolean;
   servings: number;
   prep_time_minutes: number | null;
   cook_time_minutes: number | null;
+  cook_time_minutes_max: number | null;
   total_time_minutes: number | null;
   difficulty: Difficulty;
   notes: string | null;
   tips: string | null;
+  warnings: string | null;
   source: string | null;
   is_published: boolean;
   is_featured: boolean;
+  featured_sort_order: number | null;
   favorited_by_admin: boolean;
   rating_sum: number;
   rating_count: number;
@@ -147,6 +154,7 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
     descriptionEn: raw.description_en,
     tasteProfile: raw.taste_profile as TasteProfile | null,
     nutritionInfo: raw.nutrition_info as NutritionInfo | null,
+    vegetarianVariant: raw.vegetarian_variant as VegetarianVariant | null,
     heroImageUrl: raw.hero_image_url,
     heroImageAlt: raw.hero_image_alt,
     heroImageIsAiGenerated: raw.hero_image_is_ai_generated,
@@ -156,15 +164,18 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
     servings: raw.servings,
     prepTimeMinutes: raw.prep_time_minutes,
     cookTimeMinutes: raw.cook_time_minutes,
+    cookTimeMinutesMax: raw.cook_time_minutes_max,
     totalTimeMinutes: raw.total_time_minutes,
     difficulty: raw.difficulty,
     ingredientGroups: mapIngredientGroups(raw.ingredient_groups),
     steps: mapSteps(raw.recipe_steps),
     notes: raw.notes,
     tips: raw.tips,
+    warnings: raw.warnings,
     source: raw.source,
     isPublished: raw.is_published,
     isFeatured: raw.is_featured,
+    featuredSortOrder: raw.featured_sort_order,
     favoritedByAdmin: raw.favorited_by_admin,
     ratingSum: raw.rating_sum,
     ratingCount: raw.rating_count,
@@ -174,9 +185,9 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
 }
 
 export const RECIPE_SELECT = `
-  id, slug, title, description, title_en, description_en, taste_profile, nutrition_info, hero_image_url, hero_image_alt, hero_image_is_ai_generated, servings,
-  prep_time_minutes, cook_time_minutes, total_time_minutes, difficulty,
-  notes, tips, source, is_published, is_featured, favorited_by_admin,
+  id, slug, title, description, title_en, description_en, taste_profile, nutrition_info, vegetarian_variant, hero_image_url, hero_image_alt, hero_image_is_ai_generated, servings,
+  prep_time_minutes, cook_time_minutes, cook_time_minutes_max, total_time_minutes, difficulty,
+  notes, tips, warnings, source, is_published, is_featured, featured_sort_order, favorited_by_admin,
   rating_sum, rating_count,
   created_at, updated_at,
   category:categories(id, slug, name, name_en, sort_order),
@@ -201,11 +212,13 @@ export function toSummary(recipe: Recipe): RecipeSummary {
     totalTimeMinutes: recipe.totalTimeMinutes,
     difficulty: recipe.difficulty,
     isFeatured: recipe.isFeatured,
+    featuredSortOrder: recipe.featuredSortOrder,
     favoritedByAdmin: recipe.favoritedByAdmin,
     createdAt: recipe.createdAt,
     isPublished: recipe.isPublished,
     ratingSum: recipe.ratingSum,
     ratingCount: recipe.ratingCount,
+    servings: recipe.servings,
   };
 }
 

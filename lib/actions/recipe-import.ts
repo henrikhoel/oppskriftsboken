@@ -1,7 +1,12 @@
 "use server";
 
 import { requireAdmin } from "@/lib/auth";
-import { callClaudeJSON } from "@/lib/ai/anthropic";
+import {
+  callClaudeJSON,
+  callClaudeMultiImageVisionJSON,
+  SUPPORTED_IMAGE_MEDIA_TYPES,
+  type SupportedImageMediaType,
+} from "@/lib/ai/anthropic";
 import { DIFFICULTY_LEVELS, type Difficulty } from "@/lib/config";
 import {
   extractJsonLdRecipe,
@@ -11,6 +16,8 @@ import {
   flattenJsonLdInstructions,
   extractFirstImageUrl,
   stripHtmlToText,
+  extractMetaContent,
+  stripSocialCaptionBoilerplate,
 } from "@/lib/utils/html-extract";
 import {
   convertImperialAmount,
@@ -54,6 +61,20 @@ import {
  * for at dette regnestykket – som har ett eksakt riktig svar og bør rundes
  * til "naturlige" kjøkkentall (12, ikke 11,67) – alltid gjøres av kode, ikke
  * av en AI som kan regne feil eller runde inkonsekvent.
+ *
+ * INSTAGRAM/TIKTOK (26.08.2026): disse har verken JSON-LD Recipe-data eller
+ * en vanlig artikkelside å strekke om til fri tekst – oppskriften finnes KUN
+ * i selve bildeteksten til innlegget. Samme lenkefelt kjenner igjen disse to
+ * plattformene på URL-en (se detectSocialPlatform under) og henter i stedet
+ * bildeteksten deterministisk fra sidens og:description-metatagg (se
+ * stripSocialCaptionBoilerplate i lib/utils/html-extract.ts), før den tolkes
+ * av AI med en egen prompt tilpasset hvordan bildetekster faktisk skrives
+ * (emoji som punkttegn, emneknagger/@-nevnelser som skal ignoreres) – se
+ * importFromSocialUrl/parseCaptionToDraft under. Begge plattformene
+ * blokkerer automatisk henting relativt ofte (krever innlogging for mange
+ * innlegg) – da kastes en lesbar feil som ber admin lime inn bildeteksten
+ * manuelt i stedet (importRecipeFromCaptionText, samme AI-tolkning, bare
+ * uten selve nettsidehentingen), i stedet for å late som noe fungerte.
  */
 
 export interface RecipeImportIngredientItem {
@@ -97,6 +118,36 @@ const MAX_HTML_CHARS = 600_000;
 const MAX_PLAIN_TEXT_CHARS = 12_000;
 const MAX_INGREDIENT_LINES = 80;
 const MAX_INSTRUCTION_LINES = 60;
+
+// Hoistet ut av importRecipeFromUrl (som opprinnelig var eneste bruker) slik
+// at både den, importFromPlainText OG de nye Instagram/TikTok-veiene
+// (importFromSocialUrl/importRecipeFromCaptionText) kan dele nøyaktig samme
+// JSON-skjema mot AI-en – ingen risiko for at de driver fra hverandre.
+const RECIPE_OUTPUT_SCHEMA =
+  '{"title": "streng (norsk)", "description": "streng (norsk, 1-2 setninger)", ' +
+  '"servings": tall|null, "prepTimeMinutes": tall|null, "cookTimeMinutes": tall|null, ' +
+  '"totalTimeMinutes": tall|null, "difficulty": "enkel"|"middels"|"avansert", ' +
+  '"ingredientGroups": [{"title": streng|null, "items": [{"amount": streng, "unit": streng, ' +
+  '"name": streng, "note": streng}]}], "steps": [{"groupTitle": streng|null, "text": streng}], ' +
+  '"categoryName": streng|null (MÅ være eksakt en av de oppgitte kategoriene, ellers null), ' +
+  '"tags": string[] (inntil 5, norske, små bokstaver)}';
+
+type SocialPlatform = "instagram" | "tiktok";
+
+/** Gjenkjenner Instagram/TikTok-lenker (inkl. korte tiktok.com-varianter som
+ * vm./vt.tiktok.com, som fanges av .endsWith under) på selve hostnavnet –
+ * ren streng-sjekk, ingen tolkning. */
+function detectSocialPlatform(url: URL): SocialPlatform | null {
+  const host = url.hostname.replace(/^www\./i, "").toLowerCase();
+  if (host === "instagram.com" || host.endsWith(".instagram.com")) return "instagram";
+  if (host === "tiktok.com" || host.endsWith(".tiktok.com")) return "tiktok";
+  return null;
+}
+
+const SOCIAL_FETCH_BLOCKED_MESSAGE =
+  "Klarte ikke å hente bildeteksten automatisk fra denne lenken – Instagram og TikTok blokkerer ofte automatisk " +
+  "henting, eller innlegget krever innlogging for å vises. Lim heller inn selve bildeteksten manuelt under " +
+  "(kopier den fra appen/nettsiden), så tolkes den på akkurat samme måte.";
 
 interface ParsedRecipeAiResponse {
   title?: string;
@@ -153,6 +204,14 @@ export async function importRecipeFromUrl(
     throw new Error("Lenken må starte med http:// eller https://.");
   }
 
+  // Instagram/TikTok har ingen JSON-LD-oppskriftsdata og ingen artikkelside
+  // å strekke om til fri tekst – egen vei, se filheaderen og
+  // importFromSocialUrl under.
+  const socialPlatform = detectSocialPlatform(url);
+  if (socialPlatform) {
+    return await importFromSocialUrl(url, categories);
+  }
+
   let html: string;
   try {
     const res = await fetch(url.toString(), {
@@ -186,14 +245,7 @@ export async function importRecipeFromUrl(
   const knownTotal = jsonLd ? parseIsoDurationToMinutes(jsonLd.totalTime) : null;
 
   const categoryNames = categories.map((c) => c.name);
-  const outputSchema =
-    '{"title": "streng (norsk)", "description": "streng (norsk, 1-2 setninger)", ' +
-    '"servings": tall|null, "prepTimeMinutes": tall|null, "cookTimeMinutes": tall|null, ' +
-    '"totalTimeMinutes": tall|null, "difficulty": "enkel"|"middels"|"avansert", ' +
-    '"ingredientGroups": [{"title": streng|null, "items": [{"amount": streng, "unit": streng, ' +
-    '"name": streng, "note": streng}]}], "steps": [{"groupTitle": streng|null, "text": streng}], ' +
-    '"categoryName": streng|null (MÅ være eksakt en av de oppgitte kategoriene, ellers null), ' +
-    '"tags": string[] (inntil 5, norske, små bokstaver)}';
+  const outputSchema = RECIPE_OUTPUT_SCHEMA;
 
   let system: string;
   let prompt: string;
@@ -247,7 +299,7 @@ export async function importRecipeFromUrl(
 
   const result = await callAndParse(system, prompt);
   return assembleDraft(result, {
-    url,
+    source: url.toString(),
     categories,
     heroImageUrl,
     knownServings,
@@ -294,7 +346,7 @@ async function importFromPlainText(
 
   const result = await callAndParse(system, prompt);
   return assembleDraft(result, {
-    url,
+    source: url.toString(),
     categories,
     heroImageUrl,
     knownServings: null,
@@ -304,6 +356,324 @@ async function importFromPlainText(
     warning:
       "Fant ingen strukturert oppskriftsdata på siden – innholdet er tolket fra fri sidetekst av AI. " +
       "Gå ekstra nøye gjennom ingredienser og fremgangsmåte før du publiserer.",
+  });
+}
+
+/** Instagram/TikTok – henter selve HTML-en for innlegget (med en user-agent
+ * som gir seg ut for Facebook sin egen "hent lenke-forhåndsvisning"-robot,
+ * som i praksis slipper forbi innloggingsveggen for mange offentlige
+ * innlegg, se filheaderen), plukker ut bildeteksten fra og:description og
+ * forsidebildet fra og:image (begge deterministisk, se
+ * lib/utils/html-extract.ts), og sender bildeteksten videre til samme
+ * AI-tolkning som den manuelle innlimingsveien (parseCaptionToDraft) bruker.
+ * Kaster SOCIAL_FETCH_BLOCKED_MESSAGE (ikke en teknisk feilmelding) for ALLE
+ * feil her – fetch-feil, HTTP-feil, manglende/for kort og:description – for
+ * å alltid peke admin mot samme, fungerende fallback (lim inn manuelt) i
+ * stedet for å gjette på ÅRSAKEN til at plattformen blokkerte oss. */
+async function importFromSocialUrl(
+  url: URL,
+  categories: { id: string; name: string }[],
+): Promise<RecipeImportDraft> {
+  let html: string;
+  try {
+    const res = await fetch(url.toString(), {
+      headers: {
+        "user-agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+        accept: "text/html",
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) throw new Error(SOCIAL_FETCH_BLOCKED_MESSAGE);
+    html = (await res.text()).slice(0, MAX_HTML_CHARS);
+  } catch {
+    throw new Error(SOCIAL_FETCH_BLOCKED_MESSAGE);
+  }
+
+  const rawDescription = extractMetaContent(html, "og:description");
+  const caption = rawDescription ? stripSocialCaptionBoilerplate(rawDescription) : null;
+  const heroImageUrl = extractMetaContent(html, "og:image");
+
+  // En reell bildetekst med en oppskrift i er alltid mer enn noen få ord –
+  // en kort/tom og:description betyr i praksis at vi traff en innloggings-
+  // eller feilside i stedet for selve innlegget.
+  if (!caption || caption.length < 20) {
+    throw new Error(SOCIAL_FETCH_BLOCKED_MESSAGE);
+  }
+
+  return await parseCaptionToDraft(caption, url.toString(), categories, heroImageUrl);
+}
+
+/** "Last opp skjermbilde(r) av bildeteksten" – enda et hjelpemiddel inn i det
+ * samme "lim inn bildetekst manuelt"-feltet under (se RecipeForm.tsx), for
+ * når admin har tatt (ett eller flere) skjermbilder av selve Instagram/
+ * TikTok-bildeteksten (f.eks. fra telefonen) i stedet for å kopiere teksten.
+ * FLERE bilder (`images.length > 1`) dekker den vanlige situasjonen der hele
+ * bildeteksten ikke får plass i ett skjermbilde – admin scroller og tar flere
+ * skjermbilder, som sendes inn SAMMEN i ett AI-kall (se
+ * callClaudeMultiImageVisionJSON) slik at modellen kan sette dem sammen til
+ * én sammenhengende tekst og luke ut linjer som er synlige i overlappende
+ * skjermbilder, i stedet for at klientkoden bare limer sammen rå tekst fra
+ * separate kall (som lett dupliserer de overlappende linjene).
+ *
+ * Leser AV BILDET/BILDENE og returnerer KUN den rå transkriberte teksten –
+ * skriver den IKKE selv inn i skjemaet og tolker den IKKE til en oppskrift.
+ * Admin ser/kan rette den transkriberte teksten i tekstfeltet FØR "Hent
+ * oppskrift fra tekst" trykkes, akkurat som om de hadde limt den inn selv –
+ * samme progressive/gjennomgå-før-du-stoler-på-det-prinsipp som resten av
+ * importflyten, og samme grunn til at dette er en egen, liten funksjon i
+ * stedet for å slå sammen OCR og oppskrift-tolkning i ett AI-kall: to
+ * kortere, mer presise AI-kall (les teksten → tolk teksten) er mer pålitelig
+ * enn ett stort kall som skal gjøre begge deler samtidig, og gir admin et
+ * sted å rette en feillest linje (f.eks. en feiltolket mengde) før den når
+ * selve oppskrift-parseren. */
+export async function extractCaptionTextFromImages(
+  images: { mediaType: string; base64Data: string }[],
+  lang: "no" | "en" = "no",
+  // "caption" (default, uendret) = skjermbilde av en Instagram/TikTok-
+  // bildetekst, se filheaderen over. "handwritten" (26.08.2026 – ønsket av
+  // Henrik: "kan man ta bilde av en håndskrevet oppskrift?") = foto av et
+  // håndskrevet oppskriftskort/notatbokside/lapp – HELT ANNEN kontekst for
+  // AI-en (ikke en telefonskjerm, ingen app-grensesnitt/emneknagger/reklame
+  // å ignorere), og håndskrift er vanskeligere å lese pålitelig enn trykt
+  // skjermtekst – derfor egen, forsiktigere prompt under som ber AI-en
+  // MERKE usikre ord fremfor å gjette, spesielt for tall/mengder.
+  source: "caption" | "handwritten" = "caption",
+): Promise<string> {
+  await requireAdmin();
+
+  if (images.length === 0) {
+    throw new Error(lang === "en" ? "No image was received." : "Mottok ikke noe bilde.");
+  }
+  for (const image of images) {
+    if (!SUPPORTED_IMAGE_MEDIA_TYPES.includes(image.mediaType as SupportedImageMediaType)) {
+      throw new Error(
+        lang === "en"
+          ? "Unsupported image format. Try JPEG or PNG screenshots."
+          : "Bildeformatet støttes ikke. Prøv JPEG- eller PNG-skjermbilder.",
+      );
+    }
+    if (!image.base64Data) {
+      throw new Error(lang === "en" ? "No image was received." : "Mottok ikke noe bilde.");
+    }
+  }
+
+  const multiple = images.length > 1;
+
+  const system =
+    source === "handwritten"
+      ? lang === "en"
+        ? "You are shown " +
+          (multiple
+            ? `${images.length} photos, in order, together making up a handwritten recipe`
+            : "a photo of a handwritten recipe") +
+          " – e.g. a recipe card, a page from a notebook, or a loose note. Transcribe ALL visible text exactly " +
+          "as written: ingredients, amounts, method steps, and any other notes on it, preserving the original " +
+          "order and line breaks as closely as the layout allows." +
+          (multiple
+            ? " The photos may overlap or continue onto the next page – reconstruct ONE single, continuous " +
+              "text in the correct reading order, without repeating lines that appear in more than one photo."
+            : "") +
+          " Do NOT guess or fill in words you cannot read with confidence – mark a genuinely illegible word or " +
+          "line with [unclear] instead of inventing something, especially for NUMBERS and AMOUNTS, where a wrong " +
+          "guess would make the recipe incorrect. If nothing readable is shown at all, return an empty string.\n\n" +
+          'Respond with ONLY JSON in exactly this shape: {"captionText": "the transcribed text, or empty string"}'
+        : "Du får se " +
+          (multiple
+            ? `${images.length} bilder, i rekkefølge, som til sammen utgjør en håndskrevet oppskrift`
+            : "et bilde av en håndskrevet oppskrift") +
+          " – f.eks. et oppskriftskort, en side i en notatbok, eller en løs lapp. Transkriber ALL synlig tekst " +
+          "nøyaktig slik den står: ingredienser, mengder, fremgangsmåte, og eventuelle andre notater på den, og " +
+          "behold original rekkefølge og linjeskift så godt du kan ut fra hvordan teksten er plassert." +
+          (multiple
+            ? " Bildene kan overlappe eller fortsette på neste side – sett dem sammen til ÉN sammenhengende " +
+              "tekst i riktig leserekkefølge, uten å gjenta linjer som vises i mer enn ett bilde."
+            : "") +
+          " IKKE gjett eller fyll inn ord du ikke klarer å lese sikkert – merk et ord eller en linje du er reelt " +
+          "usikker på med [uklart] i stedet for å dikte opp noe, spesielt for TALL og MENGDER, der en feilgjetning " +
+          "gjør oppskriften feil. Hvis ingenting lesbart vises i det hele tatt, returner en tom streng.\n\n" +
+          'Svar KUN med JSON på nøyaktig denne formen: {"captionText": "den transkriberte teksten, eller tom streng"}'
+      : lang === "en"
+        ? "You are shown " +
+          (multiple
+            ? `${images.length} screenshots from a phone, in order, together making up`
+            : "a screenshot from a phone, most likely") +
+          " an Instagram or TikTok post's caption text (may also show surrounding app UI like " +
+          "likes/comments/username – ignore that, focus only on the caption text itself, which often contains a " +
+          "recipe written out as an ingredient list and steps)." +
+          (multiple
+            ? " The screenshots may overlap (e.g. taken while scrolling) – reconstruct ONE single, continuous " +
+              "caption text in the correct reading order, without repeating lines that appear in more than one " +
+              "screenshot."
+            : "") +
+          " Transcribe the caption text EXACTLY as written: keep the original language, line breaks, emoji, " +
+          "measurements, and wording. Do NOT summarize, translate, correct, or add anything. If the caption is " +
+          "clearly cut off beyond what's shown, transcribe only what's actually visible. If nothing readable is " +
+          "shown at all, return an empty string.\n\n" +
+          'Respond with ONLY JSON in exactly this shape: {"captionText": "the transcribed text, or empty string"}'
+        : "Du får se " +
+          (multiple
+            ? `${images.length} skjermbilder fra en telefon, i rekkefølge, som til sammen utgjør`
+            : "et skjermbilde fra en telefon, mest sannsynlig av") +
+          " bildeteksten på et Instagram- eller TikTok-innlegg (kan også vise omkringliggende app-grensesnitt som " +
+          "likes/kommentarer/brukernavn – ignorer det, fokuser kun på selve bildeteksten, som ofte inneholder en " +
+          "oppskrift skrevet ut som ingrediensliste og steg)." +
+          (multiple
+            ? " Skjermbildene kan overlappe (f.eks. tatt mens man scroller) – sett dem sammen til ÉN " +
+              "sammenhengende bildetekst i riktig leserekkefølge, uten å gjenta linjer som vises i mer enn ett " +
+              "skjermbilde."
+            : "") +
+          " Transkriber bildeteksten NØYAKTIG slik den står: behold originalspråket, linjeskift, emoji, mål og " +
+          "ordlyd. IKKE oppsummer, oversett, rett opp eller legg til noe. Hvis bildeteksten tydelig er avkuttet " +
+          "utenfor det som er synlig, transkriber kun det som faktisk vises. Hvis ingenting lesbart vises i det " +
+          "hele tatt, returner en tom streng.\n\n" +
+          'Svar KUN med JSON på nøyaktig denne formen: {"captionText": "den transkriberte teksten, eller tom streng"}';
+
+  const prompt =
+    source === "handwritten"
+      ? lang === "en"
+        ? multiple
+          ? "Transcribe and merge the text visible across these photos of a handwritten recipe into one continuous text."
+          : "Transcribe the text visible in this photo of a handwritten recipe."
+        : multiple
+          ? "Transkriber og sett sammen teksten som er synlig i disse bildene av en håndskrevet oppskrift til én sammenhengende tekst."
+          : "Transkriber teksten som er synlig i dette bildet av en håndskrevet oppskrift."
+      : lang === "en"
+        ? multiple
+          ? "Transcribe and merge the caption text visible across these screenshots into one continuous text."
+          : "Transcribe the caption text visible in this screenshot."
+        : multiple
+          ? "Transkriber og sett sammen bildeteksten som er synlig i disse skjermbildene til én sammenhengende tekst."
+          : "Transkriber bildeteksten som er synlig i dette skjermbildet.";
+
+  const result = await callClaudeMultiImageVisionJSON<{ captionText: string }>(
+    system,
+    prompt,
+    images.map((image) => ({
+      mediaType: image.mediaType as SupportedImageMediaType,
+      base64Data: image.base64Data,
+    })),
+    2000,
+  );
+
+  const text = (result.captionText ?? "").trim();
+  if (!text) {
+    throw new Error(
+      source === "handwritten"
+        ? lang === "en"
+          ? "Couldn't read any text in those photos. Try clearer, better-lit photos, or paste the text manually."
+          : "Fant ingen lesbar tekst i de bildene. Prøv tydeligere bilder med bedre lys, eller lim inn teksten manuelt."
+        : lang === "en"
+          ? "Couldn't read any caption text in those screenshots. Try clearer screenshots, or paste the text manually."
+          : "Fant ingen lesbar bildetekst i de skjermbildene. Prøv tydeligere skjermbilder, eller lim inn teksten manuelt.",
+    );
+  }
+  return text;
+}
+
+/** "Lim inn bildetekst manuelt" (admin-UI, se RecipeForm.tsx) – fallback for
+ * når importFromSocialUrl over ikke får tak i siden i det hele tatt (vanlig
+ * nok med Instagram/TikTok at dette er en FØRSTEKLASSES vei inn, ikke bare
+ * en nødløsning). Samme tekstfelt gjenbrukes ALTSÅ for en transkribert
+ * håndskrevet oppskrift (se extractCaptionTextFromImages sin filheader) –
+ * `textKind` styrer hvilken AI-tolkningsprompt som brukes under, siden en
+ * håndskrevet oppskrift skrives helt annerledes enn en Instagram-bildetekst.
+ * `sourceUrl` er valgfri – admin kan lime inn lenken til innlegget for
+ * sporbarhet (samme `source`-felt som de andre importveiene), eller la den
+ * stå tom dersom de ikke har den for hånden (ALLTID tom ved håndskrift). */
+export async function importRecipeFromCaptionText(
+  captionText: string,
+  sourceUrl: string,
+  categories: { id: string; name: string }[],
+  textKind: "caption" | "handwritten" = "caption",
+): Promise<RecipeImportDraft> {
+  await requireAdmin();
+
+  const trimmedCaption = captionText.trim();
+  if (!trimmedCaption) {
+    throw new Error(
+      textKind === "handwritten" ? "Lim inn den transkriberte teksten først." : "Lim inn bildeteksten først.",
+    );
+  }
+
+  const trimmedSourceUrl = sourceUrl.trim();
+  let source = "";
+  if (trimmedSourceUrl) {
+    try {
+      source = new URL(trimmedSourceUrl).toString();
+    } catch {
+      throw new Error("Lenken til innlegget ser ikke gyldig ut – la feltet stå tomt dersom du ikke har den.");
+    }
+  }
+
+  return await parseCaptionToDraft(trimmedCaption.slice(0, MAX_PLAIN_TEXT_CHARS), source, categories, null, textKind);
+}
+
+/** Delt AI-tolkning for TRE veier inn: Instagram/TikTok-bildetekst (automatisk
+ * hentet og:description, ELLER manuelt limt inn/skjermbilde-transkribert), og
+ * (26.08.2026) en transkribert HÅNDSKREVET oppskrift (se filheaderen til
+ * importRecipeFromCaptionText over) – `textKind` velger hvilken av de to
+ * (ganske ulike) tolkningspromptene som brukes. Egen prompt-familie her,
+ * uansett `textKind`, i motsetning til importFromPlainText sin prompt (som
+ * er tilpasset ordentlig artikkeltekst fra en oppskriftsside). */
+async function parseCaptionToDraft(
+  captionText: string,
+  source: string,
+  categories: { id: string; name: string }[],
+  heroImageUrl: string | null,
+  textKind: "caption" | "handwritten" = "caption",
+): Promise<RecipeImportDraft> {
+  const categoryNames = categories.map((c) => c.name);
+
+  const system =
+    textKind === "handwritten"
+      ? "Du hjelper til med å tolke en oppskrift som er transkribert fra et HÅNDSKREVET notat (f.eks. et " +
+        "oppskriftskort, en side i en notatbok, eller en løs lapp), til bruk i en norsk oppskriftsapp. " +
+        "Håndskrevne oppskrifter skrives ofte kompakt og stikkordspreget: forkortede måleenheter (ss/ts/dl/g), " +
+        "ingredienser uten fullstendige setninger, piler eller streker mellom trinn, kanskje overstrykninger " +
+        "eller tillegg i margen – tolk dette naturlig inn i en ryddig ingrediensliste og fremgangsmåte, uten å " +
+        "finne på struktur som ikke faktisk er antydet i teksten. Teksten kan inneholde transkripsjonsmerker som " +
+        '"[uklart]" der håndskriften ikke lot seg lese sikkert – behold disse merkene i resultatet i stedet for ' +
+        "å gjette hva som sto der, SÆRLIG for mengder/tall. Del hver ingrediens inn i mengde/enhet/navn/evt. " +
+        "note. Foreslå vanskelighetsgrad, opptil 5 norske emneknagger, og en kategori KUN dersom en av de " +
+        `oppgitte passer eksakt. Svar KUN med gyldig JSON i dette skjemaet: ${RECIPE_OUTPUT_SCHEMA}`
+      : "Du hjelper til med å tolke en oppskrift skrevet i bildeteksten til et Instagram- eller TikTok-innlegg, til " +
+        "bruk i en norsk oppskriftsapp. Bildetekster skrives ofte helt uformelt: emoji brukes ofte som punkttegn " +
+        'foran hver ingrediens/hvert steg (f.eks. "🧀 200g ost"), seksjoner kan markeres med store bokstaver ' +
+        '("INGREDIENSER:", "FREMGANGSMÅTE:") eller med emoji i stedet for vanlige overskrifter, og teksten ' +
+        'inneholder ofte emneknagger (#...), @-nevnelser og reklame-/oppfordringssetninger ("Lagre dette innlegget!", ' +
+        '"Følg for mer", "Link i bio") som IKKE hører til selve oppskriften – ignorer alt slikt fullstendig. Finn og ' +
+        "strukturer den FAKTISKE oppskriften fra teksten. Oversett til norsk dersom kilden er på et annet språk – MEN " +
+        "behold selve tallet/enheten i hver ingrediens EKSAKT som i kilden, også når enheten er amerikansk " +
+        "(cup/tbsp/tsp/oz/lb) – IKKE oversett eller konverter enheten selv (kun ingrediensnavnet/noten rundt), det " +
+        'gjøres av kode etterpå. Behold på samme måte eventuelle ovnstemperaturer i Fahrenheit (f.eks. "350°F") og ' +
+        "amerikanske mål nevnt midt i fremgangsmåte-teksten uendret – det konverteres av kode etterpå. Del hver " +
+        "ingrediens inn i mengde/enhet/navn/evt. note. Dersom bildeteksten ikke tydelig skiller ingrediensene fra " +
+        "fremgangsmåten (vanlig i korte bildetekster) – bruk beste skjønn til likevel å dele innholdet i en " +
+        "ingrediensliste og påfølgende steg, i stedet for å legge alt i én lang klump. Foreslå vanskelighetsgrad, " +
+        "opptil 5 norske emneknagger, og en kategori KUN dersom en av de oppgitte passer eksakt. Svar KUN med gyldig " +
+        `JSON i dette skjemaet: ${RECIPE_OUTPUT_SCHEMA}`;
+
+  const prompt =
+    textKind === "handwritten"
+      ? `Transkribert tekst fra håndskrevet oppskrift:\n${captionText}\n\nTilgjengelige kategorier: ${categoryNames.join(", ") || "(ingen)"}`
+      : `Bildetekst:\n${captionText}\n\nTilgjengelige kategorier: ${categoryNames.join(", ") || "(ingen)"}`;
+
+  const result = await callAndParse(system, prompt);
+  return assembleDraft(result, {
+    source,
+    categories,
+    heroImageUrl,
+    knownServings: null,
+    knownPrep: null,
+    knownCook: null,
+    knownTotal: null,
+    warning:
+      textKind === "handwritten"
+        ? "Hentet fra et bilde av en håndskrevet oppskrift – håndskrift kan bli feiltolket, spesielt tall og " +
+          'mengder. Se etter "[uklart]"-merker og gå ekstra nøye gjennom ingredienser og fremgangsmåte før du ' +
+          "publiserer."
+        : "Hentet fra en bildetekst (Instagram/TikTok) – disse er ofte skrevet uformelt og kan mangle presise " +
+          "mengder/tider. Gå ekstra nøye gjennom ingredienser og fremgangsmåte før du publiserer.",
   });
 }
 
@@ -331,7 +701,7 @@ async function callAndParse(system: string, prompt: string): Promise<ParsedRecip
 function assembleDraft(
   result: ParsedRecipeAiResponse,
   opts: {
-    url: URL;
+    source: string;
     categories: { id: string; name: string }[];
     heroImageUrl: string | null;
     knownServings: number | null;
@@ -380,7 +750,7 @@ function assembleDraft(
 
   if (ingredientGroups.length === 0 || steps.length === 0) {
     throw new Error(
-      "Klarte ikke å finne ingredienser og fremgangsmåte på siden. Prøv en annen lenke, eller fyll ut skjemaet manuelt.",
+      "Klarte ikke å finne ingredienser og fremgangsmåte. Prøv en annen kilde, eller fyll ut skjemaet manuelt.",
     );
   }
 
@@ -397,7 +767,7 @@ function assembleDraft(
     categoryId: resolveCategoryId(result.categoryName, opts.categories),
     tags: Array.isArray(result.tags) ? result.tags.filter((t): t is string => typeof t === "string").slice(0, 5) : [],
     heroImageUrl: opts.heroImageUrl,
-    source: opts.url.toString(),
+    source: opts.source,
     warning: opts.warning,
   };
 }

@@ -81,14 +81,24 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         >
           {lang === "en" ? "Skip to content" : "Hopp til innhold"}
         </a>
-        <DemoModeBanner />
-        <AppDownloadBanner />
-        <Header />
-        <main id="main-content" className="flex-1 pb-20 md:pb-0">
+        {/* print:hidden på hver av disse (ikke bare på selve
+            print-only-innholdet i f.eks. MealView.tsx/EveningExperience.tsx)
+            – uten dette printer nettleseren HELE sideskallet (header, PWA-
+            banner, bunnmeny, footer) sammen med den faktiske utskriftsvennlige
+            visningen, se tilbakemelding 26.08.2026 ("må være penere enn
+            dette, f.eks. må 'snart som app' bort"). */}
+        <div className="print:hidden">
+          <DemoModeBanner />
+          <AppDownloadBanner />
+          <Header />
+        </div>
+        <main id="main-content" className="flex-1 pb-20 md:pb-0 print:pb-0">
           {children}
         </main>
-        <Footer lang={lang} />
-        <BottomNav lang={lang} />
+        <div className="print:hidden">
+          <Footer lang={lang} />
+          <BottomNav lang={lang} />
+        </div>
       </body>
     </html>
   );

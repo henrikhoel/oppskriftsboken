@@ -13,10 +13,12 @@ import { recipeCountLabel, type Lang } from "@/lib/i18n";
 export function BrowseRecipesClient({
   recipes,
   categories,
+  isAdmin = false,
   lang,
 }: {
   recipes: SearchableRecipe[];
   categories: Category[];
+  isAdmin?: boolean;
   lang: Lang;
 }) {
   const searchParams = useSearchParams();
@@ -44,7 +46,7 @@ export function BrowseRecipesClient({
       </aside>
       <div>
         <p className="mb-4 text-sm text-ink-faint">{recipeCountLabel(lang, filtered.length)}</p>
-        <RecipeGrid recipes={filtered} lang={lang} />
+        <RecipeGrid recipes={filtered} isAdmin={isAdmin} lang={lang} />
       </div>
     </div>
   );

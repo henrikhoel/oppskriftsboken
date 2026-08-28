@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import {
@@ -9,7 +10,13 @@ import {
   type MealPlanCourse,
 } from "@/lib/actions/kitchen-intelligence";
 import { generateMealId, useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
-import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
+import {
+  ALL_MEAL_COURSE_ROLES,
+  ALL_MEAL_OCCASIONS,
+  MEAL_OCCASION_LABELS,
+  type MealCourseRole,
+  type MealOccasion,
+} from "@/lib/kitchen-intelligence";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { t, type Lang } from "@/lib/i18n";
@@ -49,7 +56,13 @@ export function MealBuilder({
 }) {
   const router = useRouter();
   const [mealId] = useState(() => generateMealId());
-  const { addExisting, addSuggested, setTitle } = useMealSession(mealId, recipe.title);
+  const {
+    addExisting,
+    addSuggested,
+    setTitle,
+    setAnchorRecipeId,
+    setOccasion: persistOccasion,
+  } = useMealSession(mealId, recipe.title);
   const { addToIndex } = useMealSessionIndex();
 
   const [anchorRole, setAnchorRole] = useState<MealCourseRole | null>(null);
@@ -61,16 +74,26 @@ export function MealBuilder({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // ANLEDNING (5.12) / TILGJENGELIG TID (5.13) – begge MYKE, valgfrie hint
+  // til generateMealPlan (se filheaderen der for cache-nøkkel-detaljer).
+  // Valgt FØR selve genereringen (kan ikke endres etter, samme som
+  // ankerretten selv) – overstyrer aldri brukerens senere valg i selve
+  // menybyggingen, kun hva AI-en FORESLÅR i utgangspunktet.
+  const [occasion, setOccasionChoice] = useState<MealOccasion | null>(null);
+  const [availableMinutesInput, setAvailableMinutesInput] = useState("");
+
   const hasPlan = anchorRole !== null;
 
   async function handleBuild() {
     setLoading(true);
     setError(null);
     try {
+      const availableMinutes = availableMinutesInput.trim() ? Number(availableMinutesInput) : null;
       const plan = await generateMealPlan(
         recipe.id,
         { title: recipe.title, description: recipe.description, categoryName: recipe.category?.name ?? null },
         lang,
+        { occasion, availableMinutes: Number.isFinite(availableMinutes) ? availableMinutes : null },
       );
       setAnchorRole(plan.anchorRole);
       setMenuTitle(plan.menuTitle);
@@ -85,6 +108,21 @@ export function MealBuilder({
 
   function removeCourse(role: MealCourseRole) {
     setCourses((prev) => prev.filter((c) => c.course.role !== role));
+  }
+
+  /** Nullstiller HELE det genererte forslaget og går tilbake til
+   * start-knappen – for når brukeren vil begynne helt på nytt fremfor å
+   * fjerne/regenerere kort for kort. Rører IKKE en allerede LAGRET meny (se
+   * `saved`/`mealId` – "Lagre menyen" har på det tidspunktet allerede
+   * skrevet til useMealSession sin egen localStorage-post); dette nullstiller
+   * kun byggeskjermens egen, ennå-ikke-lagrede arbeidstilstand. */
+  function handleReset() {
+    setAnchorRole(null);
+    setMenuTitle("");
+    setAnchorServings(recipe.servings);
+    setCourses([]);
+    setError(null);
+    setSaved(false);
   }
 
   function setCourseServings(role: MealCourseRole, servings: number) {
@@ -109,16 +147,40 @@ export function MealBuilder({
     if (!anchorRole) return;
     setSaving(true);
     try {
-      setTitle(menuTitle || recipe.title);
-      addExisting(anchorRole, { id: recipe.id, slug: recipe.slug, title: recipe.title }, anchorServings);
-      for (const { course, servings } of courses) {
-        if (course.source === "existing") {
-          addExisting(course.role, { id: course.recipe.id, slug: course.recipe.slug, title: course.recipe.title }, servings);
-        } else {
-          addSuggested(course.role, { title: course.title, description: course.description }, servings);
+      // VIKTIG – flushSync rundt ALLE lagre-kallene (26.08.2026, rettet
+      // etter bruker-tilbakemelding: "bygg en meny"-lagring fungerte ikke på
+      // mobil – landet på "Fant ikke menyen" rett etter lagring). Uten dette
+      // batcher React 18/19 automatisk de mange separate setState-kallene
+      // under (setTitle/persistOccasion/setAnchorRecipeId/addExisting ×
+      // N/addToIndex) sammen med router.push() sin egen navigasjons-
+      // tilstandsoppdatering – ALLE kalt synkront i samme hendelse, uten et
+      // eneste "await" innimellom. React garanterer IKKE at de tidligere
+      // batchede oppdateringene (og dermed useLocalStorage sine
+      // localStorage.setItem-kall, som skjer INNI selve state-updateren) er
+      // flushet/skrevet FØR router.push() sin egen batch behandles – MealView
+      // på den nye siden kan da rekke å montere og lese localStorage (via sin
+      // EGEN, ferske useMealSessionIndex()) FØR "meals:index"-oppføringen
+      // faktisk er skrevet, og viser da "ikke funnet" selv om lagringen
+      // egentlig lyktes et lite øyeblikk senere. Så vidt merkbart/tidsfølsomt
+      // at det trolig varierte med enhetens ytelse (derav mobil ↔ desktop).
+      // flushSync tvinger React til å committe HELE denne batchen synkront
+      // FØR funksjonen går videre til router.push() – dermed er ALT allerede
+      // skrevet til localStorage før selve navigasjonen starter, uansett
+      // enhet/ytelse.
+      flushSync(() => {
+        setTitle(menuTitle || recipe.title);
+        persistOccasion(occasion);
+        setAnchorRecipeId(recipe.id);
+        addExisting(anchorRole, { id: recipe.id, slug: recipe.slug, title: recipe.title }, anchorServings);
+        for (const { course, servings } of courses) {
+          if (course.source === "existing") {
+            addExisting(course.role, { id: course.recipe.id, slug: course.recipe.slug, title: course.recipe.title }, servings);
+          } else {
+            addSuggested(course.role, { title: course.title, description: course.description }, servings);
+          }
         }
-      }
-      addToIndex(mealId);
+        addToIndex(mealId);
+      });
       setSaved(true);
       router.push(`/meny/${mealId}`);
     } finally {
@@ -136,14 +198,57 @@ export function MealBuilder({
       <p className="mt-1 text-sm text-ink-faint">{t(lang, "mealBuilder.intro")}</p>
 
       {!hasPlan && (
-        <button
-          type="button"
-          onClick={handleBuild}
-          disabled={loading}
-          className="mt-3 rounded-xl bg-clay px-4 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
-        >
-          {loading ? t(lang, "mealBuilder.loading") : t(lang, "mealBuilder.button")}
-        </button>
+        <div className="mt-4 space-y-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
+              {t(lang, "mealBuilder.occasionLabel")}
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {ALL_MEAL_OCCASIONS.map((option) => {
+                const active = occasion === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setOccasionChoice(active ? null : option)}
+                    aria-pressed={active}
+                    className={clsx(
+                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      active
+                        ? "border-clay bg-clay text-cream"
+                        : "border-line-strong bg-paper text-ink-soft hover:bg-cream-dark",
+                    )}
+                  >
+                    {lang === "en" ? MEAL_OCCASION_LABELS[option].en : MEAL_OCCASION_LABELS[option].no}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs text-ink-faint">
+            {t(lang, "mealBuilder.availableMinutesLabel")}
+            <input
+              type="number"
+              min={10}
+              max={480}
+              placeholder={t(lang, "mealBuilder.availableMinutesPlaceholder")}
+              value={availableMinutesInput}
+              onChange={(e) => setAvailableMinutesInput(e.target.value)}
+              // text-base på mobil (unngår iOS-innzooming ved fokus).
+              className="w-20 rounded-lg border border-line bg-cream px-2 py-1 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={handleBuild}
+            disabled={loading}
+            className="rounded-xl bg-clay px-4 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
+          >
+            {loading ? t(lang, "mealBuilder.loading") : t(lang, "mealBuilder.button")}
+          </button>
+        </div>
       )}
 
       {error && <p className="mt-3 text-sm text-clay-dark">{error}</p>}
@@ -158,7 +263,8 @@ export function MealBuilder({
               type="text"
               value={menuTitle}
               onChange={(e) => setMenuTitle(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-line bg-cream px-3 py-2 text-sm text-ink focus:border-clay focus:outline-none"
+              // text-base på mobil (unngår iOS-innzooming ved fokus).
+              className="mt-1 w-full rounded-lg border border-line bg-cream px-3 py-2 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
             />
           </div>
 
@@ -208,6 +314,14 @@ export function MealBuilder({
                 {t(lang, "mealBuilder.viewSaved")}
               </Button>
             )}
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={saving}
+              className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {t(lang, "mealBuilder.reset")}
+            </button>
           </div>
         </div>
       )}
@@ -300,7 +414,8 @@ function ServingsInput({
           const next = Number(e.target.value);
           if (Number.isFinite(next) && next >= 1) onChange(Math.round(next));
         }}
-        className="w-16 rounded-lg border border-line bg-cream px-2 py-1 text-sm text-ink focus:border-clay focus:outline-none"
+        // text-base på mobil (unngår iOS-innzooming ved fokus).
+        className="w-16 rounded-lg border border-line bg-cream px-2 py-1 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
       />
     </label>
   );

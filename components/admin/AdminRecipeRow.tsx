@@ -42,11 +42,29 @@ export function AdminRecipeRow({ recipe }: { recipe: RecipeSummary }) {
 
   return (
     <div className="flex flex-wrap items-center gap-4 border-b border-line px-4 py-4 last:border-b-0 sm:px-5">
-      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream-dark">
+      {/* Trykk på bildet for å åpne den FAKTISKE, publiserte oppskriftssiden
+          – for å raskt kunne sjekke hvordan nylige endringer faktisk ser ut
+          (ønsket av Henrik 26.08.2026). Samme fane (IKKE target="_blank" –
+          testet og meldt tilbake at det ikke var ønsket); vanlig
+          tilbake-navigering i nettleseren fører deg tilbake til denne
+          listen. Egen lenke, atskilt fra "Rediger"-lenken på
+          tittelen/knappen, som fortsatt går til admin-redigeringssiden. */}
+      <Link
+        href={`/oppskrifter/${recipe.slug}`}
+        aria-label={`Se "${recipe.title}" på nettsiden`}
+        title="Se på nettsiden"
+        className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream-dark"
+      >
         {recipe.heroImageUrl && (
-          <Image src={recipe.heroImageUrl} alt="" fill sizes="56px" className="object-cover" />
+          <Image
+            src={recipe.heroImageUrl}
+            alt=""
+            fill
+            sizes="56px"
+            className="object-cover transition-transform duration-300 ease-out group-hover:scale-110"
+          />
         )}
-      </div>
+      </Link>
 
       <div className="min-w-0 flex-1">
         <Link
