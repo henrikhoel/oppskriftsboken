@@ -26,9 +26,12 @@ const inter = Inter({
 
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLang();
-  // "Cook well. Eat better." er ikke lenger i bruk noe sted på siden – bruker
-  // samme "Din digitale kokebok"-frasen som forsiden/footeren i tittelen her.
-  const tagline = t(lang, "home.eyebrow");
+  // "Cook well. Eat better." (config.tagline) og "Din digitale kokebok"
+  // (home.eyebrow) er ikke lenger i bruk noe sted på siden – bruker samme
+  // "Det beste skjer rundt bordet"-frasen (home.subtitleRest) som
+  // heroen/footeren allerede byttet til, for at fanetittelen skal stemme
+  // med det man faktisk ser på siden.
+  const tagline = t(lang, "home.subtitleRest");
   const description = lang === "en" ? siteConfig.descriptionEn : siteConfig.description;
 
   return {
