@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { clsx } from "clsx";
 import { useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
 import {
-  ALL_MEAL_OCCASIONS,
   MEAL_OCCASION_LABELS,
   sortSlotsByRole,
   type ExistingMealCourseSlot,
@@ -15,7 +13,7 @@ import { MealTimelineSection } from "@/components/meal/MealTimelineSection";
 import { EveningExperience } from "@/components/meal/EveningExperience";
 import { MultiCookMode } from "@/components/meal/MultiCookMode";
 import { Badge } from "@/components/ui/Badge";
-import { PlayIcon } from "@/components/ui/icons";
+import { PlayIcon, SparklesIcon } from "@/components/ui/icons";
 import { siteConfig } from "@/lib/config";
 import { t, type Lang } from "@/lib/i18n";
 
@@ -40,22 +38,35 @@ import { t, type Lang } from "@/lib/i18n";
  * som `readyAt` med en `?? ""`-fallback, siden komponenten selv håndterer
  * "tomt/ugyldig klokkeslett"-tilfellet.
  *
- * Rekkefølge under rettene (bevisst, etter tilbakemelding): ønsket
- * spisetidspunkt/tidslinje (MealTimelineSection) FØRST – man setter
- * tidspunktet før man eventuelt starter å lage mat – deretter
- * kokemodus-knappen rett under, så "GJØR DET TIL EN KVELD"-inngangen, og
- * handleliste (MealShoppingListSection) sist av seksjonene, rett over
- * notat-feltet.
+ * LAYOUT (endret 31.08.2026, tilbakemelding "man trenger ikke bokser her,
+ * her kan man fint og elegant få rettene listet opp på ene siden, på andre
+ * siden kan man ha tidsbruk, handleliste og start kokemodus"): rettene
+ * (tidligere hver i sin egen rounded-card/border-boks – overflødig, man kan
+ * uansett allerede redigere/fjerne dem herfra) er nå ÉN rolig,
+ * boks-fri liste (divide-y) i venstre kolonne av et to-kolonners grid fra
+ * lg og opp. Høyre kolonne samler de tre handlingene som hører til NÅR
+ * menyen allerede er satt sammen – tidslinje (MealTimelineSection),
+ * handleliste (MealShoppingListSection) og kokemodus-knappen – rett ved
+ * siden av hverandre i stedet for spredt nedover hele siden.
+ *
+ * ANLEDNING fjernet HELT (samme dato, tilbakemelding: "det virker som om
+ * den ikke tar standpunkt til hva man velger av anledning uansett" – valget
+ * her på selve menysiden var uansett bare en ren, konsekvensløs etikett,
+ * ingenting ble regenerert eller endret av å trykke på den). `session.occasion`
+ * kan fortsatt stå igjen på eldre, allerede lagrede menyer (viktig at det
+ * IKKE krasjer noe) og vises da fortsatt i utskriftsoppsummeringen under,
+ * men det finnes ikke lenger noe UI her for å SETTE den.
  *
  * "GJØR DET TIL EN KVELD" (Fase 5-finale, 5.9) – EveningExperience.tsx
- * (fullskjerm, samme lag-mønster som MultiCookMode under) ERSTATTER de
- * tidligere MealMoodSection/MealWineSection-seksjonene som lå her (de eide
- * tidligere i18n-nøkkelen `mealMood.heading`, se EveningExperience.tsx sin
- * filheader) – ÉN samlet, cinematic opplevelse i stedet for to spredte
- * knapper. `#meal-timeline`/`#meal-shopping-list`-anker-id-ene under lar
- * EveningExperience sine HANDLELISTE/PLANLEGG KVELDEN-knapper lukke seg selv
- * og scrolle til riktig seksjon på DENNE siden, i stedet for å bygge de
- * samme seksjonene på nytt inni den fullskjerm-opplevelsen.
+ * (fullskjerm, samme lag-mønster som MultiCookMode under). Flyttet
+ * 31.08.2026 fra en beskrivende kort-boks midt på siden til ÉN stor,
+ * fylt knapp HELT NEDERST (under to-kolonne-gridet, over notat-feltet) –
+ * "det er nettopp det man forventer når man har trykket inn der", altså
+ * den naturlige, tydelige avslutnings-handlingen på siden, ikke bare enda
+ * et element i midten. `#meal-timeline`/`#meal-shopping-list`-anker-id-ene
+ * under lar EveningExperience sine HANDLELISTE/PLANLEGG KVELDEN-knapper
+ * lukke seg selv og scrolle til riktig seksjon på DENNE siden, i stedet for
+ * å bygge de samme seksjonene på nytt inni den fullskjerm-opplevelsen.
  *
  * Multi-oppskrift Cook Mode (MultiCookMode.tsx, 5.16/5.17) åpnes som et eget
  * fullskjerm-lag OVENPÅ denne siden (samme mønster som RecipeInteractive.tsx
@@ -88,7 +99,6 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
     remove,
     setServings,
     setDesiredReadyAt,
-    setOccasion,
   } = useMealSession(mealId, "");
 
   if (!indexHydrated || !sessionHydrated) {
@@ -138,153 +148,150 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         className="w-full rounded-lg border border-transparent bg-transparent font-serif text-2xl text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-3xl"
       />
 
-      <div className="flex flex-wrap gap-1.5">
-        {ALL_MEAL_OCCASIONS.map((option) => {
-          const active = session.occasion === option;
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setOccasion(active ? null : option)}
-              aria-pressed={active}
-              className={clsx(
-                "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                active
-                  ? "border-clay bg-clay text-cream"
-                  : "border-line-strong bg-paper text-ink-soft hover:bg-cream-dark",
-              )}
-            >
-              {lang === "en" ? MEAL_OCCASION_LABELS[option].en : MEAL_OCCASION_LABELS[option].no}
-            </button>
-          );
-        })}
-      </div>
-
       {slots.length === 0 ? (
         <p className="text-sm text-ink-faint">{t(lang, "mealPage.emptyState")}</p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {slots.map((slot) => (
-            <div key={slot.id} className="flex flex-col gap-2 rounded-xl border border-line bg-cream p-4">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                  {t(lang, `mealBuilder.role.${slot.role}`)}
-                </span>
-                <Badge tone={slot.source === "existing" ? "olive" : "mustard"}>
-                  {slot.source === "existing"
-                    ? t(lang, "mealBuilder.existingBadge")
-                    : t(lang, "mealBuilder.suggestedBadge")}
-                </Badge>
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-start">
+          {/* Rettene – ren, boks-fri liste (31.08.2026, "man trenger ikke
+              bokser her, ... rettene listet opp på ene siden"). Man kan
+              allerede redigere/fjerne herfra, så en tung
+              rounded-xl/border/bg-boks per rett ga ingen ekstra info, bare
+              vekt. */}
+          <div className="divide-y divide-line">
+            {slots.map((slot) => (
+              <div key={slot.id} className="flex flex-col gap-2 py-5 first:pt-0 last:pb-0">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                    {t(lang, `mealBuilder.role.${slot.role}`)}
+                  </span>
+                  <Badge tone={slot.source === "existing" ? "olive" : "mustard"}>
+                    {slot.source === "existing"
+                      ? t(lang, "mealBuilder.existingBadge")
+                      : t(lang, "mealBuilder.suggestedBadge")}
+                  </Badge>
+                </div>
+
+                {slot.source === "existing" ? (
+                  <Link href={`/oppskrifter/${slot.slug}`} className="font-serif text-lg text-ink hover:text-clay-dark">
+                    {slot.title}
+                  </Link>
+                ) : (
+                  <>
+                    <p className="font-serif text-lg text-ink">{slot.title}</p>
+                    {slot.description && (
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
+                          {t(lang, "mealPage.suggestedDescriptionLabel")}
+                        </p>
+                        <p className="text-xs leading-relaxed text-ink-faint">{slot.description}</p>
+                      </div>
+                    )}
+                    {/* Kun synlig for innlogget admin (server-sjekket, se
+                     * isAdmin-prop-en/app/meny/[id]/page.tsx – ikke bare
+                     * CSS-skjult for alle andre). Fører til "Ny oppskrift"
+                     * med tittel/beskrivelse forhåndsutfylt, PLUSS et par
+                     * ekstra query-parametre (fromMealId/fromSlotId) som
+                     * RecipeForm.tsx bruker til å bytte DENNE plassen fra et
+                     * AI-forslag til en ordentlig, eksisterende oppskrift så
+                     * snart den er lagret – se replaceSlotContent i
+                     * lib/kitchen-intelligence/meal-session.ts (fantes fra
+                     * før, aldri koblet til noe UI). Ingen ny handling å bygge
+                     * her – ren navigasjon med noen query-parametre. */}
+                    {isAdmin && (
+                      <Link
+                        href={`/admin/oppskrifter/ny?${new URLSearchParams({
+                          title: slot.title,
+                          description: slot.description,
+                          servings: String(slot.servings),
+                          fromMealId: mealId,
+                          fromSlotId: slot.id,
+                        }).toString()}`}
+                        className="mt-1 self-start text-xs font-medium text-clay hover:text-clay-dark"
+                      >
+                        {t(lang, "mealPage.createFromSuggestion")}
+                      </Link>
+                    )}
+                  </>
+                )}
+
+                <div className="mt-1 flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 text-xs text-ink-faint">
+                    {t(lang, "mealBuilder.servingsLabel")}
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={slot.servings}
+                      onChange={(e) => {
+                        const next = Number(e.target.value);
+                        if (Number.isFinite(next) && next >= 1) setServings(slot.id, Math.round(next));
+                      }}
+                      // text-base på mobil (unngår iOS-innzooming ved fokus).
+                      className="w-16 rounded-lg border border-line bg-cream px-2 py-1 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => remove(slot.id)}
+                    className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+                  >
+                    {t(lang, "mealBuilder.remove")}
+                  </button>
+                </div>
               </div>
+            ))}
+          </div>
 
-              {slot.source === "existing" ? (
-                <Link href={`/oppskrifter/${slot.slug}`} className="font-serif text-base text-ink hover:text-clay-dark">
-                  {slot.title}
-                </Link>
-              ) : (
-                <>
-                  <p className="font-serif text-base text-ink">{slot.title}</p>
-                  {slot.description && (
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-                        {t(lang, "mealPage.suggestedDescriptionLabel")}
-                      </p>
-                      <p className="text-xs leading-relaxed text-ink-faint">{slot.description}</p>
-                    </div>
-                  )}
-                  {/* Kun synlig for innlogget admin (server-sjekket, se
-                   * isAdmin-prop-en/app/meny/[id]/page.tsx – ikke bare
-                   * CSS-skjult for alle andre). Fører til "Ny oppskrift"
-                   * med tittel/beskrivelse forhåndsutfylt, PLUSS et par
-                   * ekstra query-parametre (fromMealId/fromSlotId) som
-                   * RecipeForm.tsx bruker til å bytte DENNE plassen fra et
-                   * AI-forslag til en ordentlig, eksisterende oppskrift så
-                   * snart den er lagret – se replaceSlotContent i
-                   * lib/kitchen-intelligence/meal-session.ts (fantes fra
-                   * før, aldri koblet til noe UI). Ingen ny handling å bygge
-                   * her – ren navigasjon med noen query-parametre. */}
-                  {isAdmin && (
-                    <Link
-                      href={`/admin/oppskrifter/ny?${new URLSearchParams({
-                        title: slot.title,
-                        description: slot.description,
-                        servings: String(slot.servings),
-                        fromMealId: mealId,
-                        fromSlotId: slot.id,
-                      }).toString()}`}
-                      className="mt-1 self-start text-xs font-medium text-clay hover:text-clay-dark"
-                    >
-                      {t(lang, "mealPage.createFromSuggestion")}
-                    </Link>
-                  )}
-                </>
-              )}
+          {/* Tidsbruk, handleliste og kokemodus hører sammen – alle tre
+              handler om NÅR/HVORDAN man faktisk skal lage menyen, samlet i
+              samme kolonne (31.08.2026, "på andre siden kan man ha
+              tidsbruk, handleliste og start kokemodus") i stedet for spredt
+              nedover hele siden. */}
+          <div className="space-y-6">
+            <div id="meal-timeline">
+              <MealTimelineSection
+                slots={slots}
+                readyAt={session.desiredReadyAt ?? ""}
+                onReadyAtChange={setDesiredReadyAt}
+                lang={lang}
+              />
+            </div>
 
-              <label className="flex items-center gap-2 text-xs text-ink-faint">
-                {t(lang, "mealBuilder.servingsLabel")}
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={slot.servings}
-                  onChange={(e) => {
-                    const next = Number(e.target.value);
-                    if (Number.isFinite(next) && next >= 1) setServings(slot.id, Math.round(next));
-                  }}
-                  // text-base på mobil (unngår iOS-innzooming ved fokus).
-                  className="w-16 rounded-lg border border-line bg-cream px-2 py-1 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
-                />
-              </label>
+            <div id="meal-shopping-list">
+              <MealShoppingListSection slots={slots} lang={lang} />
+            </div>
 
+            {hasExistingDish && (
               <button
                 type="button"
-                onClick={() => remove(slot.id)}
-                className="mt-1 self-start rounded-lg border border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-cream-dark"
+                onClick={() => setCookModeOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-clay py-3.5 text-base font-medium text-cream transition-colors hover:bg-clay-dark sm:text-lg"
               >
-                {t(lang, "mealBuilder.remove")}
+                <PlayIcon className="h-4 w-4" />
+                {t(lang, "mealCookMode.button")}
               </button>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
       )}
 
-      {slots.length > 0 && (
-        <div id="meal-timeline">
-          <MealTimelineSection
-            slots={slots}
-            readyAt={session.desiredReadyAt ?? ""}
-            onReadyAtChange={setDesiredReadyAt}
-            lang={lang}
-          />
-        </div>
-      )}
-
-      {hasExistingDish && (
-        <button
-          type="button"
-          onClick={() => setCookModeOpen(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-clay py-3.5 text-base font-medium text-cream transition-colors hover:bg-clay-dark sm:text-lg"
-        >
-          <PlayIcon className="h-4 w-4" />
-          {t(lang, "mealCookMode.button")}
-        </button>
-      )}
-
+      {/* "Gjør det til en kveld" – flyttet 31.08.2026 fra en beskrivende
+          kort-boks midt på siden til ÉN stor, fylt knapp helt nederst, under
+          alt det andre ("det er nettopp det man forventer når man har
+          trykket inn der" – den tydelige avslutnings-handlingen på siden). */}
       {slots.length > 0 && (
         <button
           type="button"
           onClick={() => setEveningOpen(true)}
-          className="w-full rounded-card border border-line bg-cream-dark/60 p-5 text-left transition-colors hover:bg-cream-dark sm:p-6"
+          className="flex w-full flex-col items-center gap-1.5 rounded-full bg-clay px-6 py-4 text-center transition-colors hover:bg-clay-dark sm:py-5"
         >
-          <h3 className="font-serif text-lg text-ink">{t(lang, "eveningExperience.entryHeading")}</h3>
-          <p className="mt-1 text-sm text-ink-faint">{t(lang, "eveningExperience.entryDescription")}</p>
+          <span className="flex items-center gap-2 text-base font-medium text-cream sm:text-lg">
+            <SparklesIcon className="h-4 w-4" />
+            {t(lang, "eveningExperience.entryHeading")}
+          </span>
+          <span className="text-xs text-cream/80 sm:text-sm">{t(lang, "eveningExperience.entryDescription")}</span>
         </button>
-      )}
-
-      {slots.length > 0 && (
-        <div id="meal-shopping-list">
-          <MealShoppingListSection slots={slots} lang={lang} />
-        </div>
       )}
 
       <div>
