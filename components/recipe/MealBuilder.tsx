@@ -218,8 +218,8 @@ export function MealBuilder({
     <div className="flex flex-col items-center text-center">
       <div>
         <p className="font-serif text-3xl text-clay sm:text-4xl">{t(lang, "mealBuilder.eyebrow")}</p>
-        <h3 className="mt-2 font-serif text-lg text-ink-soft sm:text-xl">{t(lang, "mealBuilder.heading")}</h3>
-        <p className="mx-auto mt-2 max-w-prose text-base text-ink-faint">{t(lang, "mealBuilder.intro")}</p>
+        <h3 className="mt-2 font-serif text-base text-ink-soft sm:text-lg">{t(lang, "mealBuilder.heading")}</h3>
+        <p className="mx-auto mt-2 max-w-prose text-sm text-ink-faint sm:text-base">{t(lang, "mealBuilder.intro")}</p>
       </div>
 
       {/* mt-8/space-y-5 (var mt-4/space-y-3) – mer luft mellom ingressen

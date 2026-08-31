@@ -754,10 +754,18 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
         {/* Nederst, med vilje – "Gjør det til en kveld" er avslutningen på
             siden, ikke bare enda et element i rekken. Selve
             størrelsen/overskriften er gjort tydelig større i
-            MealBuilder.tsx; mer vertikal luft rundt her (py-14/16, mer enn
-            de andre seksjonenes py-10/12) understreker at dette er
-            finalen. */}
-        <div className="py-14 sm:py-16">
+            MealBuilder.tsx. <body> er `flex min-h-screen flex-col` med
+            <main> som `flex-1` (se app/layout.tsx) – på kortere oppskrifter
+            blir det derfor et tomrom under denne siste seksjonen og ned til
+            footeren. Justering 31.08.2026 ("plasseres lenger ned sånn at
+            den midtstilles vertikalt mellom 'passer denne' og bunnen av
+            siden"): i stedet for fast py-14/16 får seksjonen en egen
+            min-høyde og sentreres med flex INNI det båndet, slik at den
+            flyter midt i det gjenværende tomrommet i stedet for å ligge
+            klistret rett under forrige seksjon. Ingen fast høyde på selve
+            siden totalt – kun denne siste seksjonens eget bånd er høyt
+            nok til at sentreringen faktisk er synlig. */}
+        <div className="flex min-h-[45vh] flex-col items-center justify-center py-14 sm:min-h-[55vh] sm:py-16">
           <MealBuilder
             recipe={{
               id: recipe.id,
