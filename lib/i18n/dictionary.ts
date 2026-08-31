@@ -658,9 +658,14 @@ const DICT = {
   // er to ulike funksjoner på to ulike sider.
   "mealBuilder.eyebrow": { no: "Gjør det til en kveld", en: "Make it an evening" },
   "mealBuilder.heading": { no: "Bygg en meny rundt denne retten", en: "Build a menu around this dish" },
+  // Forkortet 31.08.2026 ("blir for mye tekst") – droppet forklaringen om
+  // hvor rettene i menyen kommer fra (fra oppskriftsboken vs. nyforeslått,
+  // se CourseCard/badge-merkingen i MealBuilder.tsx, som allerede viser
+  // akkurat dette per rett når menyen er bygget). Selve funksjonaliteten
+  // uendret, kun teksten kortere.
   "mealBuilder.intro": {
-    no: "Vi setter sammen en hel meny rundt denne retten – hentet fra oppskriftsboken der det passer, foreslått nytt der det ikke gjør det.",
-    en: "We put together a full menu around this dish – drawn from your cookbook where it fits, suggested fresh where it doesn't.",
+    no: "Vi setter sammen en hel meny rundt denne retten.",
+    en: "We put together a full menu around this dish.",
   },
   // Anledning (5.12) / tilgjengelig tid (5.13) – valgfrie hint FØR selve
   // genereringen, se MealBuilder.tsx.

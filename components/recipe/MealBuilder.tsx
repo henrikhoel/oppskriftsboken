@@ -207,24 +207,28 @@ export function MealBuilder({
     // "Gjør det til en kveld" (den gule eyebrowen) er selve
     // hovedoverskriften nå – gjort tydelig STØRRE enn "Bygg en meny rundt
     // denne retten" (som nå er en mindre underoverskrift under), per
-    // ønske. Hele denne header-blokken er dessuten midtstilt – en bevisst
-    // avvikende, "avslutning på oppslaget"-følelse i stedet for venstre-
-    // stilt som resten av seksjonene (selve byggeskjemaet under er IKKE
-    // midtstilt, kun eyebrow/overskrift/ingress).
-    <div>
-      <div className="text-center">
+    // ønske. HELE seksjonen er midtstilt (utvidet 31.08.2026 fra kun
+    // header-blokken til også byggeskjemaet under, "resten må også være
+    // på midten") – en bevisst avvikende, "avslutning på oppslaget"-
+    // følelse i stedet for venstrestilt som resten av seksjonene. Selve
+    // kort-innholdet i det ferdige menyforslaget (CourseCard under) er
+    // IKKE tekst-midtstilt – rolle/tittel/beskrivelse i et enkelt kort
+    // leses bedre venstrestilt, kun selve kort-RADEN/knappene er
+    // sentrert på siden.
+    <div className="flex flex-col items-center text-center">
+      <div>
         <p className="font-serif text-3xl text-clay sm:text-4xl">{t(lang, "mealBuilder.eyebrow")}</p>
         <h3 className="mt-2 font-serif text-lg text-ink-soft sm:text-xl">{t(lang, "mealBuilder.heading")}</h3>
         <p className="mx-auto mt-2 max-w-prose text-base text-ink-faint">{t(lang, "mealBuilder.intro")}</p>
       </div>
 
       {!hasPlan && (
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 flex w-full flex-col items-center space-y-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
               {t(lang, "mealBuilder.occasionLabel")}
             </p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
               {ALL_MEAL_OCCASIONS.map((option) => {
                 const active = occasion === option;
                 return (
@@ -275,8 +279,8 @@ export function MealBuilder({
       {error && <p className="mt-3 text-sm text-clay-dark">{error}</p>}
 
       {hasPlan && (
-        <div className="mt-5 space-y-5">
-          <div>
+        <div className="mt-5 w-full space-y-5 text-left">
+          <div className="mx-auto max-w-sm">
             <label className="text-xs font-medium uppercase tracking-wide text-ink-faint">
               {t(lang, "mealBuilder.titleLabel")}
             </label>
@@ -285,7 +289,7 @@ export function MealBuilder({
               value={menuTitle}
               onChange={(e) => setMenuTitle(e.target.value)}
               // text-base på mobil (unngår iOS-innzooming ved fokus).
-              className="mt-1 w-full rounded-lg border border-line bg-cream px-3 py-2 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
+              className="mt-1 w-full rounded-lg border border-line bg-cream px-3 py-2 text-center text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
             />
           </div>
 
@@ -326,7 +330,7 @@ export function MealBuilder({
             })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
             <Button onClick={handleSave} disabled={saving} variant="primary" size="sm">
               {saving ? t(lang, "mealBuilder.saving") : t(lang, "mealBuilder.save")}
             </Button>
