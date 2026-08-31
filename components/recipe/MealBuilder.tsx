@@ -222,8 +222,11 @@ export function MealBuilder({
         <p className="mx-auto mt-2 max-w-prose text-base text-ink-faint">{t(lang, "mealBuilder.intro")}</p>
       </div>
 
+      {/* mt-8/space-y-5 (var mt-4/space-y-3) – mer luft mellom ingressen
+          og "Anledning"-blokken, og mellom elementene under den, ønsket
+          31.08.2026. */}
       {!hasPlan && (
-        <div className="mt-4 flex w-full flex-col items-center space-y-3">
+        <div className="mt-8 flex w-full flex-col items-center space-y-5">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
               {t(lang, "mealBuilder.occasionLabel")}

@@ -661,11 +661,15 @@ const DICT = {
   // Forkortet 31.08.2026 ("blir for mye tekst") – droppet forklaringen om
   // hvor rettene i menyen kommer fra (fra oppskriftsboken vs. nyforeslått,
   // se CourseCard/badge-merkingen i MealBuilder.tsx, som allerede viser
-  // akkurat dette per rett når menyen er bygget). Selve funksjonaliteten
-  // uendret, kun teksten kortere.
+  // akkurat dette per rett når menyen er bygget). Deretter justert på nytt
+  // 31.08.2026 for i stedet å nevne HELE kveldsopplevelsen "Gå videre"
+  // faktisk fører til (menyen her → /meny/[id], som allerede setter sammen
+  // vinstil, tilbehør, stemning og musikk – se EveningExperience.tsx/
+  // getEveningCuration) – fortsatt kort, men mer presist om hva denne
+  // funksjonen faktisk legger opp til.
   "mealBuilder.intro": {
-    no: "Vi setter sammen en hel meny rundt denne retten.",
-    en: "We put together a full menu around this dish.",
+    no: "Vi legger opp til alt fra mat og drikke til stemning og musikk.",
+    en: "We plan everything from food and drink to mood and music.",
   },
   // Anledning (5.12) / tilgjengelig tid (5.13) – valgfrie hint FØR selve
   // genereringen, se MealBuilder.tsx.
