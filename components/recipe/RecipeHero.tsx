@@ -114,7 +114,15 @@ export function RecipeHero({
           sentrert likt) – egen padding siden vi har forlatt sidens vanlige
           container/padding-kontekst her. */}
       <div className="xl:mx-auto xl:max-w-[1280px] xl:px-8">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_540px] lg:items-start lg:gap-16 xl:grid-cols-[520px_640px] xl:justify-center xl:gap-10">
+        {/* lg:items-center (ikke -start) – finjustering etter tilbakemelding
+            31.08.2026 ("plassen under metadata utnyttes ikke, ser du?"):
+            tekstkolonnen er kortere enn det kvadratiske bildet, og med
+            topp-justering samlet all overskytende høyde seg som ett stort,
+            ubrukt tomrom nederst i venstrekolonnen – ikke som del av
+            komposisjonen. Sentrert vertikalt mot bildet fordeler luften seg
+            i stedet jevnt over/under, som i et ekte magasinoppslag – uten å
+            strekke ingressen eller legge til nytt innhold. */}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_540px] lg:items-center lg:gap-16 xl:grid-cols-[520px_640px] xl:justify-center xl:gap-10">
           {/* Bildet – først i DOM-rekkefølgen slik at det også kommer først
               på mobil (order-* under er kun en visuell omplassering fra lg
               og opp, se class-navnene). Kvadratisk ramme uansett
