@@ -38,6 +38,22 @@ import { EditIcon } from "@/components/ui/icons";
  * object-contain i en kvadratisk ramme (aldri beskåret/zoomet), kun selve
  * rammen er større.
  *
+ * VENSTREKOLONNE-RAFFINEMENT 31.08.2026 (etter tilbakemelding: "riktige
+ * dimensjoner nå, men venstresiden utnytter ikke flaten – hierarki/spacing,
+ * ikke mer innhold"): bevisst IKKE gjort ved å gjøre ingressen større eller
+ * legge til mer tekst. I stedet: (1) tittelen er nå tydelig større på
+ * desktop (~60px) for å balansere det store bildet, (2) ingressen er
+ * uendret/svært lett redusert – aldri strukket for å fylle høyde, (3)
+ * markant mer luft mellom hvert nivå (kategori→tittel, tittel→ingress,
+ * ingress→rating, rating→metadata) brukes AKTIVT som design i stedet for
+ * mer innhold, (4) Rediger/Favoritt flyttet vekk fra tittel-linjen (som nå
+ * står helt alene) ned til en diskret, mindre rad sammen med ratingen, (5)
+ * metadata-raden (se RecipeMeta.tsx) er gjort tydelig mer tilstedeværende
+ * – større verdier, fortsatt små labels, fyller nå hele kolonnens bredde
+ * (lg:justify-between) med en linje over og mer vertikal luft, uten å bli
+ * et eget "card". Selve bildet/heroens ytre dimensjoner er UENDRET fra
+ * forrige runde.
+ *
  * Rent presentasjonelt – all state (favoritt, EN-oversettelse osv.) eies
  * fortsatt av RecipeInteractive.tsx, som sender inn ferdige noder
  * (favorite/rating/meta) for de bitene som allerede er egne, selvstendige
@@ -126,6 +142,7 @@ export function RecipeHero({
           </div>
 
           <div className="order-2 lg:order-1">
+            {/* ØVERSTE NIVÅ: kategori + stor tittel, alene. */}
             <div className="flex flex-wrap items-center gap-2">
               {categoryLabel && <Badge tone="clay">{categoryLabel}</Badge>}
               {tags.map((tag) => (
@@ -136,35 +153,24 @@ export function RecipeHero({
               {isDraft && <Badge tone="mustard">{draftLabel}</Badge>}
             </div>
 
-            {/* Favoritt/Rediger bor bevisst inne HER, tett på tittelen –
-                ikke som en flytende actions-rad andre steder på siden –
-                slik at de aldri konkurrerer visuelt med selve bildet
-                (spesifikasjonens punkt 13). */}
-            <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-              <h1 className="text-balance font-serif text-3xl leading-tight text-ink sm:text-4xl lg:text-[2.75rem]">
-                {title}
-              </h1>
-              <div className="flex shrink-0 items-center gap-2">
-                {isAdmin && (
-                  <Link
-                    href={editHref}
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-line-strong bg-paper px-4 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream-dark"
-                  >
-                    <EditIcon className="h-4 w-4" />
-                    {editLabel}
-                  </Link>
-                )}
-                {favorite}
-              </div>
-            </div>
+            {/* Tittelen står nå helt alene på egen linje – Rediger/
+                Favoritt flyttet ned til raden med ratingen (se lenger
+                ned), diskret i stedet for å konkurrere med tittelen.
+                Tydelig større fra lg (~60px) for å gi tittelen mer
+                visuell tyngde og balansere det store matbildet, samme
+                rolige serif som før. */}
+            <h1 className="mt-6 text-balance font-serif text-3xl leading-tight text-ink sm:text-4xl lg:mt-8 lg:text-[3.75rem] lg:leading-[1.05]">
+              {title}
+            </h1>
 
-            {/* max-w-xl (576px) under xl – uendret. Fra xl: en egen,
-                litt strammere max-width (~500px, spesifikasjonens
-                ønskede ingress-bredde) fremfor å la teksten fylle hele
-                den nye 520px-brede kolonnen helt ut til kanten – gir en
-                komfortabel, redaksjonell lesebredde uten å gjøre selve
-                skriften mindre. */}
-            <p className="mt-3 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg xl:max-w-[500px]">
+            {/* MIDTRE NIVÅ: ingress, deretter rating + diskrete actions.
+                Ingressen er bevisst IKKE gjort større – uendret bredde
+                under xl, kun en svært lett reduksjon i skriftstørrelse
+                fra lg (~17px) og bedre linjehøyde, fortsatt en komfortabel,
+                bred lesebredde (aldri smal/høy). max-w-[500px] fra xl
+                (se lenger ned) hindrer den i å strekke seg helt ut til
+                kanten av den nye, bredere 520px-kolonnen. */}
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg lg:mt-8 lg:text-[1.0625rem] lg:leading-[1.7] xl:max-w-[500px]">
               {description}
             </p>
             {translating && <p className="mt-1 text-xs text-ink-faint">{translatingLabel}</p>}
@@ -179,9 +185,29 @@ export function RecipeHero({
               </p>
             )}
 
-            <div className="mt-4">{rating}</div>
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-4 lg:mt-8">
+              <div>{rating}</div>
+              {/* Diskret – mindre/enklere stil enn tidligere (var på linje
+                  med tittelen), sitter nå tett på ratingen i stedet. */}
+              <div className="flex shrink-0 items-center gap-2">
+                {isAdmin && (
+                  <Link
+                    href={editHref}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full border border-line-strong bg-paper px-3 py-1.5 text-xs text-ink-soft transition-colors hover:bg-cream-dark"
+                  >
+                    <EditIcon className="h-3.5 w-3.5" />
+                    {editLabel}
+                  </Link>
+                )}
+                {favorite}
+              </div>
+            </div>
 
-            <div className="mt-6 border-t border-line pt-6">{meta}</div>
+            {/* NEDERSTE NIVÅ: bred metadata-rad, tydelig atskilt med mer
+                luft over enn før (var mt-6/pt-6, nå mt-10/pt-6 – enda mer
+                fra lg). Selve raden (RecipeMeta.tsx) fyller nå hele
+                kolonnens bredde og har fått større, tydeligere verdier. */}
+            <div className="mt-10 border-t border-line pt-6 lg:mt-14 lg:pt-8">{meta}</div>
           </div>
         </div>
       </div>

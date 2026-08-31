@@ -374,7 +374,16 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
         editHref={`/admin/oppskrifter/${recipe.id}`}
         editLabel={t(lang, "recipeDetail.editButton")}
         favorite={
-          <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.favoritedByAdmin} isAdmin={isAdmin} lang={lang} />
+          <FavoriteButton
+            recipeId={recipe.id}
+            initialFavorited={recipe.favoritedByAdmin}
+            isAdmin={isAdmin}
+            // Kompakt (kun ikon) fra venstrekolonne-raffinementet 31.08.2026 –
+            // Favoritt sitter nå diskret sammen med ratingen i stedet for på
+            // linje med tittelen, se RecipeHero.tsx.
+            size="sm"
+            lang={lang}
+          />
         }
         rating={
           <RatingStars

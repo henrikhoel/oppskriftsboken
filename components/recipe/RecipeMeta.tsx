@@ -13,14 +13,23 @@ import type { Difficulty } from "@/lib/config";
  * bryter den fritt over flere linjer (flex-wrap), og en skillelinje midt i
  * en brutt rad ville sett feil ut, så der er det kun luft (gap) mellom hvert
  * element.
+ *
+ * Finjustert 31.08.2026 (venstrekolonne-raffinement): verdiene er nå tydelig
+ * større fra lg og opp (fortsatt små, diskrete labels under) – "Gjør
+ * metadata-seksjonen betydelig mer tilstedeværende". Raden bruker
+ * lg:justify-between for å fylle HELE bredden av venstrekolonnen i heroen
+ * (RecipeHero.tsx) i stedet for å pakke seg sammen mot venstre kant; selve
+ * kant-/luft-tilførselen rundt raden (linje over + vertikal padding) styres
+ * bevisst av RecipeHero.tsx sin wrapper, ikke her – denne komponenten er
+ * fortsatt kun selve raden.
  */
 function MetaItem({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-2 sm:border-l sm:border-line sm:pl-6 sm:first:border-0 sm:first:pl-0">
+    <div className="flex items-center gap-2.5 sm:border-l sm:border-line sm:pl-6 sm:first:border-0 sm:first:pl-0 lg:gap-3">
       <span className="text-ink-faint">{icon}</span>
       <span className="flex flex-col leading-tight">
-        <span className="font-serif text-sm text-ink sm:text-base">{value}</span>
-        <span className="text-[10px] uppercase tracking-wide text-ink-faint">{label}</span>
+        <span className="font-serif text-base text-ink sm:text-lg lg:text-xl">{value}</span>
+        <span className="text-[10px] uppercase tracking-wide text-ink-faint lg:text-[11px]">{label}</span>
       </span>
     </div>
   );
@@ -49,17 +58,18 @@ export function RecipeMeta({
   lang?: "no" | "en";
 }) {
   const labels = META_LABELS[lang];
+  const iconClass = "h-4 w-4 lg:h-5 lg:w-5";
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 sm:gap-x-0">
-      <MetaItem icon={<ClockIcon className="h-4 w-4" />} label={labels.prep} value={formatMinutes(prepTimeMinutes, lang)} />
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-4 py-1 sm:gap-x-0 lg:flex-nowrap lg:justify-between lg:gap-x-6 lg:py-2">
+      <MetaItem icon={<ClockIcon className={iconClass} />} label={labels.prep} value={formatMinutes(prepTimeMinutes, lang)} />
       <MetaItem
-        icon={<ClockIcon className="h-4 w-4" />}
+        icon={<ClockIcon className={iconClass} />}
         label={labels.cook}
         value={formatMinutesRange(cookTimeMinutes, cookTimeMinutesMax, lang)}
       />
-      <MetaItem icon={<ClockIcon className="h-4 w-4" />} label={labels.total} value={formatMinutes(totalTimeMinutes, lang)} />
-      <MetaItem icon={<UsersIcon className="h-4 w-4" />} label={labels.servings} value={String(servings)} />
-      <MetaItem icon={<GaugeIcon className="h-4 w-4" />} label={labels.level} value={difficultyLabel(difficulty, lang)} />
+      <MetaItem icon={<ClockIcon className={iconClass} />} label={labels.total} value={formatMinutes(totalTimeMinutes, lang)} />
+      <MetaItem icon={<UsersIcon className={iconClass} />} label={labels.servings} value={String(servings)} />
+      <MetaItem icon={<GaugeIcon className={iconClass} />} label={labels.level} value={difficultyLabel(difficulty, lang)} />
     </div>
   );
 }
