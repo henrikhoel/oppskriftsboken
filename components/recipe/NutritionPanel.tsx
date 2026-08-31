@@ -16,19 +16,24 @@ import { t, type Lang } from "@/lib/i18n";
  * med resten av siden (server-rendret, sendt som prop) – å trykke knappen
  * koster INGENTING (ikke noe nytt nettverkskall), i motsetning til f.eks.
  * den gamle (nå fjernede) live smaksprofil-panelet.
+ *
+ * Tonet ned og flyttet lenger ned 31.08.2026 (spesifikasjonens punkt 8) –
+ * fortsatt kollapset/sekundær som før (den samme "vis"-knappen), men ikke
+ * lenger sin egen heldekkende, avrundede boks – et rolig avsnitt i den
+ * delte "sekundær info"-flaten i RecipeInteractive.tsx.
  */
 export function NutritionPanel({ nutrition, lang }: { nutrition: NutritionInfo; lang: Lang }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-card border border-line bg-cream-dark/40 p-4 sm:p-5">
+    <div>
       <button
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-2 text-left"
       >
-        <span className="font-serif text-base text-ink">{t(lang, "nutrition.heading")}</span>
+        <span className="font-serif text-lg text-ink">{t(lang, "nutrition.heading")}</span>
         <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-clay">
           {open ? t(lang, "nutrition.hide") : t(lang, "nutrition.show")}
           <ChevronDownIcon className={clsx("h-4 w-4 transition-transform", open && "rotate-180")} />

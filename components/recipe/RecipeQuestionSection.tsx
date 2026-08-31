@@ -64,8 +64,13 @@ export function RecipeQuestionSection({
     setQuestion("");
   }
 
+  // Boks-stylingen (rounded-card/border/bg) fjernet 31.08.2026
+  // (designforbedring punkt 9/12) – skal lese som en enkel redaksjonell
+  // seksjon, ikke et "SaaS-widget", se filheaderen over. Nå ett rolig
+  // avsnitt i den delte "sekundær info"-flaten i RecipeInteractive.tsx i
+  // stedet for sin egen avrundede boks.
   return (
-    <div className="mt-6 rounded-card border border-line bg-cream-dark/60 p-5 sm:p-6">
+    <div>
       <h3 className="font-serif text-lg text-ink">{t(lang, "recipeQuestion.title")}</h3>
       <p className="mt-1 text-sm text-ink-faint">{t(lang, "recipeQuestion.desc")}</p>
 

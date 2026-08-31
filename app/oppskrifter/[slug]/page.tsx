@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRecipeBySlug, getAllSlugs } from "@/lib/data/recipes";
@@ -72,33 +71,24 @@ export default async function RecipePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="relative h-[42vh] min-h-[320px] w-full overflow-hidden bg-cream-dark sm:h-[52vh]">
-        {recipe.heroImageUrl ? (
-          <Image
-            src={recipe.heroImageUrl}
-            alt={recipe.heroImageAlt || localizedTitle(recipe, lang)}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <span className="font-serif text-2xl text-ink-faint">{t(lang, "recipeDetail.imagePending")}</span>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-cream/80 via-cream/20 to-transparent" />
+      {/* Ingen full-bred, liggende heltskjerm-bildeblokk lenger (fjernet
+          31.08.2026, designforbedring punkt 1/2) – selve oppskriftsbildet
+          vises nå ubeskåret som del av den nye to-kolonners heroen inne i
+          RecipeInteractive → RecipeHero, i samme sentrerte container som
+          resten av siden. "Alle oppskrifter"-lenken flyttet hit, som en
+          rolig tekstlenke over heroen i stedet for å flyte oppå et bilde. */}
+      <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
         <Link
           href="/oppskrifter"
-          className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-paper/90 px-3.5 py-2 text-sm font-medium text-ink shadow-card sm:left-6 sm:top-6"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
         >
           <ChevronLeftIcon className="h-4 w-4" />
           {t(lang, "recipeDetail.allRecipesLink")}
         </Link>
-      </div>
 
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <RecipeInteractive recipe={recipe} isAdmin={Boolean(user?.isAdmin)} lang={lang} />
+        <div className="mt-6 sm:mt-8">
+          <RecipeInteractive recipe={recipe} isAdmin={Boolean(user?.isAdmin)} lang={lang} />
+        </div>
 
         {recipe.source && (
           <p className="mt-10 text-xs text-ink-faint">

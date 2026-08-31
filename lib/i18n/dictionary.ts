@@ -650,6 +650,13 @@ const DICT = {
   "mealBuilder.role.main": { no: "Hovedrett", en: "Main course" },
   "mealBuilder.role.side": { no: "Tilbehør", en: "Side dish" },
   "mealBuilder.role.dessert": { no: "Dessert", en: "Dessert" },
+  // Liten "eyebrow"-etikett over selve overskriften – gir MealBuilder en
+  // tydelig CONVITE-identitet på oppskriftssiden (designforbedring
+  // 31.08.2026, spesifikasjonens punkt 10), samme frase som den separate
+  // "Gjør det til en kveld"-opplevelsen på /meny/[id] (se mealMood.heading
+  // under) bruker – bevisst samme tone/språk begge steder, selv om dette
+  // er to ulike funksjoner på to ulike sider.
+  "mealBuilder.eyebrow": { no: "Gjør det til en kveld", en: "Make it an evening" },
   "mealBuilder.heading": { no: "Bygg en meny rundt denne retten", en: "Build a menu around this dish" },
   "mealBuilder.intro": {
     no: "Vi setter sammen en hel meny rundt denne retten – hentet fra oppskriftsboken der det passer, foreslått nytt der det ikke gjør det.",

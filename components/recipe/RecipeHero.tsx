@@ -1,0 +1,150 @@
+import type { ReactNode } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Badge } from "@/components/ui/Badge";
+import { EditIcon } from "@/components/ui/icons";
+
+/**
+ * Oppskriftssidens hero – redesignet 31.08.2026 (spesifikasjonens punkt 1,
+ * merket "VIKTIGSTE ENDRING"). Erstatter den gamle helbrede, liggende
+ * heltskjerm-bildeblokken (som lå UTENFOR sideinnholdet i app/oppskrifter/
+ * [slug]/page.tsx, beskåret til en fast vh-høyde med object-cover) med en
+ * ekte, redaksjonell to-kolonners inndeling: info til venstre, ett rent,
+ * ubeskåret 1:1-kvadratisk bilde til høyre. Bildet vises ALDRI som
+ * bakgrunn og får ALDRI tekst lagt oppå seg – object-contain (ikke
+ * object-cover) i en kvadratisk ramme sikrer at det aldri beskjæres
+ * liggende/zoomes, uansett kildebildets faktiske proporsjoner.
+ *
+ * Stables vertikalt på mobil/nettbrett med BILDET FØRST (samme rekkefølge
+ * som brukeren ville sett et ekte magasinoppslag – bildet trekker
+ * oppmerksomheten før man leser), info under. Fra lg og opp: to jevne
+ * kolonner side ved side, bildet til høyre.
+ *
+ * Rent presentasjonelt – all state (favoritt, EN-oversettelse osv.) eies
+ * fortsatt av RecipeInteractive.tsx, som sender inn ferdige noder
+ * (favorite/rating/meta) for de bitene som allerede er egne, selvstendige
+ * komponenter. Ingen egen logikk her utover selve layouten.
+ */
+export function RecipeHero({
+  imageUrl,
+  imageAlt,
+  imagePendingLabel,
+  categoryLabel,
+  tags,
+  isDraft,
+  draftLabel,
+  title,
+  description,
+  translating,
+  translatingLabel,
+  translateError,
+  onRetryTranslate,
+  retryTranslateLabel,
+  isAdmin,
+  editHref,
+  editLabel,
+  favorite,
+  rating,
+  meta,
+}: {
+  imageUrl: string | null;
+  imageAlt: string;
+  imagePendingLabel: string;
+  categoryLabel?: string | null;
+  tags: { id: string; name: string }[];
+  isDraft: boolean;
+  draftLabel: string;
+  title: string;
+  description: string;
+  translating?: boolean;
+  translatingLabel?: string;
+  translateError?: string | null;
+  onRetryTranslate?: () => void;
+  retryTranslateLabel?: string;
+  isAdmin: boolean;
+  editHref: string;
+  editLabel: string;
+  favorite: ReactNode;
+  rating: ReactNode;
+  meta: ReactNode;
+}) {
+  return (
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_540px] lg:items-start lg:gap-16">
+      {/* Bildet – først i DOM-rekkefølgen slik at det også kommer først på
+          mobil (order-* under er kun en visuell omplassering fra lg og
+          opp, se class-navnene). Kvadratisk ramme uansett skjermstørrelse;
+          object-contain + en rolig bg-cream-dark bak sikrer at et bilde som
+          IKKE selv er kvadratisk vises helt og ubeskåret (evt. luft over/
+          under eller til sidene), aldri beskåret liggende. */}
+      <div className="order-1 lg:order-2">
+        <div className="relative mx-auto aspect-square w-full max-w-[540px] overflow-hidden rounded-card bg-cream-dark">
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={imageAlt}
+              fill
+              priority
+              sizes="(min-width: 1024px) 540px, 100vw"
+              className="object-contain"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <span className="font-serif text-lg text-ink-faint">{imagePendingLabel}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="order-2 lg:order-1">
+        <div className="flex flex-wrap items-center gap-2">
+          {categoryLabel && <Badge tone="clay">{categoryLabel}</Badge>}
+          {tags.map((tag) => (
+            <Badge key={tag.id} tone="neutral">
+              {tag.name}
+            </Badge>
+          ))}
+          {isDraft && <Badge tone="mustard">{draftLabel}</Badge>}
+        </div>
+
+        {/* Favoritt/Rediger bor bevisst inne HER, tett på tittelen – ikke
+            som en flytende actions-rad andre steder på siden – slik at de
+            aldri konkurrerer visuelt med selve bildet (spesifikasjonens
+            punkt 13). */}
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
+          <h1 className="text-balance font-serif text-3xl leading-tight text-ink sm:text-4xl lg:text-[2.75rem]">
+            {title}
+          </h1>
+          <div className="flex shrink-0 items-center gap-2">
+            {isAdmin && (
+              <Link
+                href={editHref}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-line-strong bg-paper px-4 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream-dark"
+              >
+                <EditIcon className="h-4 w-4" />
+                {editLabel}
+              </Link>
+            )}
+            {favorite}
+          </div>
+        </div>
+
+        <p className="mt-3 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg">{description}</p>
+        {translating && <p className="mt-1 text-xs text-ink-faint">{translatingLabel}</p>}
+        {translateError && (
+          <p className="mt-1 text-xs text-clay-dark">
+            {translateError}{" "}
+            {onRetryTranslate && (
+              <button type="button" onClick={onRetryTranslate} className="font-medium underline underline-offset-2">
+                {retryTranslateLabel}
+              </button>
+            )}
+          </p>
+        )}
+
+        <div className="mt-4">{rating}</div>
+
+        <div className="mt-6 border-t border-line pt-6">{meta}</div>
+      </div>
+    </div>
+  );
+}

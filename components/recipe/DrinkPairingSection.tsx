@@ -372,8 +372,15 @@ export function DrinkPairingSection({
   tasteProfile: TasteProfile | null;
   lang: Lang;
 }) {
+  // Boks-stylingen (rounded-card/border/bg) fjernet 31.08.2026
+  // (designforbedring punkt 9/11) – "Drikke til" og "Passer denne?" var
+  // allerede slått sammen i koden (én komponent), men fremstod fortsatt
+  // som en boks blant flere andre bokser. Nå ett rolig avsnitt i den delte
+  // "sekundær info"-flaten i RecipeInteractive.tsx – de to interne
+  // border-t-skillelinjene under er beholdt uendret siden de allerede gir
+  // riktig visuell inndeling MELLOM de to delfunksjonene.
   return (
-    <div className="mt-10 rounded-card border border-line bg-cream-dark/60 p-5 sm:p-6">
+    <div>
       <DrinkPairingFetcher recipeId={recipeId} recipeContext={recipeContext} tasteProfile={tasteProfile} lang={lang} />
       <BeverageMatchChecker recipeContext={recipeContext} lang={lang} />
     </div>

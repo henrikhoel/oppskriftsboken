@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { IngredientGroup, Recipe, RecipeStep, VegetarianIngredientGroup, VegetarianStep } from "@/lib/types";
-import { Badge } from "@/components/ui/Badge";
+import { RecipeHero } from "@/components/recipe/RecipeHero";
 import { ServingsScaler } from "@/components/recipe/ServingsScaler";
 import { UnitSystemSwitcher } from "@/components/recipe/UnitSystemSwitcher";
 import { CookMode } from "@/components/recipe/CookMode";
@@ -22,7 +22,7 @@ import { FavoriteButton } from "@/components/recipe/FavoriteButton";
 import { RatingStars } from "@/components/recipe/RatingStars";
 import { RecipeMeta } from "@/components/recipe/RecipeMeta";
 import { Button } from "@/components/ui/Button";
-import { CheckIcon, EditIcon, PlayIcon, ShoppingBagIcon } from "@/components/ui/icons";
+import { CheckIcon, PlayIcon, ShoppingBagIcon } from "@/components/ui/icons";
 import { scaleAmount } from "@/lib/utils/scale";
 import { convertAmountToUs, type UnitSystem } from "@/lib/utils/units";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
@@ -355,49 +355,28 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
 
   return (
     <>
-      <header className="relative -mt-16 rounded-t-3xl bg-cream pb-6 pt-6 sm:-mt-20 sm:pb-8 sm:pt-8">
-        <div className="flex flex-wrap items-center gap-2">
-          {recipe.category && <Badge tone="clay">{localizedCategoryName(recipe.category, lang)}</Badge>}
-          {recipe.tags.map((tag) => (
-            <Badge key={tag.id} tone="neutral">
-              {tag.name}
-            </Badge>
-          ))}
-          {!recipe.isPublished && <Badge tone="mustard">{t(lang, "recipeDetail.draft")}</Badge>}
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-          <h1 className="text-balance font-serif text-3xl leading-tight text-ink sm:text-4xl md:text-5xl">
-            {displayTitle}
-          </h1>
-          <div className="flex items-center gap-2">
-            {isAdmin && (
-              <Link
-                href={`/admin/oppskrifter/${recipe.id}`}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-line-strong bg-paper px-4 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream-dark"
-              >
-                <EditIcon className="h-4 w-4" />
-                {t(lang, "recipeDetail.editButton")}
-              </Link>
-            )}
-            <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.favoritedByAdmin} isAdmin={isAdmin} lang={lang} />
-          </div>
-        </div>
-
-        <p className="mt-3 max-w-2xl text-base text-ink-soft sm:text-lg">{displayDescription}</p>
-        {lang === "en" && engLoading && (
-          <p className="mt-1 text-xs text-ink-faint">{t(lang, "recipeDetail.engTranslating")}</p>
-        )}
-        {lang === "en" && engError && (
-          <p className="mt-1 text-xs text-clay-dark">
-            {engError}{" "}
-            <button type="button" onClick={handleGetEnglish} className="font-medium underline underline-offset-2">
-              {t(lang, "recipeDetail.reTranslate")}
-            </button>
-          </p>
-        )}
-
-        <div className="mt-3">
+      <RecipeHero
+        imageUrl={recipe.heroImageUrl}
+        imageAlt={recipe.heroImageAlt || displayTitle}
+        imagePendingLabel={t(lang, "recipeDetail.imagePending")}
+        categoryLabel={recipe.category ? localizedCategoryName(recipe.category, lang) : null}
+        tags={recipe.tags}
+        isDraft={!recipe.isPublished}
+        draftLabel={t(lang, "recipeDetail.draft")}
+        title={displayTitle}
+        description={displayDescription}
+        translating={lang === "en" && engLoading}
+        translatingLabel={t(lang, "recipeDetail.engTranslating")}
+        translateError={lang === "en" ? engError : null}
+        onRetryTranslate={handleGetEnglish}
+        retryTranslateLabel={t(lang, "recipeDetail.reTranslate")}
+        isAdmin={isAdmin}
+        editHref={`/admin/oppskrifter/${recipe.id}`}
+        editLabel={t(lang, "recipeDetail.editButton")}
+        favorite={
+          <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.favoritedByAdmin} isAdmin={isAdmin} lang={lang} />
+        }
+        rating={
           <RatingStars
             recipeId={recipe.id}
             recipeSlug={recipe.slug}
@@ -405,9 +384,8 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             initialRatingCount={recipe.ratingCount}
             lang={lang}
           />
-        </div>
-
-        <div className="mt-6">
+        }
+        meta={
           <RecipeMeta
             prepTimeMinutes={recipe.prepTimeMinutes}
             cookTimeMinutes={recipe.cookTimeMinutes}
@@ -417,31 +395,20 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             difficulty={recipe.difficulty}
             lang={lang}
           />
-        </div>
+        }
+      />
 
-        {/* Forhåndsgenerert i admin, ikke en live per-besøk AI-beregning –
-            se TasteProfileDisplay.tsx. Vises kun når admin faktisk har
-            generert én; ingen tom/lastende boks for oppskrifter uten. */}
-        {recipe.tasteProfile && (
-          <div className="mt-6">
-            <TasteProfileDisplay tasteProfile={recipe.tasteProfile} lang={lang} />
-          </div>
-        )}
-
-        {/* Forhåndsgenerert i admin, samme mønster som smaksprofilen over –
-            men ULIKT den, skjult bak en "vis"-knapp helt til noen faktisk
-            trykker (se NutritionPanel.tsx sin filheader). Vises kun når
-            admin faktisk har generert én. */}
-        {recipe.nutritionInfo && (
-          <div className="mt-4">
-            <NutritionPanel nutrition={recipe.nutritionInfo} lang={lang} />
-          </div>
-        )}
-      </header>
-
-      <div className="grid gap-8 pt-4 lg:grid-cols-[minmax(0,1fr)_2fr] lg:gap-12">
+      <div className="grid gap-8 pt-10 lg:grid-cols-[minmax(0,1fr)_2fr] lg:gap-12 lg:pt-14">
+        {/* Ingredienspanelet – tidligere en tung, skyggelagt boks
+            (shadow-card, heldekkende bg-paper). Lettet 31.08.2026
+            (spesifikasjonens punkt 5): svakere bakgrunn, tynnere kant,
+            ingen skygge. All funksjonalitet under (porsjoner, metrisk/US,
+            vegetarvalg, "bytt ut", avkryssing, tidsplan, Start
+            matlaging, Legg til i handleliste) er UENDRET – kun selve
+            boksens visuelle vekt er redusert, fortsatt sticky/robust på
+            desktop. */}
         <section aria-labelledby="ingredienser-heading" className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-card border border-line bg-paper p-5 shadow-card sm:p-6">
+          <div className="rounded-card border border-line/70 bg-paper/70 p-5 sm:p-6">
             <h2 id="ingredienser-heading" className="font-serif text-2xl text-ink">
               {t(lang, "recipeDetail.ingredientsHeading")}
             </h2>
@@ -678,29 +645,71 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             })}
           </ol>
 
+          {/* Notater/tips/pass på – tidligere tre fargede "varselkort"
+              (heldekkende bakgrunn, kant rundt hele). Gjort om til rolige
+              marginalnotater 31.08.2026 (spesifikasjonens punkt 6): en tynn
+              farget kantlinje til venstre + kursiv brødtekst, mer i stil
+              med en håndskrevet kommentar i margen på en kokebok enn et
+              "advarsel"-UI-element. Samme tre felt, samme data, kun lettere
+              visuelt uttrykk. */}
           {(finalNotes || finalTips || finalWarnings) && (
-            <div className="mt-10 space-y-4">
+            <div className="mt-10 space-y-6 border-t border-line pt-8">
               {finalNotes && (
-                <div className="rounded-card border border-line bg-cream-dark/60 p-5">
-                  <h3 className="font-serif text-lg text-ink">{t(lang, "recipeDetail.notes")}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{finalNotes}</p>
+                <div className="border-l-2 border-line-strong pl-4">
+                  <h3 className="font-serif text-base text-ink-soft">{t(lang, "recipeDetail.notes")}</h3>
+                  <p className="mt-1 text-sm italic leading-relaxed text-ink-soft">{finalNotes}</p>
                 </div>
               )}
               {finalTips && (
-                <div className="rounded-card border border-olive-light bg-olive-light/50 p-5">
-                  <h3 className="font-serif text-lg text-olive-dark">{t(lang, "recipeDetail.tips")}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{finalTips}</p>
+                <div className="border-l-2 border-olive pl-4">
+                  <h3 className="font-serif text-base text-olive-dark">{t(lang, "recipeDetail.tips")}</h3>
+                  <p className="mt-1 text-sm italic leading-relaxed text-ink-soft">{finalTips}</p>
                 </div>
               )}
               {finalWarnings && (
-                <div className="rounded-card border border-clay/30 bg-clay-light/30 p-5">
-                  <h3 className="font-serif text-lg text-clay-dark">{t(lang, "recipeDetail.warnings")}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{finalWarnings}</p>
+                <div className="border-l-2 border-clay pl-4">
+                  <h3 className="font-serif text-base text-clay-dark">{t(lang, "recipeDetail.warnings")}</h3>
+                  <p className="mt-1 text-sm italic leading-relaxed text-ink-soft">{finalWarnings}</p>
                 </div>
               )}
             </div>
           )}
+        </section>
+      </div>
 
+      {/* ============ Sekundær info – flyttet under selve oppskriften
+          (spesifikasjonens punkt 4: retten/bildet/funksjonaliteten skal
+          alltid komme først, "oppdages" før man ruller videre til dette).
+          Rekkefølge: Smaksprofil → Næringsinnhold → "Gjør det til en
+          kveld" (MealBuilder) → Drikke til/Passer denne → Lurer du på
+          noe. Delt av tynne skillelinjer (divide-y) i stedet for at hver
+          seksjon er sin egen heldekkende, avrundede boks – reduserer
+          "stabel av ensartede bokser"-følelsen (punkt 9) og gir én
+          sammenhengende, redaksjonell flate i stedet. Hver av
+          under-komponentene (TasteProfileDisplay/NutritionPanel/
+          MealBuilder/DrinkPairingSection/RecipeQuestionSection) er derfor
+          også lettet for sin egen kort-boks-styling, se de filene. */}
+      <div className="mt-16 divide-y divide-line border-t border-line sm:mt-20">
+        {/* Forhåndsgenerert i admin, ikke en live per-besøk AI-beregning –
+            se TasteProfileDisplay.tsx. Vises kun når admin faktisk har
+            generert én; ingen tom/lastende boks for oppskrifter uten. */}
+        {recipe.tasteProfile && (
+          <div className="py-10 sm:py-12">
+            <TasteProfileDisplay tasteProfile={recipe.tasteProfile} lang={lang} />
+          </div>
+        )}
+
+        {/* Forhåndsgenerert i admin, samme mønster som smaksprofilen over –
+            men ULIKT den, skjult bak en "vis"-knapp helt til noen faktisk
+            trykker (se NutritionPanel.tsx sin filheader). Vises kun når
+            admin faktisk har generert én. */}
+        {recipe.nutritionInfo && (
+          <div className="py-10 sm:py-12">
+            <NutritionPanel nutrition={recipe.nutritionInfo} lang={lang} />
+          </div>
+        )}
+
+        <div className="py-10 sm:py-12">
           <MealBuilder
             recipe={{
               id: recipe.id,
@@ -712,7 +721,9 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             }}
             lang={lang}
           />
+        </div>
 
+        <div className="py-10 sm:py-12">
           <DrinkPairingSection
             recipeId={recipe.id}
             recipeContext={{
@@ -723,7 +734,9 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             tasteProfile={recipe.tasteProfile ?? null}
             lang={lang}
           />
+        </div>
 
+        <div className="py-10 sm:py-12">
           <RecipeQuestionSection
             recipeId={recipe.id}
             recipeContext={{
@@ -735,7 +748,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             }}
             lang={lang}
           />
-        </section>
+        </div>
       </div>
 
       {cookModeOpen && (

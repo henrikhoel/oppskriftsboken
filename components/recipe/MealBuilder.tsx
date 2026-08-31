@@ -193,8 +193,16 @@ export function MealBuilder({
     : [];
 
   return (
-    <div className="mt-10 rounded-card border border-line bg-cream-dark/60 p-5 sm:p-6">
-      <h3 className="font-serif text-lg text-ink">{t(lang, "mealBuilder.heading")}</h3>
+    // Boks-stylingen (rounded-card/border/bg) fjernet 31.08.2026
+    // (designforbedring punkt 9/10) – seksjonen er nå ett rolig avsnitt i
+    // den delte "sekundær info"-flaten i RecipeInteractive.tsx, med en
+    // liten "GJØR DET TIL EN KVELD"-eyebrow som gir en tydelig CONVITE-
+    // identitet uten å røre selve anledning/tid/bygg-meny-logikken under.
+    <div>
+      <p className="font-sans text-[0.68rem] font-semibold uppercase tracking-[0.25em] text-clay">
+        {t(lang, "mealBuilder.eyebrow")}
+      </p>
+      <h3 className="mt-1.5 font-serif text-lg text-ink">{t(lang, "mealBuilder.heading")}</h3>
       <p className="mt-1 text-sm text-ink-faint">{t(lang, "mealBuilder.intro")}</p>
 
       {!hasPlan && (
