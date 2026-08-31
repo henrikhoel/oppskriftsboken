@@ -8,33 +8,34 @@ import type { Difficulty } from "@/lib/config";
  * punkt 3). Erstattet med ÉN rolig horisontal rad: ren typografi + tynne
  * vertikale skillelinjer i stedet for bokser.
  *
- * RETTET/FORENKLET 31.08.2026 (to runder tilbakemelding): en tidligere
- * versjon tvang alle fem elementene på én linje med `lg:flex-nowrap`
- * uansett bredde – med lengre norske labels ("Forberedelse"/
- * "Tilberedning") og fem hele elementer + ikoner rakk de ikke plass i den
- * ~520–540px brede tekstkolonnen i heroen, og rant utenfor kolonnen og
- * oppå selve bildet ("R'en i porsjoner treffer bildet"). Deretter fjernet
- * jeg tvangen (ren flex-wrap) for å unngå kollisjon – men da brøt raden
- * ofte til to linjer selv der det var nok plass, og Henrik ønsket dem
- * heller "rett ved siden av hverandre".
+ * TRE runder finjustering 31.08.2026: (1) tvunget én-linje med
+ * `lg:flex-nowrap` uansett bredde rant utenfor kolonnen og oppå bildet
+ * ("R'en i porsjoner treffer bildet"). (2) Fjernet ikonene + strammet inn
+ * for å faktisk FÅ plass på én linje – fungerte for korte verdier, men
+ * "Avansert" (lengre enn "Middels") rant fortsatt utenfor og traff bildet
+ * på nytt, fordi den underliggende bredden fortsatt var et rent gjetteverk
+ * uten en ekte nettleser å måle i.
  *
- * Løsningen nå: ikonene er tatt bort (de sto for mye av bredden per
- * element uten å tilføre lesbarhet – ren typografi er nok), og selve
- * elementene er dermed smale nok til at alle fem faktisk får plass på én
- * linje i den brede xl-heroen (`xl:flex-nowrap`, KUN fra xl – der
- * tekstkolonnen er en garantert fast 520px, så regnestykket faktisk
- * stemmer). Under xl (dvs. lg-laget, 1024–1279px, der tekstkolonnen er
- * fleksibel og kan bli ganske smal) beholdes vanlig flex-wrap som et
- * sikkerhetsnett – wrapper trygt til to linjer i stedet for å risikere å
- * kollidere med bildet igjen. Den ekstra bredden ikonene ga fra seg er
- * brukt til litt mer luft mellom hvert element (sm:pl-6 i stedet for
- * pl-5), som var det andre alternativet Henrik nevnte.
+ * LØSNING (3): fra lg og opp er raden nå et ekte CSS-grid med fem LIKE
+ * brede kolonner (`grid-cols-5`, `minmax(0,1fr)` under panseret) i stedet
+ * for flex – bredden på hver kolonne er da MATEMATISK garantert (akkurat
+ * 1/5 av tilgjengelig bredde), ikke avhengig av hvor lang teksten i den
+ * TILFELDIGVIS er. `truncate` (+ `min-w-0`, nødvendig for at truncate skal
+ * virke i en grid-celle) på verdi/label er et siste sikkerhetsnett for et
+ * ekstremt langt ord – klippes da med "…" i stedet for å flyte utenfor,
+ * ALDRI over på bildet, uansett hva slags oppskrift-metadata som kommer
+ * (også fremtidige, ukjente verdier). Selve teksten er også gjort tydelig
+ * mindre fra lg ("den teksten må være mye mindre") – ren typografisk
+ * finjustering, ingen endring i hva som vises. Under lg (mobil/nettbrett,
+ * der bildet uansett ligger OVER teksten, ikke ved siden av) er den gamle
+ * flex-wrap-oppførselen beholdt uendret – der er det aldri noen
+ * kollisjonsrisiko å beskytte mot.
  */
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col leading-tight sm:border-l sm:border-line sm:pl-6 sm:first:border-0 sm:first:pl-0">
-      <span className="whitespace-nowrap font-serif text-base text-ink sm:text-lg lg:text-lg">{value}</span>
-      <span className="whitespace-nowrap text-[10px] uppercase tracking-wide text-ink-faint">{label}</span>
+    <div className="min-w-0 sm:border-l sm:border-line sm:pl-6 sm:first:border-0 sm:first:pl-0 lg:pl-4">
+      <p className="truncate font-serif text-base text-ink sm:text-lg lg:text-sm">{value}</p>
+      <p className="truncate text-[10px] uppercase tracking-wide text-ink-faint lg:text-[9px]">{label}</p>
     </div>
   );
 }
@@ -63,7 +64,7 @@ export function RecipeMeta({
 }) {
   const labels = META_LABELS[lang];
   return (
-    <div className="flex flex-wrap items-start gap-x-6 gap-y-4 py-1 sm:gap-x-0 lg:justify-between lg:gap-x-6 lg:py-2 xl:flex-nowrap">
+    <div className="flex flex-wrap items-start gap-x-6 gap-y-4 py-1 sm:gap-x-0 lg:grid lg:grid-cols-5 lg:items-start lg:gap-x-4 lg:gap-y-0 lg:py-2">
       <MetaItem label={labels.prep} value={formatMinutes(prepTimeMinutes, lang)} />
       <MetaItem label={labels.cook} value={formatMinutesRange(cookTimeMinutes, cookTimeMinutesMax, lang)} />
       <MetaItem label={labels.total} value={formatMinutes(totalTimeMinutes, lang)} />
