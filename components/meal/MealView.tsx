@@ -44,10 +44,14 @@ import { t, type Lang } from "@/lib/i18n";
  * (tidligere hver i sin egen rounded-card/border-boks – overflødig, man kan
  * uansett allerede redigere/fjerne dem herfra) er nå ÉN rolig,
  * boks-fri liste (divide-y) i venstre kolonne av et to-kolonners grid fra
- * lg og opp. Høyre kolonne samler de tre handlingene som hører til NÅR
- * menyen allerede er satt sammen – tidslinje (MealTimelineSection),
- * handleliste (MealShoppingListSection) og kokemodus-knappen – rett ved
- * siden av hverandre i stedet for spredt nedover hele siden.
+ * lg og opp. Høyre kolonne samler tidslinje (MealTimelineSection) og
+ * kokemodus-knappen – begge handler om NÅR/HVORDAN man lager maten.
+ * Handleliste (MealShoppingListSection) flyttet SAMME dag opp til tittel-
+ * raden i stedet ("handleliste knappen kan være ute høyre på siden, på
+ * linje med overskriften") – en enkel, liten knapp helt øverst er en mer
+ * naturlig plass for "legg i handleliste" enn nede blant
+ * tidslinje/kokemodus, og gir samtidig selve tittelen noe å balansere mot
+ * i bredden.
  *
  * ANLEDNING fjernet HELT (samme dato, tilbakemelding: "det virker som om
  * den ikke tar standpunkt til hva man velger av anledning uansett" – valget
@@ -141,12 +145,27 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         </Link>
       )}
 
-      <input
-        type="text"
-        value={session.title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="w-full rounded-lg border border-transparent bg-transparent font-serif text-2xl text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-3xl"
-      />
+      {/* Tittel + "Legg i handlelisten" på samme linje (31.08.2026,
+          "handleliste knappen kan være ute høyre på siden, på linje med
+          overskriften, men utenfor der") – tittelen er `flex-1` og bruker
+          dermed all bredden helt til knappen (ikke lenger en egen,
+          smalere boks nedi selve to-kolonne-gridet). Knappen faller ned
+          under tittelen på smale skjermer (flex-wrap), side om side fra
+          der det er plass. Selve overskriften er også gjort tydelig
+          større ("enda større"). */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <input
+          type="text"
+          value={session.title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent font-serif text-3xl text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl md:text-5xl"
+        />
+        {slots.length > 0 && (
+          <div id="meal-shopping-list" className="shrink-0">
+            <MealShoppingListSection slots={slots} lang={lang} />
+          </div>
+        )}
+      </div>
 
       {slots.length === 0 ? (
         <p className="text-sm text-ink-faint">{t(lang, "mealPage.emptyState")}</p>
@@ -243,11 +262,10 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
             ))}
           </div>
 
-          {/* Tidsbruk, handleliste og kokemodus hører sammen – alle tre
-              handler om NÅR/HVORDAN man faktisk skal lage menyen, samlet i
-              samme kolonne (31.08.2026, "på andre siden kan man ha
-              tidsbruk, handleliste og start kokemodus") i stedet for spredt
-              nedover hele siden. */}
+          {/* Tidsbruk og kokemodus hører sammen – begge handler om
+              NÅR/HVORDAN man faktisk skal lage menyen, samlet i samme
+              kolonne som rettene (31.08.2026). Handleliste-knappen bor nå
+              isteden oppe ved siden av tittelen (se over), ikke her lenger. */}
           <div className="space-y-5">
             <div id="meal-timeline">
               <MealTimelineSection
@@ -256,10 +274,6 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
                 onReadyAtChange={setDesiredReadyAt}
                 lang={lang}
               />
-            </div>
-
-            <div id="meal-shopping-list">
-              <MealShoppingListSection slots={slots} lang={lang} />
             </div>
 
             {hasExistingDish && (
