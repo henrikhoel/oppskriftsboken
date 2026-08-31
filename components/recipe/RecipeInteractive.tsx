@@ -407,7 +407,9 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
         }
       />
 
-      <div className="grid gap-8 pt-10 lg:grid-cols-[minmax(0,1fr)_2fr] lg:gap-12 lg:pt-14">
+      {/* lg:gap-16 (var lg:gap-12) – litt mer luft i midten mellom
+          Ingredienser og Fremgangsmåte, ønsket 31.08.2026. */}
+      <div className="grid gap-8 pt-10 lg:grid-cols-[minmax(0,1fr)_2fr] lg:gap-16 lg:pt-14">
         {/* Ingredienspanelet – tidligere en tung, skyggelagt boks
             (shadow-card, heldekkende bg-paper). Lettet 31.08.2026
             (spesifikasjonens punkt 5): svakere bakgrunn, tynnere kant,

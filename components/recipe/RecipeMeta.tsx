@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-import { ClockIcon, GaugeIcon, UsersIcon } from "@/components/ui/icons";
 import { difficultyLabel, formatMinutes, formatMinutesRange } from "@/lib/utils/format";
 import type { Difficulty } from "@/lib/config";
 
@@ -8,44 +6,35 @@ import type { Difficulty } from "@/lib/config";
  * fem separate bokser (rounded-card, border, bg-paper), som kjentes tunge og
  * dashboard-aktige ut i heroen (designforbedring 31.08.2026, spesifikasjonens
  * punkt 3). Erstattet med ÉN rolig horisontal rad: ren typografi + tynne
- * vertikale skillelinjer i stedet for bokser. Skillelinjene kommer først fra
- * sm og opp, der raden alltid har plass til å stå på én linje – på mobil
- * bryter den fritt over flere linjer (flex-wrap), og en skillelinje midt i
- * en brutt rad ville sett feil ut, så der er det kun luft (gap) mellom hvert
- * element.
+ * vertikale skillelinjer i stedet for bokser.
  *
- * Finjustert 31.08.2026 (venstrekolonne-raffinement): verdiene er nå tydelig
- * større fra lg og opp (fortsatt små, diskrete labels under) – "Gjør
- * metadata-seksjonen betydelig mer tilstedeværende". Raden bruker
- * lg:justify-between for å fylle HELE bredden av venstrekolonnen i heroen
- * (RecipeHero.tsx) i stedet for å pakke seg sammen mot venstre kant; selve
- * kant-/luft-tilførselen rundt raden (linje over + vertikal padding) styres
- * bevisst av RecipeHero.tsx sin wrapper, ikke her – denne komponenten er
- * fortsatt kun selve raden.
+ * RETTET/FORENKLET 31.08.2026 (to runder tilbakemelding): en tidligere
+ * versjon tvang alle fem elementene på én linje med `lg:flex-nowrap`
+ * uansett bredde – med lengre norske labels ("Forberedelse"/
+ * "Tilberedning") og fem hele elementer + ikoner rakk de ikke plass i den
+ * ~520–540px brede tekstkolonnen i heroen, og rant utenfor kolonnen og
+ * oppå selve bildet ("R'en i porsjoner treffer bildet"). Deretter fjernet
+ * jeg tvangen (ren flex-wrap) for å unngå kollisjon – men da brøt raden
+ * ofte til to linjer selv der det var nok plass, og Henrik ønsket dem
+ * heller "rett ved siden av hverandre".
  *
- * RETTET 31.08.2026: hadde tidligere `lg:flex-nowrap`, som tvang alle fem
- * elementene til å stå på én linje UANSETT om de faktisk hadde plass –
- * med lengre norske labels ("Forberedelse"/"Tilberedning") og fem hele
- * elementer rakk de ikke plass i den ~520–540px brede tekstkolonnen, og
- * rant utenfor kolonnen og oppå selve bildet (rapportert av Henrik:
- * "R'en i porsjoner treffer bildet"). `flex-nowrap` fjernet igjen – raden
- * bruker nå vanlig flex-wrap, akkurat som på mobil, så den ALDRI kan
- * kollidere med bildet: står på én linje når det er plass (typisk
- * tilfelle på store skjermer), bryter ellers rolig til to linjer i
- * stedet for å flyte utenfor. whitespace-nowrap på selve
- * verdi-/label-tekstene hindrer at ETT enkelt element brekker midt i et
- * tall/ord.
+ * Løsningen nå: ikonene er tatt bort (de sto for mye av bredden per
+ * element uten å tilføre lesbarhet – ren typografi er nok), og selve
+ * elementene er dermed smale nok til at alle fem faktisk får plass på én
+ * linje i den brede xl-heroen (`xl:flex-nowrap`, KUN fra xl – der
+ * tekstkolonnen er en garantert fast 520px, så regnestykket faktisk
+ * stemmer). Under xl (dvs. lg-laget, 1024–1279px, der tekstkolonnen er
+ * fleksibel og kan bli ganske smal) beholdes vanlig flex-wrap som et
+ * sikkerhetsnett – wrapper trygt til to linjer i stedet for å risikere å
+ * kollidere med bildet igjen. Den ekstra bredden ikonene ga fra seg er
+ * brukt til litt mer luft mellom hvert element (sm:pl-6 i stedet for
+ * pl-5), som var det andre alternativet Henrik nevnte.
  */
-function MetaItem({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+function MetaItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center gap-2 sm:border-l sm:border-line sm:pl-5 sm:first:border-0 sm:first:pl-0">
-      <span className="text-ink-faint">{icon}</span>
-      <span className="flex flex-col leading-tight">
-        <span className="whitespace-nowrap font-serif text-base text-ink sm:text-lg lg:text-lg">{value}</span>
-        <span className="whitespace-nowrap text-[10px] uppercase tracking-wide text-ink-faint lg:text-[11px]">
-          {label}
-        </span>
-      </span>
+    <div className="flex flex-col leading-tight sm:border-l sm:border-line sm:pl-6 sm:first:border-0 sm:first:pl-0">
+      <span className="whitespace-nowrap font-serif text-base text-ink sm:text-lg lg:text-lg">{value}</span>
+      <span className="whitespace-nowrap text-[10px] uppercase tracking-wide text-ink-faint">{label}</span>
     </div>
   );
 }
@@ -73,18 +62,13 @@ export function RecipeMeta({
   lang?: "no" | "en";
 }) {
   const labels = META_LABELS[lang];
-  const iconClass = "h-4 w-4";
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-4 py-1 sm:gap-x-0 lg:justify-between lg:gap-x-5 lg:py-2">
-      <MetaItem icon={<ClockIcon className={iconClass} />} label={labels.prep} value={formatMinutes(prepTimeMinutes, lang)} />
-      <MetaItem
-        icon={<ClockIcon className={iconClass} />}
-        label={labels.cook}
-        value={formatMinutesRange(cookTimeMinutes, cookTimeMinutesMax, lang)}
-      />
-      <MetaItem icon={<ClockIcon className={iconClass} />} label={labels.total} value={formatMinutes(totalTimeMinutes, lang)} />
-      <MetaItem icon={<UsersIcon className={iconClass} />} label={labels.servings} value={String(servings)} />
-      <MetaItem icon={<GaugeIcon className={iconClass} />} label={labels.level} value={difficultyLabel(difficulty, lang)} />
+    <div className="flex flex-wrap items-start gap-x-6 gap-y-4 py-1 sm:gap-x-0 lg:justify-between lg:gap-x-6 lg:py-2 xl:flex-nowrap">
+      <MetaItem label={labels.prep} value={formatMinutes(prepTimeMinutes, lang)} />
+      <MetaItem label={labels.cook} value={formatMinutesRange(cookTimeMinutes, cookTimeMinutesMax, lang)} />
+      <MetaItem label={labels.total} value={formatMinutes(totalTimeMinutes, lang)} />
+      <MetaItem label={labels.servings} value={String(servings)} />
+      <MetaItem label={labels.level} value={difficultyLabel(difficulty, lang)} />
     </div>
   );
 }
