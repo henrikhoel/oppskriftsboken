@@ -697,48 +697,46 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
       {/* ============ Sekundær info – flyttet under selve oppskriften
           (spesifikasjonens punkt 4: retten/bildet/funksjonaliteten skal
           alltid komme først, "oppdages" før man ruller videre til dette).
-          Rekkefølge: Smaksprofil → Næringsinnhold → "Gjør det til en
-          kveld" (MealBuilder) → Drikke til/Passer denne → Lurer du på
-          noe. Delt av tynne skillelinjer (divide-y) i stedet for at hver
-          seksjon er sin egen heldekkende, avrundede boks – reduserer
-          "stabel av ensartede bokser"-følelsen (punkt 9) og gir én
-          sammenhengende, redaksjonell flate i stedet. Hver av
-          under-komponentene (TasteProfileDisplay/NutritionPanel/
-          MealBuilder/DrinkPairingSection/RecipeQuestionSection) er derfor
-          også lettet for sin egen kort-boks-styling, se de filene. */}
+          Rekkefølge finjustert 31.08.2026: Lurer du på noe (rett under
+          selve oppskriften – mest direkte knyttet til det man nettopp
+          leste) → Smaksprofil + Næringsinnhold (kombinert i ÉN rad side
+          om side – de tok for mye plass hver sin fulle rad) → Drikke
+          til/Passer denne → "Gjør det til en kveld" (MealBuilder) helt
+          nederst, som en større, mer fortjent avslutning. Delt av tynne
+          skillelinjer (divide-y) i stedet for at hver seksjon er sin egen
+          heldekkende, avrundede boks – reduserer "stabel av ensartede
+          bokser"-følelsen (punkt 9) og gir én sammenhengende, redaksjonell
+          flate i stedet. Hver av under-komponentene
+          (TasteProfileDisplay/NutritionPanel/MealBuilder/
+          DrinkPairingSection/RecipeQuestionSection) er derfor også lettet
+          for sin egen kort-boks-styling, se de filene. */}
       <div className="mt-16 divide-y divide-line border-t border-line sm:mt-20">
-        {/* Forhåndsgenerert i admin, ikke en live per-besøk AI-beregning –
-            se TasteProfileDisplay.tsx. Vises kun når admin faktisk har
-            generert én; ingen tom/lastende boks for oppskrifter uten. */}
-        {recipe.tasteProfile && (
-          <div className="py-10 sm:py-12">
-            <TasteProfileDisplay tasteProfile={recipe.tasteProfile} lang={lang} />
-          </div>
-        )}
-
-        {/* Forhåndsgenerert i admin, samme mønster som smaksprofilen over –
-            men ULIKT den, skjult bak en "vis"-knapp helt til noen faktisk
-            trykker (se NutritionPanel.tsx sin filheader). Vises kun når
-            admin faktisk har generert én. */}
-        {recipe.nutritionInfo && (
-          <div className="py-10 sm:py-12">
-            <NutritionPanel nutrition={recipe.nutritionInfo} lang={lang} />
-          </div>
-        )}
-
         <div className="py-10 sm:py-12">
-          <MealBuilder
-            recipe={{
-              id: recipe.id,
-              slug: recipe.slug,
+          <RecipeQuestionSection
+            recipeId={recipe.id}
+            recipeContext={{
               title: displayTitle,
               description: displayDescription,
-              servings,
-              category: recipe.category ? { name: recipe.category.name } : null,
+              ingredientGroups: displayGroups,
+              steps: finalSteps,
+              tips: finalTips,
             }}
             lang={lang}
           />
         </div>
+
+        {/* Smaksprofil + Næringsinnhold – kombinert i én rad (side om side
+            fra sm og opp, stablet på mobil) i stedet for hver sin fulle
+            rad, per ønske 31.08.2026 ("trenger ikke hver sin rad, tar for
+            mye plass"). Begge forhåndsgenerert i admin (ikke live
+            AI-kall), og vises uavhengig av hverandre – mangler den ene,
+            tar den andre bare hele radens bredde. */}
+        {(recipe.tasteProfile || recipe.nutritionInfo) && (
+          <div className="grid gap-10 py-10 sm:grid-cols-2 sm:py-12">
+            {recipe.tasteProfile && <TasteProfileDisplay tasteProfile={recipe.tasteProfile} lang={lang} />}
+            {recipe.nutritionInfo && <NutritionPanel nutrition={recipe.nutritionInfo} lang={lang} />}
+          </div>
+        )}
 
         <div className="py-10 sm:py-12">
           <DrinkPairingSection
@@ -753,15 +751,21 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
           />
         </div>
 
-        <div className="py-10 sm:py-12">
-          <RecipeQuestionSection
-            recipeId={recipe.id}
-            recipeContext={{
+        {/* Nederst, med vilje – "Gjør det til en kveld" er avslutningen på
+            siden, ikke bare enda et element i rekken. Selve
+            størrelsen/overskriften er gjort tydelig større i
+            MealBuilder.tsx; mer vertikal luft rundt her (py-14/16, mer enn
+            de andre seksjonenes py-10/12) understreker at dette er
+            finalen. */}
+        <div className="py-14 sm:py-16">
+          <MealBuilder
+            recipe={{
+              id: recipe.id,
+              slug: recipe.slug,
               title: displayTitle,
               description: displayDescription,
-              ingredientGroups: displayGroups,
-              steps: finalSteps,
-              tips: finalTips,
+              servings,
+              category: recipe.category ? { name: recipe.category.name } : null,
             }}
             lang={lang}
           />
