@@ -44,14 +44,11 @@ import { t, type Lang } from "@/lib/i18n";
  * (tidligere hver i sin egen rounded-card/border-boks – overflødig, man kan
  * uansett allerede redigere/fjerne dem herfra) er nå ÉN rolig,
  * boks-fri liste (divide-y) i venstre kolonne av et to-kolonners grid fra
- * lg og opp. Høyre kolonne samler tidslinje (MealTimelineSection) og
- * kokemodus-knappen – begge handler om NÅR/HVORDAN man lager maten.
- * Handleliste (MealShoppingListSection) flyttet SAMME dag opp til tittel-
- * raden i stedet ("handleliste knappen kan være ute høyre på siden, på
- * linje med overskriften") – en enkel, liten knapp helt øverst er en mer
- * naturlig plass for "legg i handleliste" enn nede blant
- * tidslinje/kokemodus, og gir samtidig selve tittelen noe å balansere mot
- * i bredden.
+ * lg og opp. Høyre kolonne samler tidslinje (MealTimelineSection),
+ * kokemodus-knappen og – nederst i den kolonnen – handleliste
+ * (MealShoppingListSection), i den rekkefølgen ("legg handleliste knappen
+ * under kokemodus knappen"; en kort mellomstopp oppe ved tittelen samme
+ * dag ble reversert).
  *
  * ANLEDNING fjernet HELT (samme dato, tilbakemelding: "det virker som om
  * den ikke tar standpunkt til hva man velger av anledning uansett" – valget
@@ -145,27 +142,17 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         </Link>
       )}
 
-      {/* Tittel + "Legg i handlelisten" på samme linje (31.08.2026,
-          "handleliste knappen kan være ute høyre på siden, på linje med
-          overskriften, men utenfor der") – tittelen er `flex-1` og bruker
-          dermed all bredden helt til knappen (ikke lenger en egen,
-          smalere boks nedi selve to-kolonne-gridet). Knappen faller ned
-          under tittelen på smale skjermer (flex-wrap), side om side fra
-          der det er plass. Selve overskriften er også gjort tydelig
-          større ("enda større"). */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <input
-          type="text"
-          value={session.title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent font-serif text-3xl text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl md:text-5xl"
-        />
-        {slots.length > 0 && (
-          <div id="meal-shopping-list" className="shrink-0">
-            <MealShoppingListSection slots={slots} lang={lang} />
-          </div>
-        )}
-      </div>
+      {/* Tittelen fikk selskap av handleliste-knappen på samme linje
+          31.08.2026, men flyttet TILBAKE ned under kokemodus-knappen samme
+          dag ("legg handleliste knappen under kokemodus knappen") –
+          tittelen står derfor igjen alene her, fortsatt i sin større
+          størrelse ("enda større") og fortsatt `w-full`. */}
+      <input
+        type="text"
+        value={session.title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="w-full rounded-lg border border-transparent bg-transparent font-serif text-3xl text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl md:text-5xl"
+      />
 
       {slots.length === 0 ? (
         <p className="text-sm text-ink-faint">{t(lang, "mealPage.emptyState")}</p>
@@ -180,7 +167,7 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
             {slots.map((slot) => (
               <div key={slot.id} className="flex flex-col gap-2 py-5 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                  <span className="text-sm font-semibold uppercase tracking-wide text-ink-faint">
                     {t(lang, `mealBuilder.role.${slot.role}`)}
                   </span>
                   <Badge tone={slot.source === "existing" ? "olive" : "mustard"}>
@@ -191,12 +178,12 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
                 </div>
 
                 {slot.source === "existing" ? (
-                  <Link href={`/oppskrifter/${slot.slug}`} className="font-serif text-lg text-ink hover:text-clay-dark">
+                  <Link href={`/oppskrifter/${slot.slug}`} className="font-serif text-base text-ink hover:text-clay-dark">
                     {slot.title}
                   </Link>
                 ) : (
                   <>
-                    <p className="font-serif text-lg text-ink">{slot.title}</p>
+                    <p className="font-serif text-base text-ink">{slot.title}</p>
                     {slot.description && (
                       <div>
                         <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
@@ -262,10 +249,11 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
             ))}
           </div>
 
-          {/* Tidsbruk og kokemodus hører sammen – begge handler om
-              NÅR/HVORDAN man faktisk skal lage menyen, samlet i samme
-              kolonne som rettene (31.08.2026). Handleliste-knappen bor nå
-              isteden oppe ved siden av tittelen (se over), ikke her lenger. */}
+          {/* Tidsbruk, kokemodus og handleliste hører sammen – samlet i
+              samme kolonne som rettene (31.08.2026). Handleliste-knappen lå
+              en kort stund oppe ved tittelen, men er flyttet TILBAKE hit,
+              rett under kokemodus-knappen ("legg handleliste knappen under
+              kokemodus knappen"). */}
           <div className="space-y-5">
             <div id="meal-timeline">
               <MealTimelineSection
@@ -286,6 +274,10 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
                 {t(lang, "mealCookMode.button")}
               </button>
             )}
+
+            <div id="meal-shopping-list">
+              <MealShoppingListSection slots={slots} lang={lang} />
+            </div>
           </div>
         </div>
       )}
