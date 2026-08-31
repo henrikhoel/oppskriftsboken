@@ -76,8 +76,17 @@ export default async function RecipePage({
           vises nå ubeskåret som del av den nye to-kolonners heroen inne i
           RecipeInteractive → RecipeHero, i samme sentrerte container som
           resten av siden. "Alle oppskrifter"-lenken flyttet hit, som en
-          rolig tekstlenke over heroen i stedet for å flyte oppå et bilde. */}
-      <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+          rolig tekstlenke over heroen i stedet for å flyte oppå et bilde.
+          xl:max-w-[1280px] (var kun max-w-5xl/1024px) – finjustering
+          31.08.2026: Ingredienser/Fremgangsmåte-raden (og seksjonene
+          under) kjentes smale ut sammenlignet med heroen, som allerede
+          bryter ut til akkurat denne bredden på store skjermer (se
+          RecipeHero.tsx). Samme breddenivå her gir én sammenhengende,
+          bred komposisjon i stedet for et smalt "spor" midt i en bred
+          hero. Selve stegteksten i Fremgangsmåte er likevel kappet til en
+          komfortabel lesebredde (max-w-prose i RecipeInteractive.tsx), så
+          bare selve kolonnene/panelene – ikke brødteksten – blir bredere. */}
+      <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8 xl:max-w-[1280px]">
         <Link
           href="/oppskrifter"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"

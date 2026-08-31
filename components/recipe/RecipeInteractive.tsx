@@ -616,7 +616,13 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
           <h2 id="fremgangsmate-heading" className="font-serif text-2xl text-ink">
             {t(lang, "recipeDetail.stepsHeading")}
           </h2>
-          <ol className="mt-4 space-y-6">
+          {/* max-w-prose (~65ch) – 31.08.2026: siden/kolonnene ble gjort
+              bredere (se app/oppskrifter/[slug]/page.tsx), men selve
+              stegteksten skal ikke bli ubehagelig lang å lese linje for
+              linje – whitespace til høyre for korte steg er helt fint,
+              ULIK ingredienspanelet som gjerne får bruke hele den nye,
+              bredere bredden (kortere, mer scanbar tekst der). */}
+          <ol className="mt-4 max-w-prose space-y-6">
             {finalSteps.map((step, index) => {
               // Fra "Når bør jeg starte?"-panelet over (CookingTimelinePanel)
               // – kun satt når brukeren faktisk har regnet ut en tidsplan;
@@ -664,7 +670,7 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
               "advarsel"-UI-element. Samme tre felt, samme data, kun lettere
               visuelt uttrykk. */}
           {(finalNotes || finalTips || finalWarnings) && (
-            <div className="mt-10 space-y-6 border-t border-line pt-8">
+            <div className="mt-10 max-w-prose space-y-6 border-t border-line pt-8">
               {finalNotes && (
                 <div className="border-l-2 border-line-strong pl-4">
                   <h3 className="font-serif text-base text-ink-soft">{t(lang, "recipeDetail.notes")}</h3>
