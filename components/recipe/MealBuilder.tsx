@@ -202,16 +202,21 @@ export function MealBuilder({
     // Flyttet HELT NEDERST og gitt tydelig større overskrift/plass
     // 31.08.2026 ("gjør det til en kveld bør komme nederst og fortjener
     // større overskrift og plass") – dette er nå sidens avslutning, ikke
-    // bare enda et element i rekken av sekundærseksjoner. Overskriften er
-    // derfor gjort like stor som selve "Ingredienser"/"Fremgangsmåte" (de
-    // andre store seksjonsoverskriftene på siden), i stedet for den
-    // mindre h3-størrelsen resten av sekundærinfo-seksjonene bruker.
+    // bare enda et element i rekken av sekundærseksjoner.
+    //
+    // "Gjør det til en kveld" (den gule eyebrowen) er selve
+    // hovedoverskriften nå – gjort tydelig STØRRE enn "Bygg en meny rundt
+    // denne retten" (som nå er en mindre underoverskrift under), per
+    // ønske. Hele denne header-blokken er dessuten midtstilt – en bevisst
+    // avvikende, "avslutning på oppslaget"-følelse i stedet for venstre-
+    // stilt som resten av seksjonene (selve byggeskjemaet under er IKKE
+    // midtstilt, kun eyebrow/overskrift/ingress).
     <div>
-      <p className="font-sans text-xs font-semibold uppercase tracking-[0.25em] text-clay">
-        {t(lang, "mealBuilder.eyebrow")}
-      </p>
-      <h3 className="mt-2 font-serif text-2xl text-ink sm:text-3xl">{t(lang, "mealBuilder.heading")}</h3>
-      <p className="mt-2 max-w-prose text-base text-ink-faint">{t(lang, "mealBuilder.intro")}</p>
+      <div className="text-center">
+        <p className="font-serif text-3xl text-clay sm:text-4xl">{t(lang, "mealBuilder.eyebrow")}</p>
+        <h3 className="mt-2 font-serif text-lg text-ink-soft sm:text-xl">{t(lang, "mealBuilder.heading")}</h3>
+        <p className="mx-auto mt-2 max-w-prose text-base text-ink-faint">{t(lang, "mealBuilder.intro")}</p>
+      </div>
 
       {!hasPlan && (
         <div className="mt-4 space-y-3">
