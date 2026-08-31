@@ -10,13 +10,7 @@ import {
   type MealPlanCourse,
 } from "@/lib/actions/kitchen-intelligence";
 import { generateMealId, useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
-import {
-  ALL_MEAL_COURSE_ROLES,
-  ALL_MEAL_OCCASIONS,
-  MEAL_OCCASION_LABELS,
-  type MealCourseRole,
-  type MealOccasion,
-} from "@/lib/kitchen-intelligence";
+import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { t, type Lang } from "@/lib/i18n";
@@ -56,13 +50,7 @@ export function MealBuilder({
 }) {
   const router = useRouter();
   const [mealId] = useState(() => generateMealId());
-  const {
-    addExisting,
-    addSuggested,
-    setTitle,
-    setAnchorRecipeId,
-    setOccasion: persistOccasion,
-  } = useMealSession(mealId, recipe.title);
+  const { addExisting, addSuggested, setTitle, setAnchorRecipeId } = useMealSession(mealId, recipe.title);
   const { addToIndex } = useMealSessionIndex();
 
   const [anchorRole, setAnchorRole] = useState<MealCourseRole | null>(null);
@@ -74,12 +62,11 @@ export function MealBuilder({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // ANLEDNING (5.12) / TILGJENGELIG TID (5.13) – begge MYKE, valgfrie hint
-  // til generateMealPlan (se filheaderen der for cache-nøkkel-detaljer).
-  // Valgt FØR selve genereringen (kan ikke endres etter, samme som
-  // ankerretten selv) – overstyrer aldri brukerens senere valg i selve
-  // menybyggingen, kun hva AI-en FORESLÅR i utgangspunktet.
-  const [occasion, setOccasionChoice] = useState<MealOccasion | null>(null);
+  // ANLEDNING fjernet HELT (31.08.2026, tilbakemelding: "for den har ingen
+  // effekt" – selv som mykt AI-hint ga den ikke et merkbart utslag brukeren
+  // faktisk la merke til, og ga da mest et falskt inntrykk av kontroll).
+  // TILGJENGELIG TID (5.13) er beholdt – rent tidsbudsjett er en konkret,
+  // forståelig begrensning på en helt annen måte enn en stemningsetikett.
   const [availableMinutesInput, setAvailableMinutesInput] = useState("");
 
   const hasPlan = anchorRole !== null;
@@ -93,7 +80,7 @@ export function MealBuilder({
         recipe.id,
         { title: recipe.title, description: recipe.description, categoryName: recipe.category?.name ?? null },
         lang,
-        { occasion, availableMinutes: Number.isFinite(availableMinutes) ? availableMinutes : null },
+        { availableMinutes: Number.isFinite(availableMinutes) ? availableMinutes : null },
       );
       setAnchorRole(plan.anchorRole);
       setMenuTitle(plan.menuTitle);
@@ -151,8 +138,8 @@ export function MealBuilder({
       // etter bruker-tilbakemelding: "bygg en meny"-lagring fungerte ikke på
       // mobil – landet på "Fant ikke menyen" rett etter lagring). Uten dette
       // batcher React 18/19 automatisk de mange separate setState-kallene
-      // under (setTitle/persistOccasion/setAnchorRecipeId/addExisting ×
-      // N/addToIndex) sammen med router.push() sin egen navigasjons-
+      // under (setTitle/setAnchorRecipeId/addExisting × N/addToIndex)
+      // sammen med router.push() sin egen navigasjons-
       // tilstandsoppdatering – ALLE kalt synkront i samme hendelse, uten et
       // eneste "await" innimellom. React garanterer IKKE at de tidligere
       // batchede oppdateringene (og dermed useLocalStorage sine
@@ -169,7 +156,6 @@ export function MealBuilder({
       // enhet/ytelse.
       flushSync(() => {
         setTitle(menuTitle || recipe.title);
-        persistOccasion(occasion);
         setAnchorRecipeId(recipe.id);
         addExisting(anchorRole, { id: recipe.id, slug: recipe.slug, title: recipe.title }, anchorServings);
         for (const { course, servings } of courses) {
@@ -217,43 +203,17 @@ export function MealBuilder({
     // sentrert på siden.
     <div className="flex flex-col items-center text-center">
       <div>
-        <p className="font-serif text-3xl text-clay sm:text-4xl">{t(lang, "mealBuilder.eyebrow")}</p>
+        <p className="font-serif text-4xl text-clay sm:text-5xl">{t(lang, "mealBuilder.eyebrow")}</p>
         <h3 className="mt-2 font-serif text-base text-ink-soft sm:text-lg">{t(lang, "mealBuilder.heading")}</h3>
         <p className="mx-auto mt-2 max-w-prose text-sm text-ink-faint sm:text-base">{t(lang, "mealBuilder.intro")}</p>
       </div>
 
-      {/* mt-8/space-y-5 (var mt-4/space-y-3) – mer luft mellom ingressen
-          og "Anledning"-blokken, og mellom elementene under den, ønsket
-          31.08.2026. */}
+      {/* mt-8/space-y-5 (var mt-4/space-y-3) – mer luft mellom ingressen og
+          det som følger, ønsket 31.08.2026. Anledning-velgeren som sto her
+          er fjernet samme dato ("for den har ingen effekt") – kun
+          tilgjengelig-tid-input og selve bygg-knappen står igjen. */}
       {!hasPlan && (
         <div className="mt-8 flex w-full flex-col items-center space-y-5">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-              {t(lang, "mealBuilder.occasionLabel")}
-            </p>
-            <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
-              {ALL_MEAL_OCCASIONS.map((option) => {
-                const active = occasion === option;
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setOccasionChoice(active ? null : option)}
-                    aria-pressed={active}
-                    className={clsx(
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                      active
-                        ? "border-clay bg-clay text-cream"
-                        : "border-line-strong bg-paper text-ink-soft hover:bg-cream-dark",
-                    )}
-                  >
-                    {lang === "en" ? MEAL_OCCASION_LABELS[option].en : MEAL_OCCASION_LABELS[option].no}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           <label className="flex items-center gap-2 text-xs text-ink-faint">
             {t(lang, "mealBuilder.availableMinutesLabel")}
             <input

@@ -22,6 +22,14 @@ import { t, type Lang } from "@/lib/i18n";
  * state) er dette bevisst PERSISTERT, siden et helt måltids ønskede
  * spisetidspunkt er noe man rimelig vil at skal huskes ved neste besøk på
  * samme meny.
+ *
+ * Gjort mye mer kompakt 31.08.2026 (tilbakemelding: "tidslinje må ta mye
+ * mindre plass. dropp boksene") – ingen egen rounded-card/border-boks eller
+ * egen h3-overskrift/beskrivelse-avsnitt lenger, kun en liten, diskret
+ * etikett + klokkeslett-input + knapp på ÉN linje. Selve
+ * tidslinje-RESULTATET (når man faktisk trykker "Vis tidslinje") er
+ * uendret – det er kun "hvile"-tilstanden før man har trykket som er
+ * strammet inn.
  */
 export function MealTimelineSection({
   slots,
@@ -41,15 +49,7 @@ export function MealTimelineSection({
   const existingSlots = slots.filter((s): s is ExistingMealCourseSlot => s.source === "existing");
 
   if (existingSlots.length === 0) {
-    return (
-      <div className="rounded-card border border-line bg-cream-dark/60 p-5 sm:p-6">
-        <h3 className="flex items-center gap-2 font-serif text-lg text-ink">
-          <ClockIcon className="h-5 w-5 text-clay" />
-          {t(lang, "mealTimeline.heading")}
-        </h3>
-        <p className="mt-1 text-sm text-ink-faint">{t(lang, "mealTimeline.noExisting")}</p>
-      </div>
-    );
+    return <p className="text-xs text-ink-faint">{t(lang, "mealTimeline.noExisting")}</p>;
   }
 
   async function handleCompute() {
@@ -93,29 +93,24 @@ export function MealTimelineSection({
   }
 
   return (
-    <div className="rounded-card border border-line bg-cream-dark/60 p-5 sm:p-6">
-      <h3 className="flex items-center gap-2 font-serif text-lg text-ink">
-        <ClockIcon className="h-5 w-5 text-clay" />
-        {t(lang, "mealTimeline.heading")}
-      </h3>
-      <p className="mt-1 text-sm text-ink-faint">{t(lang, "mealTimeline.description")}</p>
-
-      <div className="mt-3 flex items-end gap-2">
-        <label className="flex-1">
-          <span className="mb-1 block text-xs text-ink-faint">{t(lang, "mealTimeline.readyLabel")}</span>
-          <input
-            type="time"
-            value={readyAt}
-            onChange={(e) => onReadyAtChange(e.target.value)}
-            // text-base på mobil (unngår iOS-innzooming ved fokus).
-            className="w-full rounded-lg border border-line bg-cream px-3 py-2 text-base text-ink sm:text-sm"
-          />
-        </label>
+    <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-ink-faint">
+          <ClockIcon className="h-3.5 w-3.5 text-clay" />
+          {t(lang, "mealTimeline.readyLabel")}
+        </span>
+        <input
+          type="time"
+          value={readyAt}
+          onChange={(e) => onReadyAtChange(e.target.value)}
+          // text-base på mobil (unngår iOS-innzooming ved fokus).
+          className="rounded-lg border border-line bg-cream px-2.5 py-1.5 text-base text-ink sm:text-sm"
+        />
         <button
           type="button"
           onClick={handleCompute}
           disabled={loading}
-          className="shrink-0 rounded-full bg-clay px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
+          className="shrink-0 rounded-full bg-clay px-3.5 py-1.5 text-xs font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
         >
           {loading ? t(lang, "mealTimeline.loading") : t(lang, "mealTimeline.button")}
         </button>
@@ -124,7 +119,7 @@ export function MealTimelineSection({
       {error && <p className="mt-2 text-xs text-clay-dark">{error}</p>}
 
       {timeline && (
-        <div className="mt-4 space-y-2 border-t border-line pt-3">
+        <div className="mt-3 space-y-2 border-t border-line pt-3">
           <ul className="space-y-2">
             {timeline.dishes.map((dish) => {
               const startClock = dish.timeline.prepStartClockTime ?? dish.timeline.steps[0]?.startClockTime ?? null;

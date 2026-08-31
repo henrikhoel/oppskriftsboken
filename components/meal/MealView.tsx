@@ -13,7 +13,7 @@ import { MealTimelineSection } from "@/components/meal/MealTimelineSection";
 import { EveningExperience } from "@/components/meal/EveningExperience";
 import { MultiCookMode } from "@/components/meal/MultiCookMode";
 import { Badge } from "@/components/ui/Badge";
-import { PlayIcon, SparklesIcon } from "@/components/ui/icons";
+import { PlayIcon } from "@/components/ui/icons";
 import { siteConfig } from "@/lib/config";
 import { t, type Lang } from "@/lib/i18n";
 
@@ -248,7 +248,7 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
               samme kolonne (31.08.2026, "på andre siden kan man ha
               tidsbruk, handleliste og start kokemodus") i stedet for spredt
               nedover hele siden. */}
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div id="meal-timeline">
               <MealTimelineSection
                 slots={slots}
@@ -276,21 +276,22 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         </div>
       )}
 
-      {/* "Gjør det til en kveld" – flyttet 31.08.2026 fra en beskrivende
-          kort-boks midt på siden til ÉN stor, fylt knapp helt nederst, under
-          alt det andre ("det er nettopp det man forventer når man har
-          trykket inn der" – den tydelige avslutnings-handlingen på siden). */}
+      {/* "Gjør det til en kveld" – flyttet 31.08.2026 til ÉN stor knapp helt
+          nederst, under alt det andre ("det er nettopp det man forventer når
+          man har trykket inn der"). Bevisst IKKE en fylt gul knapp som
+          kokemodus-knappen over ("teksten kan være gul, knappen må være
+          elegant") – kun gull TEKST på en rolig, tom/omrandet flate, uten
+          stjerne-ikon. */}
       {slots.length > 0 && (
         <button
           type="button"
           onClick={() => setEveningOpen(true)}
-          className="flex w-full flex-col items-center gap-1.5 rounded-full bg-clay px-6 py-4 text-center transition-colors hover:bg-clay-dark sm:py-5"
+          className="w-full rounded-card border border-line-strong bg-transparent px-6 py-5 text-center transition-colors hover:border-clay hover:bg-cream-dark/40 sm:py-6"
         >
-          <span className="flex items-center gap-2 text-base font-medium text-cream sm:text-lg">
-            <SparklesIcon className="h-4 w-4" />
-            {t(lang, "eveningExperience.entryHeading")}
+          <span className="font-serif text-xl text-clay sm:text-2xl">{t(lang, "eveningExperience.entryHeading")}</span>
+          <span className="mt-1.5 block text-xs text-ink-faint sm:text-sm">
+            {t(lang, "eveningExperience.entryDescription")}
           </span>
-          <span className="text-xs text-cream/80 sm:text-sm">{t(lang, "eveningExperience.entryDescription")}</span>
         </button>
       )}
 

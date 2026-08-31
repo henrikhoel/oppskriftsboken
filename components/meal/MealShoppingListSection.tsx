@@ -15,6 +15,12 @@ import { t, type Lang } from "@/lib/i18n";
  * lib/kitchen-intelligence/types.ts). "Suggested"-retter (AI-forslag som
  * ikke finnes som ekte oppskrift ennå) har ingen ingredienser å hente – de
  * telles og nevnes tydelig i stedet for å bare tie stille om dem.
+ *
+ * Gjort mye mer kompakt 31.08.2026 (tilbakemelding: "handleliste trenger
+ * kun være en liten knapp. dropp boksene") – ingen egen
+ * rounded-card/border-boks eller egen h3-overskrift/beskrivelse-avsnitt
+ * lenger, kun selve knappen (heading/description sier ikke noe knappteksten
+ * "Legg hele menyen i handlelisten" ikke allerede sier).
  */
 export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot[]; lang: Lang }) {
   const { addFromRecipe } = useShoppingList();
@@ -26,12 +32,7 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
   const suggestedCount = slots.length - existingSlots.length;
 
   if (existingSlots.length === 0) {
-    return (
-      <div className="rounded-card border border-line bg-cream-dark/60 p-5 sm:p-6">
-        <h3 className="font-serif text-lg text-ink">{t(lang, "mealShopping.heading")}</h3>
-        <p className="mt-1 text-sm text-ink-faint">{t(lang, "mealShopping.noExisting")}</p>
-      </div>
-    );
+    return <p className="text-xs text-ink-faint">{t(lang, "mealShopping.noExisting")}</p>;
   }
 
   async function handleAdd() {
@@ -66,34 +67,29 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
   }
 
   return (
-    <div className="rounded-card border border-line bg-cream-dark/60 p-5 sm:p-6">
-      <h3 className="font-serif text-lg text-ink">{t(lang, "mealShopping.heading")}</h3>
-      <p className="mt-1 text-sm text-ink-faint">{t(lang, "mealShopping.description")}</p>
-
-      {!result && (
+    <div>
+      {!result ? (
         <button
           type="button"
           onClick={handleAdd}
           disabled={loading}
-          className="mt-3 rounded-xl bg-clay px-4 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
+          className="rounded-full border border-line-strong bg-paper px-4 py-2 text-xs font-medium text-ink-soft transition-colors hover:bg-cream-dark disabled:cursor-not-allowed"
         >
           {loading ? t(lang, "mealShopping.loading") : t(lang, "mealShopping.button")}
         </button>
-      )}
-
-      {error && <p className="mt-3 text-sm text-clay-dark">{error}</p>}
-
-      {result && (
-        <div className="mt-3 rounded-xl border border-olive-light bg-olive-light/30 px-4 py-3">
-          <p className="text-sm text-olive-dark">{t(lang, "mealShopping.done")}</p>
-          <Link href="/handleliste" className="mt-1 inline-block text-xs font-medium text-clay hover:text-clay-dark">
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-olive-dark">{t(lang, "mealShopping.done")}</span>
+          <Link href="/handleliste" className="font-medium text-clay hover:text-clay-dark">
             {t(lang, "mealShopping.viewList")} →
           </Link>
         </div>
       )}
 
+      {error && <p className="mt-2 text-xs text-clay-dark">{error}</p>}
+
       {suggestedCount > 0 && (
-        <p className="mt-2 text-xs italic text-ink-faint">
+        <p className="mt-1.5 text-[11px] italic text-ink-faint">
           {t(lang, "mealShopping.skippedSuggested", { count: suggestedCount })}
         </p>
       )}
