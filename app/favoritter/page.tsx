@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserFast } from "@/lib/auth";
 import { getAdminFavoriteRecipes, getPublishedRecipeSummaries } from "@/lib/data/recipes";
 import { getLang } from "@/lib/i18n/lang";
 import { t, type Lang } from "@/lib/i18n";
@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function FavoritesPage() {
-  const [user, lang] = await Promise.all([getCurrentUser(), getLang()]);
+  const [user, lang] = await Promise.all([getCurrentUserFast(), getLang()]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">

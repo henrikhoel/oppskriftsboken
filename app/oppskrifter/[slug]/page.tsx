@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRecipeBySlug, getAllSlugs } from "@/lib/data/recipes";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserFast } from "@/lib/auth";
 import { siteConfig } from "@/lib/config";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
@@ -71,7 +71,7 @@ export default async function RecipePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [recipe, user, lang] = await Promise.all([getRecipeBySlug(slug), getCurrentUser(), getLang()]);
+  const [recipe, user, lang] = await Promise.all([getRecipeBySlug(slug), getCurrentUserFast(), getLang()]);
 
   if (!recipe) notFound();
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { siteConfig } from "@/lib/config";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 import { HeaderSearchSlot } from "@/components/layout/HeaderSearchSlot";
@@ -27,12 +27,15 @@ import {
    oppskrift" (gjør det enklere å legge inn oppskrifter fortløpende). Samme
    admin-gatet mønster som isAdmin ellers i appen (se f.eks.
    app/oppskrifter/[slug]/page.tsx) – Header er allerede en async
-   server-komponent, så getCurrentUser() sjekkes her på serveren og "+"
-   finnes rett og slett ikke i HTML-en som sendes til andre besøkende (ikke
-   bare skjult med CSS). */
+   server-komponent, så brukeren sjekkes her på serveren (se
+   getCurrentUserFast under) og "+" finnes rett og slett ikke i HTML-en som
+   sendes til andre besøkende (ikke bare skjult med CSS). */
 export async function Header() {
   const lang = await getLang();
-  const user = await getCurrentUser();
+  // getCurrentUserFast (ikke getCurrentUser) – Header rendres på HVER eneste
+  // side (via app/layout.tsx), og "+"-snarveien under er rent kosmetisk.
+  // Se filheaderen til getCurrentUserFast i lib/auth.ts.
+  const user = await getCurrentUserFast();
   const isAdmin = Boolean(user?.isAdmin);
 
   return (

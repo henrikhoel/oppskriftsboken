@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PantryMatchView } from "@/components/pantry/PantryMatchView";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 
@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * lib/kitchen-intelligence/pantry-match.ts for selve gjennomføringen.
  */
 export default async function PantryPage() {
-  const [lang, user] = await Promise.all([getLang(), getCurrentUser()]);
+  const [lang, user] = await Promise.all([getLang(), getCurrentUserFast()]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">

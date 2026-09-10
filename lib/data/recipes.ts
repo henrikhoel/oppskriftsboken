@@ -98,6 +98,16 @@ export async function getRecipesByCategory(categorySlug: string): Promise<Recipe
  * Henter én oppskrift på slug. `includeUnpublished` brukes kun fra admin
  * (forhåndsvisning av utkast) – offentlige sider skal alltid la denne stå
  * som false.
+ *
+ * Bruker den cookie-frie klienten (createStaticClient) for det vanlige,
+ * offentlige tilfellet (10.09.2026, "treig navigasjon"-tilbakemelding) –
+ * RLS-policyen "recipes_select_published_or_admin" (se
+ * supabase/migrations/0001_init.sql) gir enhver klient, innlogget eller
+ * ikke, leserett på publiserte oppskrifter, så ingen brukersesjon trengs
+ * her. Samme resonnement som getAllCategories i lib/data/categories.ts.
+ * `includeUnpublished: true` (kun admin-forhåndsvisning av utkast) trenger
+ * derimot fortsatt den cookie-baserte klienten, siden RLS der stoler på
+ * `public.is_admin()`, som krever en ekte brukersesjon.
  */
 export async function getRecipeBySlug(
   slug: string,
@@ -110,7 +120,7 @@ export async function getRecipeBySlug(
     return recipe;
   }
 
-  const supabase = await createClient();
+  const supabase = includeUnpublished ? await createClient() : createStaticClient();
   const { data, error } = await supabase
     .from("recipes")
     .select(RECIPE_SELECT)

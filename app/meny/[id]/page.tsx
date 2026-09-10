@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { MealView } from "@/components/meal/MealView";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 
@@ -22,7 +22,7 @@ export default async function MealPage({ params }: { params: Promise<{ id: strin
   // Kun for "opprett oppskrift fra AI-forslag"-knappen på foreslåtte retter
   // (se MealView.tsx) – admin-gatet på server-siden her (samme mønster som
   // isAdmin i app/oppskrifter/[slug]/page.tsx), IKKE bare skjult med CSS.
-  const user = await getCurrentUser();
+  const user = await getCurrentUserFast();
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">

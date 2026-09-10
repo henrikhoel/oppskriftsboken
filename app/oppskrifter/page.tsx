@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getSearchableRecipes } from "@/lib/data/recipes";
 import { getAllCategories } from "@/lib/data/categories";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 import { BrowseRecipesClient } from "@/components/search/BrowseRecipesClient";
@@ -21,7 +21,7 @@ export default async function RecipesPage() {
   const [recipes, categories, user, lang] = await Promise.all([
     getSearchableRecipes(),
     getAllCategories(),
-    getCurrentUser(),
+    getCurrentUserFast(),
     getLang(),
   ]);
 
