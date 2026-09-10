@@ -33,7 +33,7 @@ const DICT = {
   // koblet til noe ekte enda – se components/layout/AppDownloadBanner.tsx.
   "appBanner.text": { no: "Snart som app", en: "Coming soon as an app" },
   "appBanner.scanHint": { no: "Skann for å laste ned", en: "Scan to download" },
-  "appBanner.mobileCta": { no: "Last ned appen", en: "Get the app" },
+  "appBanner.mobileCta": { no: "Snart som app", en: "Coming soon as an app" },
 
   "footer.allRecipes": { no: "Alle oppskrifter", en: "All recipes" },
   "footer.favorites": { no: "Favoritter", en: "Favorites" },
