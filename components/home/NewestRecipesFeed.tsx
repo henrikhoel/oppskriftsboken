@@ -222,11 +222,14 @@ function OffsetBeat({
  * landskap) – IKKE et jevnt to-kolonners grid. `reverse` speiler hvilken
  * side som får mest plass, slik at ikke alle par-oppslag ser like ut.
  *
- * Den brede col-span-7-kolonnen har landskapsbilde (4/3 el. 16/10) og blir
- * derfor alltid lavere enn den smale col-span-5-kolonnen med portrettbilde
- * (3/4) – det gir et bevisst tomrom under bildeteksten i den brede
- * kolonnen. `filler` (kun brukt av siste "beat", se NewestRecipesFeed) fyller
- * akkurat det tomrommet i stedet for å stå som et eget element under raden. */
+ * Hadde tidligere en `filler`-prop som lot avslutningssitatet fylle
+ * tomrommet under den brede col-span-7-kolonnen (som alltid blir lavere enn
+ * den smale col-span-5-kolonnen med portrettbilde) når dette var det SISTE
+ * "beat"-et. Fjernet 11.09.2026 – siden en ny "Bla gjennom alle
+ * oppskrifter"-knapp nå ALLTID skal stå rett under siste rett og over
+ * sitatet (ønsket av Henrik), holder det ikke lenger å gjemme sitatet inni
+ * selve raden; se NewestRecipesFeed sin egen bunnseksjon for hvor
+ * knapp+sitat nå faktisk bor. */
 function PairedBeat({
   a,
   b,
@@ -234,7 +237,6 @@ function PairedBeat({
   numberB,
   lang,
   reverse,
-  filler,
 }: {
   a: RecipeSummary;
   b: RecipeSummary;
@@ -242,7 +244,6 @@ function PairedBeat({
   numberB: string;
   lang: Lang;
   reverse: boolean;
-  filler?: ReactNode;
 }) {
   return (
     <div className="grid grid-cols-1 gap-10 sm:grid-cols-12 sm:gap-8 lg:gap-12">
@@ -253,7 +254,6 @@ function PairedBeat({
           lang={lang}
           aspect={reverse ? "aspect-[3/4]" : "aspect-[4/3] sm:aspect-[16/10]"}
         />
-        {!reverse && filler && <div className="hidden flex-1 sm:flex sm:items-end sm:pt-8">{filler}</div>}
       </div>
       <div className={`flex flex-col ${reverse ? "sm:col-span-7" : "sm:col-span-5"}`}>
         <PairedItem
@@ -262,7 +262,6 @@ function PairedBeat({
           lang={lang}
           aspect={reverse ? "aspect-[4/3] sm:aspect-[16/10]" : "aspect-[3/4]"}
         />
-        {reverse && filler && <div className="hidden flex-1 sm:flex sm:items-end sm:pt-8">{filler}</div>}
       </div>
     </div>
   );
@@ -373,7 +372,7 @@ function buildBeats(recipes: RecipeSummary[]): Beat[] {
   return beats;
 }
 
-function BeatBlock({ beat, lang, filler }: { beat: Beat; lang: Lang; filler?: ReactNode }) {
+function BeatBlock({ beat, lang }: { beat: Beat; lang: Lang }) {
   if (beat.kind === "feature") {
     return <FeatureBeat recipe={beat.recipe} number={beat.number} lang={lang} />;
   }
@@ -398,16 +397,16 @@ function BeatBlock({ beat, lang, filler }: { beat: Beat; lang: Lang; filler?: Re
       numberB={beat.numberB}
       lang={lang}
       reverse={beat.reverse}
-      filler={filler}
     />
   );
 }
 
-/** Avsluttende sitat – fyller det tomrommet som oppstår under den korteste
- * kolonnen i siste par-oppslag (se `filler` på PairedBeat), i stedet for et
- * rent bakgrunnsbilde (vurdert og forkastet, se samtale). Et ekte, kreditert
- * sitat. Sitatet/attribusjonen er bevisst alltid på fransk (matcher
- * "CONVITE"-navnet); kun den lille oversettelseslinjen bytter språk med
+/** Avsluttende sitat, nederst i seksjonen (se NewestRecipesFeed sin egen
+ * bunnseksjon for plasseringen relativt til den nye "Bla gjennom alle
+ * oppskrifter"-knappen). Et ekte, kreditert sitat, ikke et rent
+ * bakgrunnsbilde (vurdert og forkastet, se samtale). Sitatet/attribusjonen
+ * er bevisst alltid på fransk (matcher "CONVITE"-navnet); kun den lille
+ * oversettelseslinjen bytter språk med
  * resten av siden. */
 function ClosingQuote({ lang }: { lang: Lang }) {
   return (
@@ -423,18 +422,25 @@ function ClosingQuote({ lang }: { lang: Lang }) {
   );
 }
 
-export function NewestRecipesFeed({ recipes, lang }: { recipes: RecipeSummary[]; lang: Lang }) {
+export function NewestRecipesFeed({
+  recipes,
+  lang,
+  bottomAction,
+}: {
+  recipes: RecipeSummary[];
+  lang: Lang;
+  /** "Bla gjennom alle oppskrifter"-knappen (app/page.tsx), plassert her
+   * (IKKE etter hele denne komponenten fra kallestedet) – Henrik, 11.09.2026:
+   * "den må komme over den quoten … rett under siste rett". Rendres derfor
+   * alltid rett under selve beat-rutenettet og FØR ClosingQuote under, som
+   * nå alltid er ett enkelt, avsluttende element (se fjernet `filler`-triks
+   * i PairedBeat/BeatBlock sine filheadere). Valgfri kun for at komponenten
+   * fortsatt skal kunne brukes helt uten knapp om det trengs et annet sted
+   * en gang. */
+  bottomAction?: ReactNode;
+}) {
   if (recipes.length === 0) return null;
   const beats = buildBeats(recipes);
-
-  // Sitatet skal bo i tomrommet som naturlig oppstår under den korteste
-  // kolonnen i siste par-oppslag (se PairedBeat/ClosingQuote) – IKKE som et
-  // eget element etter hele seksjonen. Det forutsetter at siste "beat"
-  // faktisk er et par; er den ikke det (avhenger av antall oppskrifter),
-  // faller vi tilbake til å vise sitatet under hele seksjonen som før.
-  const lastBeat = beats[beats.length - 1];
-  const lastBeatIsPaired = lastBeat?.kind === "paired";
-  const quote = <ClosingQuote lang={lang} />;
 
   return (
     <>
@@ -457,25 +463,22 @@ export function NewestRecipesFeed({ recipes, lang }: { recipes: RecipeSummary[];
       {/* Generøs vertikal rytme mellom hvert "oppslag" – tomrommet ER
           designet, ikke fravær av det. */}
       <div className="space-y-20 sm:space-y-28 lg:space-y-36">
-        {beats.map((beat, i) => (
+        {beats.map((beat) => (
           <BeatBlock
             key={beat.kind === "paired" ? `${beat.a.id}-${beat.b.id}` : beat.recipe.id}
             beat={beat}
             lang={lang}
-            filler={lastBeatIsPaired && i === beats.length - 1 ? quote : undefined}
           />
         ))}
       </div>
 
-      {/* Fallback: hvis siste "beat" ikke er et par-oppslag, er det ikke noe
-          tomrom å plassere sitatet inni – da vises det under hele seksjonen,
-          på alle skjermbredder. */}
-      {!lastBeatIsPaired && <div className="mt-20 sm:mt-28 lg:mt-36">{quote}</div>}
+      {/* Knappen rett under siste rett, sitatet under der igjen – i den
+          rekkefølgen, se bottomAction-kommentaren over. */}
+      {bottomAction && <div className="mt-16 flex justify-center sm:mt-20">{bottomAction}</div>}
 
-      {/* På mobil er par-raden alltid full bredde/stablet (ingen sm:grid-cols-12
-          ennå), så det finnes ikke noe tomrom å legge sitatet inni der – filleren
-          over er bevisst skjult under sm. Vis det da i stedet helt nederst. */}
-      {lastBeatIsPaired && <div className="mt-56 sm:hidden">{quote}</div>}
+      <div className={bottomAction ? "mt-14 sm:mt-16" : "mt-20 sm:mt-28 lg:mt-36"}>
+        <ClosingQuote lang={lang} />
+      </div>
     </>
   );
 }

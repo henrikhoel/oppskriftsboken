@@ -215,26 +215,28 @@ export default async function HomePage() {
         {/* Enkel, funksjonell tilgang til alt innholdet – siden skal
             inspirere FØRST (seksjonene over), men fortsatt gi rask, ryddig
             tilgang til hele katalogen (søk/filter finnes på /oppskrifter). */}
-        <div className="mx-auto max-w-7xl space-y-16 px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           {newestForGrid.length > 0 && (
             <section aria-labelledby="nyeste">
-              <NewestRecipesFeed recipes={newestForGrid} lang={lang} />
+              {/* "Bla gjennom alle oppskrifter"-knappen sendes inn som
+                  bottomAction (11.09.2026, ønsket av Henrik – "den må komme
+                  over den quoten … rett under siste rett") – se
+                  NewestRecipesFeed.tsx sin egen bottomAction-kommentar for
+                  NØYAKTIG hvorfor knappen må rendres INNI den komponenten og
+                  ikke bare etter den herfra. Samme tekst (home.browseAll)
+                  som heroens primærknapp øverst på siden, gjenbrukt i stedet
+                  for en ny, nesten identisk tekst. */}
+              <NewestRecipesFeed
+                recipes={newestForGrid}
+                lang={lang}
+                bottomAction={
+                  <Button href="/oppskrifter" variant="primary" size="md">
+                    {t(lang, "home.browseAll")}
+                  </Button>
+                }
+              />
             </section>
           )}
-
-          {/* Rolig avslutning helt nederst på siden (11.09.2026, ønsket av
-              Henrik – "når man har scrollet helt ned … under alle nyeste
-              rettene") – samme knappetekst (home.browseAll) som heroens
-              primærknapp øverst, gjenbrukt her i stedet for en ny, nesten
-              identisk tekst. Sentrert, egen liten seksjon – ikke klistret
-              rett på "Nyeste oppskrifter" sin egen "Se alle →"-lenke i
-              toppen av den seksjonen (NewestRecipesFeed.tsx), som fortsatt
-              er uendret. */}
-          <div className="flex justify-center pt-4">
-            <Button href="/oppskrifter" variant="primary" size="md">
-              {t(lang, "home.browseAll")}
-            </Button>
-          </div>
         </div>
       </div>
     </div>
