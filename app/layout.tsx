@@ -47,13 +47,24 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: siteConfig.name,
       title: siteConfig.name,
       description,
-      images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: siteConfig.name }],
+      // /og-icon.png (den avrundede gull-"C"-logoen, samme fil som
+      // app/icon.png) listet FØRST – appen/chatten din (Snapchat m.fl.) som
+      // kun viser en liten kvadratisk boks ved siden av lenken plukker
+      // normalt det første bildet i listen, og en 1200x630-liggende
+      // bilde-crop midt i en kvadratisk boks kan se rart ut. Den brede,
+      // merkevare-kortet (/og-image.jpg) står fortsatt som nummer to for
+      // apper som viser et fullt, utfoldet forhåndsvisningskort (iMessage,
+      // Slack, Facebook, LinkedIn m.fl.).
+      images: [
+        { url: "/og-icon.png", width: 512, height: 512, alt: siteConfig.name },
+        { url: "/og-image.jpg", width: 1200, height: 630, alt: siteConfig.name },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: siteConfig.name,
       description,
-      images: ["/og-image.jpg"],
+      images: ["/og-icon.png", "/og-image.jpg"],
     },
     icons: {
       icon: "/icon.png",

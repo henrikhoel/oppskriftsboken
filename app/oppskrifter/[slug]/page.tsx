@@ -31,22 +31,36 @@ export async function generateMetadata({
   const title = localizedTitle(recipe, lang);
   const description = localizedDescription(recipe, lang);
 
+  // Egen openGraph/twitter her ERSTATTER (ikke fletter med) root layout.tsx
+  // sin – siteName og et fallback-bilde må derfor settes eksplisitt her også,
+  // ellers forsvinner de helt for akkurat oppskriftssider (oppdaget
+  // 10.09.2026 via opengraph.xyz sin "Site name is missing"-advarsel).
+  // Selve rettens eget bilde (recipe.heroImageUrl) er fortsatt førstevalget
+  // når det finnes – en ekte matbilde er en bedre forhåndsvisning enn
+  // app-logoen. /og-icon.png (samme gull-"C" som app-ikonet) er kun et
+  // fallback for de få oppskriftene som ennå ikke har et hovedbilde, slik at
+  // heller ikke DE ender opp uten noe bilde i det hele tatt.
+  const images = recipe.heroImageUrl
+    ? [{ url: recipe.heroImageUrl, width: 1200, height: 900, alt: title }]
+    : [{ url: "/og-icon.png", width: 512, height: 512, alt: siteConfig.name }];
+
   return {
     title,
     description,
     alternates: { canonical: url },
     openGraph: {
       type: "article",
+      siteName: siteConfig.name,
       title,
       description,
       url,
-      images: recipe.heroImageUrl ? [{ url: recipe.heroImageUrl, width: 1200, height: 900 }] : undefined,
+      images,
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: recipe.heroImageUrl ? [recipe.heroImageUrl] : undefined,
+      images: images.map((img) => img.url),
     },
   };
 }
