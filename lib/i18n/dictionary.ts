@@ -37,7 +37,7 @@ const DICT = {
   // stående ubrukt, ingen andre steder refererer til dem.
   "appBanner.text": { no: "Snart som app", en: "Coming soon as an app" },
   "appBanner.scanHint": { no: "Skann for å laste ned", en: "Scan to download" },
-  "appBanner.mobileCta": { no: "Snart som app", en: "Coming soon as an app" },
+  "appBanner.mobileCta": { no: "Legg til på hjemskjerm", en: "Add to Home Screen" },
   "appBanner.helpTitle": { no: "Legg til på hjemskjerm", en: "Add to Home Screen" },
   "appBanner.helpIOS": {
     no: "Trykk Del-ikonet nederst i Safari (firkanten med pil opp), bla ned og velg «Legg til på Hjem-skjerm».",
