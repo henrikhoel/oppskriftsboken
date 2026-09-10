@@ -221,6 +221,20 @@ export default async function HomePage() {
               <NewestRecipesFeed recipes={newestForGrid} lang={lang} />
             </section>
           )}
+
+          {/* Rolig avslutning helt nederst på siden (11.09.2026, ønsket av
+              Henrik – "når man har scrollet helt ned … under alle nyeste
+              rettene") – samme knappetekst (home.browseAll) som heroens
+              primærknapp øverst, gjenbrukt her i stedet for en ny, nesten
+              identisk tekst. Sentrert, egen liten seksjon – ikke klistret
+              rett på "Nyeste oppskrifter" sin egen "Se alle →"-lenke i
+              toppen av den seksjonen (NewestRecipesFeed.tsx), som fortsatt
+              er uendret. */}
+          <div className="flex justify-center pt-4">
+            <Button href="/oppskrifter" variant="primary" size="md">
+              {t(lang, "home.browseAll")}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
