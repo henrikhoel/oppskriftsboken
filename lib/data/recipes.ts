@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 import { createClient } from "@/lib/supabase/server";
 import { createStaticClient } from "@/lib/supabase/static";
@@ -21,7 +22,15 @@ async function getPublishedDemoRecipes(): Promise<Recipe[]> {
   return demoRecipes.filter((r) => r.isPublished);
 }
 
-export async function getPublishedRecipeSummaries(): Promise<RecipeSummary[]> {
+// react sin cache() (10.09.2026, samme "treig navigasjon"-tilbakemelding som
+// proxy.ts sin filheader) – memoiserer PER FORESPØRSEL (ikke på tvers av
+// besøkende/forespørsler, kun innenfor samme render-pass). Forsiden kaller
+// getFeaturedRecipes/getNewestRecipes/getAdminFavoriteRecipes parallelt via
+// Promise.all, og alle tre kalte tidligere denne funksjonen på nytt hver for
+// seg – tre uavhengige, identiske Supabase-spørringer for samme data på hver
+// eneste forsidevisning. Med cache() gjenbruker de to siste kallene resultatet
+// fra det første i stedet for å spørre databasen på nytt.
+export const getPublishedRecipeSummaries = cache(async (): Promise<RecipeSummary[]> => {
   if (!isSupabaseConfigured) {
     return (await getPublishedDemoRecipes()).map(toSummary);
   }
@@ -39,7 +48,7 @@ export async function getPublishedRecipeSummaries(): Promise<RecipeSummary[]> {
   }
 
   return ((data ?? []) as unknown as RawRecipeRow[]).map((row) => toSummary(mapRecipeRow(row)));
-}
+});
 
 /** Full søkbar liste (inkl. ingrediensnavn) over publiserte oppskrifter. */
 export async function getSearchableRecipes(): Promise<SearchableRecipe[]> {

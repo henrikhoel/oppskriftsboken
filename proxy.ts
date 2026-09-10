@@ -18,12 +18,20 @@ export async function proxy(request: NextRequest) {
   return updateSession(request);
 }
 
+// Matcher innsnevret til /admin 10.09.2026 (Henrik: "er det en grunn til at
+// siden er bittelitt treig, tar 2 sek å gå fra en side til en annen?").
+// updateSession() (lib/supabase/middleware.ts) kaller supabase.auth.getUser(),
+// som ALLTID gjør et ekte nettverkskall til Supabase sin auth-server for å
+// validere JWT-en på nytt (i motsetning til getSession(), som bare leser den
+// lokale, allerede-betrodde JWT-en uten nettverkskall) – se Supabase sin
+// egen dokumentasjon av forskjellen. Med den forrige matcheren
+// ("alle ruter unntatt statiske filer") betalte HVER ENESTE sidevisning på
+// HELE siden denne nettverksrundturen før noe som helst begynte å rendres –
+// også for anonyme besøkende som aldri logger inn, og som bare vil lese en
+// oppskrift. Selve poenget med middlewaren er likevel kun å beskytte
+// /admin-rutene (se filheaderen i updateSession) – den trengs rett og slett
+// ikke på offentlige sider. Nå kjører getUser()-kallet KUN når man faktisk
+// besøker /admin, ikke på hver eneste navigasjon på siden.
 export const config = {
-  matcher: [
-    /*
-     * Kjør på alle ruter unntatt statiske filer og bilder, for å unngå
-     * unødvendig overhead på hver eneste asset-forespørsel.
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|webp|gif)$).*)",
-  ],
+  matcher: ["/admin/:path*"],
 };
