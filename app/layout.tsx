@@ -70,6 +70,20 @@ export async function generateMetadata(): Promise<Metadata> {
       icon: "/icon.png",
       apple: "/apple-icon.png",
     },
+    // PWA – "Legg til på hjemskjerm" (10.09.2026). Android/Chrome leser
+    // display: "standalone" fra app/manifest.ts og trenger ikke noe mer, men
+    // iOS Safari krever i tillegg disse egne apple-web-app-meta-taggene for
+    // å fjerne SIN egen nettleser-bar (del-/fane-/frem-tilbake-knappene
+    // nederst) når siden åpnes fra hjemskjerm-ikonet – uten disse ville
+    // iPhone-snarveien bare åpnet en vanlig Safari-fane. statusBarStyle
+    // "black-translucent" lar sidens egen nesten-svarte bakgrunn (--color-
+    // cream) flyte under iPhone sitt statusfelt i stedet for en påtvunget
+    // hvit/lys stripe øverst, som ville brutt det mørke CONVITE-uttrykket.
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: siteConfig.name,
+    },
   };
 }
 
