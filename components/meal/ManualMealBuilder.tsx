@@ -15,7 +15,7 @@ import { localizedCategoryName, localizedTitle } from "@/lib/utils/format";
 import type { RecipeSummary } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
-import { PlusIcon, SearchIcon } from "@/components/ui/icons";
+import { PlusIcon, SearchIcon, XIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 const MAX_PICKER_RESULTS = 40;
@@ -49,7 +49,12 @@ const MAX_PICKER_RESULTS = 40;
  * en tom rolle evaluateManualMeal skal foreslå noe til – `visibleRoles`
  * under er derfor kilden alle andre utledninger (filledRoles/emptyRoles/
  * selve rutenettet) bygger på, ikke ALL_MEAL_COURSE_ROLES direkte. Kan legges
- * tilbake igjen når som helst (ren UI-tilstand, ingenting slettes).
+ * tilbake igjen når som helst (ren UI-tilstand, ingenting slettes). Selve
+ * fjern-knappen er et lite kryss øverst i HØYRE hjørne på hvert TOMME kort
+ * (ønsket av Henrik samme dag, etter først å ha bedt om venstre hjørne) –
+ * kun aria-label/title-tekst, ingen synlig knappetekst; vises aldri på et
+ * fylt kort (der er "Fjern fra menyen" fortsatt eneste handling, se
+ * removeRole – tømmer kun retten, ikke selve rollen).
  *
  * Velgeren (Drawer-en) sorterer treff fra EGEN rolle (via
  * inferCourseRoleFromCategory på kategorinavnet) FØRST – ønsket 11.09.2026
@@ -201,8 +206,19 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
         {visibleRoles.map((role) => {
           const recipe = selected[role];
           return (
-            <div key={role} className="flex flex-col gap-2 rounded-xl border border-line bg-cream p-4">
-              <span className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+            <div key={role} className="relative flex flex-col gap-2 rounded-xl border border-line bg-cream p-4">
+              {!recipe && (
+                <button
+                  type="button"
+                  onClick={() => removeRoleEntirely(role)}
+                  aria-label={t(lang, "manualMeal.removeRoleButton")}
+                  title={t(lang, "manualMeal.removeRoleButton")}
+                  className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-cream-dark hover:text-clay-dark"
+                >
+                  <XIcon className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <span className="pr-6 text-xs font-semibold uppercase tracking-wide text-ink-faint">
                 {t(lang, `mealBuilder.role.${role}`)}
               </span>
               {recipe ? (
@@ -222,22 +238,13 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
               ) : (
                 <>
                   <p className="text-sm text-ink-faint">{t(lang, "manualMeal.emptySlot")}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <button
-                      type="button"
-                      onClick={() => openPicker(role)}
-                      className="self-start rounded-lg border border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-cream-dark"
-                    >
-                      {t(lang, "manualMeal.pickButton")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeRoleEntirely(role)}
-                      className="self-start text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
-                    >
-                      {t(lang, "manualMeal.removeRoleButton")}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openPicker(role)}
+                    className="mt-1 self-start rounded-lg border border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-cream-dark"
+                  >
+                    {t(lang, "manualMeal.pickButton")}
+                  </button>
                 </>
               )}
             </div>
