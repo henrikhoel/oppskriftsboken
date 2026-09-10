@@ -720,6 +720,15 @@ const DICT = {
   // Henrik: "på menysiden må man ha en mulighet til å gå tilbake til
   // oppskriften man kom fra") – se anchorSlot i MealView.tsx.
   "mealPage.backToRecipe": { no: "← Tilbake til {title}", en: "← Back to {title}" },
+  // Kort, redaksjonell setning om menyen som helhet, under selve tittelen
+  // (visuelt finpuss 31.08.2026) – se `description` i
+  // lib/kitchen-intelligence/types.ts for hvorfor dette er et fritekstfelt
+  // brukeren selv skriver, ikke AI-generert. Placeholder vises kun i selve
+  // redigeringen (tomt felt er usynlig utenfor fokus, se MealView.tsx).
+  "mealPage.descriptionPlaceholder": {
+    no: "Legg gjerne til en kort setning om menyen …",
+    en: "Add a short line about the menu …",
+  },
   "mealPage.notesLabel": { no: "Notater", en: "Notes" },
   "mealPage.notesPlaceholder": {
     no: "Egne notater om menyen – f.eks. hvem som kommer, eller ting å huske …",

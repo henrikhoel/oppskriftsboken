@@ -324,6 +324,20 @@ export interface MealSession {
   /** Menyens navn, f.eks. "Middag lørdag" – redigerbar av brukeren,
    * forhåndsutfylt med et AI-foreslått navn når menyen genereres. */
   title: string;
+  /** Valgfri, ÉN kort setning om menyen som helhet (visuelt finpuss
+   * 31.08.2026, "Under tittelen skal det være mulig å vise en kort
+   * beskrivelse av selve menyen, dersom denne teksten finnes") – f.eks.
+   * "Tre retter med spanske smaker til start, klassisk fransk hovedrett og
+   * crème brûlée til slutt." Skrevet av brukeren selv (redigerbar, samme
+   * mønster som `title`/`notes`) – IKKE AI-generert, se filheaderen i
+   * MealView.tsx for hvorfor: en ny AI-funksjon kun for én setning var
+   * eksplisitt uønsket ("ikke bygg en komplisert ny AI-løsning kun for
+   * dette"). Tom streng ("") er "ingen beskrivelse ennå" – MealView.tsx
+   * skjuler feltet visuelt til brukeren faktisk skriver noe. Eldre, allerede
+   * lagrede menyer mangler dette feltet i sin rå JSON (opprettet før feltet
+   * fantes) – behandles overalt som `session.description ?? ""`, aldri en
+   * krasjende `undefined`. */
+  description: string;
   slots: MealCourseSlot[];
   /** Ønsket tidspunkt HELE MÅLTIDET skal være klart, "HH:mm" lokal tid.
    * Samme felt/format som RecipeSession.desiredReadyAt, men her styrer det

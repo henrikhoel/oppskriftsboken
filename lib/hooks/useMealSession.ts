@@ -12,6 +12,7 @@ import {
   renameMeal,
   replaceSlotContent,
   setMealAnchorRecipeId,
+  setMealDescription,
   setMealDesiredReadyAt,
   setMealNotes,
   setMealOccasion,
@@ -93,6 +94,11 @@ export function useMealSession(mealId: string, initialTitle: string) {
 
   const setTitle = useCallback((title: string) => touch((prev) => renameMeal(prev, title)), [touch]);
 
+  const setDescription = useCallback(
+    (description: string) => touch((prev) => setMealDescription(prev, description)),
+    [touch],
+  );
+
   const setAnchorRecipeId = useCallback(
     (anchorRecipeId: string | null) => touch((prev) => setMealAnchorRecipeId(prev, anchorRecipeId)),
     [touch],
@@ -146,6 +152,7 @@ export function useMealSession(mealId: string, initialTitle: string) {
     session,
     hydrated,
     setTitle,
+    setDescription,
     setAnchorRecipeId,
     addExisting,
     addSuggested,

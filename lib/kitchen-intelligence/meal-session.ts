@@ -37,6 +37,7 @@ export function createEmptyMealSession(id: string, title: string): MealSession {
     id,
     anchorRecipeId: null,
     title,
+    description: "",
     slots: [],
     desiredReadyAt: null,
     occasion: null,
@@ -169,6 +170,12 @@ export function markSuggestionConverted(
 
 export function renameMeal(session: MealSession, title: string): MealSession {
   return { ...session, title };
+}
+
+/** Se `description` i types.ts – ren tekstsetting, samme mønster som
+ * setMealNotes under. */
+export function setMealDescription(session: MealSession, description: string): MealSession {
+  return { ...session, description };
 }
 
 /** Setter HVILKEN oppskrift menyen ble bygget rundt (26.08.2026, rettet:

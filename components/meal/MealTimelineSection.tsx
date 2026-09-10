@@ -4,7 +4,6 @@ import { useState } from "react";
 import { getMealShoppingIngredients } from "@/lib/actions/meal-shopping-list";
 import { computeMealTimeline, type MealTimeline } from "@/lib/kitchen-intelligence";
 import type { ExistingMealCourseSlot, MealCourseSlot } from "@/lib/kitchen-intelligence";
-import { ClockIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
@@ -25,11 +24,13 @@ import { t, type Lang } from "@/lib/i18n";
  *
  * Gjort mye mer kompakt 31.08.2026 (tilbakemelding: "tidslinje må ta mye
  * mindre plass. dropp boksene") – ingen egen rounded-card/border-boks eller
- * egen h3-overskrift/beskrivelse-avsnitt lenger, kun en liten, diskret
- * etikett + klokkeslett-input + knapp på ÉN linje. Selve
- * tidslinje-RESULTATET (når man faktisk trykker "Vis tidslinje") er
- * uendret – det er kun "hvile"-tilstanden før man har trykket som er
- * strammet inn.
+ * egen h3-overskrift/beskrivelse-avsnitt lenger. Finpusset SAMME dag, som en
+ * del av den redaksjonelle "Planlegg kvelden"-seksjonen på MealView.tsx:
+ * "Vis tidslinje" er bevisst den mest tilbaketrukne handlingen i den
+ * seksjonen ("enda mer sekundær og elegant" enn både "Legg i handlelisten"
+ * og "Start kokemodus") – ren understreket tekst, ikke en fylt knapp, og
+ * uten ikon. Selve tidslinje-RESULTATET (når man faktisk trykker) er
+ * uendret.
  */
 export function MealTimelineSection({
   slots,
@@ -94,11 +95,8 @@ export function MealTimelineSection({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-ink-faint">
-          <ClockIcon className="h-3.5 w-3.5 text-clay" />
-          {t(lang, "mealTimeline.readyLabel")}
-        </span>
+      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">{t(lang, "mealTimeline.readyLabel")}</p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-4">
         <input
           type="time"
           value={readyAt}
@@ -110,7 +108,7 @@ export function MealTimelineSection({
           type="button"
           onClick={handleCompute}
           disabled={loading}
-          className="shrink-0 rounded-full bg-clay px-3.5 py-1.5 text-xs font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
+          className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? t(lang, "mealTimeline.loading") : t(lang, "mealTimeline.button")}
         </button>
