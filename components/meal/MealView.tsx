@@ -10,6 +10,7 @@ import {
 } from "@/lib/kitchen-intelligence";
 import { MealShoppingListSection } from "@/components/meal/MealShoppingListSection";
 import { MealTimelineSection } from "@/components/meal/MealTimelineSection";
+import { MealWineInput } from "@/components/meal/MealWineInput";
 import { EveningExperience } from "@/components/meal/EveningExperience";
 import { MultiCookMode } from "@/components/meal/MultiCookMode";
 import { PlayIcon } from "@/components/ui/icons";
@@ -99,6 +100,7 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
     remove,
     setServings,
     setDesiredReadyAt,
+    setWine,
   } = useMealSession(mealId, "");
 
   if (!indexHydrated || !sessionHydrated) {
@@ -330,6 +332,12 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
                   className="mt-1.5 w-full rounded-lg border border-line bg-cream px-3 py-2 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
                 />
               </div>
+
+              {/* "Vinen din" (10.09.2026) – samme visuelle nivå som notatene
+                  rett over (egen border-t-inndeling inni MealWineInput.tsx
+                  selv), IKKE inne i EveningExperience.tsx (se
+                  MealWineInput.tsx sin filheader for hvorfor). */}
+              <MealWineInput wine={session.wine} onChange={setWine} lang={lang} />
             </div>
           </div>
         </div>
@@ -398,6 +406,15 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
             </li>
           ))}
         </ul>
+      )}
+
+      {session.wine && (
+        <div className="mx-auto mt-14 max-w-sm border-t border-ink/15 pt-6 text-left">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-faint">
+            {t(lang, "mealWineInput.heading")}
+          </p>
+          <p className="mt-2 text-sm text-ink-soft">{session.wine.name}</p>
+        </div>
       )}
 
       {session.notes && (

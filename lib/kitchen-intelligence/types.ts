@@ -222,6 +222,18 @@ export const AI_CACHE_FEATURES = [
   // språket (`lang`) – samme svar for alle besøkende på DENNE oppskriften,
   // samme mønster som "menu_suggestion".
   "drink_pairing",
+  // "manual_meal_fit" (10.09.2026): evaluateManualMeal i
+  // lib/actions/kitchen-intelligence.ts – "Bygg en meny selv" (/meny/ny,
+  // ManualMealBuilder.tsx). Motsatt retning av "meal_plan": her har
+  // BRUKEREN allerede valgt de(n) faste retten/rettene selv (ingen
+  // ankerrett generert av AI), og AI-en (a) vurderer kun hvor godt HELE
+  // kombinasjonen henger sammen (en 0-100 "fit score" + begrunnelse), og
+  // (b) foreslår retter KUN fra katalogen (aldri oppdiktet, i motsetning
+  // til "meal_plan"s "suggested"-mulighet) til de rollene brukeren ikke
+  // har valgt noe til ennå. recipeId er alltid null her (samme presedens
+  // som "evening_curation"/"mood_mode") – gjelder brukerens frie
+  // kombinasjon av flere retter, ikke én bestemt oppskrift.
+  "manual_meal_fit",
 ] as const;
 
 export type AiCacheFeature = (typeof AI_CACHE_FEATURES)[number];
@@ -347,6 +359,16 @@ export interface MealSession {
    * velger en i menybyggeren. Påvirker AI-forslag (meny/vin/stemning), aldri
    * hvilke retter brukeren FAKTISK har valgt. */
   occasion: MealOccasion | null;
+  /** En vin brukeren ALLEREDE HAR og har knyttet til akkurat denne menyen
+   * (10.09.2026, "Bygg en meny selv" – skrevet inn, eller identifisert fra
+   * et bilde av etiketten via identifyWineFromImage i lib/actions/
+   * wine-match.ts). Bevisst KUN et navn/etikett, ikke en full struktur –
+   * dette er brukerens EGEN, allerede valgte flaske, ikke et AI-forslag.
+   * Helt separat fra EveningExperience.tsx sin AI-foreslåtte VINSTIL for
+   * hele menyen (getEveningCuration → "I GLASSET") – de to kan stå side om
+   * side: én er "her er min flaske", den andre er "her er en stil som ville
+   * passet, om du ikke har noe fra før". Null = ingen vin lagt til ennå. */
+  wine: { name: string } | null;
   notes: string;
   createdAt: string;
   updatedAt: string;

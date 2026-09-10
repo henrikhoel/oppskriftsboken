@@ -16,6 +16,7 @@ import {
   setMealDesiredReadyAt,
   setMealNotes,
   setMealOccasion,
+  setMealWine,
   setSlotServings,
 } from "@/lib/kitchen-intelligence/meal-session";
 import type { MealCourseRole, MealOccasion, MealSession } from "@/lib/kitchen-intelligence/types";
@@ -148,6 +149,11 @@ export function useMealSession(mealId: string, initialTitle: string) {
     [touch],
   );
 
+  const setWine = useCallback(
+    (wine: { name: string } | null) => touch((prev) => setMealWine(prev, wine)),
+    [touch],
+  );
+
   return {
     session,
     hydrated,
@@ -163,5 +169,6 @@ export function useMealSession(mealId: string, initialTitle: string) {
     setNotes,
     setDesiredReadyAt,
     setOccasion,
+    setWine,
   };
 }

@@ -204,6 +204,10 @@ const DICT = {
     no: "Prøv et annet søkeord eller nullstill filtrene.",
     en: "Try a different search term or reset the filters.",
   },
+  // Lenke inn til den nye manuelle menybyggeren (10.09.2026) – bevisst plassert
+  // her og ikke i hovednavigasjonen, rett under introteksten på /oppskrifter,
+  // siden det er der folk uansett blar i retter. Peker til /meny/ny.
+  "recipesPage.buildMealLink": { no: "Bygg en meny selv", en: "Build a menu yourself" },
 
   "favoritesPage.title": { no: "Favoritter", en: "Favorites" },
   "favoritesPage.metaDescription": {
@@ -725,6 +729,57 @@ const DICT = {
   },
   "mealBuilder.viewSaved": { no: "Se den lagrede menyen", en: "View the saved menu" },
   "mealBuilder.reset": { no: "Nullstill og begynn på nytt", en: "Reset and start over" },
+
+  // Manuell menybygger (10.09.2026) – components/meal/ManualMealBuilder.tsx,
+  // app/meny/ny/page.tsx. Egen inngang der brukeren velger ALLE rettene selv
+  // (kun ekte, publiserte oppskrifter), i motsetning til mealBuilder.* over
+  // som starter fra én ankerrett og lar AI-en fylle resten. Gjenbruker bevisst
+  // mealBuilder.role.*/mealBuilder.titleLabel/mealBuilder.save/
+  // mealBuilder.saving/mealBuilder.saveError/mealBuilder.remove direkte i
+  // stedet for å duplisere dem – samme tekst, samme funksjon.
+  "manualMeal.heading": { no: "Bygg en meny selv", en: "Build a menu yourself" },
+  "manualMeal.intro": {
+    no: "Velg rettene du vil ha fra oppskriftsboken. Vi kan si noe om hvor godt de passer sammen, og foreslå flere fra samlingen til plassene du ikke har fylt ennå.",
+    en: "Choose the dishes you want from your cookbook. We can tell you how well they fit together, and suggest more from the collection for the spots you haven't filled yet.",
+  },
+  "manualMeal.emptySlot": { no: "Ingen rett valgt ennå", en: "No dish chosen yet" },
+  "manualMeal.pickButton": { no: "Velg en rett", en: "Choose a dish" },
+  // {role} settes inn med en av mealBuilder.role.*-etikettene.
+  "manualMeal.pickerTitle": { no: "Velg {role}", en: "Choose a {role}" },
+  "manualMeal.closePickerAria": { no: "Lukk velgeren", en: "Close the picker" },
+  "manualMeal.searchPlaceholder": { no: "Søk etter en rett …", en: "Search for a dish …" },
+  "manualMeal.noResults": { no: "Fant ingen retter", en: "No dishes found" },
+  "manualMeal.selectButton": { no: "Velg", en: "Choose" },
+  "manualMeal.evaluateButton": {
+    no: "Se hvor godt dette passer sammen",
+    en: "See how well this fits together",
+  },
+  "manualMeal.evaluating": { no: "Vurderer menyen …", en: "Evaluating the menu …" },
+  "manualMeal.evaluateError": {
+    no: "Klarte ikke å vurdere menyen akkurat nå. Prøv igjen.",
+    en: "Couldn't evaluate the menu right now. Please try again.",
+  },
+  "manualMeal.fitScoreLabel": { no: "Hvor godt det passer sammen", en: "How well it fits together" },
+  "manualMeal.suggestionsHeading": { no: "Kan også passe", en: "Could also fit" },
+  "manualMeal.addSuggestion": { no: "Legg til", en: "Add" },
+
+  // "Vinen din" – manuelt lagt til vin (10.09.2026), skilt fra AI-ens egen
+  // vinSTIL-forslag for hele menyen (allerede live via EveningExperience.tsx/
+  // getEveningCuration – se "mealPage.wine..." nedenfor for den delen).
+  // Gjenbruker bevisst wine.photoAria/wine.analyzingPhoto/wine.photoError/
+  // wine.retakePhoto direkte (samme foto-mønster som BeverageMatchChecker)
+  // i stedet for å duplisere dem her.
+  "mealWineInput.heading": { no: "Vinen din", en: "Your wine" },
+  "mealWineInput.description": {
+    no: "Skriv inn eller ta bilde av en vin du allerede har, så legger vi den til planen.",
+    en: "Type in or photograph a wine you already have, and we'll add it to the plan.",
+  },
+  "mealWineInput.placeholder": { no: "F.eks. navnet på vinen", en: "e.g. the wine's name" },
+  "mealWineInput.addButton": { no: "Legg til vin", en: "Add wine" },
+  "mealWineInput.current": { no: "Vinen din: {name}", en: "Your wine: {name}" },
+  "mealWineInput.change": { no: "Endre", en: "Change" },
+  "mealWineInput.remove": { no: "Fjern vin", en: "Remove wine" },
+  "mealWineInput.cancel": { no: "Avbryt", en: "Cancel" },
 
   // Den lagrede menysiden – app/meny/[id]/page.tsx.
   "mealPage.metaTitle": { no: "Din meny", en: "Your menu" },

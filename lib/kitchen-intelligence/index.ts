@@ -50,6 +50,7 @@ export {
   setMealDesiredReadyAt,
   setMealNotes,
   setMealOccasion,
+  setMealWine,
   setSlotServings,
   sortSlotsByRole,
 } from "@/lib/kitchen-intelligence/meal-session";

@@ -241,3 +241,63 @@ export async function matchWineToRecipesFromImage(
 
   return parseMatchesResponse(raw, candidates, lang, lang === "en" ? "The photographed wine" : "Vinen på bildet");
 }
+
+/**
+ * "VINEN DIN" – manuelt lagt til vin på en meny (10.09.2026, se
+ * MealWineInput.tsx). BEVISST en egen, enklere funksjon fremfor å gjenbruke
+ * matchWineToRecipesFromImage over: den gjør ALLTID også en full
+ * katalog-matching (henter alle publiserte oppskrifter, sender en
+ * nummerert kandidatliste, ber om topp 3 retter) – helt unødvendig arbeid
+ * her, der brukeren bare vil notere HVILKEN vin de allerede har i
+ * menyplanen sin, ikke finne retter til den. Leser kun etiketten av
+ * bildet, ingen kandidatliste, ingen matching – raskere og billigere.
+ */
+export async function identifyWineFromImage(
+  image: { mediaType: string; base64Data: string },
+  lang: Lang = "no",
+): Promise<{ name: string }> {
+  if (!SUPPORTED_IMAGE_MEDIA_TYPES.includes(image.mediaType as SupportedImageMediaType)) {
+    throw new Error(
+      lang === "en"
+        ? "Unsupported image format. Try a JPEG or PNG photo."
+        : "Bildeformatet støttes ikke. Prøv et JPEG- eller PNG-bilde.",
+    );
+  }
+  if (!image.base64Data) {
+    throw new Error(lang === "en" ? "No image was received." : "Mottok ikke noe bilde.");
+  }
+
+  const system =
+    lang === "en"
+      ? "You are a knowledgeable sommelier. A guest shows you a photo of a wine bottle or label (it may be angled, " +
+        "blurry, or partially visible). Read the label as best you can to identify the wine (producer, grape/wine " +
+        "type, and vintage if visible) in a short, clean label, e.g. \"Château Something 2019\" or \"Chianti " +
+        "Classico\". If you can't read the name clearly, describe the wine style/color you can see instead " +
+        '(e.g. "Red wine, medium-bodied"). If the photo clearly doesn\'t show a wine bottle or label at all, ' +
+        'respond with "Not recognized as wine".\n\n' +
+        'Respond with ONLY JSON in exactly this shape: {"name": "short clean label for the wine"}'
+      : "Du er en kunnskapsrik sommelier. En gjest viser deg et bilde av en vinflaske eller etikett (den kan være " +
+        "vinklet, uskarp eller delvis skjult). Les etiketten så godt du kan for å identifisere vinen (produsent, " +
+        "drue-/vintype, og gjerne årgang hvis synlig) i en kort, ryddig betegnelse, f.eks. «Château Something 2019» " +
+        "eller «Chianti Classico». Hvis du ikke klarer å lese navnet tydelig, beskriv i stedet vinstilen/fargen du " +
+        'kan se (f.eks. «Rødvin, middels fyldig»). Hvis bildet tydelig ikke viser en vinflaske eller etikett i det ' +
+        'hele tatt, svar med «Ikke gjenkjent som vin».\n\n' +
+        'Svar KUN med JSON på nøyaktig denne formen: {"name": "kort, ryddig betegnelse på vinen"}';
+
+  const result = await callClaudeVisionJSON<{ name?: unknown }>(
+    system,
+    lang === "en" ? "Identify the wine in the photo." : "Identifiser vinen på bildet.",
+    { mediaType: image.mediaType as SupportedImageMediaType, base64Data: image.base64Data },
+    200,
+    MATCH_TEMPERATURE,
+  );
+
+  const name = typeof result.name === "string" ? result.name.trim().slice(0, 120) : "";
+  if (!name) {
+    throw new Error(
+      lang === "en" ? "Couldn't read a wine from that photo. Please try again." : "Klarte ikke å lese en vin fra det bildet. Prøv igjen.",
+    );
+  }
+
+  return { name };
+}

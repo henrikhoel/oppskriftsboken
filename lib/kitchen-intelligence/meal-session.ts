@@ -41,6 +41,7 @@ export function createEmptyMealSession(id: string, title: string): MealSession {
     slots: [],
     desiredReadyAt: null,
     occasion: null,
+    wine: null,
     notes: "",
     createdAt: now,
     updatedAt: now,
@@ -196,6 +197,13 @@ export function setMealAnchorRecipeId(session: MealSession, anchorRecipeId: stri
 
 export function setMealNotes(session: MealSession, notes: string): MealSession {
   return { ...session, notes };
+}
+
+/** Se `wine` i types.ts – ren feltsetting, samme mønster som setMealNotes
+ * over. `null` fjerner vinen igjen (brukt av "fjern"-lenken i
+ * MealWineInput.tsx). */
+export function setMealWine(session: MealSession, wine: { name: string } | null): MealSession {
+  return { ...session, wine };
 }
 
 export function setMealDesiredReadyAt(session: MealSession, desiredReadyAt: string | null): MealSession {

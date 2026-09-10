@@ -5,6 +5,7 @@ import { getAllCategories } from "@/lib/data/categories";
 import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
+import Link from "next/link";
 import { BrowseRecipesClient } from "@/components/search/BrowseRecipesClient";
 import { SearchBar } from "@/components/search/SearchBar";
 import { RecipeCardSkeleton } from "@/components/ui/Skeleton";
@@ -29,6 +30,19 @@ export default async function RecipesPage() {
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <h1 className="font-serif text-3xl text-ink sm:text-4xl">{t(lang, "recipesPage.title")}</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">{t(lang, "recipesPage.description")}</p>
+
+      {/* Rolig tekstlenke til den nye manuelle menybyggeren (10.09.2026) –
+          bevisst en lenke her, IKKE et nytt punkt i hovednavigasjonen, se
+          filheaderen til ManualMealBuilder.tsx. Plassert rett under
+          introteksten, siden det er her folk uansett blar i retter. */}
+      <p className="mt-3">
+        <Link
+          href="/meny/ny"
+          className="text-sm font-medium text-clay underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+        >
+          {t(lang, "recipesPage.buildMealLink")}
+        </Link>
+      </p>
 
       {/* Søkefeltet i toppmenyen (HeaderSearchSlot.tsx) er skjult på mobil
           (md:hidden der), og mobilens søkeknapp i Header.tsx sender rett
