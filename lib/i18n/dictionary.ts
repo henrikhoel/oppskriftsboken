@@ -116,8 +116,9 @@ const DICT = {
   // Omdøpt fra "Ukens utvalg" 26.08.2026 (Henrik: trengte ikke lenger et
   // separat "Husets favoritter"-avsnitt lenger ned på siden – denne
   // redaksjonelle utvalgs-seksjonen (styrt fra /admin/utvalg) overtar nå
-  // navnet i stedet).
-  "home.editorial.eyebrow": { no: "Husets favoritter", en: "House favorites" },
+  // navnet i stedet). Justert videre til "Våre favoritter" 11.09.2026
+  // (ønsket av Henrik).
+  "home.editorial.eyebrow": { no: "Våre favoritter", en: "Our favorites" },
   "home.editorial.viewRecipe": { no: "Se oppskrift", en: "See recipe" },
   // Oversettelse av det avsluttende sitatet (Brillat-Savarin) nederst i
   // "Nyeste oppskrifter" – selve sitatet/attribusjonen er bevisst alltid på
