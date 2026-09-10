@@ -744,6 +744,12 @@ const DICT = {
   },
   "manualMeal.emptySlot": { no: "Ingen rett valgt ennå", en: "No dish chosen yet" },
   "manualMeal.pickButton": { no: "Velg en rett", en: "Choose a dish" },
+  // Fjerner HELE rollen/kurset fra menyen (10.09.2026, ønsket av Henrik – "hvis
+  // man ikke ønsker tilbehør feks så må man kunne fjerne det i starten") –
+  // ANNET enn mealBuilder.remove, som kun tømmer en allerede valgt rett og
+  // lar selve plassen (og dermed forslags-vurderingen) stå igjen tom.
+  "manualMeal.removeRoleButton": { no: "Ikke ha med", en: "Don't include" },
+  "manualMeal.addRoleHeading": { no: "Legg til en rett til", en: "Add another course" },
   // {role} settes inn med en av mealBuilder.role.*-etikettene.
   "manualMeal.pickerTitle": { no: "Velg {role}", en: "Choose a {role}" },
   "manualMeal.closePickerAria": { no: "Lukk velgeren", en: "Close the picker" },

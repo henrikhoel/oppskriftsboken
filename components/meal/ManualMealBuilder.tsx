@@ -9,13 +9,13 @@ import {
   type ManualMealFitResult,
 } from "@/lib/actions/kitchen-intelligence";
 import { generateMealId, useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
-import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
+import { ALL_MEAL_COURSE_ROLES, inferCourseRoleFromCategory, type MealCourseRole } from "@/lib/kitchen-intelligence";
 import { filterRecipes, type SearchableRecipe } from "@/lib/utils/search";
 import { localizedCategoryName, localizedTitle } from "@/lib/utils/format";
 import type { RecipeSummary } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
-import { SearchIcon } from "@/components/ui/icons";
+import { PlusIcon, SearchIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 const MAX_PICKER_RESULTS = 40;
@@ -41,6 +41,22 @@ const MAX_PICKER_RESULTS = 40;
  * `fitResult` nullstilles hver gang utvalget endres (lagt til/fjernet retter
  * på et hvilket som helst vis) – en gammel vurdering for en annen
  * kombinasjon skal aldri stå igjen og se gyldig ut.
+ *
+ * Rollene (forrett/hovedrett/tilbehør/dessert) er IKKE påtvunget – 11.09.2026
+ * lagt til `removedRoles`, siden ikke alle menyer skal ha alle fire kurs
+ * (Henrik: "hvis man ikke ønsker tilbehør feks så må man kunne fjerne det i
+ * starten"). En fjernet rolle er verken en plass å velge en rett til, ELLER
+ * en tom rolle evaluateManualMeal skal foreslå noe til – `visibleRoles`
+ * under er derfor kilden alle andre utledninger (filledRoles/emptyRoles/
+ * selve rutenettet) bygger på, ikke ALL_MEAL_COURSE_ROLES direkte. Kan legges
+ * tilbake igjen når som helst (ren UI-tilstand, ingenting slettes).
+ *
+ * Velgeren (Drawer-en) sorterer treff fra EGEN rolle (via
+ * inferCourseRoleFromCategory på kategorinavnet) FØRST – ønsket 11.09.2026
+ * ("når man trykker inn for å velge en rett så må de rettene i den
+ * kategorien komme først"). Fortsatt kun én, søkbar liste (ikke en egen
+ * kategori-filter-UI) – kun REKKEFØLGEN endres, alt blir fortsatt synlig og
+ * søkbart.
  */
 export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe[]; lang: Lang }) {
   const router = useRouter();
@@ -50,6 +66,7 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
 
   const [selected, setSelected] = useState<Partial<Record<MealCourseRole, RecipeSummary>>>({});
   const [menuTitle, setMenuTitle] = useState("");
+  const [removedRoles, setRemovedRoles] = useState<MealCourseRole[]>([]);
 
   const [pickerRole, setPickerRole] = useState<MealCourseRole | null>(null);
   const [query, setQuery] = useState("");
@@ -61,8 +78,9 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const filledRoles = ALL_MEAL_COURSE_ROLES.filter((role) => selected[role]);
-  const emptyRoles = ALL_MEAL_COURSE_ROLES.filter((role) => !selected[role]);
+  const visibleRoles = ALL_MEAL_COURSE_ROLES.filter((role) => !removedRoles.includes(role));
+  const filledRoles = visibleRoles.filter((role) => selected[role]);
+  const emptyRoles = visibleRoles.filter((role) => !selected[role]);
 
   const usedIds = useMemo(
     () => new Set(Object.values(selected).filter((r): r is RecipeSummary => Boolean(r)).map((r) => r.id)),
@@ -72,7 +90,16 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
   const pickerResults = useMemo(() => {
     if (pickerRole === null) return [];
     const available = recipes.filter((r) => !usedIds.has(r.id));
-    return filterRecipes(available, { query }).slice(0, MAX_PICKER_RESULTS);
+    const matches = filterRecipes(available, { query });
+    // Retter fra rollens EGEN kategori først (Array.prototype.sort er
+    // stabil, så rekkefølgen INNAD i hver av de to gruppene beholdes uendret
+    // – kun selve grupperingen "samme rolle" / "andre roller" er ny).
+    const sorted = [...matches].sort((a, b) => {
+      const aOwn = inferCourseRoleFromCategory(a.category?.name ?? null) === pickerRole ? 0 : 1;
+      const bOwn = inferCourseRoleFromCategory(b.category?.name ?? null) === pickerRole ? 0 : 1;
+      return aOwn - bOwn;
+    });
+    return sorted.slice(0, MAX_PICKER_RESULTS);
   }, [pickerRole, recipes, usedIds, query]);
 
   function openPicker(role: MealCourseRole) {
@@ -96,6 +123,23 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
     });
     setFitResult(null);
     setEvalError(null);
+  }
+
+  /** Fjerner HELE kurset fra menyen (se filheaderen over) – annet enn
+   * removeRole over, som kun tømmer en allerede valgt rett. */
+  function removeRoleEntirely(role: MealCourseRole) {
+    setSelected((prev) => {
+      const next = { ...prev };
+      delete next[role];
+      return next;
+    });
+    setRemovedRoles((prev) => [...prev, role]);
+    setFitResult(null);
+    setEvalError(null);
+  }
+
+  function addRoleBack(role: MealCourseRole) {
+    setRemovedRoles((prev) => prev.filter((r) => r !== role));
   }
 
   async function handleEvaluate() {
@@ -145,7 +189,7 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
   }
 
   const hasAnySuggestions = fitResult
-    ? ALL_MEAL_COURSE_ROLES.some((role) => !selected[role] && (fitResult.suggestions[role]?.length ?? 0) > 0)
+    ? visibleRoles.some((role) => !selected[role] && (fitResult.suggestions[role]?.length ?? 0) > 0)
     : false;
 
   return (
@@ -154,7 +198,7 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
       <p className="mt-2 max-w-2xl text-ink-soft">{t(lang, "manualMeal.intro")}</p>
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {ALL_MEAL_COURSE_ROLES.map((role) => {
+        {visibleRoles.map((role) => {
           const recipe = selected[role];
           return (
             <div key={role} className="flex flex-col gap-2 rounded-xl border border-line bg-cream p-4">
@@ -178,19 +222,49 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
               ) : (
                 <>
                   <p className="text-sm text-ink-faint">{t(lang, "manualMeal.emptySlot")}</p>
-                  <button
-                    type="button"
-                    onClick={() => openPicker(role)}
-                    className="mt-1 self-start rounded-lg border border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-cream-dark"
-                  >
-                    {t(lang, "manualMeal.pickButton")}
-                  </button>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <button
+                      type="button"
+                      onClick={() => openPicker(role)}
+                      className="self-start rounded-lg border border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-cream-dark"
+                    >
+                      {t(lang, "manualMeal.pickButton")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeRoleEntirely(role)}
+                      className="self-start text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+                    >
+                      {t(lang, "manualMeal.removeRoleButton")}
+                    </button>
+                  </div>
                 </>
               )}
             </div>
           );
         })}
       </div>
+
+      {removedRoles.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
+            {t(lang, "manualMeal.addRoleHeading")}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {ALL_MEAL_COURSE_ROLES.filter((role) => removedRoles.includes(role)).map((role) => (
+              <button
+                key={role}
+                type="button"
+                onClick={() => addRoleBack(role)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-cream-dark"
+              >
+                <PlusIcon className="h-3.5 w-3.5" />
+                {t(lang, `mealBuilder.role.${role}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {filledRoles.length > 0 && (
         <div className="mt-8 space-y-4">
@@ -215,7 +289,7 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
                   <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
                     {t(lang, "manualMeal.suggestionsHeading")}
                   </p>
-                  {ALL_MEAL_COURSE_ROLES.map((role) => {
+                  {visibleRoles.map((role) => {
                     if (selected[role]) return null;
                     const list = fitResult.suggestions[role];
                     if (!list || list.length === 0) return null;
