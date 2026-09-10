@@ -29,11 +29,29 @@ const DICT = {
   "nav.pantry": { no: "Hva kan jeg lage?", en: "What can I make?" },
   "nav.language": { no: "Språk", en: "Language" },
 
-  // --- AppDownloadBanner: forhåndsvisning av "har vi en app"-tanken, ikke
-  // koblet til noe ekte enda – se components/layout/AppDownloadBanner.tsx.
+  // --- AppDownloadBanner: KUN mobil (10.09.2026, fjernet fra Mac/PC helt –
+  // se filheaderen i AppDownloadBannerClient.tsx). Et trykk åpner et lite
+  // hjelpe-ark med fremgangsmåten for "Legg til på hjemskjerm", siden selve
+  // installasjonen ikke kan trigges med ett trykk fra JavaScript.
+  // appBanner.text/scanHint er fra den nå fjernede desktop-QR-varianten –
+  // stående ubrukt, ingen andre steder refererer til dem.
   "appBanner.text": { no: "Snart som app", en: "Coming soon as an app" },
   "appBanner.scanHint": { no: "Skann for å laste ned", en: "Scan to download" },
   "appBanner.mobileCta": { no: "Snart som app", en: "Coming soon as an app" },
+  "appBanner.helpTitle": { no: "Legg til på hjemskjerm", en: "Add to Home Screen" },
+  "appBanner.helpIOS": {
+    no: "Trykk Del-ikonet nederst i Safari (firkanten med pil opp), bla ned og velg «Legg til på Hjem-skjerm».",
+    en: "Tap the Share icon at the bottom of Safari (the square with an arrow up), scroll down and choose “Add to Home Screen”.",
+  },
+  "appBanner.helpAndroid": {
+    no: "Trykk menyknappen (de tre prikkene) øverst til høyre i Chrome, og velg «Legg til på startskjermen».",
+    en: "Tap the menu button (the three dots) in the top right of Chrome, and choose “Add to Home screen”.",
+  },
+  "appBanner.helpGeneric": {
+    no: "Se etter «Legg til på hjemskjerm» i nettleserens meny eller del-knapp.",
+    en: "Look for “Add to Home Screen” in your browser's menu or share button.",
+  },
+  "appBanner.closeAria": { no: "Lukk", en: "Close" },
 
   "footer.allRecipes": { no: "Alle oppskrifter", en: "All recipes" },
   "footer.favorites": { no: "Favoritter", en: "Favorites" },
