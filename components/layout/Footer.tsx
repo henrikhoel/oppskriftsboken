@@ -1,23 +1,20 @@
 import Link from "next/link";
 import { siteConfig } from "@/lib/config";
-import { ChevronUpIcon } from "@/components/ui/icons";
+import { BackToTopLink } from "@/components/layout/BackToTopLink";
 import { t, type Lang } from "@/lib/i18n";
 
 export function Footer({ lang }: { lang: Lang }) {
   return (
     <footer className="mt-20 border-t border-line bg-cream-dark/60 pb-24 md:pb-0">
       {/* "Til toppen"-pil – motstykket til "bla nedover"-pilen i heroen
-          (app/page.tsx), samme enkle <a href="#..."> + globalt
-          scroll-behavior: smooth (app/globals.css), ingen JS nødvendig.
-          Lenker til id="top" på <body> (app/layout.tsx), så den fungerer
-          fra bunnen av enhver side, ikke bare forsiden. */}
-      <a
-        href="#top"
-        aria-label={t(lang, "footer.backToTop")}
-        className="mx-auto mt-8 flex w-fit items-center justify-center rounded-full p-2 text-ink-faint transition-colors hover:text-ink"
-      >
-        <ChevronUpIcon className="h-5 w-5" />
-      </a>
+          (app/page.tsx sin ScrollDownHint.tsx). Egen liten "use client"-fil
+          (BackToTopLink.tsx) siden den nå gjør sin egen smooth-scroll i JS
+          i stedet for å lene seg på det globale scroll-behavior: smooth
+          som ble fjernet 10.09.2026 – se filheaderen i globals.css/
+          BackToTopLink.tsx for hvorfor. Lenker til id="top" på <body>
+          (app/layout.tsx), så den fungerer fra bunnen av enhver side, ikke
+          bare forsiden. */}
+      <BackToTopLink lang={lang} />
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div>

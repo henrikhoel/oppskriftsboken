@@ -13,7 +13,7 @@ import { getAllCategories, getCategoryRecipeCounts } from "@/lib/data/categories
 import type { RecipeSummary } from "@/lib/types";
 import { SearchBar } from "@/components/search/SearchBar";
 import { Button } from "@/components/ui/Button";
-import { ChevronDownIcon } from "@/components/ui/icons";
+import { ScrollDownHint } from "@/components/home/ScrollDownHint";
 import { FeaturedEditorial } from "@/components/home/FeaturedEditorial";
 import { WinePairing } from "@/components/home/WinePairing";
 import { CookModeShowcase } from "@/components/home/CookModeShowcase";
@@ -163,19 +163,15 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Liten "bla nedover"-pil nederst i heroen – ren CSS-hint om at det
-            er mer innhold under (siden heroen nå fyller hele skjermhøyden).
-            Lenker til #etter-hero med vanlig anker + scroll-behavior: smooth
-            (satt globalt i globals.css), ingen JS nødvendig. Bounce-
-            animasjonen er Tailwinds innebygde animate-bounce, skrudd av for
-            de som har prefers-reduced-motion (motion-reduce:animate-none). */}
-        <a
-          href="#etter-hero"
-          aria-label={t(lang, "home.scrollDown")}
-          className="absolute inset-x-0 bottom-6 z-10 mx-auto flex w-fit animate-bounce items-center justify-center rounded-full p-2 text-ink/60 transition-colors hover:text-ink motion-reduce:animate-none sm:bottom-9"
-        >
-          <ChevronDownIcon className="h-6 w-6" />
-        </a>
+        {/* Liten "bla nedover"-pil nederst i heroen – hint om at det er mer
+            innhold under (siden heroen nå fyller hele skjermhøyden). Egen
+            liten "use client"-fil (ScrollDownHint.tsx) siden den gjør sin
+            egen smooth-scroll i JS i stedet for å lene seg på det globale
+            scroll-behavior: smooth som ble fjernet 10.09.2026 (se
+            filheaderen i globals.css). Bounce-animasjonen er Tailwinds
+            innebygde animate-bounce, skrudd av for de som har
+            prefers-reduced-motion (motion-reduce:animate-none). */}
+        <ScrollDownHint lang={lang} />
       </section>
 
       {/* ============ Resten av forsiden – redesignet ============ */}
