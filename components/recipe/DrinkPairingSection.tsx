@@ -437,6 +437,7 @@ function BeverageMatchChecker({
 
 export function DrinkPairingSection({
   drinkPairing,
+  showBeverageMatchChecker,
   recipeContext,
   lang,
 }: {
@@ -444,6 +445,12 @@ export function DrinkPairingSection({
    * når ingen admin har generert (eller skrevet inn for hånd) et
    * drikkeforslag for denne oppskriften ennå. */
   drinkPairing: DrinkPairing | null;
+  /** Admin-bryter (recipes.show_beverage_match_checker, default true) – lagt
+   * til 11.09.2026 (Henrik: "det gir ikke mening å sjekke ut en vin til
+   * cookies liksom"). Skjuler KUN "Passer denne?"-sjekkeren under, ikke det
+   * forhåndsgenererte drikkeforslaget over (drinkPairing) – de er bevisst
+   * uavhengige, se showMealBuilder i RecipeInteractive.tsx for søsterbryteren. */
+  showBeverageMatchChecker: boolean;
   recipeContext: RecipeContext;
   lang: Lang;
 }) {
@@ -458,13 +465,19 @@ export function DrinkPairingSection({
   // "Drikke til" vises kun når drinkPairing faktisk finnes (se
   // DrinkPairingReveal) – uten det er "Passer denne?" den eneste, FØRSTE
   // seksjonen her, og skal derfor ikke ha en skillelinje over seg mot
-  // ingenting (withDivider).
+  // ingenting (withDivider). Renderer ingenting i det hele tatt når verken
+  // drinkPairing eller "Passer denne?" er aktuelt – da skal RecipeInteractive
+  // også hoppe over selve py-10-båndet, se recipe.showBeverageMatchChecker
+  // der (unngår en tom seksjon med kun en stray skillelinje).
+  if (!drinkPairing && !showBeverageMatchChecker) return null;
   return (
     <div>
       {drinkPairing && (
         <DrinkPairingReveal drinkPairing={drinkPairing} recipeContext={recipeContext} lang={lang} />
       )}
-      <BeverageMatchChecker recipeContext={recipeContext} lang={lang} withDivider={drinkPairing != null} />
+      {showBeverageMatchChecker && (
+        <BeverageMatchChecker recipeContext={recipeContext} lang={lang} withDivider={drinkPairing != null} />
+      )}
     </div>
   );
 }

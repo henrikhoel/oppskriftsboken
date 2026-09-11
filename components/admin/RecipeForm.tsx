@@ -235,6 +235,14 @@ export function RecipeForm({
   const [source, setSource] = useState(recipe?.source ?? "");
   const [isPublished, setIsPublished] = useState(recipe?.isPublished ?? false);
   const [isFeatured, setIsFeatured] = useState(recipe?.isFeatured ?? false);
+  // To uavhengige synlighetsbrytere lagt til 11.09.2026 – se
+  // recipeInputSchema/migrasjon 0018 for begrunnelse (passer ikke for alle
+  // oppskrifter, f.eks. cookies/rundstykker). Default true for nye
+  // oppskrifter (recipe er da undefined/null).
+  const [showBeverageMatchChecker, setShowBeverageMatchChecker] = useState(
+    recipe?.showBeverageMatchChecker ?? true,
+  );
+  const [showMealBuilder, setShowMealBuilder] = useState(recipe?.showMealBuilder ?? true);
 
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -1517,6 +1525,8 @@ export function RecipeForm({
       source: source || null,
       isPublished,
       isFeatured,
+      showBeverageMatchChecker,
+      showMealBuilder,
     };
 
     if (payload.ingredientGroups.every((g) => g.items.length === 0)) {
@@ -2742,6 +2752,37 @@ export function RecipeForm({
             className="h-4 w-4 accent-clay"
           />
           Vis som utvalgt på forsiden
+        </label>
+      </section>
+
+      {/* To uavhengige synlighetsbrytere for funksjoner som ikke gir mening
+          for ALLE oppskrifter – lagt til 11.09.2026 (Henrik: "det gir ikke
+          mening å sjekke ut en vin til cookies liksom", og "gjør det til en
+          kveld" passer heller ikke til cookies eller rundstykker). Egen
+          seksjon (ikke i publiseringsraden over) med en kort forklarende
+          tekst, siden begge default er PÅ og admin sjelden trenger å tenke
+          på dem – kun for oppskrifter som åpenbart ikke er en middagsrett. */}
+      <section className="flex flex-col gap-3 rounded-card border border-line bg-paper p-5 sm:p-6">
+        <p className="text-sm text-ink-soft">
+          Skru av det som ikke gir mening for denne oppskriften (f.eks. cookies, rundstykker eller annet bakverk).
+        </p>
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={showBeverageMatchChecker}
+            onChange={(e) => setShowBeverageMatchChecker(e.target.checked)}
+            className="h-4 w-4 accent-clay"
+          />
+          Vis &quot;Passer denne?&quot; (vin-sjekker)
+        </label>
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={showMealBuilder}
+            onChange={(e) => setShowMealBuilder(e.target.checked)}
+            className="h-4 w-4 accent-clay"
+          />
+          Vis &quot;Gjør det til en kveld&quot; (menybygger)
         </label>
       </section>
 

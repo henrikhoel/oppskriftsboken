@@ -738,17 +738,20 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
           </div>
         )}
 
-        <div className="py-10 sm:py-12">
-          <DrinkPairingSection
-            drinkPairing={recipe.drinkPairing ?? null}
-            recipeContext={{
-              title: displayTitle,
-              description: displayDescription,
-              ingredientNames: recipeIngredientNames,
-            }}
-            lang={lang}
-          />
-        </div>
+        {(recipe.drinkPairing || recipe.showBeverageMatchChecker) && (
+          <div className="py-10 sm:py-12">
+            <DrinkPairingSection
+              drinkPairing={recipe.drinkPairing ?? null}
+              showBeverageMatchChecker={recipe.showBeverageMatchChecker}
+              recipeContext={{
+                title: displayTitle,
+                description: displayDescription,
+                ingredientNames: recipeIngredientNames,
+              }}
+              lang={lang}
+            />
+          </div>
+        )}
 
         {/* Nederst, med vilje – "Gjør det til en kveld" er avslutningen på
             siden, ikke bare enda et element i rekken. Selve
@@ -764,19 +767,21 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             klistret rett under forrige seksjon. Ingen fast høyde på selve
             siden totalt – kun denne siste seksjonens eget bånd er høyt
             nok til at sentreringen faktisk er synlig. */}
-        <div className="flex min-h-[45vh] flex-col items-center justify-center py-14 sm:min-h-[55vh] sm:py-16">
-          <MealBuilder
-            recipe={{
-              id: recipe.id,
-              slug: recipe.slug,
-              title: displayTitle,
-              description: displayDescription,
-              servings,
-              category: recipe.category ? { name: recipe.category.name } : null,
-            }}
-            lang={lang}
-          />
-        </div>
+        {recipe.showMealBuilder && (
+          <div className="flex min-h-[45vh] flex-col items-center justify-center py-14 sm:min-h-[55vh] sm:py-16">
+            <MealBuilder
+              recipe={{
+                id: recipe.id,
+                slug: recipe.slug,
+                title: displayTitle,
+                description: displayDescription,
+                servings,
+                category: recipe.category ? { name: recipe.category.name } : null,
+              }}
+              lang={lang}
+            />
+          </div>
+        )}
       </div>
 
       {cookModeOpen && (

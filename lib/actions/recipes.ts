@@ -231,6 +231,8 @@ export async function createRecipe(rawInput: unknown): Promise<RecipeActionResul
       source: input.source,
       is_published: input.isPublished,
       is_featured: input.isFeatured,
+      show_beverage_match_checker: input.showBeverageMatchChecker,
+      show_meal_builder: input.showMealBuilder,
     })
     .select("id, slug")
     .single();
@@ -288,6 +290,8 @@ export async function updateRecipe(
       source: input.source,
       is_published: input.isPublished,
       is_featured: input.isFeatured,
+      show_beverage_match_checker: input.showBeverageMatchChecker,
+      show_meal_builder: input.showMealBuilder,
     })
     .eq("id", recipeId)
     .select("id, slug")

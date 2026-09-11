@@ -301,6 +301,16 @@ export interface Recipe {
   source: string | null;
   isPublished: boolean;
   isFeatured: boolean;
+  /** Om "Passer denne?" (BeverageMatchChecker) skal vises på
+   * oppskriftssiden – lagt til 11.09.2026, se migrasjon 0018. Default true.
+   * Uavhengig av drinkPairing (kan ha forhåndsgenererte forslag men likevel
+   * skjult sjekker, og omvendt). */
+  showBeverageMatchChecker: boolean;
+  /** Om "Gjør det til en kveld" (MealBuilder-seksjonen) skal vises på
+   * oppskriftssiden – lagt til 11.09.2026, se migrasjon 0018. Default true.
+   * Skrus av for oppskrifter som ikke gir mening som anker for en hel meny
+   * (f.eks. cookies, rundstykker). */
+  showMealBuilder: boolean;
   /** Admin-satt rekkefølge for "ukens utvalg" på forsiden, satt fra
    * /admin/utvalg. Null = ikke i utvalget, kun meningsfylt sammen med
    * isFeatured=true. Helt atskilt fra favoritedByAdmin under (hjertet). */

@@ -64,6 +64,14 @@ export const recipeInputSchema = z.object({
   source: z.string().trim().max(200).nullable(),
   isPublished: z.boolean(),
   isFeatured: z.boolean(),
+  // To uavhengige "denne oppskriften er ikke en middagsrett"-brytere, lagt
+  // til 11.09.2026 (Henrik: "passer denne" gir ikke mening for cookies, og
+  // "gjør det til en kveld" passer heller ikke til cookies eller
+  // rundstykker) – begge default true (vises), admin kan skru av hver for
+  // seg per oppskrift. Se BeverageMatchChecker i DrinkPairingSection.tsx og
+  // MealBuilder-seksjonen i RecipeInteractive.tsx.
+  showBeverageMatchChecker: z.boolean().default(true),
+  showMealBuilder: z.boolean().default(true),
 });
 
 export type RecipeInput = z.infer<typeof recipeInputSchema>;

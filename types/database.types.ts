@@ -107,6 +107,8 @@ export interface Database {
           source: string | null;
           is_published: boolean;
           is_featured: boolean;
+          show_beverage_match_checker: boolean;
+          show_meal_builder: boolean;
           featured_sort_order: number | null;
           favorited_by_admin: boolean;
           wine_pairing: string | null;
@@ -145,6 +147,8 @@ export interface Database {
           source?: string | null;
           is_published?: boolean;
           is_featured?: boolean;
+          show_beverage_match_checker?: boolean;
+          show_meal_builder?: boolean;
           featured_sort_order?: number | null;
           favorited_by_admin?: boolean;
           wine_pairing?: string | null;
