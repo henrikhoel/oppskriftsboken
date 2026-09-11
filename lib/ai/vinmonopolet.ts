@@ -179,7 +179,7 @@ async function fetchVinmonopoletProductPage(
 ): Promise<VinmonopoletProductPageDetails | null> {
   try {
     const res = await fetch(pageUrl ?? vinmonopoletProductUrl(productId), {
-      headers: { "User-Agent": "oppskriftsboken.no (vinforslag – henter produktdata for ett produkt om gangen)" },
+      headers: { "User-Agent": "oppskriftsboken.no (vinforslag - henter produktdata for ett produkt om gangen)" },
       signal: AbortSignal.timeout(6000),
     });
     if (!res.ok) return null;
