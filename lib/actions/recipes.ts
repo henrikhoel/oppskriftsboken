@@ -752,6 +752,108 @@ export async function generateDrinkPairing(
   }
 }
 
+/**
+ * Tolker en FRITEKST admin har limt inn (typisk et forslag hentet fra
+ * ChatGPT eller et annet AI-verktøy et helt annet sted) inn i skjemaets
+ * felt – lagt til 11.09.2026 (Henrik: "jeg får forslag fra chatgpt, og det
+ * tar lang tid å legge inn felt for felt, lettere å bare kunne lime inn en
+ * hel tekst så gjør den jobben for meg"). HELT ANNERLEDES enn
+ * generateDrinkPairing over: den finner PÅ et forslag ut fra retten; denne
+ * strukturerer et forslag admin ALLEREDE HAR ut fra teksten sin, så nært
+ * det opprinnelige ordvalget som mulig (ikke en kreativ omskriving) – se
+ * system-prompten for hvordan dette håndheves.
+ *
+ * Returnerer KUN de kategoriene (wine/beer/nonAlcoholic) teksten faktisk
+ * nevner et forslag for – Henrik eksplisitt: "hvis jeg ikke har skrevet inn
+ * forslag til øl så skal den heller ikke legge inn det". Kalleren
+ * (handleParseDrinkPairingText i components/admin/RecipeForm.tsx) fyller
+ * derfor KUN inn skjemafeltene for kategoriene som faktisk er med i svaret,
+ * og lar de andre kategorienes felt stå fullstendig urørt (verken tømt
+ * eller overskrevet). Lagrer INGENTING selv – admin ser/justerer det
+ * innfylte resultatet og trykker "Lagre drikkeforslag" som vanlig, akkurat
+ * som når admin skriver feltene for hånd.
+ */
+export async function parseDrinkPairingFromText(
+  text: string,
+): Promise<{
+  success: boolean;
+  result?: Partial<{ wine: DrinkPairingOption; beer: DrinkPairingOption; nonAlcoholic: DrinkPairingOption }>;
+  error?: string;
+}> {
+  await requireAdmin();
+
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return { success: false, error: "Lim inn teksten med drikkeforslaget først." };
+  }
+
+  try {
+    const system =
+      "Du strukturerer et drikkeforslag (vin/øl/alkoholfritt) admin ALLEREDE HAR SKREVET/FÅTT " +
+      "(typisk limt inn fra et annet AI-verktøy som ChatGPT) inn i et fast skjema – du dikter IKKE opp noe " +
+      "nytt innhold og omformulerer IKKE kreativt. Bruk admins EGNE ord så ordrett som mulig for hver " +
+      "kategori, kun kortet ned/omorganisert for å passe de tre feltene:\n\n" +
+      '- "style"/"styleEn": kort stil-/typenavn (f.eks. «Côtes du Rhône» eller «Dry stout»).\n' +
+      '- "detail"/"detailEn": valgfri kort detaljlinje (f.eks. druer for vin) – KUN dersom teksten faktisk ' +
+      "nevner noe slikt, ellers null.\n" +
+      '- "note"/"noteEn": begrunnelsen/setningen om HVORFOR forslaget passer, hentet fra teksten.\n\n' +
+      "KRITISK: ta med en kategori (wine/beer/nonAlcoholic) i JSON-svaret KUN dersom teksten faktisk " +
+      "inneholder et forslag for akkurat den kategorien – utelat nøkkelen HELT (ikke sett tomme strenger " +
+      "eller gjett) for enhver kategori teksten ikke nevner. Fyll uansett ut BÅDE norsk og engelsk for hver " +
+      "kategori du tar med – oversett naturlig til engelsk dersom teksten kun var på norsk (eller omvendt).\n\n" +
+      'Svar KUN med JSON på formen {"wine"?: {"style": "...", "styleEn": "...", "detail": "..." eller null, ' +
+      '"detailEn": "..." eller null, "note": "...", "noteEn": "..."}, "beer"?: {...samme felt...}, ' +
+      '"nonAlcoholic"?: {...samme felt...}} – kun med nøklene for kategoriene teksten faktisk dekker.';
+
+    const result = await callClaudeJSON<{
+      wine?: {
+        style?: string;
+        styleEn?: string;
+        detail?: string | null;
+        detailEn?: string | null;
+        note?: string;
+        noteEn?: string;
+      };
+      beer?: {
+        style?: string;
+        styleEn?: string;
+        detail?: string | null;
+        detailEn?: string | null;
+        note?: string;
+        noteEn?: string;
+      };
+      nonAlcoholic?: {
+        style?: string;
+        styleEn?: string;
+        detail?: string | null;
+        detailEn?: string | null;
+        note?: string;
+        noteEn?: string;
+      };
+    }>(system, trimmed, 700, 0.2);
+
+    const parsed: Partial<{ wine: DrinkPairingOption; beer: DrinkPairingOption; nonAlcoholic: DrinkPairingOption }> =
+      {};
+    if (result.wine) parsed.wine = cleanDrinkPairingOption(result.wine);
+    if (result.beer) parsed.beer = cleanDrinkPairingOption(result.beer);
+    if (result.nonAlcoholic) parsed.nonAlcoholic = cleanDrinkPairingOption(result.nonAlcoholic);
+
+    if (Object.keys(parsed).length === 0) {
+      return {
+        success: false,
+        error: "Fant ingen gjenkjennelige drikkeforslag (vin/øl/alkoholfritt) i teksten.",
+      };
+    }
+
+    return { success: true, result: parsed };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Kunne ikke tolke teksten. Prøv igjen.",
+    };
+  }
+}
+
 /** Delt lese-endre-skriv-hjelper for recipes.drink_pairing – leser dagens
  * rad, slår sammen inn `patch` over den, og skriver tilbake HELE (nye)
  * objektet. Bygget 11.09.2026 da pinnedWine (se PinnedVinmonopoletProduct i

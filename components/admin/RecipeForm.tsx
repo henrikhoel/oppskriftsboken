@@ -14,6 +14,7 @@ import {
   generateNutritionInfo,
   clearNutritionInfo,
   generateDrinkPairing,
+  parseDrinkPairingFromText,
   saveDrinkPairing,
   clearDrinkPairing,
   savePinnedWineProduct,
@@ -1149,6 +1150,38 @@ export function RecipeForm({
     }
   }
 
+  // Lim inn fritekst (typisk et forslag admin allerede har fått fra
+  // ChatGPT e.l.) og la AI-en STRUKTURERE den inn i feltene over – lagt til
+  // 11.09.2026 (Henrik: "jeg får forslag fra chatgpt, og det tar lang tid å
+  // legge inn felt for felt, lettere å bare kunne lime inn en hel tekst så
+  // gjør den jobben for meg"), se filheaderen til parseDrinkPairingFromText.
+  // Fyller KUN inn feltene for kategoriene teksten faktisk dekker (Henrik:
+  // "hvis jeg ikke har skrevet inn forslag til øl så skal den heller ikke
+  // legge inn det") – lagrer INGENTING selv, admin trykker fortsatt
+  // "Lagre drikkeforslag" over når resultatet ser riktig ut.
+  const [drinkPairingPasteText, setDrinkPairingPasteText] = useState("");
+  const [isParsingDrinkPairingText, setIsParsingDrinkPairingText] = useState(false);
+  const [drinkPairingParseError, setDrinkPairingParseError] = useState<string | null>(null);
+
+  async function handleParseDrinkPairingText() {
+    setDrinkPairingParseError(null);
+    setDrinkPairingSavedNotice(null);
+    setIsParsingDrinkPairingText(true);
+    try {
+      const result = await parseDrinkPairingFromText(drinkPairingPasteText);
+      if (!result.success || !result.result) {
+        setDrinkPairingParseError(result.error ?? "Kunne ikke tolke teksten.");
+        return;
+      }
+      if (result.result.wine) setDrinkWine(drinkOptionToFormState(result.result.wine));
+      if (result.result.beer) setDrinkBeer(drinkOptionToFormState(result.result.beer));
+      if (result.result.nonAlcoholic) setDrinkNonAlcoholic(drinkOptionToFormState(result.result.nonAlcoholic));
+      setDrinkPairingPasteText("");
+    } finally {
+      setIsParsingDrinkPairingText(false);
+    }
+  }
+
   async function handleSaveDrinkPairing() {
     if (!recipe) return;
     setDrinkPairingSaveError(null);
@@ -2176,6 +2209,29 @@ export function RecipeForm({
             {drinkPairingGenerateError && <p className="text-sm text-clay-dark">{drinkPairingGenerateError}</p>}
             {drinkPairingSaveError && <p className="text-sm text-clay-dark">{drinkPairingSaveError}</p>}
             {drinkPairingClearError && <p className="text-sm text-clay-dark">{drinkPairingClearError}</p>}
+
+            <div className="space-y-2 rounded-xl border border-line bg-cream-dark/40 p-3.5">
+              <Field label="Eller lim inn et forslag (f.eks. fra ChatGPT)" htmlFor="drink-pairing-paste">
+                <textarea
+                  id="drink-pairing-paste"
+                  value={drinkPairingPasteText}
+                  onChange={(e) => setDrinkPairingPasteText(e.target.value)}
+                  rows={4}
+                  placeholder="Lim inn hele teksten – trenger ikke være ryddig delt opp i felt. Fyller kun inn kategoriene (vin/øl/alkoholfritt) teksten faktisk nevner, uten å røre de andre."
+                  className={inputClass}
+                />
+              </Field>
+              {drinkPairingParseError && <p className="text-sm text-clay-dark">{drinkPairingParseError}</p>}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleParseDrinkPairingText}
+                disabled={isParsingDrinkPairingText || !drinkPairingPasteText.trim()}
+              >
+                {isParsingDrinkPairingText ? "Fyller inn …" : "Fyll inn fra tekst"}
+              </Button>
+            </div>
 
             <div className="space-y-3">
               <DrinkOptionFieldGroup legend="Vin" value={drinkWine} onChange={setDrinkWine} idPrefix="drink-wine" />
