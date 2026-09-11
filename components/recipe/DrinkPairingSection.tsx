@@ -203,6 +203,14 @@ function DrinkPairingResult({
                 )}
               </div>
               <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{vinResult.reasoning}</p>
+              {/* Kun ÉN "vis-lenke" her – "Prøv et nytt forslag" fjernet
+                  11.09.2026 (Henrik: "den gjør ingenting nå siden den
+                  funksjonen er borte, man får kun ett forslag"). Etter
+                  admin-kuratert pinnedWine-refaktoreringen samme dag gir
+                  dette forslaget ALDRI et annet resultat ved et nytt klikk
+                  (pinnet produkt = fast valg; ellers samme deterministiske
+                  AI-søk) – knappen ga derfor et falskt inntrykk av at man
+                  kunne "rulle videre" til noe annet. */}
               <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
                 <a
                   href={vinResult.url}
@@ -212,16 +220,6 @@ function DrinkPairingResult({
                 >
                   {t(lang, "wine.viewProduct")} →
                 </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setVinResult(null);
-                    setVinImageFailed(false);
-                  }}
-                  className="text-xs font-medium text-clay hover:text-clay-dark"
-                >
-                  {t(lang, "wine.vinmonopoletNewSuggestion")}
-                </button>
               </div>
               <p className="mt-3 text-[0.68rem] leading-relaxed text-ink-faint">{t(lang, "wine.vinmonopoletDisclaimer")}</p>
             </div>

@@ -517,9 +517,14 @@ const DICT = {
   "wine.vinmonopoletError": { no: "Klarte ikke å finne et forslag. Prøv igjen.", en: "Couldn't find a suggestion. Please try again." },
   "wine.viewProduct": { no: "Til Vinmonopolet", en: "To Vinmonopolet" },
   "wine.priceLabel": { no: "Pris", en: "Price" },
+  // Teksten avsluttet tidligere med en henvisning til en "Prøv et nytt
+  // forslag"-knapp på oppskriftssiden – fjernet 11.09.2026 sammen med selve
+  // knappen (se DrinkPairingSection.tsx sin kommentar der) siden den ikke
+  // lenger ga et annet resultat. Samme nøkkel brukes også (uendret) i den
+  // døde/umonterte MealWineSection.tsx – upåvirket siden den aldri vises.
   "wine.vinmonopoletDisclaimer": {
-    no: "Produktnavn, bilde og pris er hentet direkte fra Vinmonopolets egen produktside akkurat nå, ikke et anslag. Katalogen skiller likevel ikke mellom aktive og utgåtte produkter, så sjekk gjerne at varen fortsatt er på lager på produktsiden. Utgått, eller ikke helt det du så for deg? Prøv «Prøv et nytt forslag» under.",
-    en: "The product name, image, and price are fetched directly from Vinmonopolet's own product page right now, not an estimate. The catalog still doesn't distinguish active from discontinued products, so it's worth checking stock on the product page. Discontinued, or not quite what you had in mind? Use \"Try a new suggestion\" below.",
+    no: "Produktnavn, bilde og pris er hentet direkte fra Vinmonopolets egen produktside akkurat nå, ikke et anslag. Katalogen skiller likevel ikke mellom aktive og utgåtte produkter, så sjekk gjerne at varen fortsatt er på lager på produktsiden.",
+    en: "The product name, image, and price are fetched directly from Vinmonopolet's own product page right now, not an estimate. The catalog still doesn't distinguish active from discontinued products, so it's worth checking stock on the product page.",
   },
   "wine.vinmonopoletNewSuggestion": { no: "Prøv et nytt forslag", en: "Try a new suggestion" },
   // Vist når et admin-pinnet konkret Vinmonopolet-produkt (se
