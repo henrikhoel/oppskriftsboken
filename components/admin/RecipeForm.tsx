@@ -2293,7 +2293,6 @@ export function RecipeForm({
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="font-serif text-base text-olive-dark">{pinnedWine.productName}</p>
                       {pinnedWine.priceNok !== null && (
                         <p className="text-xs text-ink-soft">{pinnedWine.priceNok} kr</p>
                       )}
@@ -2307,6 +2306,27 @@ export function RecipeForm({
                       </a>
                     </div>
                   </div>
+                  {/* Produktnavnet er hentet rett fra Vinmonopolets egen
+                      og:title-metatag og kan derfor av og til inneholde
+                      rester av HTML-koding de selv ikke har ryddet opp i
+                      (f.eks. "&#x27;" i stedet for en apostrof) – lagt til
+                      11.09.2026 (Henrik: "Mannen fra havet Barbera d&#x27;Asti
+                      ... nå må jeg kunne endre til Mannen fra havet Barbera
+                      d'Asti") som et vanlig, redigerbart tekstfelt slik at
+                      admin kan rette opp dette (eller bare forkorte/justere
+                      navnet) uten å måtte pinne produktet på nytt. Fikset
+                      også selve avkodingen (se decodeHtmlEntities i
+                      lib/ai/vinmonopolet.ts) slik at dette ikke skal oppstå
+                      for NYE pin-oppslag – feltet er likevel redigerbart for
+                      allerede lagrede pin som ble hentet før den fiksen. */}
+                  <Field label="Produktnavn" htmlFor="pinned-wine-name">
+                    <input
+                      id="pinned-wine-name"
+                      value={pinnedWine.productName}
+                      onChange={(e) => setPinnedWine({ ...pinnedWine, productName: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Field>
                   <Field label="Kort begrunnelse (valgfritt)" htmlFor="pinned-wine-reasoning">
                     <textarea
                       id="pinned-wine-reasoning"

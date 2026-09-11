@@ -114,17 +114,24 @@ export function vinmonopoletProductImageUrl(productId: string, size = 400): stri
 }
 
 /** Minimal HTML-entity-dekoding for tekst hentet ut av en meta-tag (f.eks.
- * og:title) – produktnavn inneholder ofte "&amp;", accent-tegn er allerede
- * UTF-8 i HTML-en og trenger ingen dekoding. Dekker det vanlige settet,
- * ikke en fullverdig HTML-parser (unødvendig for dette bruksområdet). */
+ * og:title) – produktnavn inneholder ofte "&amp;" eller en apostrof kodet
+ * som en numerisk referanse (f.eks. "d&#x27;Asti" for "d'Asti", sett i
+ * praksis 11.09.2026 – Henrik: "nå kom navnet opp sånn her 'Mannen fra
+ * havet Barbera d&#x27;Asti'"), accent-tegn er allerede UTF-8 i HTML-en og
+ * trenger ingen dekoding. Dekker det vanlige navngitte settet PLUSS
+ * generelle numeriske referanser (både desimal "&#39;" og heksadesimal
+ * "&#x27;"/"&#X27;") – ikke en fullverdig HTML-parser (unødvendig for dette
+ * bruksområdet), men dekker det Vinmonopolets egne produktsider faktisk
+ * bruker. */
 function decodeHtmlEntities(text: string): string {
   return text
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
     .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
+    .replace(/&gt;/g, ">")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number.parseInt(dec, 10)));
 }
 
 interface VinmonopoletProductPageDetails {
