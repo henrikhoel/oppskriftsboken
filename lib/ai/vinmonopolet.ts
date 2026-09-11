@@ -158,10 +158,27 @@ interface VinmonopoletProductPageDetails {
  * Returnerer null hvis siden ikke svarer OK (som også er vårt beste signal
  * på at produktet er utgått/fjernet – se bruken i
  * lib/actions/vinmonopolet.ts) eller hvis verken pris eller navn gjenkjennes.
+ *
+ * `pageUrl` (valgfri, lagt til 11.09.2026): bruk EN KJENT, EKTE produktside-
+ * lenke i stedet for å bygge en selv via vinmonopoletProductUrl(productId).
+ * Bakgrunn (Henrik: "jeg limer inn produkt fra vinmonopolet, jeg vet linken
+ * funker, også får jeg: Fant ikke produktet") – research denne dagen (søk
+ * mot ekte vinmonopolet.no-produktsider på tvers av vin/whisky/øl) viste at
+ * EVERY ekte produktside bruker et "Land/<land>/…"-stiprefiks, ALDRI en fast
+ * kategori som "vin" – altså at den selv-konstruerte vinmonopoletProductUrl()
+ * sin antagelse om at prefikset er likegyldig trolig er feil/uverifisert for
+ * en rekke produkter (kunne ikke bekreftes 100 % i denne økten pga.
+ * verktøybegrensninger – se kallerne for hvordan dette håndteres). Når admin
+ * har limt inn en ekte, av dem selv bekreftet fungerende lenke, skal VI
+ * ALDRI kaste den bort og heller gjette en egen – da bruker vi ALLTID den
+ * ekte lenken, både til selve oppslaget her og til lenken vi lagrer/viser.
  */
-async function fetchVinmonopoletProductPage(productId: string): Promise<VinmonopoletProductPageDetails | null> {
+async function fetchVinmonopoletProductPage(
+  productId: string,
+  pageUrl?: string,
+): Promise<VinmonopoletProductPageDetails | null> {
   try {
-    const res = await fetch(vinmonopoletProductUrl(productId), {
+    const res = await fetch(pageUrl ?? vinmonopoletProductUrl(productId), {
       headers: { "User-Agent": "oppskriftsboken.no (vinforslag – henter produktdata for ett produkt om gangen)" },
       signal: AbortSignal.timeout(6000),
     });
@@ -205,11 +222,13 @@ export async function fetchVinmonopoletProductPriceNok(productId: string): Promi
  * resolveVinmonopoletProductFromUrl i lib/actions/vinmonopolet.ts), altså
  * uten noe forutgående AI-søk. Returnerer null hvis produktsiden ikke svarer,
  * eller hvis vi ikke klarte å lese ut et produktnavn i det hele tatt (uten
- * navn har vi ingenting fornuftig å vise/lagre). */
+ * navn har vi ingenting fornuftig å vise/lagre). `pageUrl` – se
+ * fetchVinmonopoletProductPage sin filheader. */
 export async function fetchVinmonopoletProductDetails(
   productId: string,
+  pageUrl?: string,
 ): Promise<{ productName: string; priceNok: number | null } | null> {
-  const details = await fetchVinmonopoletProductPage(productId);
+  const details = await fetchVinmonopoletProductPage(productId, pageUrl);
   if (!details?.productName) return null;
   return { productName: details.productName, priceNok: details.priceNok };
 }

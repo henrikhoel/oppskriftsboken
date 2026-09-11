@@ -243,16 +243,26 @@ export interface ResolvedVinmonopoletProduct {
  * som siste steg i resolveVinmonopoletProductFromUrl under. Krever ikke
  * innlogging (rent lese-oppslag, ingen hemmeligheter/skriving involvert) –
  * samme tillitsnivå som getVinmonopoletWineSuggestion over, men kalt fra
- * admin-UI-et i praksis. */
+ * admin-UI-et i praksis.
+ *
+ * `knownUrl` (valgfri, lagt til 11.09.2026 – se fetchVinmonopoletProductPage
+ * sin filheader i lib/ai/vinmonopolet.ts for hele bakgrunnen): når kalleren
+ * FAKTISK har en ekte, bekreftet fungerende produktlenke (kun tilfellet fra
+ * resolveVinmonopoletProductFromUrl under), brukes DEN – både til selve
+ * oppslaget og til lenken vi returnerer/lagrer – i stedet for å bygge en
+ * egen, mulig ugyldig lenke via vinmonopoletProductUrl(productId). Uten
+ * knownUrl (alternates/pinnet produkt – vi har kun en ID fra før) er
+ * vinmonopoletProductUrl(productId) fortsatt eneste tilgjengelige fallback. */
 export async function resolveVinmonopoletProductById(
   productId: string,
+  knownUrl?: string,
 ): Promise<{ success: boolean; product?: ResolvedVinmonopoletProduct; error?: string }> {
   const trimmedId = productId.trim();
   if (!trimmedId) {
     return { success: false, error: "Mangler produkt-ID." };
   }
 
-  const details = await fetchVinmonopoletProductDetails(trimmedId);
+  const details = await fetchVinmonopoletProductDetails(trimmedId, knownUrl);
   if (!details) {
     return {
       success: false,
@@ -265,7 +275,7 @@ export async function resolveVinmonopoletProductById(
     product: {
       productId: trimmedId,
       productName: details.productName,
-      url: vinmonopoletProductUrl(trimmedId),
+      url: knownUrl ?? vinmonopoletProductUrl(trimmedId),
       imageUrl: vinmonopoletProductImageUrl(trimmedId),
       priceNok: details.priceNok,
     },
@@ -281,16 +291,43 @@ export async function resolveVinmonopoletProductById(
  * Henrik 11.09.2026: "gå inn på vinmonopolet, hente linken til en vin, og
  * lime den inn på siden"), helt uavhengig av AI-søket over – admin har
  * allerede funnet nøyaktig riktig flaske selv.
+ *
+ * Sender den TRIMMEDE, opprinnelige lenken videre som knownUrl til
+ * resolveVinmonopoletProductById – IKKE bare ID-en – rettet 11.09.2026 etter
+ * at admin fikk "Fant ikke produktet" på en lenke som faktisk fungerte: den
+ * forrige versjonen kastet bort den ekte lenken og lot
+ * resolveVinmonopoletProductById gjette en egen via vinmonopoletProductUrl,
+ * som trolig ikke er en gyldig sti (se filheaderen i lib/ai/vinmonopolet.ts).
+ *
+ * Validerer at lenken faktisk peker til vinmonopolet.no FØR den sendes videre
+ * som knownUrl – siden vi (fra og med samme rettelse) nå faktisk henter
+ * akkurat DEN lenken server-side, ikke bare en vi selv bygger, vil vi ikke at
+ * denne funksjonen skal kunne brukes til å få serveren til å gjøre et
+ * vilkårlig HTTP-kall mot et helt annet nettsted (extractVinmonopoletProductId
+ * ser kun etter et «/p/<tall>»-mønster, uavhengig av domene).
  */
 export async function resolveVinmonopoletProductFromUrl(
   url: string,
 ): Promise<{ success: boolean; product?: ResolvedVinmonopoletProduct; error?: string }> {
-  const productId = extractVinmonopoletProductId(url);
+  const trimmedUrl = url.trim();
+  const productId = extractVinmonopoletProductId(trimmedUrl);
   if (!productId) {
     return {
       success: false,
       error: "Fant ingen gjenkjennelig Vinmonopolet-produktlenke i teksten (ser etter et «/p/<tall>»-mønster).",
     };
   }
-  return resolveVinmonopoletProductById(productId);
+
+  let hostname: string;
+  try {
+    hostname = new URL(trimmedUrl).hostname.toLowerCase();
+  } catch {
+    return { success: false, error: "Ugyldig lenke." };
+  }
+  const isVinmonopoletHost = hostname === "vinmonopolet.no" || hostname.endsWith(".vinmonopolet.no");
+  if (!isVinmonopoletHost) {
+    return { success: false, error: "Lenken må peke til vinmonopolet.no." };
+  }
+
+  return resolveVinmonopoletProductById(productId, trimmedUrl);
 }

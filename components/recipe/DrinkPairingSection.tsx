@@ -119,7 +119,7 @@ function DrinkPairingResult({
           // prisen/bildet hvis den ferske sjekken selv skulle feile (f.eks.
           // et midlertidig nettverksproblem), i stedet for å vise en feil
           // for noe admin allerede har bekreftet finnes.
-          const resolved = await resolveVinmonopoletProductById(pinnedWine.productId);
+          const resolved = await resolveVinmonopoletProductById(pinnedWine.productId, pinnedWine.url);
           const product = resolved.success && resolved.product ? resolved.product : null;
           setVinResult({
             productName: product?.productName ?? pinnedWine.productName,
