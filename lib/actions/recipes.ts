@@ -26,6 +26,7 @@ import {
 import { callClaudeJSON } from "@/lib/ai/anthropic";
 import { clampTasteValue, type TasteDimensionId, type TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import { clampNutritionValue, type NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
+import { cleanDrinkPairingOption, type DrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
 import type {
   VegetarianVariant,
   RecipeDraft,
@@ -605,6 +606,194 @@ export async function clearNutritionInfo(recipeId: string): Promise<RecipeAction
 
   if (error || !recipeRow) {
     return { success: false, error: error?.message ?? "Kunne ikke fjerne næringsinnholdet." };
+  }
+
+  revalidatePath(`/admin/oppskrifter/${recipeId}`);
+  revalidateRecipePaths(recipeRow.slug);
+  return { success: true, slug: recipeRow.slug };
+}
+
+export interface DrinkPairingActionResult {
+  success: boolean;
+  drinkPairing?: DrinkPairing;
+  error?: string;
+}
+
+/**
+ * Genererer et drikkeforslag (vin/øl/alkoholfritt) med AI og lagrer det fast
+ * i recipes.drink_pairing – brukt av "Generer drikkeforslag"-knappen i
+ * admin-skjemaet (se components/admin/RecipeForm.tsx). Flyttet hit
+ * 11.09.2026 fra en tidligere live, cachet per-besøk AI-beregning – se
+ * "flyttet"-breadcrumben i lib/actions/kitchen-intelligence.ts og
+ * MERK-kommentaren for "drink_pairing" i
+ * lib/kitchen-intelligence/types.ts. Samme admin-genererer-én-gang-mønster
+ * som generateTasteProfile/generateNutritionInfo over.
+ *
+ * I MOTSETNING til de fleste andre "generer med AI"-feltene her lar dette
+ * BEVISST admin overstyre resultatet fritt for hånd etterpå – se
+ * saveDrinkPairing rett under, som lagrer manuelt skrevne/justerte felt uten
+ * noe AI-kall i det hele tatt (ønsket av Henrik 11.09.2026: "jeg vil også at
+ * jeg kan velge å skrive selv, eller generere" – samme
+ * skriv-selv-eller-generer-valgfrihet som titleEn/descriptionEn allerede har
+ * via generateEnglishTitleDescription/saveEnglishTitleDescription over).
+ *
+ * Genererer BEGGE språk (style/styleEn, detail/detailEn, note/noteEn) for
+ * alle tre kategoriene i ÉTT AI-kall – se DrinkPairingOption sin filheader i
+ * lib/kitchen-intelligence/drink-pairing.ts for hvorfor (i motsetning til
+ * TasteProfile, der kun oppsummeringen er tospråklig) HVERT felt her er
+ * tospråklig. recipe.tasteProfile sendes med som en EKSTRA, presis hint når
+ * den finnes – fungerer helt fint uten den også.
+ */
+export async function generateDrinkPairing(
+  recipeId: string,
+  input: {
+    title: string;
+    description: string;
+    ingredientNames: string[];
+    tasteProfile?: TasteProfile | null;
+  },
+): Promise<DrinkPairingActionResult> {
+  await requireAdmin();
+
+  if (!input.title.trim()) {
+    return { success: false, error: "Legg inn en tittel før du genererer drikkeforslag." };
+  }
+  if (input.ingredientNames.length === 0) {
+    return { success: false, error: "Legg inn minst én ingrediens før du genererer drikkeforslag." };
+  }
+
+  try {
+    const system =
+      "Du er en kunnskapsrik sommelier OG ølkjenner som gir korte, elegante drikkeforslag til en hjemmelaget " +
+      "rett, PÅ BEGGE SPRÅK (norsk og engelsk) i samme svar. Baser forslagene på rettens FAKTISKE " +
+      "smaksprofil, ikke bare navnet – resonner eksplisitt rundt fett, syre, sødme, salt, umami, " +
+      "styrke/chili, røyk, grilling, urter, kremethet, tomat, mørke/reduserte sauser, sjømat vs. kjøttype, " +
+      "og tilberedningsmetode. Foreslå TRE separate drikker som hver for seg genuint passer retten på egne " +
+      "premisser:\n\n" +
+      '1. VIN: en vinSTIL/-region (f.eks. «Côtes du Rhône») – aldri et bestemt produsentnavn eller flaske. ' +
+      'Ta med relevante druer i "detail"/"detailEn" kun når det faktisk tilfører informasjon.\n' +
+      "2. ØL: en konkret ølSTIL (f.eks. pilsner, helles, saison, weissbier, pale ale, IPA, brown ale, " +
+      "porter, dry stout) valgt ved å faktisk matche bitterhet, maltkarakter, ristede toner, kullsyre, " +
+      'sødme og alkoholstyrke mot retten – ALDRI bare «kraftig mat = mørkt øl». La "detail"/"detailEn" ' +
+      "være null med mindre en konkret humle-/maltnote faktisk tilfører verdi.\n" +
+      "3. UTEN ALKOHOL: en EKTE, gjennomtenkt match, ikke et pliktalternativ. Vurder ting som syrlig eller " +
+      "søtere eplemost, kombucha, en alkoholfri ølstil som passer, alkoholfri musserende, en tonic-/" +
+      "sitrusbasert drikke, eller et tebasert alternativ – velg det som FAKTISK passer denne rettens smak, " +
+      'aldri bare «alkoholfri vin» som et standardsvar til alt.\n\n' +
+      'Hold hver "note"/"noteEn" til NØYAKTIG én kort, konkret setning – leseren skal forstå HVA de bør ' +
+      "drikke og HVORFOR på et par sekunder, ikke lese et avsnitt. Unngå blomstrete språk. Skriv " +
+      "style/detail/note på norsk og styleEn/detailEn/noteEn på engelsk – innholdsmessig samme forslag, " +
+      "ikke en direkte ord-for-ord-oversettelse, men naturlig formulert på hvert språk.\n\n" +
+      'Svar KUN med JSON på nøyaktig denne formen: {"wine": {"style": "...", "styleEn": "...", "detail": ' +
+      '"..." eller null, "detailEn": "..." eller null, "note": "...", "noteEn": "..."}, "beer": {...samme ' +
+      'felt...}, "nonAlcoholic": {...samme felt...}}.';
+
+    const dims = input.tasteProfile?.dimensions;
+    const tasteLine = dims
+      ? `\nKjent smaksprofil (skala 0-5): søtt ${dims.sweet}/5, salt ${dims.salty}/5, syrlig ${dims.sour}/5, ` +
+        `bittert ${dims.bitter}/5, umami ${dims.umami}/5, sterkt/chili ${dims.spicy}/5. Oppsummering: ` +
+        `"${input.tasteProfile?.summary}"`
+      : "";
+
+    const prompt =
+      `Rett: ${input.title}\nBeskrivelse: ${input.description || "(ingen beskrivelse)"}\n` +
+      `Hovedingredienser: ${input.ingredientNames.slice(0, 15).join(", ") || "(ukjent)"}` +
+      tasteLine;
+
+    const result = await callClaudeJSON<{
+      wine?: {
+        style?: string;
+        styleEn?: string;
+        detail?: string | null;
+        detailEn?: string | null;
+        note?: string;
+        noteEn?: string;
+      };
+      beer?: {
+        style?: string;
+        styleEn?: string;
+        detail?: string | null;
+        detailEn?: string | null;
+        note?: string;
+        noteEn?: string;
+      };
+      nonAlcoholic?: {
+        style?: string;
+        styleEn?: string;
+        detail?: string | null;
+        detailEn?: string | null;
+        note?: string;
+        noteEn?: string;
+      };
+    }>(system, prompt, 700, 0.4);
+
+    const drinkPairing: DrinkPairing = {
+      wine: cleanDrinkPairingOption(result.wine),
+      beer: cleanDrinkPairingOption(result.beer),
+      nonAlcoholic: cleanDrinkPairingOption(result.nonAlcoholic),
+    };
+
+    return await saveDrinkPairing(recipeId, drinkPairing);
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Kunne ikke generere drikkeforslag. Prøv igjen.",
+    };
+  }
+}
+
+/** Lagrer et drikkeforslag direkte (uten AI) – brukt til å lagre manuelle
+ * justeringer av forslaget generateDrinkPairing fylte inn over, ELLER til å
+ * skrive det inn helt for hånd uten å ha generert noe først (ønsket av
+ * Henrik 11.09.2026, se filheaderen på generateDrinkPairing) – nøyaktig
+ * samme mønster som saveEnglishTitleDescription over. Kjører hvert felt
+ * gjennom cleanDrinkPairingOption uansett kilde, slik at lengdegrenser
+ * (60/220 tegn) og tom streng -> null for "detail" gjelder likt enten
+ * teksten kom fra AI-en eller ble skrevet inn for hånd. */
+export async function saveDrinkPairing(
+  recipeId: string,
+  drinkPairing: DrinkPairing,
+): Promise<DrinkPairingActionResult> {
+  await requireAdmin();
+
+  const cleaned: DrinkPairing = {
+    wine: cleanDrinkPairingOption(drinkPairing.wine),
+    beer: cleanDrinkPairingOption(drinkPairing.beer),
+    nonAlcoholic: cleanDrinkPairingOption(drinkPairing.nonAlcoholic),
+  };
+
+  const supabase = await createClient();
+  const { data: recipeRow, error } = await supabase
+    .from("recipes")
+    .update({ drink_pairing: cleaned as unknown })
+    .eq("id", recipeId)
+    .select("slug")
+    .single();
+
+  if (error || !recipeRow) {
+    return { success: false, error: error?.message ?? "Kunne ikke lagre drikkeforslaget." };
+  }
+
+  revalidateRecipePaths(recipeRow.slug);
+  return { success: true, drinkPairing: cleaned };
+}
+
+/** Fjerner et lagret drikkeforslag helt (tilbake til "ingen drikkeforslag
+ * generert ennå") – se kommentaren på clearTasteProfile/clearNutritionInfo
+ * over. */
+export async function clearDrinkPairing(recipeId: string): Promise<RecipeActionResult> {
+  await requireAdmin();
+
+  const supabase = await createClient();
+  const { data: recipeRow, error } = await supabase
+    .from("recipes")
+    .update({ drink_pairing: null })
+    .eq("id", recipeId)
+    .select("slug")
+    .single();
+
+  if (error || !recipeRow) {
+    return { success: false, error: error?.message ?? "Kunne ikke fjerne drikkeforslaget." };
   }
 
   revalidatePath(`/admin/oppskrifter/${recipeId}`);

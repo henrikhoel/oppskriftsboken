@@ -13,6 +13,9 @@ import {
   clearTasteProfile,
   generateNutritionInfo,
   clearNutritionInfo,
+  generateDrinkPairing,
+  saveDrinkPairing,
+  clearDrinkPairing,
   generateVegetarianVariant,
   saveVegetarianVariant,
   clearVegetarianVariant,
@@ -33,6 +36,7 @@ import {
 import { resizeImageFileToJpegBase64 } from "@/lib/utils/image";
 import { TASTE_DIMENSIONS, type TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import { NUTRITION_FIELDS, type NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
+import type { DrinkPairing, DrinkPairingOption } from "@/lib/kitchen-intelligence/drink-pairing";
 import type { VegetarianVariant, RecipeImprovementSuggestion, ExternalRecipeMatch } from "@/lib/types";
 import { ExternalRecipeMatchCard } from "@/components/admin/ExternalRecipeMatchCard";
 import { Drawer } from "@/components/ui/Drawer";
@@ -95,6 +99,38 @@ function vegetarianToFormGroups(variant: VegetarianVariant | null | undefined): 
 function vegetarianToFormSteps(variant: VegetarianVariant | null | undefined): FormStep[] {
   if (!variant || variant.steps.length === 0) return [newStep()];
   return variant.steps.map((s) => ({ key: makeKey(), groupTitle: s.groupTitle ?? "", text: s.text }));
+}
+
+/** Skjema-vennlig form av én DrinkPairingOption (vin/øl/alkoholfritt, se
+ * lib/kitchen-intelligence/drink-pairing.ts) – tomme strenger i input-feltene
+ * i stedet for streng/null, samme prinsipp som resten av skjemaets tekstfelt
+ * (amount/unit/note på ingredienser osv.). "detail"/"detailEn" konverteres
+ * tilbake til null ved lagring (se cleanDrinkPairingOption, kjørt av
+ * generateDrinkPairing/saveDrinkPairing i lib/actions/recipes.ts uansett om
+ * teksten kom fra AI-en eller ble skrevet inn for hånd her). */
+interface DrinkOptionFormState {
+  style: string;
+  styleEn: string;
+  detail: string;
+  detailEn: string;
+  note: string;
+  noteEn: string;
+}
+
+function emptyDrinkOption(): DrinkOptionFormState {
+  return { style: "", styleEn: "", detail: "", detailEn: "", note: "", noteEn: "" };
+}
+
+function drinkOptionToFormState(option: DrinkPairingOption | null | undefined): DrinkOptionFormState {
+  if (!option) return emptyDrinkOption();
+  return {
+    style: option.style,
+    styleEn: option.styleEn,
+    detail: option.detail ?? "",
+    detailEn: option.detailEn ?? "",
+    note: option.note,
+    noteEn: option.noteEn,
+  };
 }
 
 /** Formaterer cookTimeMinutes/cookTimeMinutesMax tilbake til teksten admin
@@ -1036,6 +1072,98 @@ export function RecipeForm({
     }
   }
 
+  // Drikkeforslag (vin/øl/alkoholfritt) – flyttet 11.09.2026 fra en live,
+  // per-besøk AI-beregning til en forhåndsgenerert admin-egenskap her, se
+  // filheaderen til generateDrinkPairing i lib/actions/recipes.ts. I
+  // MOTSETNING til smaksprofil/næringsinnhold over (kun "generer") har
+  // dette BEVISST SAMME to-veier-inn-mønster som Engelsk tittel/beskrivelse
+  // OG Vegetarversjon lenger ned: feltene er alltid vanlige, redigerbare
+  // tekstfelt – "Generer drikkeforslag" fyller dem fra et AI-forslag, men
+  // admin kan like gjerne skrive/justere hvert felt for hånd og trykke
+  // "Lagre drikkeforslag" uten å ha generert noe i det hele tatt (ønsket av
+  // Henrik 11.09.2026: "jeg vil også at jeg kan velge å skrive selv, eller
+  // generere"). Egen, umiddelbar lagre-knapp (ikke en del av
+  // hovedskjemaets submit) – nøyaktig samme begrunnelse som
+  // handleSaveEnglish over.
+  const [drinkWine, setDrinkWine] = useState<DrinkOptionFormState>(drinkOptionToFormState(recipe?.drinkPairing?.wine));
+  const [drinkBeer, setDrinkBeer] = useState<DrinkOptionFormState>(drinkOptionToFormState(recipe?.drinkPairing?.beer));
+  const [drinkNonAlcoholic, setDrinkNonAlcoholic] = useState<DrinkOptionFormState>(
+    drinkOptionToFormState(recipe?.drinkPairing?.nonAlcoholic),
+  );
+  const [hasSavedDrinkPairing, setHasSavedDrinkPairing] = useState(Boolean(recipe?.drinkPairing));
+  const [isGeneratingDrinkPairing, setIsGeneratingDrinkPairing] = useState(false);
+  const [drinkPairingGenerateError, setDrinkPairingGenerateError] = useState<string | null>(null);
+  const [isSavingDrinkPairing, setIsSavingDrinkPairing] = useState(false);
+  const [drinkPairingSaveError, setDrinkPairingSaveError] = useState<string | null>(null);
+  const [drinkPairingSavedNotice, setDrinkPairingSavedNotice] = useState<string | null>(null);
+  const [isClearingDrinkPairing, setIsClearingDrinkPairing] = useState(false);
+  const [drinkPairingClearError, setDrinkPairingClearError] = useState<string | null>(null);
+
+  function applyDrinkPairing(pairing: DrinkPairing) {
+    setDrinkWine(drinkOptionToFormState(pairing.wine));
+    setDrinkBeer(drinkOptionToFormState(pairing.beer));
+    setDrinkNonAlcoholic(drinkOptionToFormState(pairing.nonAlcoholic));
+    setHasSavedDrinkPairing(true);
+  }
+
+  async function handleGenerateDrinkPairing() {
+    if (!recipe) return;
+    setDrinkPairingGenerateError(null);
+    setDrinkPairingSavedNotice(null);
+    setIsGeneratingDrinkPairing(true);
+    try {
+      const ingredientNames = groups.flatMap((g) => g.items.map((i) => i.name.trim())).filter(Boolean);
+      const result = await generateDrinkPairing(recipe.id, { title, description, ingredientNames, tasteProfile });
+      if (!result.success || !result.drinkPairing) {
+        setDrinkPairingGenerateError(result.error ?? "Kunne ikke generere drikkeforslag.");
+        return;
+      }
+      applyDrinkPairing(result.drinkPairing);
+      setDrinkPairingSavedNotice("Generert og lagret.");
+    } finally {
+      setIsGeneratingDrinkPairing(false);
+    }
+  }
+
+  async function handleSaveDrinkPairing() {
+    if (!recipe) return;
+    setDrinkPairingSaveError(null);
+    setDrinkPairingSavedNotice(null);
+    setIsSavingDrinkPairing(true);
+    try {
+      const drinkPairing: DrinkPairing = { wine: drinkWine, beer: drinkBeer, nonAlcoholic: drinkNonAlcoholic };
+      const result = await saveDrinkPairing(recipe.id, drinkPairing);
+      if (!result.success || !result.drinkPairing) {
+        setDrinkPairingSaveError(result.error ?? "Kunne ikke lagre drikkeforslaget.");
+        return;
+      }
+      applyDrinkPairing(result.drinkPairing);
+      setDrinkPairingSavedNotice("Lagret.");
+    } finally {
+      setIsSavingDrinkPairing(false);
+    }
+  }
+
+  async function handleClearDrinkPairing() {
+    if (!recipe) return;
+    setDrinkPairingClearError(null);
+    setDrinkPairingSavedNotice(null);
+    setIsClearingDrinkPairing(true);
+    try {
+      const result = await clearDrinkPairing(recipe.id);
+      if (!result.success) {
+        setDrinkPairingClearError(result.error ?? "Kunne ikke fjerne drikkeforslaget.");
+        return;
+      }
+      setDrinkWine(emptyDrinkOption());
+      setDrinkBeer(emptyDrinkOption());
+      setDrinkNonAlcoholic(emptyDrinkOption());
+      setHasSavedDrinkPairing(false);
+    } finally {
+      setIsClearingDrinkPairing(false);
+    }
+  }
+
   // Vegetarversjon (25.08.2026 – flyttet fra live generering på
   // oppskriftssiden til her, se filheaderen til VegetarianVariant i
   // lib/types.ts). To veier inn: "Generer med AI" (fyller feltene under fra
@@ -1816,6 +1944,81 @@ export function RecipeForm({
       <section className="space-y-4 rounded-card border border-line bg-paper p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
+            <h2 className="font-serif text-xl text-ink">Drikkeforslag</h2>
+            <p className="mt-1 text-xs text-ink-faint">
+              Vises bak "Drikke til"-knappen på oppskriftssiden – forhåndsgenerert her, ikke lenger en
+              live beregning for hver besøkende. Skriv inn feltene for hånd, generer et forslag med AI,
+              eller generer og juster etterpå – begge deler går fint.
+            </p>
+          </div>
+          {isEditing && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateDrinkPairing}
+              disabled={isGeneratingDrinkPairing || isSavingDrinkPairing}
+            >
+              {isGeneratingDrinkPairing
+                ? "Genererer …"
+                : hasSavedDrinkPairing
+                  ? "Generer på nytt"
+                  : "Generer drikkeforslag"}
+            </Button>
+          )}
+        </div>
+
+        {isEditing ? (
+          <>
+            {drinkPairingGenerateError && <p className="text-sm text-clay-dark">{drinkPairingGenerateError}</p>}
+            {drinkPairingSaveError && <p className="text-sm text-clay-dark">{drinkPairingSaveError}</p>}
+            {drinkPairingClearError && <p className="text-sm text-clay-dark">{drinkPairingClearError}</p>}
+
+            <div className="space-y-3">
+              <DrinkOptionFieldGroup legend="Vin" value={drinkWine} onChange={setDrinkWine} idPrefix="drink-wine" />
+              <DrinkOptionFieldGroup legend="Øl" value={drinkBeer} onChange={setDrinkBeer} idPrefix="drink-beer" />
+              <DrinkOptionFieldGroup
+                legend="Uten alkohol"
+                value={drinkNonAlcoholic}
+                onChange={setDrinkNonAlcoholic}
+                idPrefix="drink-nonalcoholic"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleSaveDrinkPairing}
+                disabled={isSavingDrinkPairing || isGeneratingDrinkPairing}
+              >
+                {isSavingDrinkPairing ? "Lagrer …" : "Lagre drikkeforslag"}
+              </Button>
+              {drinkPairingSavedNotice && <span className="text-xs text-ink-faint">{drinkPairingSavedNotice}</span>}
+              {hasSavedDrinkPairing && (
+                <button
+                  type="button"
+                  onClick={handleClearDrinkPairing}
+                  disabled={isClearingDrinkPairing}
+                  className="text-sm text-ink-faint underline underline-offset-2 hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isClearingDrinkPairing ? "Fjerner …" : "Fjern drikkeforslag"}
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="text-xs italic text-ink-faint">
+            Opprett og lagre oppskriften først – deretter kan du skrive inn eller generere et
+            drikkeforslag her.
+          </p>
+        )}
+      </section>
+
+      <section className="space-y-4 rounded-card border border-line bg-paper p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
             <h2 className="font-serif text-xl text-ink">Vegetarversjon</h2>
             <p className="mt-1 text-xs text-ink-faint">
               Vises bak en "Ønsker du en vegetarversjon?"-knapp på oppskriftssiden – KUN dersom en variant er
@@ -2264,6 +2467,81 @@ function Field({
       {children}
       {hint && <p className="mt-1 text-xs text-ink-faint">{hint}</p>}
     </div>
+  );
+}
+
+/** Ett drikkeforslag (vin/øl/alkoholfritt) sine seks felt – se
+ * DrinkOptionFormState over. Brukt tre ganger i Drikkeforslag-seksjonen,
+ * ETT for hver kategori – samme skriv-selv-eller-generer-felt uansett om
+ * innholdet nettopp ble fylt inn av "Generer drikkeforslag" eller skrives
+ * for hånd fra bunnen av. */
+function DrinkOptionFieldGroup({
+  legend,
+  value,
+  onChange,
+  idPrefix,
+}: {
+  legend: string;
+  value: DrinkOptionFormState;
+  onChange: (next: DrinkOptionFormState) => void;
+  idPrefix: string;
+}) {
+  return (
+    <fieldset className="space-y-3 rounded-xl border border-line bg-cream-dark/40 p-3.5">
+      <legend className="px-1 text-xs font-semibold uppercase tracking-[0.2em] text-clay">{legend}</legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Stil (norsk)" htmlFor={`${idPrefix}-style`}>
+          <input
+            id={`${idPrefix}-style`}
+            value={value.style}
+            onChange={(e) => onChange({ ...value, style: e.target.value })}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Stil (engelsk)" htmlFor={`${idPrefix}-styleEn`}>
+          <input
+            id={`${idPrefix}-styleEn`}
+            value={value.styleEn}
+            onChange={(e) => onChange({ ...value, styleEn: e.target.value })}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Detalj (norsk)" htmlFor={`${idPrefix}-detail`} hint="Valgfri, f.eks. druer for vin.">
+          <input
+            id={`${idPrefix}-detail`}
+            value={value.detail}
+            onChange={(e) => onChange({ ...value, detail: e.target.value })}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Detalj (engelsk)" htmlFor={`${idPrefix}-detailEn`}>
+          <input
+            id={`${idPrefix}-detailEn`}
+            value={value.detailEn}
+            onChange={(e) => onChange({ ...value, detailEn: e.target.value })}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Begrunnelse (norsk)" htmlFor={`${idPrefix}-note`}>
+          <textarea
+            id={`${idPrefix}-note`}
+            value={value.note}
+            onChange={(e) => onChange({ ...value, note: e.target.value })}
+            rows={2}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Begrunnelse (engelsk)" htmlFor={`${idPrefix}-noteEn`}>
+          <textarea
+            id={`${idPrefix}-noteEn`}
+            value={value.noteEn}
+            onChange={(e) => onChange({ ...value, noteEn: e.target.value })}
+            rows={2}
+            className={inputClass}
+          />
+        </Field>
+      </div>
+    </fieldset>
   );
 }
 

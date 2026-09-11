@@ -1,6 +1,7 @@
 import type { Difficulty } from "@/lib/config";
 import type { TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import type { NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
+import type { DrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
 
 /**
  * Domenetyper for oppskriftsboken. Disse speiler databaseskjemaet i
@@ -248,6 +249,17 @@ export interface Recipe {
    * næringsinnhold"-knapp på oppskriftssiden. Samme "valgfritt, ikke satt i
    * demo-data"-mønster som tasteProfile over. */
   nutritionInfo?: NutritionInfo | null;
+  /** Forhåndsgenerert drikkeforslag – vin/øl/alkoholfritt (admin -> "Generer
+   * drikkeforslag", se lib/actions/recipes.ts -> generateDrinkPairing).
+   * Flyttet 11.09.2026 fra en live, cachet per-besøk AI-beregning (samme
+   * overgang som tasteProfile gjennomgikk 25.08.2026) – se
+   * lib/kitchen-intelligence/drink-pairing.ts sin filheader. Null/undefined
+   * = ikke generert ennå – vis da INGEN "DRIKKE TIL"-knapp/-seksjon på
+   * oppskriftssiden (samme "valgfritt, ikke satt i demo-data"-mønster som
+   * tasteProfile/nutritionInfo over). "Passer denne?" (skriv inn/fotografer
+   * egen vin) er UPÅVIRKET av dette feltet – den forblir en live AI-sjekk
+   * hver gang, se DrinkPairingSection.tsx. */
+  drinkPairing?: DrinkPairing | null;
   /** Forhåndslagret vegetarversjon (admin -> "Generer med AI" og/eller
    * håndredigert selv, se lib/actions/recipes.ts ->
    * generateVegetarianVariant/saveVegetarianVariant). Null/undefined = ingen

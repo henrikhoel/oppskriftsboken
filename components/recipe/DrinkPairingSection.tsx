@@ -2,22 +2,23 @@
 
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { clsx } from "clsx";
-import { getDrinkPairing, type DrinkPairing, type DrinkPairingOption } from "@/lib/actions/kitchen-intelligence";
+import type { DrinkPairing, LocalizedDrinkOption, LocalizedDrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
+import { localizedDrinkPairing } from "@/lib/utils/format";
 import { checkBeverageMatch, checkWineMatchFromImage } from "@/lib/actions/ai";
 import { getVinmonopoletWineSuggestion, type VinmonopoletSuggestion } from "@/lib/actions/vinmonopolet";
 import { WINE_VERDICT_LABELS, WINE_VERDICT_LABELS_EN, type WineVerdict } from "@/lib/wine-verdict";
-import type { TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import { resizeImageFileToJpegBase64 } from "@/lib/utils/image";
 import { CameraIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
  * "DRIKKE TIL" – erstatter den tidligere WineSection.tsx (kun vin) på
- * oppskriftssiden. Se filheaderen til getDrinkPairing i
- * lib/actions/kitchen-intelligence.ts for hvordan de tre kategoriene deler
- * ÉN vurdering av rettens smaksprofil, og BeverageKind i lib/actions/ai.ts
- * for hvorfor "passer denne?"-sjekkeren under er generalisert (kun vin er
- * koblet til i UI-et ennå – se punkt 7 i spesifikasjonen).
+ * oppskriftssiden. Se filheaderen til DrinkPairingOption i
+ * lib/kitchen-intelligence/drink-pairing.ts for hvordan de tre kategoriene
+ * deler ÉN vurdering av rettens smaksprofil, og BeverageKind i
+ * lib/actions/ai.ts for hvorfor "passer denne?"-sjekkeren under er
+ * generalisert (kun vin er koblet til i UI-et ennå – se punkt 7 i
+ * spesifikasjonen).
  *
  * DESIGN: bevisst ÉN rolig seksjon (ikke tre separate kort) – tre kolonner
  * atskilt av subtile skillelinjer på desktop, stablet på mobil. Ingen
@@ -25,6 +26,18 @@ import { t, type Lang } from "@/lib/i18n";
  * små sperret store bokstaver til kategorietikettene) som resten av
  * CONVITEs "kjøkkenintelligens"-seksjoner (se f.eks. Eyebrow-mønsteret i
  * EveningExperience.tsx).
+ *
+ * FORSLAGET (wine/beer/nonAlcoholic) er IKKE lenger en live AI-beregning
+ * her – flyttet 11.09.2026 til et forhåndsgenerert admin-forslag lagret på
+ * selve oppskriften (recipe.drinkPairing, se generateDrinkPairing i
+ * lib/actions/recipes.ts). "DRIKKE TIL"-knappen (DrinkPairingReveal under)
+ * gjør derfor INGEN AI-kall lenger – den avslører kun det allerede innlastede
+ * forslaget, med en kort kunstig "sjekker"-forsinkelse (~1,8-2s) FØR
+ * forslaget vises, slik at det fortsatt føles som et valg blir tatt idet man
+ * trykker (ønsket av Henrik: "det er viktig at man får følelsen av at det er
+ * et valg som blir generert"). "Passer denne?" (BeverageMatchChecker under)
+ * er UPÅVIRKET av dette – den er fortsatt en ekte, live AI-vurdering hver
+ * gang, se filheaderen der.
  */
 
 const VERDICT_STYLES: Record<WineVerdict, string> = {
@@ -41,10 +54,10 @@ interface RecipeContext {
 }
 
 /** Bygger fritekst-strengen getVinmonopoletWineSuggestion forventer (samme
- * kontrakt som før: "en vinstil-tekst"), fra den nye strukturerte
+ * kontrakt som før: "en vinstil-tekst"), fra den (allerede språk-valgte)
  * vin-kolonnen – bevarer den eksisterende Vinmonopolet-integrasjonen
  * uendret, kun kilden til teksten er ny. */
-function wineOptionToSearchText(wine: DrinkPairingOption): string {
+function wineOptionToSearchText(wine: LocalizedDrinkOption): string {
   const styleAndDetail = wine.detail ? `${wine.style} (${wine.detail})` : wine.style;
   return wine.note ? `${styleAndDetail}. ${wine.note}` : styleAndDetail;
 }
@@ -55,7 +68,7 @@ function DrinkColumn({
   children,
 }: {
   label: string;
-  option: DrinkPairingOption;
+  option: LocalizedDrinkOption;
   children?: ReactNode;
 }) {
   if (!option.style) return null;
@@ -75,7 +88,7 @@ function DrinkPairingResult({
   recipeContext,
   lang,
 }: {
-  pairing: DrinkPairing;
+  pairing: LocalizedDrinkPairing;
   recipeContext: RecipeContext;
   lang: Lang;
 }) {
@@ -180,26 +193,26 @@ function DrinkPairingResult({
   );
 }
 
-function DrinkPairingFetcher({ recipeId, recipeContext, tasteProfile, lang }: {
-  recipeId: string;
+/** Antall millisekunder den kunstige "sjekker"-forsinkelsen varer før det
+ * forhåndsgenererte forslaget avsløres – se filheaderen øverst i denne
+ * filen. Bevisst i det korte, men merkbare, sjiktet: lang nok til at det
+ * føles som et valg blir tatt, kort nok til at det ikke oppleves tregt. */
+const REVEAL_DELAY_MS = 1900;
+
+function DrinkPairingReveal({ drinkPairing, recipeContext, lang }: {
+  drinkPairing: DrinkPairing;
   recipeContext: RecipeContext;
-  tasteProfile: TasteProfile | null;
   lang: Lang;
 }) {
-  const [pairing, setPairing] = useState<DrinkPairing | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isChecking, setIsChecking] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
   function handleClick() {
-    setError(null);
-    startTransition(async () => {
-      try {
-        const result = await getDrinkPairing(recipeId, { ...recipeContext, tasteProfile }, lang);
-        setPairing(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : t(lang, "drinkPairing.error"));
-      }
-    });
+    setIsChecking(true);
+    window.setTimeout(() => {
+      setIsChecking(false);
+      setRevealed(true);
+    }, REVEAL_DELAY_MS);
   }
 
   return (
@@ -207,20 +220,20 @@ function DrinkPairingFetcher({ recipeId, recipeContext, tasteProfile, lang }: {
       <h3 className="font-serif text-lg text-ink">{t(lang, "drinkPairing.heading")}</h3>
       <p className="mt-1 text-sm text-ink-faint">{t(lang, "drinkPairing.intro")}</p>
 
-      {!pairing && (
+      {!revealed && (
         <button
           type="button"
           onClick={handleClick}
-          disabled={isPending}
+          disabled={isChecking}
           className="mt-3 rounded-xl bg-clay px-4 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
         >
-          {isPending ? t(lang, "drinkPairing.loading") : t(lang, "drinkPairing.button")}
+          {isChecking ? t(lang, "drinkPairing.loading") : t(lang, "drinkPairing.button")}
         </button>
       )}
 
-      {error && <p className="mt-3 text-sm text-clay-dark">{error}</p>}
-
-      {pairing && <DrinkPairingResult pairing={pairing} recipeContext={recipeContext} lang={lang} />}
+      {revealed && (
+        <DrinkPairingResult pairing={localizedDrinkPairing(drinkPairing, lang)} recipeContext={recipeContext} lang={lang} />
+      )}
     </div>
   );
 }
@@ -228,8 +241,25 @@ function DrinkPairingFetcher({ recipeId, recipeContext, tasteProfile, lang }: {
 /** "Passer denne?": gjest skriver inn (eller fotograferer) en vin, får en
  * vurdering mot retten. Generalisert i lib/actions/ai.ts
  * (checkBeverageMatch) – kalles her med beverageKind "wine" siden det er
- * det eneste UI-et støtter i dag, se filheaderen over. */
-function BeverageMatchChecker({ recipeContext, lang }: { recipeContext: RecipeContext; lang: Lang }) {
+ * det eneste UI-et støtter i dag, se filheaderen over. UPÅVIRKET av
+ * omleggingen til forhåndsgenererte drikkeforslag – dette er fortsatt en
+ * ekte, live AI-vurdering for HVER innsending, ingen caching/forhånds-
+ * generering (ønsket eksplisitt av Henrik 11.09.2026: "at man skriver inn
+ * sin egen vin og tar bilde må naturligvis fortsatt genereres hver gang").
+ *
+ * withDivider: skiller-linjen (border-t)/toppmargen over denne seksjonen
+ * skal kun vises når DrinkPairingReveal faktisk rendret noe over den – uten
+ * et generert drikkeforslag er dette den FØRSTE seksjonen i
+ * DrinkPairingSection, og skal da ikke ha en løs skillelinje mot ingenting. */
+function BeverageMatchChecker({
+  recipeContext,
+  lang,
+  withDivider,
+}: {
+  recipeContext: RecipeContext;
+  lang: Lang;
+  withDivider: boolean;
+}) {
   const [beverageName, setBeverageName] = useState("");
   const [result, setResult] = useState<{
     verdict: WineVerdict;
@@ -295,7 +325,7 @@ function BeverageMatchChecker({ recipeContext, lang }: { recipeContext: RecipeCo
   }
 
   return (
-    <div className="mt-6 border-t border-line pt-6">
+    <div className={withDivider ? "mt-6 border-t border-line pt-6" : undefined}>
       <h3 className="font-serif text-lg text-ink">{t(lang, "drinkPairing.matchTitle")}</h3>
       <p className="mt-1 text-sm text-ink-faint">{t(lang, "drinkPairing.matchDesc")}</p>
 
@@ -362,14 +392,15 @@ function BeverageMatchChecker({ recipeContext, lang }: { recipeContext: RecipeCo
 }
 
 export function DrinkPairingSection({
-  recipeId,
+  drinkPairing,
   recipeContext,
-  tasteProfile,
   lang,
 }: {
-  recipeId: string;
+  /** Forhåndsgenerert i admin, se filheaderen øverst i denne filen – null
+   * når ingen admin har generert (eller skrevet inn for hånd) et
+   * drikkeforslag for denne oppskriften ennå. */
+  drinkPairing: DrinkPairing | null;
   recipeContext: RecipeContext;
-  tasteProfile: TasteProfile | null;
   lang: Lang;
 }) {
   // Boks-stylingen (rounded-card/border/bg) fjernet 31.08.2026
@@ -379,10 +410,17 @@ export function DrinkPairingSection({
   // "sekundær info"-flaten i RecipeInteractive.tsx – de to interne
   // border-t-skillelinjene under er beholdt uendret siden de allerede gir
   // riktig visuell inndeling MELLOM de to delfunksjonene.
+  //
+  // "Drikke til" vises kun når drinkPairing faktisk finnes (se
+  // DrinkPairingReveal) – uten det er "Passer denne?" den eneste, FØRSTE
+  // seksjonen her, og skal derfor ikke ha en skillelinje over seg mot
+  // ingenting (withDivider).
   return (
     <div>
-      <DrinkPairingFetcher recipeId={recipeId} recipeContext={recipeContext} tasteProfile={tasteProfile} lang={lang} />
-      <BeverageMatchChecker recipeContext={recipeContext} lang={lang} />
+      {drinkPairing && (
+        <DrinkPairingReveal drinkPairing={drinkPairing} recipeContext={recipeContext} lang={lang} />
+      )}
+      <BeverageMatchChecker recipeContext={recipeContext} lang={lang} withDivider={drinkPairing != null} />
     </div>
   );
 }

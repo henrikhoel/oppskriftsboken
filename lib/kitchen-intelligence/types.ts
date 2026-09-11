@@ -209,19 +209,17 @@ export const AI_CACHE_FEATURES = [
   // lib/actions/recipes.ts. Gamle cache-rader med feature="taste_profile"
   // kan trygt ligge urørt/slettes manuelt i ai_suggestion_cache – de leses
   // ikke av noe lenger.
-  // "drink_pairing" (28.08.2026): getDrinkPairing i
-  // lib/actions/kitchen-intelligence.ts – "Drikke til" på selve
-  // oppskriftssiden (components/recipe/DrinkPairingSection.tsx), som
-  // utvider den tidligere ène-vin-forslaget der til tre samtidige forslag
-  // (vin/øl/uten alkohol) fra ÉTT AI-kall som vurderer rettens faktiske
-  // smaksprofil under ett, i stedet for tre separate, ukoordinerte kall.
-  // getWineRecommendation i lib/actions/ai.ts lever VIDERE uendret – den
+  // MERK: "drink_pairing" er BEVISST ikke lenger her – "Drikke til"
+  // (vin/øl/alkoholfritt) er 11.09.2026 gjort om, samme mønster som
+  // taste_profile over, fra en cachet, live per-besøk AI-beregning
+  // (getDrinkPairing) til en forhåndsgenerert admin-egenskap lagret direkte
+  // på oppskriften (recipes.drink_pairing), se generateDrinkPairing i
+  // lib/actions/recipes.ts og lib/kitchen-intelligence/drink-pairing.ts.
+  // Gamle cache-rader med feature="drink_pairing" kan trygt ligge urørt/
+  // slettes manuelt i ai_suggestion_cache – de leses ikke av noe lenger.
+  // getWineRecommendation i lib/actions/ai.ts er UPÅVIRKET av dette – den
   // brukes fortsatt av den HELT ANDRE "Mat & vin"-seksjonen på forsiden
-  // (components/home/WinePairing.tsx, retning RETT -> VIN), kun bruken på
-  // selve oppskriftssiden er erstattet av denne. Cache-nøkkelen er bare
-  // språket (`lang`) – samme svar for alle besøkende på DENNE oppskriften,
-  // samme mønster som "menu_suggestion".
-  "drink_pairing",
+  // (components/home/WinePairing.tsx, retning RETT -> VIN).
   // "manual_meal_fit" (10.09.2026): evaluateManualMeal i
   // lib/actions/kitchen-intelligence.ts – "Bygg en meny selv" (/meny/ny,
   // ManualMealBuilder.tsx). Motsatt retning av "meal_plan": her har

@@ -12,6 +12,7 @@ import type { Difficulty } from "@/lib/config";
 import type { SearchableRecipe } from "@/lib/utils/search";
 import type { TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import type { NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
+import type { DrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
 
 /**
  * Rå radform slik den kommer tilbake fra Supabase når vi embedder relaterte
@@ -35,6 +36,9 @@ export interface RawRecipeRow {
   // jsonb – se lib/kitchen-intelligence/nutrition.ts. Samme
   // unknown-frem-for-NutritionInfo-begrunnelse som taste_profile over.
   nutrition_info: unknown | null;
+  // jsonb – se lib/kitchen-intelligence/drink-pairing.ts. Samme
+  // unknown-frem-for-egen-type-begrunnelse som taste_profile/nutrition_info over.
+  drink_pairing: unknown | null;
   // jsonb – se VegetarianVariant i lib/types.ts. Samme
   // unknown-frem-for-egen-type-begrunnelse som taste_profile/nutrition_info over.
   vegetarian_variant: unknown | null;
@@ -154,6 +158,7 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
     descriptionEn: raw.description_en,
     tasteProfile: raw.taste_profile as TasteProfile | null,
     nutritionInfo: raw.nutrition_info as NutritionInfo | null,
+    drinkPairing: raw.drink_pairing as DrinkPairing | null,
     vegetarianVariant: raw.vegetarian_variant as VegetarianVariant | null,
     heroImageUrl: raw.hero_image_url,
     heroImageAlt: raw.hero_image_alt,
@@ -185,7 +190,7 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
 }
 
 export const RECIPE_SELECT = `
-  id, slug, title, description, title_en, description_en, taste_profile, nutrition_info, vegetarian_variant, hero_image_url, hero_image_alt, hero_image_is_ai_generated, servings,
+  id, slug, title, description, title_en, description_en, taste_profile, nutrition_info, drink_pairing, vegetarian_variant, hero_image_url, hero_image_alt, hero_image_is_ai_generated, servings,
   prep_time_minutes, cook_time_minutes, cook_time_minutes_max, total_time_minutes, difficulty,
   notes, tips, warnings, source, is_published, is_featured, featured_sort_order, favorited_by_admin,
   rating_sum, rating_count,

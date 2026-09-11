@@ -540,21 +540,24 @@ const DICT = {
 
   // "DRIKKE TIL" (28.08.2026) – erstatter den tidligere frittstående
   // vinanbefalingen (wine.recTitle m.fl., nå fjernet) på oppskriftssiden,
-  // se DrinkPairingSection.tsx og getDrinkPairing i
-  // lib/actions/kitchen-intelligence.ts. wine.vinmonopolet*/wine.match*-
-  // nøklene over BRUKES FORTSATT herfra (vinprodukt-oppslag og
-  // "passer denne?"-sjekkeren) – kun selve seksjonsrammen er ny.
+  // se DrinkPairingSection.tsx. wine.vinmonopolet*/wine.match*-nøklene over
+  // BRUKES FORTSATT herfra (vinprodukt-oppslag og "passer denne?"-
+  // sjekkeren) – kun selve seksjonsrammen er ny.
+  //
+  // Flyttet 11.09.2026 fra en live AI-beregning (getDrinkPairing) til et
+  // forhåndsgenerert admin-forslag (recipes.drink_pairing, se
+  // generateDrinkPairing i lib/actions/recipes.ts) – "drikkePairing.button"
+  // kaller derfor ikke lenger AI, den avslører bare det ferdige forslaget,
+  // med en kort kunstig "sjekker"-forsinkelse (drinkPairing.loading gjenbrukt
+  // uendret som denne "sjekker"-teksten) slik at det fortsatt føles som et
+  // valg blir tatt idet knappen trykkes – se DrinkPairingSection.tsx.
   "drinkPairing.heading": { no: "Drikke til", en: "Drink pairing" },
   "drinkPairing.intro": {
     no: "Et forslag til hva du kan drikke til, tilpasset rettens smak.",
     en: "A suggestion for what to drink with it, matched to the dish's flavor.",
   },
   "drinkPairing.button": { no: "Få drikkeforslag", en: "Get drink suggestions" },
-  "drinkPairing.loading": { no: "Finner gode drikkematcher …", en: "Finding good pairings …" },
-  "drinkPairing.error": {
-    no: "Kunne ikke hente drikkeforslag. Prøv igjen.",
-    en: "Couldn't fetch drink suggestions. Please try again.",
-  },
+  "drinkPairing.loading": { no: "Sjekker …", en: "Checking …" },
   "drinkPairing.wineLabel": { no: "Vin", en: "Wine" },
   "drinkPairing.beerLabel": { no: "Øl", en: "Beer" },
   "drinkPairing.nonAlcoholicLabel": { no: "Uten alkohol", en: "Non-alcoholic" },

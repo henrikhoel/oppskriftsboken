@@ -740,13 +740,12 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
 
         <div className="py-10 sm:py-12">
           <DrinkPairingSection
-            recipeId={recipe.id}
+            drinkPairing={recipe.drinkPairing ?? null}
             recipeContext={{
               title: displayTitle,
               description: displayDescription,
               ingredientNames: recipeIngredientNames,
             }}
-            tasteProfile={recipe.tasteProfile ?? null}
             lang={lang}
           />
         </div>

@@ -1,5 +1,11 @@
 import { DIFFICULTY_LABELS } from "@/lib/config";
 import type { Difficulty } from "@/lib/config";
+import type {
+  DrinkPairing,
+  DrinkPairingOption,
+  LocalizedDrinkOption,
+  LocalizedDrinkPairing,
+} from "@/lib/kitchen-intelligence/drink-pairing";
 
 /** Formaterer minutter som "45 min" eller "1 t 15 min" (evt. "1 h 15 min" på engelsk). */
 export function formatMinutes(minutes: number | null | undefined, lang: "no" | "en" = "no"): string {
@@ -61,6 +67,35 @@ export function localizedCategoryName(
   lang: "no" | "en" = "no",
 ): string {
   return lang === "en" && category.nameEn ? category.nameEn : category.name;
+}
+
+/** Én forhåndsgenerert DrinkPairingOption (se
+ * lib/kitchen-intelligence/drink-pairing.ts) er BEGGE språk på én gang –
+ * disse to funksjonene plukker ut riktig språks style/detail/note, samme
+ * "fall tilbake til norsk hvis engelsk mangler"-mønster som
+ * localizedTitle/localizedDescription over (dekker svært gamle, ufullstendig
+ * genererte rader). Brukt av DrinkPairingSection.tsx idet forslaget vises
+ * (ETT sted, ikke spredt ut per felt i komponenten). */
+export function localizedDrinkPairingOption(
+  option: DrinkPairingOption,
+  lang: "no" | "en" = "no",
+): LocalizedDrinkOption {
+  if (lang === "en") {
+    return {
+      style: option.styleEn || option.style,
+      detail: option.detailEn || option.detail,
+      note: option.noteEn || option.note,
+    };
+  }
+  return { style: option.style, detail: option.detail, note: option.note };
+}
+
+export function localizedDrinkPairing(pairing: DrinkPairing, lang: "no" | "en" = "no"): LocalizedDrinkPairing {
+  return {
+    wine: localizedDrinkPairingOption(pairing.wine, lang),
+    beer: localizedDrinkPairingOption(pairing.beer, lang),
+    nonAlcoholic: localizedDrinkPairingOption(pairing.nonAlcoholic, lang),
+  };
 }
 
 const DIFFICULTY_LABELS_EN: Record<Difficulty, string> = {

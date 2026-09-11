@@ -90,6 +90,7 @@ export interface Database {
           description_en: string | null;
           taste_profile: unknown | null;
           nutrition_info: unknown | null;
+          drink_pairing: unknown | null;
           hero_image_url: string | null;
           hero_image_alt: string | null;
           hero_image_is_ai_generated: boolean;
@@ -127,6 +128,7 @@ export interface Database {
           description_en?: string | null;
           taste_profile?: unknown | null;
           nutrition_info?: unknown | null;
+          drink_pairing?: unknown | null;
           hero_image_url?: string | null;
           hero_image_alt?: string | null;
           hero_image_is_ai_generated?: boolean;
