@@ -16,6 +16,7 @@ import {
   generateDrinkPairing,
   saveDrinkPairing,
   clearDrinkPairing,
+  savePinnedWineProduct,
   generateVegetarianVariant,
   saveVegetarianVariant,
   clearVegetarianVariant,
@@ -36,7 +37,14 @@ import {
 import { resizeImageFileToJpegBase64 } from "@/lib/utils/image";
 import { TASTE_DIMENSIONS, type TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import { NUTRITION_FIELDS, type NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
-import type { DrinkPairing, DrinkPairingOption } from "@/lib/kitchen-intelligence/drink-pairing";
+import type { DrinkPairing, DrinkPairingOption, PinnedVinmonopoletProduct } from "@/lib/kitchen-intelligence/drink-pairing";
+import { drinkOptionSearchText } from "@/lib/kitchen-intelligence/drink-pairing";
+import {
+  getVinmonopoletWineSuggestion,
+  resolveVinmonopoletProductById,
+  resolveVinmonopoletProductFromUrl,
+  type VinmonopoletSuggestion,
+} from "@/lib/actions/vinmonopolet";
 import type { VegetarianVariant, RecipeImprovementSuggestion, ExternalRecipeMatch } from "@/lib/types";
 import { ExternalRecipeMatchCard } from "@/components/admin/ExternalRecipeMatchCard";
 import { Drawer } from "@/components/ui/Drawer";
@@ -1104,6 +1112,14 @@ export function RecipeForm({
     setDrinkBeer(drinkOptionToFormState(pairing.beer));
     setDrinkNonAlcoholic(drinkOptionToFormState(pairing.nonAlcoholic));
     setHasSavedDrinkPairing(true);
+    // generateDrinkPairing/saveDrinkPairing rører ALDRI et pinnet konkret
+    // vin-produkt (se updateDrinkPairing i lib/actions/recipes.ts), men
+    // result.drinkPairing ER likevel det HELE, ferske objektet fra
+    // databasen – speil det inn i pin-state under også, så visningen ikke
+    // kan komme ut av synk (f.eks. etter at en annen fane/økt har endret
+    // pinnet produkt).
+    setPinnedWine(pairing.pinnedWine ?? null);
+    setHasSavedPin(Boolean(pairing.pinnedWine));
   }
 
   async function handleGenerateDrinkPairing() {
@@ -1159,8 +1175,185 @@ export function RecipeForm({
       setDrinkBeer(emptyDrinkOption());
       setDrinkNonAlcoholic(emptyDrinkOption());
       setHasSavedDrinkPairing(false);
+      // clearDrinkPairing nullstiller HELE drink_pairing-kolonnen, se
+      // kommentaren der – et eventuelt pinnet produkt forsvinner altså med,
+      // speil det inn i pin-state også.
+      setPinnedWine(null);
+      setHasSavedPin(false);
+      setWineCandidate(null);
     } finally {
       setIsClearingDrinkPairing(false);
+    }
+  }
+
+  // Konkret vin fra Vinmonopolet (11.09.2026, se PinnedVinmonopoletProduct i
+  // lib/kitchen-intelligence/drink-pairing.ts) – et EGET, valgfritt tillegg
+  // til vin-teksten over: et admin-kuratert, konkret produkt som
+  // "Finn en konkret vin på Vinmonopolet"-knappen på selve oppskriftssiden
+  // viser DIREKTE i stedet for å gjøre et live AI-søk (se
+  // DrinkPairingSection.tsx). Tre veier inn, alle ønsket av Henrik
+  // 11.09.2026:
+  //
+  //   1. "Finn et konkret forslag automatisk" – samme AI-drevne søk som den
+  //      live knappen på oppskriftssiden alltid har brukt
+  //      (getVinmonopoletWineSuggestion), kjørt her på den NORSKE vin-
+  //      teksten over (samme prinsipp som handleGenerateDrinkPairing – bruk
+  //      skjemaets nåværende, evt. ulagrede felt).
+  //   2. "Vis et annet forslag" – går videre til neste kandidat fra SAMME
+  //      søk (wineCandidate.alternates) i stedet for et helt nytt AI-kall,
+  //      for når det først foreslåtte produktet viser seg å være utgått/
+  //      feil (se confirmed-feltets filheader i
+  //      lib/actions/vinmonopolet.ts) – eller bare ikke det admin ønsket.
+  //   3. Lim inn en ekte Vinmonopolet-produktlenke direkte – for når admin
+  //      allerede har funnet riktig flaske selv på vinmonopolet.no.
+  //
+  // pinnedWine er skjemaets NÅVÆRENDE, evt. ulagrede pin (samme
+  // "form-state uavhengig av lagret-status"-mønster som drinkWine/
+  // drinkBeer/drinkNonAlcoholic over) – hasSavedPin sier om DENNE verdien
+  // faktisk er lagret. Egen, umiddelbar lagring (savePinnedWineProduct) helt
+  // uavhengig av "Lagre drikkeforslag"-knappen over, se filheaderen der.
+  const [pinnedWine, setPinnedWine] = useState<PinnedVinmonopoletProduct | null>(
+    recipe?.drinkPairing?.pinnedWine ?? null,
+  );
+  const [hasSavedPin, setHasSavedPin] = useState(Boolean(recipe?.drinkPairing?.pinnedWine));
+  const [wineCandidate, setWineCandidate] = useState<VinmonopoletSuggestion | null>(null);
+  const [isSearchingWine, setIsSearchingWine] = useState(false);
+  const [isResolvingWine, setIsResolvingWine] = useState(false);
+  const [wineToolError, setWineToolError] = useState<string | null>(null);
+  const [pasteWineUrl, setPasteWineUrl] = useState("");
+  const [isSavingPin, setIsSavingPin] = useState(false);
+  const [pinSavedNotice, setPinSavedNotice] = useState<string | null>(null);
+
+  async function handleFindWineCandidate() {
+    if (!recipe) return;
+    if (!drinkWine.style.trim()) {
+      setWineToolError("Skriv inn (eller generer) en vinstil over først – søket bruker den teksten.");
+      return;
+    }
+    setWineToolError(null);
+    setPinSavedNotice(null);
+    setWineCandidate(null);
+    setIsSearchingWine(true);
+    try {
+      const ingredientNames = groups.flatMap((g) => g.items.map((i) => i.name.trim())).filter(Boolean);
+      const searchText = drinkOptionSearchText({
+        style: drinkWine.style,
+        detail: drinkWine.detail || null,
+        note: drinkWine.note,
+      });
+      const result = await getVinmonopoletWineSuggestion({ title, description, ingredientNames }, searchText, "no");
+      setWineCandidate(result);
+    } catch (err) {
+      setWineToolError(err instanceof Error ? err.message : "Kunne ikke søke etter en konkret vin.");
+    } finally {
+      setIsSearchingWine(false);
+    }
+  }
+
+  /** Går videre til neste kandidat i SAMME søk (wineCandidate.alternates) –
+   * ingen ny AI-vurdering, kun ett friskt produktside-oppslag for akkurat
+   * den ene admin nå ser nærmere på (se resolveVinmonopoletProductById sin
+   * filheader). */
+  async function handleShowAnotherCandidate() {
+    if (!wineCandidate || wineCandidate.alternates.length === 0) return;
+    const [next, ...rest] = wineCandidate.alternates;
+    setWineToolError(null);
+    setIsResolvingWine(true);
+    try {
+      const resolved = await resolveVinmonopoletProductById(next.productId);
+      if (!resolved.success || !resolved.product) {
+        setWineToolError(resolved.error ?? "Kunne ikke hente produktet.");
+        return;
+      }
+      setWineCandidate({
+        ...wineCandidate,
+        productName: resolved.product.productName,
+        productId: resolved.product.productId,
+        url: resolved.product.url,
+        imageUrl: resolved.product.imageUrl,
+        priceNok: resolved.product.priceNok,
+        confirmed: resolved.product.priceNok !== null,
+        alternates: rest,
+      });
+    } finally {
+      setIsResolvingWine(false);
+    }
+  }
+
+  /** Staker ut det AI-foreslåtte kandidaten som skjemaets nåværende pin –
+   * IKKE lagret ennå, se "Lagre konkret vin"-knappen (handleSavePin) under. */
+  function handleUseCandidate() {
+    if (!wineCandidate) return;
+    setPinnedWine({
+      productId: wineCandidate.productId,
+      productName: wineCandidate.productName,
+      url: wineCandidate.url,
+      imageUrl: wineCandidate.imageUrl,
+      priceNok: wineCandidate.priceNok,
+      reasoning: "",
+    });
+    setWineCandidate(null);
+    setPinSavedNotice(null);
+  }
+
+  /** Tredje veien inn (se filheaderen over) – admin limer inn en ekte
+   * produktlenke kopiert rett fra vinmonopolet.no i stedet for å søke. */
+  async function handleResolvePastedWineUrl() {
+    if (!pasteWineUrl.trim()) return;
+    setWineToolError(null);
+    setPinSavedNotice(null);
+    setIsResolvingWine(true);
+    try {
+      const result = await resolveVinmonopoletProductFromUrl(pasteWineUrl.trim());
+      if (!result.success || !result.product) {
+        setWineToolError(result.error ?? "Kunne ikke lese lenken.");
+        return;
+      }
+      setPinnedWine({ ...result.product, reasoning: "" });
+      setPasteWineUrl("");
+    } finally {
+      setIsResolvingWine(false);
+    }
+  }
+
+  async function handleSavePin() {
+    if (!recipe) return;
+    setWineToolError(null);
+    setPinSavedNotice(null);
+    setIsSavingPin(true);
+    try {
+      const result = await savePinnedWineProduct(recipe.id, pinnedWine);
+      if (!result.success) {
+        setWineToolError(result.error ?? "Kunne ikke lagre den konkrete vinen.");
+        return;
+      }
+      setPinnedWine(result.drinkPairing?.pinnedWine ?? null);
+      setHasSavedPin(Boolean(result.drinkPairing?.pinnedWine));
+      setPinSavedNotice("Lagret.");
+    } finally {
+      setIsSavingPin(false);
+    }
+  }
+
+  /** Fjerner KUN det pinnede produktet – rører ikke vin/øl/alkoholfritt-
+   * teksten, se savePinnedWineProduct sin filheader i lib/actions/
+   * recipes.ts. */
+  async function handleClearPin() {
+    if (!recipe) return;
+    setWineToolError(null);
+    setPinSavedNotice(null);
+    setIsSavingPin(true);
+    try {
+      const result = await savePinnedWineProduct(recipe.id, null);
+      if (!result.success) {
+        setWineToolError(result.error ?? "Kunne ikke fjerne den konkrete vinen.");
+        return;
+      }
+      setPinnedWine(null);
+      setHasSavedPin(false);
+      setWineCandidate(null);
+    } finally {
+      setIsSavingPin(false);
     }
   }
 
@@ -2006,6 +2199,169 @@ export function RecipeForm({
                   {isClearingDrinkPairing ? "Fjerner …" : "Fjern drikkeforslag"}
                 </button>
               )}
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-line bg-cream-dark/40 p-3.5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay">
+                  Konkret vin (Vinmonopolet)
+                </p>
+                <p className="mt-1 text-xs text-ink-faint">
+                  Pin ett bestemt Vinmonopolet-produkt her, så viser "Finn en konkret vin på
+                  Vinmonopolet"-knappen på oppskriftssiden DETTE direkte i stedet for å søke live med AI
+                  hver gang – valgfritt, uten en pin fungerer knappen akkurat som før.
+                </p>
+              </div>
+
+              {wineToolError && <p className="text-sm text-clay-dark">{wineToolError}</p>}
+
+              {pinnedWine && (
+                <>
+                  <div className="flex gap-3 rounded-xl border border-olive-light bg-olive-light/20 p-3">
+                    {pinnedWine.imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element -- ekte, eksternt Vinmonopolet-bilde, samme begrunnelse som DrinkPairingSection.tsx
+                      <img
+                        src={pinnedWine.imageUrl}
+                        alt=""
+                        className="h-16 w-16 shrink-0 rounded-lg border border-line bg-cream object-contain"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-serif text-base text-olive-dark">{pinnedWine.productName}</p>
+                      {pinnedWine.priceNok !== null && (
+                        <p className="text-xs text-ink-soft">{pinnedWine.priceNok} kr</p>
+                      )}
+                      <a
+                        href={pinnedWine.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-medium text-clay hover:text-clay-dark"
+                      >
+                        Se på Vinmonopolet →
+                      </a>
+                    </div>
+                  </div>
+                  <Field label="Kort begrunnelse (valgfritt)" htmlFor="pinned-wine-reasoning">
+                    <textarea
+                      id="pinned-wine-reasoning"
+                      value={pinnedWine.reasoning}
+                      onChange={(e) => setPinnedWine({ ...pinnedWine, reasoning: e.target.value })}
+                      rows={2}
+                      placeholder="Vises på oppskriftssiden – la stå tomt for en generisk tekst."
+                      className={inputClass}
+                    />
+                  </Field>
+                </>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFindWineCandidate}
+                  disabled={isSearchingWine}
+                >
+                  {isSearchingWine ? "Søker …" : "Finn et konkret forslag automatisk"}
+                </Button>
+                {pinnedWine && (
+                  <Button type="button" variant="ghost" size="sm" onClick={handleSavePin} disabled={isSavingPin}>
+                    {isSavingPin ? "Lagrer …" : "Lagre konkret vin"}
+                  </Button>
+                )}
+                {pinSavedNotice && <span className="text-xs text-ink-faint">{pinSavedNotice}</span>}
+                {hasSavedPin && (
+                  <button
+                    type="button"
+                    onClick={handleClearPin}
+                    disabled={isSavingPin}
+                    className="text-sm text-ink-faint underline underline-offset-2 hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Fjern konkret vin
+                  </button>
+                )}
+              </div>
+
+              {wineCandidate && (
+                <div className="space-y-2 rounded-xl border border-line bg-paper p-3">
+                  <div className="flex gap-3">
+                    {wineCandidate.imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element -- ekte, eksternt Vinmonopolet-bilde
+                      <img
+                        src={wineCandidate.imageUrl}
+                        alt=""
+                        className="h-16 w-16 shrink-0 rounded-lg border border-line bg-cream object-contain"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-serif text-base text-ink">{wineCandidate.productName}</p>
+                      {wineCandidate.confirmed ? (
+                        <p className="text-xs text-ink-soft">{wineCandidate.priceNok} kr</p>
+                      ) : (
+                        <p className="text-xs text-clay-dark">
+                          Ubekreftet – fant ingen pris (kan være utgått hos Vinmonopolet)
+                        </p>
+                      )}
+                      <a
+                        href={wineCandidate.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-medium text-clay hover:text-clay-dark"
+                      >
+                        Se på Vinmonopolet →
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button type="button" variant="ghost" size="sm" onClick={handleUseCandidate}>
+                      Bruk denne
+                    </Button>
+                    {wineCandidate.alternates.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleShowAnotherCandidate}
+                        disabled={isResolvingWine}
+                      >
+                        {isResolvingWine ? "Henter …" : "Vis et annet forslag"}
+                      </Button>
+                    )}
+                  </div>
+                  {wineCandidate.searchTerm && (
+                    <p className="text-xs text-ink-faint">
+                      Passer ingen av forslagene? Søk selv på vinmonopolet.no etter «{wineCandidate.searchTerm}».
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="min-w-[16rem] flex-1">
+                  <Field
+                    label="Eller lim inn en produktlenke fra vinmonopolet.no"
+                    htmlFor="paste-wine-url"
+                    hint="F.eks. https://www.vinmonopolet.no/…/p/123456"
+                  >
+                    <input
+                      id="paste-wine-url"
+                      value={pasteWineUrl}
+                      onChange={(e) => setPasteWineUrl(e.target.value)}
+                      placeholder="https://www.vinmonopolet.no/…/p/123456"
+                      className={inputClass}
+                    />
+                  </Field>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResolvePastedWineUrl}
+                  disabled={isResolvingWine || !pasteWineUrl.trim()}
+                >
+                  {isResolvingWine ? "Henter …" : "Hent produkt"}
+                </Button>
+              </div>
             </div>
           </>
         ) : (

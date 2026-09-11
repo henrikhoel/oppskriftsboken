@@ -2,7 +2,9 @@
 
 import { callClaudeJSON } from "@/lib/ai/anthropic";
 import {
+  fetchVinmonopoletProductDetails,
   fetchVinmonopoletProductPriceNok,
+  extractVinmonopoletProductId,
   searchVinmonopoletProducts,
   vinmonopoletProductImageUrl,
   vinmonopoletProductUrl,
@@ -16,6 +18,19 @@ interface RecipeContext {
   ingredientNames: string[];
 }
 
+/** Ett av de andre høyt rangerte, IKKE valgte kandidatene fra samme søk (se
+ * VinmonopoletSuggestion.alternates) – kun navn/lenke/bilde, prisen deres er
+ * IKKE sjekket (se MAX_PRICE_CHECKS under) for å holde belastningen mot
+ * Vinmonopolets forbrukerside lav. Brukt av "vis et annet forslag" i admin
+ * (components/admin/RecipeForm.tsx) – resolveVinmonopoletProductById henter
+ * ekte pris for akkurat DEN admin faktisk velger å se nærmere på. */
+export interface VinmonopoletAlternate {
+  productName: string;
+  productId: string;
+  url: string;
+  imageUrl: string;
+}
+
 export interface VinmonopoletSuggestion {
   productName: string;
   productId: string;
@@ -26,6 +41,22 @@ export interface VinmonopoletSuggestion {
    * fetchVinmonopoletProductPriceNok) – null hvis vi ikke klarte å bekrefte
    * prisen (f.eks. hvis produktet er utgått/fjernet). IKKE et AI-anslag. */
   priceNok: number | null;
+  /** true hvis vi faktisk klarte å bekrefte EKTE pris for akkurat DETTE
+   * produktet innen MAX_PRICE_CHECKS forsøk (dvs. trolig fortsatt i
+   * sortimentet) – false hvis INGEN av kandidatene lot seg bekrefte, og
+   * dette derfor er en UBEKREFTET beste gjetning (chosen falt tilbake til
+   * orderedCandidates[0]). Besøkende på selve oppskriftssiden vises ALDRI
+   * et ubekreftet forslag (se DrinkPairingSection.tsx) – kun admin sitt
+   * kuraterings-UI (RecipeForm.tsx) viser det, med "vis et annet
+   * forslag"/søk-selv-fallback (alternates/searchTerm under). */
+  confirmed: boolean;
+  /** Søkeordet AI-en brukte for å finne fram til dette (se keywordSystem
+   * under) – vist som "søk selv på Vinmonopolet etter"-fallback i admin når
+   * ingen av kandidatene passer/lar seg bekrefte. */
+  searchTerm: string;
+  /** De neste 2-3 høyest rangerte kandidatene (ikke den valgte) fra samme
+   * søk, til "vis et annet forslag i stedet"-knappen i admin. */
+  alternates: VinmonopoletAlternate[];
 }
 
 /** Maks antall kandidater vi henter ekte pris/bekrefter fortsatt-i-salg for
@@ -82,6 +113,13 @@ function resolveRankedOrder(rankedNames: string[], candidates: VinmonopoletProdu
  * 2399 kr-vin anslått til 195 kr) – prisen som vises er alltid nettopp
  * hentet fra selve produktsiden. Ingen prisklasse å velge her – forslaget
  * er kun styrt av retten/vinstilen.
+ *
+ * Hvis INGEN av de sjekkede kandidatene lot seg bekrefte fortsatt i salg
+ * (dvs. alle MAX_PRICE_CHECKS forsøk ga null pris), faller "chosen" tilbake
+ * til orderedCandidates[0] som en BESTE GJETNING, og confirmed settes til
+ * false – se feltets kommentar på VinmonopoletSuggestion for hvordan
+ * kallerne bruker dette (ønsket av Henrik 11.09.2026 etter at et utgått
+ * produkt – "Kan ikke bestilles" – ble foreslått som om det var i salg).
  */
 export async function getVinmonopoletWineSuggestion(
   recipe: RecipeContext,
@@ -135,6 +173,7 @@ export async function getVinmonopoletWineSuggestion(
 
   let chosen: VinmonopoletProduct = orderedCandidates[0];
   let priceNok: number | null = null;
+  let confirmed = false;
 
   for (let i = 0; i < Math.min(orderedCandidates.length, MAX_PRICE_CHECKS); i++) {
     const candidate = orderedCandidates[i];
@@ -142,6 +181,7 @@ export async function getVinmonopoletWineSuggestion(
     if (price !== null) {
       chosen = candidate;
       priceNok = Math.round(price);
+      confirmed = true;
       break;
     }
   }
@@ -157,6 +197,21 @@ export async function getVinmonopoletWineSuggestion(
 
   const { reasoning } = await callClaudeJSON<{ reasoning: string }>(reasonSystem, reasonPrompt, 200);
 
+  // De 3 neste kandidatene EN ETTER chosen i den rangerte rekkefølgen (uansett
+  // om chosen ble bekreftet eller ikke) – til "vis et annet forslag"-knappen
+  // i admin. Ubekreftet pris/status her, se VinmonopoletAlternate sin
+  // filheader – kun navn/lenke/bilde, ingen ekstra live-oppslag før admin
+  // faktisk velger å se nærmere på én av dem.
+  const alternates: VinmonopoletAlternate[] = orderedCandidates
+    .filter((c) => c.productId !== chosen.productId)
+    .slice(0, 3)
+    .map((c) => ({
+      productName: c.productShortName,
+      productId: c.productId,
+      url: vinmonopoletProductUrl(c.productId),
+      imageUrl: vinmonopoletProductImageUrl(c.productId),
+    }));
+
   return {
     productName: chosen.productShortName,
     productId: chosen.productId,
@@ -164,5 +219,78 @@ export async function getVinmonopoletWineSuggestion(
     imageUrl: vinmonopoletProductImageUrl(chosen.productId),
     reasoning: (reasoning || "").slice(0, 500),
     priceNok,
+    confirmed,
+    searchTerm: cleanedTerm,
+    alternates,
   };
+}
+
+export interface ResolvedVinmonopoletProduct {
+  productId: string;
+  productName: string;
+  url: string;
+  imageUrl: string;
+  /** Se VinmonopoletSuggestion.priceNok – samme "alltid ekte, aldri
+   * AI-gjettet"-prinsipp, bare for ETT konkret, admin-valgt produkt i
+   * stedet for et AI-rangert søk. */
+  priceNok: number | null;
+}
+
+/** Henter EKTE navn/pris/bilde for ett KJENT produkt-ID – ingen AI, ingen
+ * søk, kun ett direkte produktside-oppslag (se
+ * fetchVinmonopoletProductDetails). Brukt av admin til å (a) slå opp et
+ * alternativ fra VinmonopoletSuggestion.alternates før det pinnes, og (b)
+ * som siste steg i resolveVinmonopoletProductFromUrl under. Krever ikke
+ * innlogging (rent lese-oppslag, ingen hemmeligheter/skriving involvert) –
+ * samme tillitsnivå som getVinmonopoletWineSuggestion over, men kalt fra
+ * admin-UI-et i praksis. */
+export async function resolveVinmonopoletProductById(
+  productId: string,
+): Promise<{ success: boolean; product?: ResolvedVinmonopoletProduct; error?: string }> {
+  const trimmedId = productId.trim();
+  if (!trimmedId) {
+    return { success: false, error: "Mangler produkt-ID." };
+  }
+
+  const details = await fetchVinmonopoletProductDetails(trimmedId);
+  if (!details) {
+    return {
+      success: false,
+      error: "Fant ikke produktet hos Vinmonopolet – sjekk at ID-en/lenken faktisk peker på en gyldig produktside.",
+    };
+  }
+
+  return {
+    success: true,
+    product: {
+      productId: trimmedId,
+      productName: details.productName,
+      url: vinmonopoletProductUrl(trimmedId),
+      imageUrl: vinmonopoletProductImageUrl(trimmedId),
+      priceNok: details.priceNok,
+    },
+  };
+}
+
+/**
+ * Samme som resolveVinmonopoletProductById over, men starter fra en HEL
+ * produktlenke admin har limt inn (kopiert rett fra adresselinja på en ekte
+ * Vinmonopolet-produktside) i stedet for en kjent ID – se
+ * extractVinmonopoletProductId i lib/ai/vinmonopolet.ts for hvordan ID-en
+ * trekkes ut. Dette er den tredje veien til et konkret vinforslag (ønsket av
+ * Henrik 11.09.2026: "gå inn på vinmonopolet, hente linken til en vin, og
+ * lime den inn på siden"), helt uavhengig av AI-søket over – admin har
+ * allerede funnet nøyaktig riktig flaske selv.
+ */
+export async function resolveVinmonopoletProductFromUrl(
+  url: string,
+): Promise<{ success: boolean; product?: ResolvedVinmonopoletProduct; error?: string }> {
+  const productId = extractVinmonopoletProductId(url);
+  if (!productId) {
+    return {
+      success: false,
+      error: "Fant ingen gjenkjennelig Vinmonopolet-produktlenke i teksten (ser etter et «/p/<tall>»-mønster).",
+    };
+  }
+  return resolveVinmonopoletProductById(productId);
 }

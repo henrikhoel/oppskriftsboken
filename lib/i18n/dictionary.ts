@@ -522,6 +522,11 @@ const DICT = {
     en: "The product name, image, and price are fetched directly from Vinmonopolet's own product page right now, not an estimate. The catalog still doesn't distinguish active from discontinued products, so it's worth checking stock on the product page. Discontinued, or not quite what you had in mind? Use \"Try a new suggestion\" below.",
   },
   "wine.vinmonopoletNewSuggestion": { no: "Prøv et nytt forslag", en: "Try a new suggestion" },
+  // Vist når et admin-pinnet konkret Vinmonopolet-produkt (se
+  // PinnedVinmonopoletProduct i lib/kitchen-intelligence/drink-pairing.ts)
+  // ikke har noen egen, admin-skrevet begrunnelse – en generisk erstatning
+  // for reasoning-feltet AI-søket ellers ville generert.
+  "wine.pinnedReasoningFallback": { no: "Vårt konkrete forslag til denne retten.", en: "Our specific pick for this dish." },
   "wine.matchPlaceholder": { no: "F.eks. «Chianti» eller «Rioja»", en: "E.g. \"Chianti\" or \"Rioja\"" },
   "wine.checkMatch": { no: "Sjekk match", en: "Check match" },
   "wine.checking": { no: "Sjekker …", en: "Checking …" },

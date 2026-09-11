@@ -2,10 +2,20 @@
 
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { clsx } from "clsx";
-import type { DrinkPairing, LocalizedDrinkOption, LocalizedDrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
+import type {
+  DrinkPairing,
+  LocalizedDrinkOption,
+  LocalizedDrinkPairing,
+  PinnedVinmonopoletProduct,
+} from "@/lib/kitchen-intelligence/drink-pairing";
+import { drinkOptionSearchText } from "@/lib/kitchen-intelligence/drink-pairing";
 import { localizedDrinkPairing } from "@/lib/utils/format";
 import { checkBeverageMatch, checkWineMatchFromImage } from "@/lib/actions/ai";
-import { getVinmonopoletWineSuggestion, type VinmonopoletSuggestion } from "@/lib/actions/vinmonopolet";
+import {
+  getVinmonopoletWineSuggestion,
+  resolveVinmonopoletProductById,
+  type VinmonopoletSuggestion,
+} from "@/lib/actions/vinmonopolet";
 import { WINE_VERDICT_LABELS, WINE_VERDICT_LABELS_EN, type WineVerdict } from "@/lib/wine-verdict";
 import { resizeImageFileToJpegBase64 } from "@/lib/utils/image";
 import { CameraIcon } from "@/components/ui/icons";
@@ -53,15 +63,6 @@ interface RecipeContext {
   ingredientNames: string[];
 }
 
-/** Bygger fritekst-strengen getVinmonopoletWineSuggestion forventer (samme
- * kontrakt som før: "en vinstil-tekst"), fra den (allerede språk-valgte)
- * vin-kolonnen – bevarer den eksisterende Vinmonopolet-integrasjonen
- * uendret, kun kilden til teksten er ny. */
-function wineOptionToSearchText(wine: LocalizedDrinkOption): string {
-  const styleAndDetail = wine.detail ? `${wine.style} (${wine.detail})` : wine.style;
-  return wine.note ? `${styleAndDetail}. ${wine.note}` : styleAndDetail;
-}
-
 function DrinkColumn({
   label,
   option,
@@ -85,10 +86,15 @@ function DrinkColumn({
 
 function DrinkPairingResult({
   pairing,
+  pinnedWine,
   recipeContext,
   lang,
 }: {
   pairing: LocalizedDrinkPairing;
+  /** Admin-kuratert konkret produkt, se PinnedVinmonopoletProduct sin
+   * filheader – når satt, gjør "Finn en konkret vin"-knappen INGEN AI-søk,
+   * den viser (og pris-oppdaterer) direkte dette produktet. */
+  pinnedWine: PinnedVinmonopoletProduct | null;
   recipeContext: RecipeContext;
   lang: Lang;
 }) {
@@ -105,8 +111,41 @@ function DrinkPairingResult({
 
     (async () => {
       try {
-        const searchText = wineOptionToSearchText(pairing.wine);
+        if (pinnedWine) {
+          // Admin har pinnet et konkret produkt – ingen AI-søk, bare en
+          // fersk pris-sjekk mot selve produktsiden (prisen kan ha endret
+          // seg siden admin sist lagret den), se filheaderen på
+          // PinnedVinmonopoletProduct. Faller tilbake til den lagrede
+          // prisen/bildet hvis den ferske sjekken selv skulle feile (f.eks.
+          // et midlertidig nettverksproblem), i stedet for å vise en feil
+          // for noe admin allerede har bekreftet finnes.
+          const resolved = await resolveVinmonopoletProductById(pinnedWine.productId);
+          const product = resolved.success && resolved.product ? resolved.product : null;
+          setVinResult({
+            productName: product?.productName ?? pinnedWine.productName,
+            productId: pinnedWine.productId,
+            url: product?.url ?? pinnedWine.url,
+            imageUrl: product?.imageUrl ?? pinnedWine.imageUrl,
+            priceNok: product?.priceNok ?? pinnedWine.priceNok,
+            reasoning: pinnedWine.reasoning || t(lang, "wine.pinnedReasoningFallback"),
+            confirmed: true,
+            searchTerm: "",
+            alternates: [],
+          });
+          return;
+        }
+
+        const searchText = drinkOptionSearchText(pairing.wine);
         const result = await getVinmonopoletWineSuggestion(recipeContext, searchText, lang);
+        if (!result.confirmed) {
+          // Se VinmonopoletSuggestion.confirmed sin filheader – ingen av
+          // kandidatene lot seg bekrefte fortsatt i salg. Viser ALDRI en
+          // ubekreftet gjetning til besøkende (kun admin sitt
+          // kuraterings-UI i RecipeForm.tsx gjør det, med
+          // vis-et-annet-forslag/søk-selv-fallback).
+          setVinError(t(lang, "wine.vinmonopoletError"));
+          return;
+        }
         setVinResult(result);
       } catch (err) {
         setVinError(err instanceof Error ? err.message : t(lang, "wine.vinmonopoletError"));
@@ -232,7 +271,12 @@ function DrinkPairingReveal({ drinkPairing, recipeContext, lang }: {
       )}
 
       {revealed && (
-        <DrinkPairingResult pairing={localizedDrinkPairing(drinkPairing, lang)} recipeContext={recipeContext} lang={lang} />
+        <DrinkPairingResult
+          pairing={localizedDrinkPairing(drinkPairing, lang)}
+          pinnedWine={drinkPairing.pinnedWine ?? null}
+          recipeContext={recipeContext}
+          lang={lang}
+        />
       )}
     </div>
   );

@@ -113,47 +113,117 @@ export function vinmonopoletProductImageUrl(productId: string, size = 400): stri
   return `https://bilder.vinmonopolet.no/cache/${size}x${size}-0/${encodeURIComponent(productId)}-1.jpg`;
 }
 
+/** Minimal HTML-entity-dekoding for tekst hentet ut av en meta-tag (f.eks.
+ * og:title) – produktnavn inneholder ofte "&amp;", accent-tegn er allerede
+ * UTF-8 i HTML-en og trenger ingen dekoding. Dekker det vanlige settet,
+ * ikke en fullverdig HTML-parser (unødvendig for dette bruksområdet). */
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+interface VinmonopoletProductPageDetails {
+  priceNok: number | null;
+  productName: string | null;
+}
+
 /**
- * Henter EKTE, gjeldende pris (kr) for ett produkt ved å lese av selve
- * produktsiden hos Vinmonopolet – IKKE fra API-et (som ikke har prisdata i
- * det hele tatt, se toppen av filen). Dette går bevisst lenger enn det
- * statiske flaskebildet vi henter andre steder: her gjør vi et ferskt
- * HTTP-oppslag mot en vanlig forbrukerside for hvert produkt vi vurderer,
- * noe robots.txt til Vinmonopolet signaliserer at de ikke ønsker mye av
- * fra automatiserte klienter (10 sek. ventetid / kun nattlig crawling for
- * boter). Henrik har eksplisitt bedt om og godkjent dette etter at to
- * forsøk på AI-gjettet pris viste seg å bomme kraftig (opptil 10x feil).
- * For å holde belastningen lav henter vi kun ett produkt om gangen ved
- * behov (aldri hele sortimentet), begrenset til noen få kandidater per
- * brukerforespørsel (se MAX_PRICE_CHECKS i lib/actions/vinmonopolet.ts).
+ * Henter EKTE, ferske data for ett produkt ved å lese av selve produktsiden
+ * hos Vinmonopolet – IKKE fra API-et (som verken har pris- eller navnedata i
+ * det hele tatt utover det korte masterdata-"kortnavnet", se toppen av
+ * filen). Dette går bevisst lenger enn det statiske flaskebildet vi henter
+ * andre steder: her gjør vi et ferskt HTTP-oppslag mot en vanlig
+ * forbrukerside for hvert produkt vi vurderer, noe robots.txt til
+ * Vinmonopolet signaliserer at de ikke ønsker mye av fra automatiserte
+ * klienter (10 sek. ventetid / kun nattlig crawling for boter). Henrik har
+ * eksplisitt bedt om og godkjent dette etter at to forsøk på AI-gjettet pris
+ * viste seg å bomme kraftig (opptil 10x feil). For å holde belastningen lav
+ * henter vi kun ett produkt om gangen ved behov (aldri hele sortimentet),
+ * begrenset til noen få kandidater per brukerforespørsel (se
+ * MAX_PRICE_CHECKS i lib/actions/vinmonopolet.ts).
  *
- * Prisen står ikke i noen egen JSON-LD/pris-metatag (bekreftet manuelt),
- * men i ren tekst i <meta name="description">, f.eks. "Kr 209,90, 75 cl".
- * Vi parser det mønsteret. Returnerer null hvis siden ikke svarer OK
- * (som også er vårt beste signal på at produktet er utgått/fjernet – se
- * bruken i lib/actions/vinmonopolet.ts) eller hvis prisen ikke gjenkjennes.
+ * Prisen står ikke i noen egen JSON-LD/pris-metatag (bekreftet manuelt), men
+ * i ren tekst i <meta name="description">, f.eks. "Kr 209,90, 75 cl" – et
+ * utgått/fjernet produkt viser typisk "Kr 0,00" der i stedet (bekreftet
+ * manuelt på et faktisk utgått produkt), som vi derfor også behandler som
+ * "ingen pris" akkurat som en helt manglende pris. Produktnavnet leses fra
+ * og:title-metataggen (Vinmonopolets EGET oppgitte navn for lenke-
+ * forhåndsvisninger, samme kilde-prinsipp som vinmonopoletProductImageUrl
+ * sin og:image over) – IKKE <title>, som har "- Vinmonopolet" hengende på.
+ * Returnerer null hvis siden ikke svarer OK (som også er vårt beste signal
+ * på at produktet er utgått/fjernet – se bruken i
+ * lib/actions/vinmonopolet.ts) eller hvis verken pris eller navn gjenkjennes.
  */
-export async function fetchVinmonopoletProductPriceNok(productId: string): Promise<number | null> {
+async function fetchVinmonopoletProductPage(productId: string): Promise<VinmonopoletProductPageDetails | null> {
   try {
     const res = await fetch(vinmonopoletProductUrl(productId), {
-      headers: { "User-Agent": "oppskriftsboken.no (vinforslag – henter pris for ett produkt om gangen)" },
+      headers: { "User-Agent": "oppskriftsboken.no (vinforslag – henter produktdata for ett produkt om gangen)" },
       signal: AbortSignal.timeout(6000),
     });
     if (!res.ok) return null;
 
     const html = await res.text();
+
     const descriptionMatch = html.match(/<meta\s+name="description"\s+content="([^"]*)"/i);
-    const haystack = descriptionMatch?.[1] ?? html;
-
+    const priceHaystack = descriptionMatch?.[1] ?? html;
     // Matcher f.eks. "Kr 209,90" eller "Kr 1.299,00" (norsk tusenskille/desimal).
-    const priceMatch = haystack.match(/Kr\s*(\d{1,3}(?:[.\s]\d{3})*)(?:,(\d{2}))?/i);
-    if (!priceMatch) return null;
+    const priceMatch = priceHaystack.match(/Kr\s*(\d{1,3}(?:[.\s]\d{3})*)(?:,(\d{2}))?/i);
+    let priceNok: number | null = null;
+    if (priceMatch) {
+      const wholePart = priceMatch[1].replace(/[.\s]/g, "");
+      const decimalPart = priceMatch[2] ?? "00";
+      const price = Number.parseFloat(`${wholePart}.${decimalPart}`);
+      priceNok = Number.isFinite(price) && price > 0 ? price : null;
+    }
 
-    const wholePart = priceMatch[1].replace(/[.\s]/g, "");
-    const decimalPart = priceMatch[2] ?? "00";
-    const price = Number.parseFloat(`${wholePart}.${decimalPart}`);
-    return Number.isFinite(price) && price > 0 ? price : null;
+    const ogTitleMatch = html.match(/<meta\s+property="og:title"\s+content="([^"]*)"/i);
+    const productName = ogTitleMatch?.[1] ? decodeHtmlEntities(ogTitleMatch[1]).trim() : null;
+
+    if (priceNok === null && !productName) return null;
+    return { priceNok, productName: productName || null };
   } catch {
     return null;
   }
+}
+
+/** Se filheaderen til fetchVinmonopoletProductPage over. Beholdt som egen,
+ * navngitt funksjon (fremfor å la kallerne bruke fetchVinmonopoletProductPage
+ * direkte) siden dette er den ENESTE dataen den opprinnelige, live
+ * pris-sjekk-løkken i lib/actions/vinmonopolet.ts trenger. */
+export async function fetchVinmonopoletProductPriceNok(productId: string): Promise<number | null> {
+  const details = await fetchVinmonopoletProductPage(productId);
+  return details?.priceNok ?? null;
+}
+
+/** Henter EKTE produktnavn + pris for ETT konkret produkt (kjent ID) – brukt
+ * når admin selv velger/pinner et produkt (se resolveVinmonopoletProductById/
+ * resolveVinmonopoletProductFromUrl i lib/actions/vinmonopolet.ts), altså
+ * uten noe forutgående AI-søk. Returnerer null hvis produktsiden ikke svarer,
+ * eller hvis vi ikke klarte å lese ut et produktnavn i det hele tatt (uten
+ * navn har vi ingenting fornuftig å vise/lagre). */
+export async function fetchVinmonopoletProductDetails(
+  productId: string,
+): Promise<{ productName: string; priceNok: number | null } | null> {
+  const details = await fetchVinmonopoletProductPage(productId);
+  if (!details?.productName) return null;
+  return { productName: details.productName, priceNok: details.priceNok };
+}
+
+/** Trekker produkt-ID-en ut av en EKTE Vinmonopolet-produktlenke limt inn av
+ * admin – f.eks.
+ * "https://www.vinmonopolet.no/Land/Italia/Diverse-r%C3%B8dvin/p/2972601"
+ * (den "pyntende" sti-teksten foran /p/ kan være hva som helst og har flere
+ * slash-segmenter, se vinmonopoletProductUrl sin filheader over) – eller vår
+ * egen, kortere kanoniske form (/vin/p/<id>). Godtar en etterfølgende "/",
+ * "?..." eller "#..." (eller ingenting) etter selve tallet. Returnerer null
+ * hvis teksten ikke inneholder et gjenkjennelig /p/<tall>-mønster i det hele
+ * tatt (f.eks. hvis admin limte inn noe helt annet). */
+export function extractVinmonopoletProductId(url: string): string | null {
+  const match = url.trim().match(/\/p\/(\d+)(?:[/?#]|$)/);
+  return match ? match[1] : null;
 }

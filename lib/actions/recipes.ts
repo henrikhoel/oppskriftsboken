@@ -26,7 +26,13 @@ import {
 import { callClaudeJSON } from "@/lib/ai/anthropic";
 import { clampTasteValue, type TasteDimensionId, type TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import { clampNutritionValue, type NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
-import { cleanDrinkPairingOption, type DrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
+import {
+  cleanDrinkPairingOption,
+  cleanPinnedVinmonopoletProduct,
+  type DrinkPairing,
+  type DrinkPairingOption,
+  type PinnedVinmonopoletProduct,
+} from "@/lib/kitchen-intelligence/drink-pairing";
 import type {
   VegetarianVariant,
   RecipeDraft,
@@ -742,30 +748,42 @@ export async function generateDrinkPairing(
   }
 }
 
-/** Lagrer et drikkeforslag direkte (uten AI) – brukt til å lagre manuelle
- * justeringer av forslaget generateDrinkPairing fylte inn over, ELLER til å
- * skrive det inn helt for hånd uten å ha generert noe først (ønsket av
- * Henrik 11.09.2026, se filheaderen på generateDrinkPairing) – nøyaktig
- * samme mønster som saveEnglishTitleDescription over. Kjører hvert felt
- * gjennom cleanDrinkPairingOption uansett kilde, slik at lengdegrenser
- * (60/220 tegn) og tom streng -> null for "detail" gjelder likt enten
- * teksten kom fra AI-en eller ble skrevet inn for hånd. */
-export async function saveDrinkPairing(
+/** Delt lese-endre-skriv-hjelper for recipes.drink_pairing – leser dagens
+ * rad, slår sammen inn `patch` over den, og skriver tilbake HELE (nye)
+ * objektet. Bygget 11.09.2026 da pinnedWine (se PinnedVinmonopoletProduct i
+ * lib/kitchen-intelligence/drink-pairing.ts) ble lagt til: uten denne ville
+ * saveDrinkPairing (kun tekstfeltene) og savePinnedWineProduct (kun det
+ * pinnede produktet) hver især overskrive/slette den ANDRE sin del av
+ * kolonnen, siden Supabase sin .update() på en jsonb-kolonne erstatter HELE
+ * verdien, ikke slår sammen felt for felt selv. `patch.pinnedWine` skiller
+ * "ikke rør" (nøkkelen mangler i patch) fra "sett eksplisitt til null" (fjern
+ * pinnet produkt) via `"pinnedWine" in patch`. */
+async function updateDrinkPairing(
   recipeId: string,
-  drinkPairing: DrinkPairing,
-): Promise<DrinkPairingActionResult> {
-  await requireAdmin();
+  patch: Partial<DrinkPairing>,
+): Promise<{ success: true; drinkPairing: DrinkPairing; slug: string } | { success: false; error: string }> {
+  const supabase = await createClient();
+  const { data: currentRow, error: fetchError } = await supabase
+    .from("recipes")
+    .select("drink_pairing")
+    .eq("id", recipeId)
+    .single();
 
-  const cleaned: DrinkPairing = {
-    wine: cleanDrinkPairingOption(drinkPairing.wine),
-    beer: cleanDrinkPairingOption(drinkPairing.beer),
-    nonAlcoholic: cleanDrinkPairingOption(drinkPairing.nonAlcoholic),
+  if (fetchError || !currentRow) {
+    return { success: false, error: fetchError?.message ?? "Fant ikke oppskriften." };
+  }
+
+  const current = currentRow.drink_pairing as DrinkPairing | null;
+  const merged: DrinkPairing = {
+    wine: patch.wine ?? current?.wine ?? cleanDrinkPairingOption(undefined),
+    beer: patch.beer ?? current?.beer ?? cleanDrinkPairingOption(undefined),
+    nonAlcoholic: patch.nonAlcoholic ?? current?.nonAlcoholic ?? cleanDrinkPairingOption(undefined),
+    pinnedWine: "pinnedWine" in patch ? (patch.pinnedWine ?? null) : (current?.pinnedWine ?? null),
   };
 
-  const supabase = await createClient();
   const { data: recipeRow, error } = await supabase
     .from("recipes")
-    .update({ drink_pairing: cleaned as unknown })
+    .update({ drink_pairing: merged as unknown })
     .eq("id", recipeId)
     .select("slug")
     .single();
@@ -774,13 +792,70 @@ export async function saveDrinkPairing(
     return { success: false, error: error?.message ?? "Kunne ikke lagre drikkeforslaget." };
   }
 
-  revalidateRecipePaths(recipeRow.slug);
-  return { success: true, drinkPairing: cleaned };
+  return { success: true, drinkPairing: merged, slug: recipeRow.slug };
+}
+
+/** Lagrer et drikkeforslag direkte (uten AI) – brukt til å lagre manuelle
+ * justeringer av forslaget generateDrinkPairing fylte inn over, ELLER til å
+ * skrive det inn helt for hånd uten å ha generert noe først (ønsket av
+ * Henrik 11.09.2026, se filheaderen på generateDrinkPairing) – nøyaktig
+ * samme mønster som saveEnglishTitleDescription over. Kjører hvert felt
+ * gjennom cleanDrinkPairingOption uansett kilde, slik at lengdegrenser
+ * (60/220 tegn) og tom streng -> null for "detail" gjelder likt enten
+ * teksten kom fra AI-en eller ble skrevet inn for hånd.
+ *
+ * Rører ALDRI et eventuelt pinnet Vinmonopolet-produkt (se
+ * updateDrinkPairing over) – å regenerere/redigere vin/øl/alkoholfritt-
+ * TEKSTEN skal ikke utilsiktet slette et konkret produktvalg admin har satt
+ * separat, se savePinnedWineProduct under. */
+export async function saveDrinkPairing(
+  recipeId: string,
+  drinkPairing: { wine: DrinkPairingOption; beer: DrinkPairingOption; nonAlcoholic: DrinkPairingOption },
+): Promise<DrinkPairingActionResult> {
+  await requireAdmin();
+
+  const result = await updateDrinkPairing(recipeId, {
+    wine: cleanDrinkPairingOption(drinkPairing.wine),
+    beer: cleanDrinkPairingOption(drinkPairing.beer),
+    nonAlcoholic: cleanDrinkPairingOption(drinkPairing.nonAlcoholic),
+  });
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  revalidateRecipePaths(result.slug);
+  return { success: true, drinkPairing: result.drinkPairing };
+}
+
+/**
+ * Setter eller fjerner det admin-kuraterte, konkrete Vinmonopolet-produktet
+ * for vin-forslaget (se PinnedVinmonopoletProduct sin filheader i
+ * lib/kitchen-intelligence/drink-pairing.ts) – EGEN, målrettet lagring
+ * atskilt fra saveDrinkPairing sin tekstlagring (se updateDrinkPairing
+ * over). Kall med `null` for å fjerne pinnet produkt uten å røre
+ * vin/øl/alkoholfritt-teksten (brukt av "Fjern konkret vin" i
+ * components/admin/RecipeForm.tsx).
+ */
+export async function savePinnedWineProduct(
+  recipeId: string,
+  pinnedWine: PinnedVinmonopoletProduct | null,
+): Promise<DrinkPairingActionResult> {
+  await requireAdmin();
+
+  const result = await updateDrinkPairing(recipeId, { pinnedWine: cleanPinnedVinmonopoletProduct(pinnedWine) });
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  revalidateRecipePaths(result.slug);
+  return { success: true, drinkPairing: result.drinkPairing };
 }
 
 /** Fjerner et lagret drikkeforslag helt (tilbake til "ingen drikkeforslag
- * generert ennå") – se kommentaren på clearTasteProfile/clearNutritionInfo
- * over. */
+ * generert ennå"), INKLUDERT et eventuelt pinnet Vinmonopolet-produkt – hele
+ * kolonnen nullstilles, se kommentaren på clearTasteProfile/
+ * clearNutritionInfo over. For å fjerne KUN det pinnede produktet uten å
+ * røre teksten, se savePinnedWineProduct over i stedet. */
 export async function clearDrinkPairing(recipeId: string): Promise<RecipeActionResult> {
   await requireAdmin();
 
