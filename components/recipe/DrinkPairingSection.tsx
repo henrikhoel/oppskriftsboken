@@ -155,6 +155,63 @@ function DrinkPairingResult({
     })();
   }
 
+  // Kortet med selve vinforslaget rendres TO steder i markupet under (kun
+  // ett av dem synlig av gangen, styrt av hidden/sm:hidden) – lagt til
+  // 11.09.2026 etter tilbakemelding fra Henrik: på mobil (der de tre
+  // kolonnene stables under hverandre, ikke ligger side om side) endte
+  // kortet opp UNDER "Uten alkohol" siden det opprinnelig lå utenfor/etter
+  // hele tre-kolonners-blokken i markupet – man måtte scrolle forbi Øl og
+  // Uten alkohol for å se resultatet av at man nettopp trykket "Finn en
+  // konkret vin", og det så derfor ut som ingenting skjedde. Mobil-kortet
+  // ligger nå isteden RETT ETTER Vin-kolonnens innhold (og dermed FØR Øl i
+  // rekkefølgen elementene stables i) og er skjult på desktop (sm:hidden);
+  // desktop-kortet er uendret (full seksjonsbredde under alle tre
+  // kolonnene, skjult på mobil med hidden sm:block) siden Henrik kun nevnte
+  // mobil-visningen som et problem.
+  const vinResultCard = vinResult && (
+    <div className="flex flex-col gap-4 rounded-2xl border border-olive-light bg-olive-light/20 p-5 sm:flex-row sm:p-6">
+      {!vinImageFailed && (
+        // eslint-disable-next-line @next/next/no-img-element -- ekte, eksternt Vinmonopolet-bilde (se vinmonopoletProductImageUrl); ikke alle produkter har bilde, derfor onError-fallback
+        <img
+          src={vinResult.imageUrl}
+          alt={vinResult.productName}
+          onError={() => setVinImageFailed(true)}
+          className="h-28 w-28 shrink-0 self-center rounded-xl border border-line bg-cream object-contain sm:self-start"
+        />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <p className="font-serif text-lg text-olive-dark">{vinResult.productName}</p>
+          {vinResult.priceNok !== null && (
+            <p className="shrink-0 text-sm font-medium text-ink-soft">
+              {t(lang, "wine.priceLabel")}: {vinResult.priceNok} kr
+            </p>
+          )}
+        </div>
+        <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{vinResult.reasoning}</p>
+        {/* Kun ÉN "vis-lenke" her – "Prøv et nytt forslag" fjernet
+            11.09.2026 (Henrik: "den gjør ingenting nå siden den
+            funksjonen er borte, man får kun ett forslag"). Etter
+            admin-kuratert pinnedWine-refaktoreringen samme dag gir
+            dette forslaget ALDRI et annet resultat ved et nytt klikk
+            (pinnet produkt = fast valg; ellers samme deterministiske
+            AI-søk) – knappen ga derfor et falskt inntrykk av at man
+            kunne "rulle videre" til noe annet. */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <a
+            href={vinResult.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded-lg bg-clay px-3.5 py-2 text-xs font-medium text-cream transition-colors hover:bg-clay-dark"
+          >
+            {t(lang, "wine.viewProduct")} →
+          </a>
+        </div>
+        <p className="mt-3 text-[0.68rem] leading-relaxed text-ink-faint">{t(lang, "wine.vinmonopoletDisclaimer")}</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="mt-4">
       <div className="divide-y divide-line sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0">
@@ -170,62 +227,19 @@ function DrinkPairingResult({
             </button>
           )}
           {vinError && <p className="mt-2 text-xs text-clay-dark">{vinError}</p>}
+          {vinResult && <div className="mt-4 sm:hidden">{vinResultCard}</div>}
         </DrinkColumn>
 
         <DrinkColumn label={t(lang, "drinkPairing.beerLabel")} option={pairing.beer} />
         <DrinkColumn label={t(lang, "drinkPairing.nonAlcoholicLabel")} option={pairing.nonAlcoholic} />
       </div>
 
-      {/* Vinmonopolet-forslaget rendres UTENFOR tre-kolonners-rutenettet over
-       * med full seksjonsbredde, ikke klemt inn i vin-kolonnens ca. 1/3
-       * bredde på desktop – bilde + produkttekst trenger mer luft enn én
-       * kolonne gir, og en bredere, rolig "funnet til deg"-kort kjennes
-       * dessuten mer elegant enn et trangt sidepanel. */}
-      {vinResult && (
-        <div className="mt-6 border-t border-line pt-6">
-          <div className="flex flex-col gap-4 rounded-2xl border border-olive-light bg-olive-light/20 p-5 sm:flex-row sm:p-6">
-            {!vinImageFailed && (
-              // eslint-disable-next-line @next/next/no-img-element -- ekte, eksternt Vinmonopolet-bilde (se vinmonopoletProductImageUrl); ikke alle produkter har bilde, derfor onError-fallback
-              <img
-                src={vinResult.imageUrl}
-                alt={vinResult.productName}
-                onError={() => setVinImageFailed(true)}
-                className="h-28 w-28 shrink-0 self-center rounded-xl border border-line bg-cream object-contain sm:self-start"
-              />
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <p className="font-serif text-lg text-olive-dark">{vinResult.productName}</p>
-                {vinResult.priceNok !== null && (
-                  <p className="shrink-0 text-sm font-medium text-ink-soft">
-                    {t(lang, "wine.priceLabel")}: {vinResult.priceNok} kr
-                  </p>
-                )}
-              </div>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{vinResult.reasoning}</p>
-              {/* Kun ÉN "vis-lenke" her – "Prøv et nytt forslag" fjernet
-                  11.09.2026 (Henrik: "den gjør ingenting nå siden den
-                  funksjonen er borte, man får kun ett forslag"). Etter
-                  admin-kuratert pinnedWine-refaktoreringen samme dag gir
-                  dette forslaget ALDRI et annet resultat ved et nytt klikk
-                  (pinnet produkt = fast valg; ellers samme deterministiske
-                  AI-søk) – knappen ga derfor et falskt inntrykk av at man
-                  kunne "rulle videre" til noe annet. */}
-              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-                <a
-                  href={vinResult.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block rounded-lg bg-clay px-3.5 py-2 text-xs font-medium text-cream transition-colors hover:bg-clay-dark"
-                >
-                  {t(lang, "wine.viewProduct")} →
-                </a>
-              </div>
-              <p className="mt-3 text-[0.68rem] leading-relaxed text-ink-faint">{t(lang, "wine.vinmonopoletDisclaimer")}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Desktop-visningen: UTENFOR tre-kolonners-rutenettet over med full
+       * seksjonsbredde, ikke klemt inn i vin-kolonnens ca. 1/3 bredde –
+       * bilde + produkttekst trenger mer luft enn én kolonne gir, og et
+       * bredere, rolig "funnet til deg"-kort kjennes dessuten mer elegant
+       * enn et trangt sidepanel. Skjult på mobil (se mobil-kortet over). */}
+      {vinResult && <div className="mt-6 hidden border-t border-line pt-6 sm:block">{vinResultCard}</div>}
     </div>
   );
 }
