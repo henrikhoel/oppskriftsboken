@@ -110,6 +110,8 @@ async function seedRecipesAndCategories() {
           source: recipe.source,
           is_published: recipe.isPublished,
           is_featured: recipe.isFeatured,
+          show_beverage_match_checker: recipe.showBeverageMatchChecker,
+          show_meal_builder: recipe.showMealBuilder,
           favorited_by_admin: recipe.favoritedByAdmin,
         },
         { onConflict: "slug" },
