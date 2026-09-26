@@ -3,24 +3,30 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import { BookIcon, CameraIcon, HeartIcon, HelpCircleIcon, HomeIcon, ShoppingBagIcon } from "@/components/ui/icons";
-import { ShoppingListBadgeCount } from "@/components/shopping/ShoppingListBadgeCount";
+import { BookIcon, CameraIcon, HelpCircleIcon, HomeIcon, LeafIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
+// Handleliste og Favoritter fjernet herfra 26.09.2026 (Henrik: "'handleliste'
+// kan fjernes fra linja nede siden den allerede er oppe på siden" / "Favoritter
+// kan flyttes fra linja nede til å kun være et hjerte øverst ved siden av
+// handlelista og søksymbolet") – begge nås nå kun via ikonene øverst i Header
+// (handleliste-bag-ikonet fantes der fra før, hjerte-ikonet er nytt, se
+// Header.tsx). Frigjorde plass i bunnmenyen brukt til "I sesong" i stedet
+// (samme tilbakemelding, punkt 4: "Nå som vi har fått plass på linja nede kan
+// vi legge inn 'i sesong' på telefon også").
 const NAV_ITEMS = [
-  { href: "/", labelKey: "nav.home", icon: HomeIcon, badge: false },
-  { href: "/oppskrifter", labelKey: "nav.recipes", icon: BookIcon, badge: false },
-  { href: "/hva-kan-jeg-lage", labelKey: "nav.pantry", icon: CameraIcon, badge: false },
+  { href: "/", labelKey: "nav.home", icon: HomeIcon },
+  { href: "/oppskrifter", labelKey: "nav.recipes", icon: BookIcon },
+  { href: "/hva-kan-jeg-lage", labelKey: "nav.pantry", icon: CameraIcon },
   // "Hvordan gjør jeg det?" (27.08.2026) – kunnskapsbiblioteket for
   // kjøkkenteknikker, se app/hvordan-gjor-jeg-det/*. Bruker den KORTE
   // nav.guidesShort-teksten her (samme nøkkel spesifikasjonen egentlig kun
-  // ga unntak for i desktop-headeren) fordi 6 like brede kolonner i
+  // ga unntak for i desktop-headeren) fordi 5 like brede kolonner i
   // bunnmenyen ikke har plass til hele "Hvordan gjør jeg det?" på én linje
   // uten å bryte layouten – selve siden sin <h1> viser fortsatt hele,
   // riktige konseptnavnet uendret, se app/hvordan-gjor-jeg-det/page.tsx.
-  { href: "/hvordan-gjor-jeg-det", labelKey: "nav.guidesShort", icon: HelpCircleIcon, badge: false },
-  { href: "/handleliste", labelKey: "nav.shoppingList", icon: ShoppingBagIcon, badge: true },
-  { href: "/favoritter", labelKey: "nav.favorites", icon: HeartIcon, badge: false },
+  { href: "/hvordan-gjor-jeg-det", labelKey: "nav.guidesShort", icon: HelpCircleIcon },
+  { href: "/sesong", labelKey: "nav.season", icon: LeafIcon },
 ] as const;
 
 /**
@@ -37,8 +43,8 @@ export function BottomNav({ lang }: { lang: Lang }) {
       aria-label={t(lang, "nav.mainNavMobile")}
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <ul className="grid grid-cols-6">
-        {NAV_ITEMS.map(({ href, labelKey, icon: Icon, badge }) => {
+      <ul className="grid grid-cols-5">
+        {NAV_ITEMS.map(({ href, labelKey, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <li key={href}>
@@ -52,7 +58,6 @@ export function BottomNav({ lang }: { lang: Lang }) {
               >
                 <span className="relative">
                   <Icon className="h-5 w-5" />
-                  {badge && <ShoppingListBadgeCount />}
                 </span>
                 {t(lang, labelKey)}
               </Link>

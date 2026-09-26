@@ -121,6 +121,19 @@ export async function Header() {
             <ShoppingBagIcon className="h-5 w-5" />
             <ShoppingListBadgeCount />
           </Link>
+          {/* Hjerte-ikon KUN på mobil (md:hidden) – Favoritter fjernet fra
+              BottomNav 26.09.2026 (Henrik: "Favoritter kan flyttes fra linja
+              nede til å kun være et hjerte øverst ved siden av handlelista og
+              søksymbolet"). Fra md og opp finnes "Favoritter" allerede som
+              tekstlenke lenger opp i denne navigasjonen (md:flex), så denne
+              skjules der for å unngå duplikat. */}
+          <Link
+            href="/favoritter"
+            aria-label={t(lang, "nav.favorites")}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:hidden"
+          >
+            <HeartIcon className="h-5 w-5" />
+          </Link>
           {isAdmin && (
             <Link
               href="/admin/oppskrifter/ny"
