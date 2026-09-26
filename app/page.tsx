@@ -122,11 +122,27 @@ export default async function HomePage() {
           sizes="100vw"
           className="object-cover"
         />
-        {/* Ren svart nedtoning (ikke det varme cream-tonen) – bedt om
-            eksplisitt for å unngå et brunt skjær over bildet. Siste
-            fargestopp går likevel helt til bunnen i praksis samme mørke
-            som bg-cream, så overgangen til resten av siden blir sømløs. */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/78 to-black" />
+        {/* To sammenslåtte nedtoninger i stedet for bare én vertikal som før
+            – Henrik, etter at riktig hero-bilde endelig vistes korrekt:
+            "det er fint at den er mørk på venstre side, men burgeren må
+            lyse opp mer". Den gamle, rent vertikale nedtoningen mørkla HELE
+            bildets bredde likt i samme høyde, så burgeren (som sitter midt
+            i/nedre del av bildet) ble like mørk som venstresiden der
+            teksten faktisk trenger det mørke. Nå: én horisontal nedtoning
+            (mørk til venstre, helt gjennomsiktig fra og med der burgeren
+            begynner) for tekstlesbarheten, pluss én vertikal nedtoning som
+            KUN virker nederst (siste ca. tredjedel), for den sømløse
+            overgangen til resten av siden (bg-cream under) – uten at den
+            også mørklegger burgeren midt i bildet. Fortsatt ren svart
+            (ikke det varme cream-tonen) – samme grunn som før: unngå et
+            brunt skjær over bildet. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.6) 32%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0) 72%), linear-gradient(to bottom, rgba(0,0,0,0) 62%, rgba(0,0,0,0.92) 100%)",
+          }}
+        />
         <div className="relative w-full mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
           {/* Sentrert på mobil/nettbrett (der det mørke partiet i bildet
               ikke nødvendigvis havner til venstre etter beskjæring), men
