@@ -20,13 +20,12 @@ const DICT = {
   "nav.mainNav": { no: "Hovednavigasjon", en: "Main navigation" },
   "nav.mainNavMobile": { no: "Hovednavigasjon, mobil", en: "Main navigation, mobile" },
   "nav.home": { no: "Hjem", en: "Home" },
-  // Endret fra "Ingrediens-søk" 26.08.2026 (ønsket av Henrik – "vagt og
-  // rart") til å matche siden sin EGEN tittel (pantryPage.title, se
-  // app/hva-kan-jeg-lage/page.tsx – både <h1> og fane-tittel er allerede
-  // "Hva kan jeg lage?", og selve URL-en er allerede /hva-kan-jeg-lage).
-  // Kun nav-lenken (her og i BottomNav.tsx, som deler denne nøkkelen) hadde
-  // stått igjen med det gamle, mer kliniske navnet.
-  "nav.pantry": { no: "Hva kan jeg lage?", en: "What can I make?" },
+  // Endret fra "Hva kan jeg lage?" til "I kjøleskapet" 26.09.2026 (ønsket
+  // av Henrik). Deler fortsatt nøkkel/tekst med pantryPage.title (se
+  // app/hva-kan-jeg-lage/page.tsx – <h1> og fane-tittel er samme streng),
+  // og med BottomNav.tsx sin nav-lenke – URL-en er BEVISST uendret
+  // (/hva-kan-jeg-lage), kun den synlige teksten er ny.
+  "nav.pantry": { no: "I kjøleskapet", en: "In the fridge" },
   "nav.language": { no: "Språk", en: "Language" },
   // (26.09.2026) Logger ut av FELLESPASSORDET for hele nettstedet (se
   // proxy.ts/app/logg-ut/route.ts) – IKKE det samme som admin sin egen
@@ -240,7 +239,8 @@ const DICT = {
     en: "Tap the heart on a recipe to save it here. Your favorites are saved in this browser.",
   },
 
-  "pantryPage.title": { no: "Hva kan jeg lage?", en: "What can I make?" },
+  // Se kommentaren ved nav.pantry over – samme rename, samme dato/grunn.
+  "pantryPage.title": { no: "I kjøleskapet", en: "In the fridge" },
   "pantryPage.metaDescription": {
     no: "Fortell oss hva du har i kjøleskapet eller skapet – vi finner oppskrifter du kan lage med det.",
     en: "Tell us what's in your fridge or pantry – we'll find recipes you can make with it.",
