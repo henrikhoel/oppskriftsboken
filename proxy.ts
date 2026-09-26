@@ -109,20 +109,44 @@ async function checkSiteAccess(request: NextRequest): Promise<NextResponse | nul
   const token = request.cookies.get(SITE_ACCESS_COOKIE)?.value;
   if (await isValidSiteAccessToken(token)) return null;
 
+  // (26.09.2026, Henrik, bekreftet ved faktisk testing i nettleseren: "jeg
+  // havner fortsatt på innloggingsiden! uansett hva jeg trykker på, det
+  // skjer om jeg trykker på en oppskrift på selve forsiden også") – kilden
+  // var IKKE cookien (en direkte fetch() til /oppskrifter fra en ellers
+  // innlogget side lyktes hver gang) – det var Next.js sin EGEN bakgrunns-
+  // forhåndshenting av lenker (skjer ved museover, IKKE bare når en lenke
+  // kommer i synsfelt – prefetch={false} på selve <Link> stanser dette
+  // bare delvis, bekreftet med devtools). Så lenge man ENDA ikke er
+  // innlogget (f.eks. mens man fortsatt ser på /adgang, der HELE menyen
+  // med alle lenkene også vises), henter Next.js flere beskyttede sider i
+  // bakgrunnen samtidig – og når NOEN av disse bakgrunnskallene fikk en
+  // ordentlig omdirigering til /adgang tilbake, endte Next sin klient-rute
+  // opp med å vise DEN omdirigeringen i stedet for siden man faktisk
+  // trykket på, selv om selve klikket sitt eget kall lyktes.
+  //
+  // Løsningen: skiller nå på Next.js sine EGNE bakgrunns-forhåndshentinger
+  // (identifisert med next-router-prefetch-headeren den alltid setter selv)
+  // og en ekte sidevisning. En forhåndshenting som ville blitt avvist får
+  // et rent, tomt 204-svar i stedet for en omdirigering – avslører
+  // fortsatt INGENTING (ingen HTML, ingen redirect-mål å mellomlagre feil),
+  // men kan heller ikke forveksles med resultatet av et ekte klikk lenger.
+  // Et EKTE klikk (ingen slik header) sendes fortsatt korrekt til /adgang,
+  // nøyaktig som før.
+  if (request.headers.get("next-router-prefetch")) {
+    return new NextResponse(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+  }
+
   const url = new URL(SITE_ACCESS_PUBLIC_PATH, request.url);
   url.searchParams.set("next", pathname + request.nextUrl.search);
   const response = NextResponse.redirect(url);
-  // (26.09.2026, Henrik: "jeg kommer fortsatt til innloggingsiden når jeg
-  // trykker på 'oppskrifter' ... etter å ha logget inn") – uten en
-  // eksplisitt Cache-Control her er det en reell risiko for at DENNE
-  // "krever passord"-omdirigeringen (utstedt FØR innlogging, f.eks. fra
-  // Next.js sin egen lenke-prefetching i toppmenyen mens man fortsatt sto
-  // på /adgang) blir liggende igjen i et mellomlager – enten nettleserens
-  // eget, eller Vercel sitt globale nettverk (CDN-en foran selve
-  // Edge-funksjonen) – og dermed fortsetter å bli servert for akkurat den
-  // stien selv etter at man har fått en gyldig cookie. no-store tvinger
-  // isteden et helt ferskt kall til proxy() for hvert eneste forsøk, slik
-  // at en nylig innlogging alltid blir sett med én gang.
+  // Uten en eksplisitt Cache-Control her er det en reell risiko for at
+  // DENNE "krever passord"-omdirigeringen blir liggende igjen i et
+  // mellomlager – enten nettleserens eget, eller Vercel sitt globale
+  // nettverk (CDN-en foran selve Edge-funksjonen) – og dermed fortsetter å
+  // bli servert for akkurat den stien selv etter at man har fått en gyldig
+  // cookie. no-store tvinger isteden et helt ferskt kall til proxy() for
+  // hvert eneste forsøk, slik at en nylig innlogging alltid blir sett med
+  // én gang.
   response.headers.set("Cache-Control", "no-store");
   return response;
 }
