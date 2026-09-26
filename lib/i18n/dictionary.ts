@@ -599,6 +599,15 @@ const DICT = {
   "recipeDetail.editButton": { no: "Rediger", en: "Edit" },
   "recipeDetail.allRecipesLink": { no: "Alle oppskrifter", en: "All recipes" },
   "recipeDetail.imagePending": { no: "Bilde kommer", en: "Image coming" },
+  // (26.09.2026) "Teaser"-visningen av en oppskrift for besøkende som ikke
+  // har logget inn med fellespassordet ennå (se RecipeTeaser.tsx) – kun
+  // toppen av oppskriften (bilde/tittel/beskrivelse) er synlig, resten er
+  // faded til svart med denne meldingen og knappen over.
+  "recipeDetail.lockedMessage": {
+    no: "Ingredienser og fremgangsmåte er kun synlig for dem som er logget inn.",
+    en: "Ingredients and instructions are only visible to those who are logged in.",
+  },
+  "recipeDetail.lockedCta": { no: "Logg inn for å se resten", en: "Log in to see the rest" },
   "recipeDetail.ingredientsHeading": { no: "Ingredienser", en: "Ingredients" },
   "servings.label": { no: "Porsjoner", en: "Servings" },
   "servings.chooseAria": { no: "Velg antall porsjoner", en: "Choose number of servings" },

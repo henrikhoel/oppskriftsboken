@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getRecipeBySlug, getAllSlugs } from "@/lib/data/recipes";
 import { getCurrentUserFast } from "@/lib/auth";
@@ -7,9 +8,11 @@ import { siteConfig } from "@/lib/config";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 import { RecipeInteractive } from "@/components/recipe/RecipeInteractive";
+import { RecipeTeaser } from "@/components/recipe/RecipeTeaser";
 import { buildRecipeJsonLd } from "@/lib/utils/seo";
 import { localizedTitle, localizedDescription } from "@/lib/utils/format";
 import { ChevronLeftIcon } from "@/components/ui/icons";
+import { SITE_ACCESS_COOKIE, isValidSiteAccessToken } from "@/lib/site-access/token";
 
 export const revalidate = 300;
 
@@ -74,6 +77,46 @@ export default async function RecipePage({
   const [recipe, user, lang] = await Promise.all([getRecipeBySlug(slug), getCurrentUserFast(), getLang()]);
 
   if (!recipe) notFound();
+
+  // (26.09.2026) Se filheaderen i RecipeTeaser.tsx og RECIPE_DETAIL_PATH i
+  // proxy.ts – denne siden er selv unntatt fellespassord-omdirigeringen,
+  // slik at lenkeforhåndsvisninger (og en nysgjerrig venn) faktisk får se
+  // NOE. Uten fellespassordet vises kun tittel/bilde/beskrivelse (via
+  // RecipeTeaser) – verken ingrediensene, fremgangsmåten eller JSON-LD-en
+  // (som ELLERS ville inneholdt akkurat det samme innholdet) rendres i det
+  // hele tatt før man er logget inn.
+  const cookieStore = await cookies();
+  const hasSiteAccess = await isValidSiteAccessToken(cookieStore.get(SITE_ACCESS_COOKIE)?.value);
+
+  if (!hasSiteAccess) {
+    const title = localizedTitle(recipe, lang);
+    const description = localizedDescription(recipe, lang);
+    return (
+      <article className="pb-24">
+        <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8 xl:max-w-[1280px]">
+          <Link
+            href="/oppskrifter"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+          >
+            <ChevronLeftIcon className="h-4 w-4" />
+            {t(lang, "recipeDetail.allRecipesLink")}
+          </Link>
+
+          <div className="mt-6 sm:mt-8">
+            <RecipeTeaser
+              title={title}
+              description={description}
+              imageUrl={recipe.heroImageUrl}
+              imageAlt={recipe.heroImageAlt ?? title}
+              categoryLabel={recipe.category?.name}
+              nextPath={`/oppskrifter/${recipe.slug}`}
+              lang={lang}
+            />
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   const jsonLd = buildRecipeJsonLd(recipe, lang);
 

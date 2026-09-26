@@ -57,9 +57,25 @@ export async function proxy(request: NextRequest) {
 // omdirigerings-løkke.
 const SITE_ACCESS_PUBLIC_PATH = "/adgang";
 
+// (26.09.2026) Enkeltoppskrifter (IKKE selve /oppskrifter-oversikten) er
+// unntatt omdirigeringen – Henrik: "man får opp toppen av oppskriften, med
+// navn og bilde osv, men så er det fadet til svart nedover, og for å se
+// resten (fremgangsmåte, ingredienser) så må man logge inn". Uten dette
+// unntaket ville en delt oppskrift-lenke bare vist "Adgang"-passordsiden i
+// en lenkeforhåndsvisning (Messenger/iMessage/Slack osv.), siden proxy()
+// omdirigerer FØR selve siden (og dermed generateMetadata sin Open
+// Graph-tittel/bilde) i det hele tatt rekker å rendres. Selve siden
+// (app/oppskrifter/[slug]/page.tsx) avgjør heretter SELV om en besøkende
+// uten fellespassordet får se hele oppskriften eller kun en "teaser" (se
+// RecipeTeaser.tsx) – ingrediens-/fremgangsmåte-INNHOLDET havner uansett
+// aldri i HTML-en for en ikke-innlogget besøkende, se filheaderen i
+// RecipeTeaser.tsx for hvorfor det er trygt nok til å slippe forbi her.
+const RECIPE_DETAIL_PATH = /^\/oppskrifter\/[^/]+\/?$/;
+
 async function checkSiteAccess(request: NextRequest): Promise<NextResponse | null> {
   const { pathname } = request.nextUrl;
   if (pathname === SITE_ACCESS_PUBLIC_PATH) return null;
+  if (RECIPE_DETAIL_PATH.test(pathname)) return null;
 
   const token = request.cookies.get(SITE_ACCESS_COOKIE)?.value;
   if (await isValidSiteAccessToken(token)) return null;
