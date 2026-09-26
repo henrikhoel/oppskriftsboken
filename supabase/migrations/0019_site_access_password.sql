@@ -33,6 +33,18 @@ comment on table public.site_access is
 
 alter table public.site_access enable row level security;
 
+-- (26.09.2026, rettet etter feilmelding fra Supabase: "function crypt(text,
+-- text) does not exist") pgcrypto sine funksjoner (crypt/gen_salt) havner i
+-- Supabase sitt "extensions"-skjema, IKKE i "public" – selv om
+-- 0001_init.sql sin `create extension if not exists "pgcrypto"` teknisk
+-- kjører fint (Supabase har som regel allerede forhåndsinstallert den der).
+-- En vanlig SQL Editor-spørring finner dem likevel automatisk takket være
+-- databasens GENERELLE search_path (som Supabase setter opp til å inkludere
+-- "extensions"), men en SECURITY DEFINER-funksjon med sin EGEN, eksplisitte
+-- `set search_path = public` ser bevisst bort fra det – nettopp for å være
+-- trygg mot at noen skulle kunne kapre oppslag via en ondsinnet skjema-
+-- plassering. Fullt kvalifiserte extensions.crypt(...)/extensions.gen_salt(...)
+-- -kall under er derfor riktig fiks, IKKE å utvide search_path.
 create or replace function public.verify_site_password(candidate text)
 returns boolean
 language sql
@@ -41,7 +53,7 @@ set search_path = public
 stable
 as $$
   select coalesce(
-    (select password_hash = crypt(candidate, password_hash) from public.site_access where id = true),
+    (select password_hash = extensions.crypt(candidate, password_hash) from public.site_access where id = true),
     false
   );
 $$;
@@ -63,7 +75,7 @@ begin
   end if;
 
   update public.site_access
-    set password_hash = crypt(new_password, gen_salt('bf')), updated_at = now()
+    set password_hash = extensions.crypt(new_password, extensions.gen_salt('bf')), updated_at = now()
     where id = true;
 end;
 $$;
@@ -76,5 +88,5 @@ grant execute on function public.set_site_password(text) to authenticated;
 -- migrasjonen er trygg å kjøre på nytt uten å overskrive et passord admin
 -- allerede har byttet til noe annet.
 insert into public.site_access (id, password_hash)
-values (true, crypt('convite2026', gen_salt('bf')))
+values (true, extensions.crypt('convite2026', extensions.gen_salt('bf')))
 on conflict (id) do nothing;
