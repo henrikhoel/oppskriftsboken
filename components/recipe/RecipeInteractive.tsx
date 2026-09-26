@@ -683,19 +683,19 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
               {finalNotes && (
                 <div className="border-l-2 border-line-strong pl-4">
                   <h3 className="font-serif text-base text-ink-soft">{t(lang, "recipeDetail.notes")}</h3>
-                  <p className="mt-1 text-sm italic leading-relaxed text-ink-soft">{finalNotes}</p>
+                  <p className="mt-1 whitespace-pre-line text-sm italic leading-relaxed text-ink-soft">{finalNotes}</p>
                 </div>
               )}
               {finalTips && (
                 <div className="border-l-2 border-olive pl-4">
                   <h3 className="font-serif text-base text-olive-dark">{t(lang, "recipeDetail.tips")}</h3>
-                  <p className="mt-1 text-sm italic leading-relaxed text-ink-soft">{finalTips}</p>
+                  <p className="mt-1 whitespace-pre-line text-sm italic leading-relaxed text-ink-soft">{finalTips}</p>
                 </div>
               )}
               {finalWarnings && (
                 <div className="border-l-2 border-clay pl-4">
                   <h3 className="font-serif text-base text-clay-dark">{t(lang, "recipeDetail.warnings")}</h3>
-                  <p className="mt-1 text-sm italic leading-relaxed text-ink-soft">{finalWarnings}</p>
+                  <p className="mt-1 whitespace-pre-line text-sm italic leading-relaxed text-ink-soft">{finalWarnings}</p>
                 </div>
               )}
             </div>
