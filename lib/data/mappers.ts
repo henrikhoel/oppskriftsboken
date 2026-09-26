@@ -57,6 +57,7 @@ export interface RawRecipeRow {
   source: string | null;
   is_published: boolean;
   is_featured: boolean;
+  moods: string[];
   // To uavhengige synlighetsbrytere – se migrasjon 0018 sin kommentar for
   // begrunnelse (passer ikke for alle oppskrifter, f.eks. cookies/rundstykker).
   show_beverage_match_checker: boolean;
@@ -184,6 +185,7 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
     source: raw.source,
     isPublished: raw.is_published,
     isFeatured: raw.is_featured,
+    moods: raw.moods as Recipe["moods"],
     showBeverageMatchChecker: raw.show_beverage_match_checker,
     showMealBuilder: raw.show_meal_builder,
     featuredSortOrder: raw.featured_sort_order,
@@ -198,7 +200,7 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
 export const RECIPE_SELECT = `
   id, slug, title, description, title_en, description_en, taste_profile, nutrition_info, drink_pairing, vegetarian_variant, hero_image_url, hero_image_alt, hero_image_is_ai_generated, servings,
   prep_time_minutes, cook_time_minutes, cook_time_minutes_max, total_time_minutes, difficulty,
-  notes, tips, warnings, source, is_published, is_featured, show_beverage_match_checker, show_meal_builder, featured_sort_order, favorited_by_admin,
+  notes, tips, warnings, source, is_published, is_featured, moods, show_beverage_match_checker, show_meal_builder, featured_sort_order, favorited_by_admin,
   rating_sum, rating_count,
   created_at, updated_at,
   category:categories(id, slug, name, name_en, sort_order),
@@ -224,6 +226,7 @@ export function toSummary(recipe: Recipe): RecipeSummary {
     difficulty: recipe.difficulty,
     isFeatured: recipe.isFeatured,
     featuredSortOrder: recipe.featuredSortOrder,
+    moods: recipe.moods,
     favoritedByAdmin: recipe.favoritedByAdmin,
     createdAt: recipe.createdAt,
     isPublished: recipe.isPublished,

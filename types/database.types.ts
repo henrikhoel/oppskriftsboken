@@ -111,6 +111,13 @@ export interface Database {
           show_meal_builder: boolean;
           featured_sort_order: number | null;
           favorited_by_admin: boolean;
+          // Delmengde av "quick" | "cozy" | "impress" | "crowd" | "healthy"
+          // – se migrasjon 0020_recipe_mood.sql. Holdt som `string[]` her
+          // (ikke MoodId[]) siden denne fila er en håndskrevet speiling av
+          // databaseskjemaet, samme prinsipp som difficulty/season-typene
+          // andre steder i denne fila. NOT NULL DEFAULT '{}' i databasen –
+          // aldri null, kan være en tom liste.
+          moods: string[];
           wine_pairing: string | null;
           vegetarian_note: string | null;
           vegetarian_ingredient_groups: unknown | null;
@@ -151,6 +158,7 @@ export interface Database {
           show_meal_builder?: boolean;
           featured_sort_order?: number | null;
           favorited_by_admin?: boolean;
+          moods?: string[];
           wine_pairing?: string | null;
           vegetarian_note?: string | null;
           vegetarian_ingredient_groups?: unknown | null;

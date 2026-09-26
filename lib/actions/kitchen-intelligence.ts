@@ -9,7 +9,6 @@ import {
 } from "@/lib/ai/anthropic";
 import { getCachedAiSuggestion, setCachedAiSuggestion } from "@/lib/kitchen-intelligence/ai-cache";
 import { matchRecipesToPantry, type PantryMatchResult } from "@/lib/kitchen-intelligence/pantry-match";
-import type { MoodId } from "@/lib/kitchen-intelligence/moods";
 import {
   ALL_MEAL_COURSE_ROLES,
   inferCourseRoleFromCategory,
@@ -64,8 +63,10 @@ export async function getParallelTaskHints(
   // .length > 0, ikke bare "cached er ikke null": et tomt array ER en gyldig
   // verdi å lagre i cachen (JS-typen tvinger ikke til dette), men å STOLE
   // på et tomt cachet svar for alltid ville låst fast en forbigående
-  // AI-glipp for godt – se tilsvarende fiks i getMoodRecommendations lenger
-  // ned, samme rotårsak, oppdaget der 26.09.2026.
+  // AI-glipp for godt – samme rotårsak som en tilsvarende bug oppdaget i
+  // den daværende getMoodRecommendations 26.09.2026 (siden fjernet – se
+  // getRecipesByMood i lib/actions/recipes.ts, humør er nå admin-satt,
+  // ikke AI-matchet).
   if (cached && cached.length > 0) return cached;
 
   const stepsList = steps.map((s) => `${s.stepNumber}. (id: ${s.id}) ${s.text}`).join("\n");
@@ -386,95 +387,6 @@ export async function getMenuSuggestions(
       return recipeSummary ? { recipe: recipeSummary, note: p.note } : null;
     })
     .filter((item): item is MenuSuggestionItem => item !== null);
-}
-
-/**
- * Stemningsvelger / "Mood Mode" (Fase 4 – Smak) – fem faste stemninger (se
- * lib/kitchen-intelligence/moods.ts), IKKE fritekst, slik at AI-bruken er
- * avgrenset til ett cachet kall PER STEMNING+SPRÅK for HELE nettstedet,
- * fremfor ett kall per besøkende. "quick" er et unntak: total tilberedningstid
- * er allerede et ekte felt på hver oppskrift, så den stemningen svares på
- * 100 % deterministisk uten noe AI-kall eller cache-oppslag i det hele tatt.
- */
-export async function getMoodRecommendations(mood: MoodId, lang: Lang = "no"): Promise<RecipeSummary[]> {
-  const recipes = await getPublishedRecipeSummaries();
-  if (recipes.length === 0) return [];
-
-  if (mood === "quick") {
-    return recipes
-      .filter((r) => r.totalTimeMinutes !== null)
-      .sort((a, b) => (a.totalTimeMinutes ?? 0) - (b.totalTimeMinutes ?? 0))
-      .slice(0, 8);
-  }
-
-  const cacheKey = `${mood}:${lang}`;
-  // recipeId = null: dette er et sidevidt svar, ikke knyttet til én bestemt
-  // oppskrift – se filheader i lib/kitchen-intelligence/ai-cache.ts.
-  const cached = await getCachedAiSuggestion<string[]>(null, "mood_mode", cacheKey);
-
-  let ids: string[];
-  // BUG funnet 26.09.2026 (Henrik: "Hva passer humøret ditt fungerer ikke,
-  // jeg prøver å velge koselig kveld, og den finner ingen oppskrifter"):
-  // `if (cached)` er sant selv for et TOMT array – skjedde AI-kallet å
-  // returnere/bli tolket som [] én eneste gang (transient API-feil, snevert
-  // LLM-svar, ustabil parsing etc.), ble den tomme listen cachet for alltid
-  // og ALDRI forsøkt på nytt, uansett hvor mange passende oppskrifter som
-  // faktisk finnes. Krever nå et FAKTISK treff (.length > 0) for å stole på
-  // cachen; ellers spørres AI-en på nytt, og det (forhåpentligvis) ekte
-  // svaret overskriver den gamle, tomme raden (samme cache_key => update,
-  // ikke ny rad – se setCachedAiSuggestion).
-  if (cached && cached.length > 0) {
-    ids = cached;
-  } else {
-    const candidateList = recipes
-      .slice(0, 200)
-      .map((r) => `(id: ${r.id}) ${r.title}${r.category ? ` – ${r.category.name}` : ""}`)
-      .join("\n");
-
-    const moodMeaning: Record<Exclude<MoodId, "quick">, { no: string; en: string }> = {
-      cozy: {
-        no: "koselig, varmt og trøstende – perfekt for en rolig kveld hjemme",
-        en: "cozy, warm and comforting – perfect for a quiet night in",
-      },
-      impress: {
-        no: "imponerende nok til middagsgjester du gjerne vil imponere, uten at det nødvendigvis er vanskelig å lage",
-        en: "impressive enough for dinner guests you want to impress, without necessarily being difficult to make",
-      },
-      crowd: {
-        no: "godt egnet for å lage til mange på én gang – lett å skalere opp, ikke unødvendig kostbart eller tungvint i stor skala",
-        en: "well suited for feeding a crowd – easy to scale up, not unnecessarily expensive or fiddly at scale",
-      },
-      healthy: {
-        no: "sunt og lett – gjerne grønnsaksrikt, ikke unødvendig tungt eller fettrikt",
-        en: "healthy and light – vegetable-forward, not unnecessarily heavy or fatty",
-      },
-    };
-    const meaning = moodMeaning[mood][lang];
-
-    const system =
-      lang === "en"
-        ? "You help a home cook pick recipes that fit a specific MOOD or occasion, from a list of recipes actually " +
-          'available on this site. Respond with ONLY JSON: {"recipeIds": ["..."]}, up to 8 ids, best fit first. ONLY ' +
-          "use ids from the list given – never invent one. Return fewer (even zero) if nothing genuinely fits."
-        : "Du hjelper en hjemmekokk å velge oppskrifter som passer til en bestemt STEMNING eller anledning, fra en " +
-          'liste over oppskrifter som faktisk finnes på dette nettstedet. Svar KUN med JSON: {"recipeIds": ["..."]}, ' +
-          "inntil 8 id-er, best passende først. Bruk KUN id-er fra listen som er gitt – finn aldri opp en selv. " +
-          "Returner færre (også null) dersom ingenting genuint passer.";
-
-    const prompt =
-      lang === "en"
-        ? `Mood: ${meaning}\n\nAvailable recipes:\n${candidateList}`
-        : `Stemning: ${meaning}\n\nTilgjengelige oppskrifter:\n${candidateList}`;
-
-    const result = await callClaudeJSON<{ recipeIds: string[] }>(system, prompt, 500, 0.3);
-    const validIds = new Set(recipes.map((r) => r.id));
-    ids = (result.recipeIds ?? []).filter((id) => validIds.has(id)).slice(0, 8);
-
-    await setCachedAiSuggestion(null, "mood_mode", cacheKey, ids);
-  }
-
-  const byId = new Map(recipes.map((r) => [r.id, r]));
-  return ids.map((id) => byId.get(id)).filter((r): r is RecipeSummary => r !== undefined);
 }
 
 /**
@@ -1048,8 +960,9 @@ export async function evaluateManualMeal(
  * seksjoner (MENY/I GLASSET/PÅ BORDET/STEMNING/MUSIKK) direkte, i stedet for
  * å måtte parse dem ut av løpende tekst.
  *
- * IKKE knyttet til én bestemt oppskrift (recipeId: null, samme presedens som
- * "mood_mode") – cache-nøkkelen bæres i stedet av språk + anledning + selve
+ * IKKE knyttet til én bestemt oppskrift (recipeId: null, samme mønster som
+ * andre sidevide funksjoner, se AI_CACHE_FEATURES i types.ts) – cache-
+ * nøkkelen bæres i stedet av språk + anledning + selve
  * rettesammensetningen (roller+titler), slik at to besøkende som bygger
  * NØYAKTIG samme meny (høyst sannsynlig når begge tar utgangspunkt i samme
  * katalog-oppskrifter) deler ett AI-kall i stedet for ett hver.

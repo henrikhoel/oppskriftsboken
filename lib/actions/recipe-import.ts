@@ -32,8 +32,7 @@ import {
  * automatisk slik at admin kan gjennomgå/justere i stedet for å skrive alt
  * for hånd. Skriver ALDRI til databasen selv – returnerer kun et
  * "utkast"-objekt som admin fortsatt må trykke "Opprett oppskrift" for å
- * faktisk lagre, akkurat som getMoodRecommendations/getMenuSuggestions i
- * kitchen-intelligence.ts. Derfor følger denne KASTER-konvensjonen (ikke
+ * faktisk lagre, akkurat som getMenuSuggestions i kitchen-intelligence.ts. Derfor følger denne KASTER-konvensjonen (ikke
  * {success,error}) – se filheaderen i lib/actions/kitchen-intelligence.ts
  * for begrunnelsen for det skillet.
  *

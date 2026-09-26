@@ -2,6 +2,7 @@ import type { Difficulty } from "@/lib/config";
 import type { TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import type { NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
 import type { DrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
+import type { MoodId } from "@/lib/kitchen-intelligence/moods";
 
 /**
  * Domenetyper for oppskriftsboken. Disse speiler databaseskjemaet i
@@ -298,6 +299,19 @@ export interface Recipe {
    * nytt felt"-mønster som titleEn/tasteProfile/nutritionInfo lenger opp i
    * dette interfacet. */
   warnings?: string | null;
+  /** Admin-satte "humør"-kategorier for forsidens "Hva passer humøret
+   * ditt?" (styrt fra /admin/humor, se MoodPicker.tsx) – migrasjon 0020.
+   * En oppskrift kan stå i FLERE humør samtidig (26.09.2026, Henrik:
+   * "viktig at hver rett kan ligge inne i flere enn ett humør"), derfor en
+   * liste, ikke ett enkelt felt. Tom liste/valgfritt = ikke valgt, dukker
+   * da ikke opp under noen stemning – helt bevisst (Henrik: "hvis jeg ikke
+   * velger en, så dukker den heller ikke opp på noen av dem"). Erstatter
+   * den tidligere AI-baserte matchingen fullstendig. Valgfritt her av
+   * samme grunn som warnings over (ikke satt i demo-data) – ikke fordi
+   * listen kan mangle i en ekte, lagret oppskrift (den er NOT NULL DEFAULT
+   * '{}' i databasen).
+   */
+  moods?: MoodId[];
   source: string | null;
   isPublished: boolean;
   isFeatured: boolean;
@@ -341,6 +355,7 @@ export type RecipeSummary = Pick<
   | "isFeatured"
   | "featuredSortOrder"
   | "favoritedByAdmin"
+  | "moods"
   | "createdAt"
   | "isPublished"
   | "ratingSum"

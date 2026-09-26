@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { clsx } from "clsx";
-import { getMoodRecommendations } from "@/lib/actions/kitchen-intelligence";
+import { getRecipesByMood } from "@/lib/actions/recipes";
 import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
 import type { RecipeSummary } from "@/lib/types";
 import { RecipeGrid } from "@/components/recipe/RecipeGrid";
@@ -25,9 +25,16 @@ const MOOD_ICONS = {
  * "Hva passer humøret ditt?" (Fase 4 – Smak) – forsideseksjon, samme
  * redaksjonelle stil som AtmosphereSection/WinePairing over. Fem faste
  * stemninger (se lib/kitchen-intelligence/moods.ts sin filheader for
- * hvorfor de er faste, ikke fritekst); resultatet lastes først når
- * besøkende faktisk velger en stemning – ingen AI-kall bare av å laste
- * forsiden.
+ * hvorfor de er faste, ikke fritekst).
+ *
+ * OMLAGT 26.09.2026 (Henrik: "jeg tror kanskje dette bør være noe jeg
+ * velger selv inne på hver rett... da blir det ikke ai generert") – kaller
+ * nå getRecipesByMood (lib/actions/recipes.ts), et rent, deterministisk
+ * filter på recipes.moods (admin-satt via /admin/humor), IKKE lenger den
+ * tidligere AI-baserte getMoodRecommendations. Beholder likevel
+ * loading/error-tilstandene under: kallet er fortsatt en server action
+ * (nettverkstur), selv om selve svaret nå er instant å regne ut når det
+ * først når fram.
  *
  * Redesignet 26.08.2026 (tilbakemelding: føltes for lite/lett å scrolle
  * forbi, mindre luft over enn under teksten). Nå et tydelig, luftig bånd
@@ -66,7 +73,7 @@ export function MoodModeSection({ lang }: { lang: Lang }) {
     setError(null);
     setLoading(true);
     try {
-      const result = await getMoodRecommendations(moodId, lang);
+      const result = await getRecipesByMood(moodId);
       setRecipes(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : t(lang, "moodMode.error"));

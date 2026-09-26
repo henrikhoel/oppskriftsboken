@@ -161,7 +161,6 @@ export const AI_CACHE_FEATURES = [
   "pantry_match",
   "menu_suggestion",
   "leftovers",
-  "mood_mode",
   "parallel_tasks",
   // "meal_plan" (Fase 5 – Experience): generateMealPlan i
   // lib/actions/kitchen-intelligence.ts – EGEN feature, ikke gjenbruk av
@@ -176,8 +175,8 @@ export const AI_CACHE_FEATURES = [
   // lib/actions/kitchen-intelligence.ts – strukturert vin/bord/stemning/
   // musikk(+servering) for HELE menyen under ett, brukt av
   // EveningExperience.tsx. recipeId er alltid null her (samme presedens som
-  // "mood_mode" over) – gjelder en sammensatt meny, ikke én bestemt
-  // oppskrift; cache-nøkkelen bærer i stedet anledning+rettene selv.
+  // "manual_meal_fit" lenger ned) – gjelder en sammensatt meny, ikke én
+  // bestemt oppskrift; cache-nøkkelen bærer i stedet anledning+rettene selv.
   // UTVIDET 26.08.2026 med "hvorfor?"-begrunnelser og en ordforklarings-
   // liste (se EveningCuration i kitchen-intelligence.ts) – BEVISST en RENT
   // ADDITIV utvidelse av samme feature/cache-nøkkelrom (ingen ny feature-
@@ -202,6 +201,17 @@ export const AI_CACHE_FEATURES = [
   // samme spørsmål om samme oppskrift, gjenbrukes svaret direkte i stedet
   // for å betale for et nytt AI-kall.
   "recipe_question",
+  // MERK: "mood_mode" er BEVISST ikke lenger her – "Hva passer humøret
+  // ditt?" er 26.09.2026 gjort om, samme mønster som taste_profile/
+  // drink_pairing under, fra en cachet, live AI-matching (den tidligere
+  // getMoodRecommendations) til admin-satte kategorier lagret direkte på
+  // oppskriften (recipes.moods, satt fra /admin/humor), se
+  // getRecipesByMood i lib/actions/recipes.ts og migrasjon
+  // 0020_recipe_mood.sql. Bakgrunn (Henrik): AI-matchingen fant reelt
+  // ingen treff på f.eks. "koselig kveld"/"imponer gjestene", og "quick"
+  // kunne foreslå en dessert (panna cotta) bare fordi varigheten var kort.
+  // Gamle cache-rader med feature="mood_mode" kan trygt ligge urørt/
+  // slettes manuelt i ai_suggestion_cache – de leses ikke av noe lenger.
   // MERK: "taste_profile" er BEVISST ikke lenger her – smaksprofilen er
   // 25.08.2026 gjort om fra en cachet, live per-besøk AI-beregning til en
   // forhåndsgenerert admin-egenskap lagret direkte på oppskriften
@@ -229,8 +239,8 @@ export const AI_CACHE_FEATURES = [
   // (b) foreslår retter KUN fra katalogen (aldri oppdiktet, i motsetning
   // til "meal_plan"s "suggested"-mulighet) til de rollene brukeren ikke
   // har valgt noe til ennå. recipeId er alltid null her (samme presedens
-  // som "evening_curation"/"mood_mode") – gjelder brukerens frie
-  // kombinasjon av flere retter, ikke én bestemt oppskrift.
+  // som "evening_curation" over) – gjelder brukerens frie kombinasjon av
+  // flere retter, ikke én bestemt oppskrift.
   "manual_meal_fit",
 ] as const;
 

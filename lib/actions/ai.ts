@@ -952,8 +952,8 @@ export interface NewDishSuggestionInput {
   /** Titler på oppskrifter som FINNES på nettstedet fra før – gitt som
    * kontekst slik at AI-en kan unngå å foreslå noe som allerede er dekket,
    * og heller finne et reelt hull i katalogen. IKKE sendt som noe admin skal
-   * velge blant (i motsetning til getMenuSuggestions/getMoodRecommendations
-   * i lib/actions/kitchen-intelligence.ts, som velger BLANT eksisterende
+   * velge blant (i motsetning til getMenuSuggestions i
+   * lib/actions/kitchen-intelligence.ts, som velger BLANT eksisterende
    * oppskrifter) – denne funksjonen skal alltid dikte opp noe NYTT. */
   existingRecipeTitles: string[];
 }

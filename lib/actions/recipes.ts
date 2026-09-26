@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
+import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
 import { createClient } from "@/lib/supabase/server";
 import { getAllRecipeSlugsForCollisionCheck, getPublishedRecipeSummaries } from "@/lib/data/recipes";
 import { ensureUniqueSlug, slugify } from "@/lib/utils/slug";
@@ -41,6 +42,7 @@ import type {
   NewDishSuggestion,
   ExternalRecipeMatch,
   RecipeImprovementSuggestion,
+  RecipeSummary,
 } from "@/lib/types";
 
 export interface RecipeActionResult {
@@ -1602,4 +1604,91 @@ export async function moveFeatured(recipeId: string, direction: "up" | "down"): 
   }
   revalidateRecipePaths();
   revalidatePath("/admin/utvalg");
+}
+
+/**
+ * "Humør" (26.09.2026, ønsket av Henrik, se migrasjon
+ * 0020_recipe_mood.sql sin filheader for hele bakgrunnen) – egen
+ * admin-side (/admin/humor, MoodPicker.tsx), samme
+ * legg-til/fjern-mønster som addToFeatured/removeFromFeatured over, men
+ * for et ARRAY-felt (en oppskrift kan stå i flere humør samtidig) i
+ * stedet for ett enkelt boolsk felt. Leser gjeldende liste og
+ * skriver tilbake en ny – ingen SQL array-operator (f.eks.
+ * array_append) i bruk, siden vi uansett trenger en rundtur for å sjekke
+ * "er den der fra før" (ikke duplisere) og for å revalidere riktige
+ * stier etterpå.
+ */
+export async function addRecipeToMood(recipeId: string, moodId: MoodId): Promise<void> {
+  await requireAdmin();
+  if (!MOOD_DEFINITIONS.some((m) => m.id === moodId)) {
+    throw new Error("Ukjent humør");
+  }
+  const supabase = await createClient();
+
+  const { data: row, error: fetchError } = await supabase
+    .from("recipes")
+    .select("moods")
+    .eq("id", recipeId)
+    .single();
+  if (fetchError || !row) {
+    throw new Error(fetchError?.message ?? "Fant ikke oppskriften");
+  }
+
+  const current = row.moods ?? [];
+  if (current.includes(moodId)) return;
+
+  const { error } = await supabase
+    .from("recipes")
+    .update({ moods: [...current, moodId] })
+    .eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke legge til humør: ${error.message}`);
+  }
+  revalidateRecipePaths();
+  revalidatePath("/admin/humor");
+}
+
+export async function removeRecipeFromMood(recipeId: string, moodId: MoodId): Promise<void> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: row, error: fetchError } = await supabase
+    .from("recipes")
+    .select("moods")
+    .eq("id", recipeId)
+    .single();
+  if (fetchError || !row) {
+    throw new Error(fetchError?.message ?? "Fant ikke oppskriften");
+  }
+
+  const current = row.moods ?? [];
+  const { error } = await supabase
+    .from("recipes")
+    .update({ moods: current.filter((m: string) => m !== moodId) })
+    .eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke fjerne humør: ${error.message}`);
+  }
+  revalidateRecipePaths();
+  revalidatePath("/admin/humor");
+}
+
+/**
+ * Leseside til "Humør" – erstatter den tidligere AI-baserte
+ * getMoodRecommendations (fjernet fra lib/actions/kitchen-intelligence.ts
+ * 26.09.2026). Bakgrunn (Henrik): "Jeg får fortsatt ikke treff på 'koselig
+ * kveld' og 'imponer gjestene'. jeg tror kanskje dette bør være noe jeg
+ * velger selv inne på hver rett... da blir det ikke ai generert, for nå
+ * får jeg opp 'panna cotta' på rask middag fordi den står som 20 min." –
+ * AI-matching kunne både returnere reelt tomt (og siden cache-bugen over
+ * er fikset, men fortsatt: sprikende/uforutsigbare treff fra kall til
+ * kall) og gi false positives som "quick" på panna cotta bare fordi
+ * varigheten tilfeldigvis er kort. Nå 100 % deterministisk: kun det
+ * admin faktisk har satt på oppskriften (recipes.moods, satt via
+ * addRecipeToMood/removeRecipeFromMood og /admin/humor) teller, ingen AI
+ * i det hele tatt.
+ */
+export async function getRecipesByMood(moodId: MoodId): Promise<RecipeSummary[]> {
+  const recipes = await getPublishedRecipeSummaries();
+  return recipes.filter((r) => (r.moods ?? []).includes(moodId));
 }
