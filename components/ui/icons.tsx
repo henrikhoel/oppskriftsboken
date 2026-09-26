@@ -373,23 +373,6 @@ export function LeafIcon(props: IconProps) {
   );
 }
 
-/** Enkel skål sett fra siden, med to små damp-krøller over – brukt for
- * "Hva skal vi spise?" (nav.whatToEat, se Header.tsx og
- * WhatToEatTeaser.tsx). Erstatter SparklesIcon 28.08.2026 (Henrik: selve
- * stjerne-formen antydet at funksjonen er AI-drevet – den ER det til dels
- * (se lib/kitchen-intelligence/what-to-eat.ts), men et generelt
- * "sparkles"-symbol er for tett koblet til "AI-magi" som visuelt språk til
- * å bruke for en helt vanlig nav-lenke/teaser). */
-export function BowlIcon(props: IconProps) {
-  return (
-    <svg {...base} {...props}>
-      <path d="M3 12h18a9 9 0 0 1-18 0Z" />
-      <path d="M9 3c-.6.8-.6 1.7 0 2.5" />
-      <path d="M13 3c-.6.8-.6 1.7 0 2.5" />
-    </svg>
-  );
-}
-
 /** Liten diskret pil-ut-av-boks – kun brukt til eksterne kildelenker (se
  * IngredientDetail.tsx), aldri i navigasjonen. */
 export function ExternalLinkIcon(props: IconProps) {

@@ -8,7 +8,6 @@ import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { ShoppingListBadgeCount } from "@/components/shopping/ShoppingListBadgeCount";
 import {
   BookIcon,
-  BowlIcon,
   CameraIcon,
   HeartIcon,
   HelpCircleIcon,
@@ -94,17 +93,12 @@ export async function Header() {
             <HeartIcon className="h-4 w-4" />
             {t(lang, "nav.favorites")}
           </Link>
-          {/* Kun fra lg og opp (ikke md, som de fire lenkene over) – seks
-              tekstlenker samtidig ble for trangt på nettbrett-bredde, se
-              filheaderen. Begge sidene er uansett nådd via forsideteaserne
-              (WhatToEatTeaser/SeasonTeaser) på alle skjermstørrelser. */}
-          <Link
-            href="/hva-skal-vi-spise"
-            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink lg:flex"
-          >
-            <BowlIcon className="h-4 w-4" />
-            {t(lang, "nav.whatToEat")}
-          </Link>
+          {/* Kun fra lg og opp (ikke md, som de fire lenkene over) – "Hva
+              skal vi spise?"-lenken som sto her ved siden av er fjernet
+              26.09.2026 (hele funksjonen fjernet, se
+              lib/actions/what-to-eat.ts sin git-historikk), så dette er nå
+              den eneste lg-only-lenken igjen. Nådd via forsideteaseren
+              (SeasonTeaser) på alle skjermstørrelser i tillegg. */}
           <Link
             href="/sesong"
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink lg:flex"

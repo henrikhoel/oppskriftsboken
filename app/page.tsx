@@ -21,7 +21,6 @@ import { AtmosphereSection } from "@/components/home/AtmosphereSection";
 import { MoodModeSection } from "@/components/home/MoodModeSection";
 import { CategoryShowcase } from "@/components/home/CategoryShowcase";
 import { NewestRecipesFeed } from "@/components/home/NewestRecipesFeed";
-import { WhatToEatTeaser } from "@/components/home/WhatToEatTeaser";
 import { SeasonTeaser } from "@/components/home/SeasonTeaser";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -240,13 +239,16 @@ export default async function HomePage() {
 
         <AtmosphereSection lang={lang} />
 
-        {/* To små, rolige inngangs-teasere (spesifikasjon punkt 6) – "Hva
-            skal vi spise?" og "I sesong". Bevisst KUN lenke-kort her, ikke
-            selve funksjonene (de bor på egne sider, se
-            components/whattoeat/WhatToEatView.tsx og app/sesong/). */}
+        {/* Rolig inngangs-teaser (spesifikasjon punkt 6) – "I sesong".
+            Bevisst KUN et lenke-kort her, ikke selve funksjonen (den bor på
+            /sesong). "Hva skal vi spise?"-teaseren sto her tidligere ved
+            siden av denne (to kolonner) – fjernet 26.09.2026 på Henriks
+            ønske: "hele 'hva skal vi spise' funksjonen kan fjernes. man kan
+            omtrent gjøre det samme inne på 'Oppskrifter'." Kortet er nå
+            alene og derfor smalere/sentrert i stedet for å strekke seg over
+            hele bredden, som ville sett rart ut for ett enkelt kort. */}
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <WhatToEatTeaser lang={lang} />
+          <div className="mx-auto max-w-2xl">
             <SeasonTeaser lang={lang} />
           </div>
         </div>

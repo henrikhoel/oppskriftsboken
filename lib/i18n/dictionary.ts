@@ -1101,33 +1101,6 @@ const DICT = {
   "guide.timeLabel": { no: "Tid", en: "Time" },
   "guide.levelLabel": { no: "Nivå", en: "Level" },
 
-  // "Hva skal vi spise?" – deterministisk-først beslutningshjelper, se
-  // filheaderen til components/whattoeat/WhatToEatView.tsx.
-  "whatToEat.title": { no: "Hva skal vi spise?", en: "What should we eat?" },
-  "whatToEat.metaDescription": {
-    no: "Velg tid, stemning eller anledning – få middagsforslag som faktisk passer akkurat nå.",
-    en: "Pick time, mood or occasion – get dinner suggestions that actually fit right now.",
-  },
-  "whatToEat.intro": {
-    no: "Velg det som stemmer akkurat nå – tid, stemning, protein, anledning – så mye eller lite du vil. Ingen valg er påkrevd.",
-    en: "Pick whatever fits right now – time, mood, protein, occasion – as much or as little as you like. Nothing is required.",
-  },
-  "whatToEat.vibeLabel": { no: "Stemning", en: "Mood" },
-  "whatToEat.proteinLabel": { no: "Hva har du lyst på?", en: "What are you in the mood for?" },
-  "whatToEat.occasionLabel": { no: "Anledning", en: "Occasion" },
-  "whatToEat.ambitionLabel": { no: "Ambisjon", en: "Ambition" },
-  "whatToEat.minutesLabel": { no: "minutter tilgjengelig", en: "minutes available" },
-  "whatToEat.guestsLabel": { no: "gjester", en: "guests" },
-  "whatToEat.findButton": { no: "Finn middagsforslag", en: "Find dinner suggestions" },
-  "whatToEat.loading": { no: "Ser gjennom oppskriftene …", en: "Looking through the recipes …" },
-  "whatToEat.error": { no: "Klarte ikke å finne forslag akkurat nå. Prøv igjen.", en: "Couldn't find suggestions right now. Please try again." },
-  "whatToEat.emptyTitle": { no: "Fant ingen oppskrifter ennå", en: "No recipes found yet" },
-  "whatToEat.emptyDescription": {
-    no: "Prøv å fjerne et par valg, så åpner det seg flere muligheter.",
-    en: "Try clearing a choice or two to open up more options.",
-  },
-  "whatToEat.showSomethingElse": { no: "Vis meg noe annet", en: "Show me something else" },
-
   // "I sesong" – strukturert, redaksjonelt sesonginnhold, se
   // filheaderen til lib/kitchen-intelligence/seasonal.ts.
   "season.peakNow": { no: "På sitt beste nå", en: "At its best now" },
@@ -1169,19 +1142,12 @@ const DICT = {
     en: "Select an ingredient from the list to see more about it.",
   },
 
-  // Forsideteasere (spesifikasjon punkt 6) for begge funksjonene over.
-  "home.whatToEatTeaser.eyebrow": { no: "Beslutningshjelp", en: "Decision help" },
-  "home.whatToEatTeaser.heading": { no: "Hva skal vi spise?", en: "What should we eat?" },
-  "home.whatToEatTeaser.body": {
-    no: "Velg tid, stemning eller anledning – få middagsforslag på et blunk.",
-    en: "Pick time, mood or occasion – get dinner suggestions in a blink.",
-  },
-  "home.whatToEatTeaser.cta": { no: "Finn middag", en: "Find dinner" },
+  // Forsideteaser (spesifikasjon punkt 6). "Hva skal vi spise?"-teaseren som
+  // sto her ved siden av er fjernet 26.09.2026 (hele funksjonen fjernet).
   "home.seasonTeaser.eyebrow": { no: "I sesong nå", en: "In season now" },
   "home.seasonTeaser.cta": { no: "Se hva som er i sesong", en: "See what's in season" },
 
-  // Nav-lenker for de to nye sidene (se Header.tsx).
-  "nav.whatToEat": { no: "Hva skal vi spise?", en: "What to eat?" },
+  // Nav-lenke (se Header.tsx).
   "nav.season": { no: "I sesong", en: "In season" },
 } as const;
 

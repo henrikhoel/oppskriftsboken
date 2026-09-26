@@ -62,23 +62,6 @@ export type {
 } from "@/lib/kitchen-intelligence/meal-timeline";
 export { computeMealTaskStream, computeMealTimeline } from "@/lib/kitchen-intelligence/meal-timeline";
 export type {
-  Ambition,
-  ProteinPreference,
-  VibeFacet,
-  WhatToEatCriteria,
-  WhatToEatMatch,
-} from "@/lib/kitchen-intelligence/what-to-eat";
-export {
-  ALL_AMBITIONS,
-  ALL_PROTEIN_PREFERENCES,
-  ALL_VIBE_FACETS,
-  AMBITION_LABELS,
-  buildReasonText,
-  PROTEIN_PREFERENCE_LABELS,
-  scoreRecipesForDecision,
-  VIBE_FACET_LABELS,
-} from "@/lib/kitchen-intelligence/what-to-eat";
-export type {
   InSeasonIngredient,
   IngredientStatus,
   RecipeSeasonalMatch,
