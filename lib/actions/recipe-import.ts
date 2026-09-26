@@ -108,6 +108,16 @@ export interface RecipeImportDraft {
   tags: string[];
   heroImageUrl: string | null;
   source: string;
+  /** (26.09.2026) Innholdet til "Tips"/"Pass på"-feltene nederst i skjemaet
+   * (se applyImportedDraft i RecipeForm.tsx) – KUN satt dersom kilden
+   * faktisk inneholder et eget tips- eller advarsel-avsnitt (f.eks. "Tips:",
+   * "Pass på:", "NB:"); ellers null. Aldri oppspinn av AI-en, i motsetning
+   * til f.eks. difficulty/tags som er ekte forslag – se
+   * assembleDraft/system-promptene under. IKKE å forveksle med `warning`
+   * under, som er en HELT ANNEN ting: en melding TIL ADMIN om hvor pålitelig
+   * selve tolkningen er, ikke en del av oppskriftens eget innhold. */
+  tips: string | null;
+  warnings: string | null;
   /** Satt når resultatet er tolket fra fri sidetekst (ingen JSON-LD funnet)
    * – da er treffsikkerheten lavere, og admin-UI-et bør oppfordre til ekstra
    * nøye gjennomgang før publisering. */
@@ -130,7 +140,10 @@ const RECIPE_OUTPUT_SCHEMA =
   '"ingredientGroups": [{"title": streng|null, "items": [{"amount": streng, "unit": streng, ' +
   '"name": streng, "note": streng}]}], "steps": [{"groupTitle": streng|null, "text": streng}], ' +
   '"categoryName": streng|null (MÅ være eksakt en av de oppgitte kategoriene, ellers null), ' +
-  '"tags": string[] (inntil 5, norske, små bokstaver)}';
+  '"tags": string[] (inntil 5, norske, små bokstaver), ' +
+  '"tips": streng|null (KUN dersom kilden faktisk har et eget tips-avsnitt, ellers null – ALDRI oppspinn), ' +
+  '"warnings": streng|null (KUN dersom kilden faktisk har et eget "pass på"/advarsel-avsnitt, ellers null – ' +
+  'ALDRI oppspinn)}';
 
 type SocialPlatform = "instagram" | "tiktok";
 
@@ -164,6 +177,8 @@ interface ParsedRecipeAiResponse {
   steps?: Array<{ groupTitle?: string | null; text?: string }>;
   categoryName?: string | null;
   tags?: string[];
+  tips?: string | null;
+  warnings?: string | null;
 }
 
 function sanitizeNumber(value: unknown): number | null {
@@ -338,8 +353,11 @@ async function importFromPlainText(
     "amerikanske tallet/enheten når det er det ENESTE som er oppgitt. Behold på samme måte eventuelle " +
     'ovnstemperaturer i Fahrenheit (f.eks. "350°F") OG amerikanske mål nevnt midt i fremgangsmåte-teksten ' +
     '(f.eks. "warm 5 cups ragu") uendret i teksten – det konverteres av kode etterpå. ' +
-    "Del hver ingrediens inn i mengde/enhet/navn/evt. note. Foreslå vanskelighetsgrad, opptil 5 norske " +
-    "emneknagger, og en kategori " +
+    "Del hver ingrediens inn i mengde/enhet/navn/evt. note. Dersom sideteksten har et eget tips-avsnitt " +
+    '(f.eks. under en overskrift som "Tips") eller en advarsel/ting å passe på (f.eks. "Pass på", "NB") – ' +
+    "ta dette med ordrett i hhv. tips- og warnings-feltene. IKKE finn på tips eller advarsler som ikke " +
+    "faktisk står i teksten – bruk null der siden ikke har noe slikt. Foreslå vanskelighetsgrad, opptil 5 " +
+    "norske emneknagger, og en kategori " +
     `KUN dersom en av de oppgitte passer eksakt. Svar KUN med gyldig JSON i dette skjemaet: ${outputSchema}`;
 
   const prompt = `Sidetekst:\n${text}\n\nTilgjengelige kategorier: ${categoryNames.join(", ") || "(ingen)"}`;
@@ -655,9 +673,12 @@ async function parseCaptionToDraft(
         "\"mel\", \"gulrøtter\", \"kyllingfilet\"), mens ekstra beskrivelse av TILSTAND/TILBEREDNING av samme " +
         "ingrediens (f.eks. \"finhakket\", \"i terninger\", \"romtemperert\", \"etter smak\", eller noe i parentes " +
         "rett etter navnet) skal stå i \"note\", IKKE bakes inn i \"name\" – behold likevel admins egne ord " +
-        "ordrett i alle fire feltene, du skal bare PLASSERE dem riktig, ikke skrive dem om. Foreslå " +
-        "vanskelighetsgrad, opptil 5 norske emneknagger, og en kategori KUN dersom en av de oppgitte passer " +
-        `eksakt. Svar KUN med gyldig JSON i dette skjemaet: ${RECIPE_OUTPUT_SCHEMA}`
+        "ordrett i alle fire feltene, du skal bare PLASSERE dem riktig, ikke skrive dem om. Dersom teksten har " +
+        "et eget tips-avsnitt (f.eks. under en overskrift som \"Tips\") eller en advarsel/ting å passe på " +
+        "(f.eks. \"Pass på\", \"NB\") – ta dette med ORDRETT i hhv. tips- og warnings-feltene, med admins egne " +
+        "ord. IKKE finn på tips eller advarsler som ikke faktisk står i teksten – bruk null der de mangler. " +
+        "Foreslå vanskelighetsgrad, opptil 5 norske emneknagger, og en kategori KUN dersom en av de oppgitte " +
+        `passer eksakt. Svar KUN med gyldig JSON i dette skjemaet: ${RECIPE_OUTPUT_SCHEMA}`
       : textKind === "handwritten"
       ? "Du hjelper til med å tolke en oppskrift som er transkribert fra et HÅNDSKREVET notat (f.eks. et " +
         "oppskriftskort, en side i en notatbok, eller en løs lapp), til bruk i en norsk oppskriftsapp. " +
@@ -667,7 +688,9 @@ async function parseCaptionToDraft(
         "finne på struktur som ikke faktisk er antydet i teksten. Teksten kan inneholde transkripsjonsmerker som " +
         '"[uklart]" der håndskriften ikke lot seg lese sikkert – behold disse merkene i resultatet i stedet for ' +
         "å gjette hva som sto der, SÆRLIG for mengder/tall. Del hver ingrediens inn i mengde/enhet/navn/evt. " +
-        "note. Foreslå vanskelighetsgrad, opptil 5 norske emneknagger, og en kategori KUN dersom en av de " +
+        "note. Dersom notatet har et eget tips-avsnitt eller en advarsel/ting å passe på – ta dette med ordrett " +
+        "i hhv. tips- og warnings-feltene, ellers null. Foreslå vanskelighetsgrad, opptil 5 norske emneknagger, " +
+        "og en kategori KUN dersom en av de " +
         `oppgitte passer eksakt. Svar KUN med gyldig JSON i dette skjemaet: ${RECIPE_OUTPUT_SCHEMA}`
       : "Du hjelper til med å tolke en oppskrift skrevet i bildeteksten til et Instagram- eller TikTok-innlegg, til " +
         "bruk i en norsk oppskriftsapp. Bildetekster skrives ofte helt uformelt: emoji brukes ofte som punkttegn " +
@@ -682,7 +705,9 @@ async function parseCaptionToDraft(
         "amerikanske mål nevnt midt i fremgangsmåte-teksten uendret – det konverteres av kode etterpå. Del hver " +
         "ingrediens inn i mengde/enhet/navn/evt. note. Dersom bildeteksten ikke tydelig skiller ingrediensene fra " +
         "fremgangsmåten (vanlig i korte bildetekster) – bruk beste skjønn til likevel å dele innholdet i en " +
-        "ingrediensliste og påfølgende steg, i stedet for å legge alt i én lang klump. Foreslå vanskelighetsgrad, " +
+        "ingrediensliste og påfølgende steg, i stedet for å legge alt i én lang klump. Dersom bildeteksten har et " +
+        "eget tips-avsnitt eller en advarsel/ting å passe på – ta dette med ordrett i hhv. tips- og " +
+        "warnings-feltene, ellers null. Foreslå vanskelighetsgrad, " +
         "opptil 5 norske emneknagger, og en kategori KUN dersom en av de oppgitte passer eksakt. Svar KUN med gyldig " +
         `JSON i dette skjemaet: ${RECIPE_OUTPUT_SCHEMA}`;
 
@@ -825,6 +850,12 @@ function assembleDraft(
     tags: Array.isArray(result.tags) ? result.tags.filter((t): t is string => typeof t === "string").slice(0, 5) : [],
     heroImageUrl: opts.heroImageUrl,
     source: opts.source,
+    // Trim + tomt-blir-null, samme mønster som resten av feltene her – se
+    // RecipeImportDraft sin filhead-kommentar for hvorfor disse to er noe
+    // annet enn `warning` under.
+    tips: typeof result.tips === "string" && result.tips.trim() ? result.tips.trim().slice(0, 2000) : null,
+    warnings:
+      typeof result.warnings === "string" && result.warnings.trim() ? result.warnings.trim().slice(0, 2000) : null,
     warning: opts.warning,
   };
 }

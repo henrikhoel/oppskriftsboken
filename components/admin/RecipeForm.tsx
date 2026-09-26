@@ -304,6 +304,12 @@ export function RecipeForm({
     );
     setSteps(draft.steps.map((s) => ({ key: makeKey(), groupTitle: s.groupTitle ?? "", text: s.text })));
     if (draft.source) setSource(draft.source);
+    // (26.09.2026) Tips/Pass på nederst på siden – KUN satt når kilden
+    // faktisk hadde et eget avsnitt for det (se RecipeImportDraft sin
+    // filhead-kommentar i lib/actions/recipe-import.ts); ellers rører vi
+    // ikke det admin eventuelt allerede har skrevet der selv.
+    if (draft.tips) setTips(draft.tips);
+    if (draft.warnings) setWarnings(draft.warnings);
   }
 
   /** `urlOverride` (27.08.2026, lagt til for "Finn oppskrift"-seksjonen – se
@@ -1757,8 +1763,9 @@ export function RecipeForm({
             <h2 className="font-serif text-xl text-ink">Lim inn en oppskrift (f.eks. fra ChatGPT)</h2>
             <p className="mt-1 text-xs text-ink-faint">
               Lim inn en ferdig oppskrift du har kopiert et annet sted fra – teksten føres over ordrett inn i
-              feltene under (tittel, ingredienser, fremgangsmåte, porsjoner, tider osv.), uten at AI-en dikter
-              opp eller omformulerer noe. Gå gjennom (og juster om nødvendig) før du oppretter oppskriften.
+              feltene under (tittel, ingredienser, fremgangsmåte, porsjoner, tider, samt Tips og Pass på lenger
+              ned dersom kilden har det), uten at AI-en dikter opp eller omformulerer noe. Gå gjennom (og juster
+              om nødvendig) før du oppretter oppskriften.
             </p>
           </div>
           <textarea
