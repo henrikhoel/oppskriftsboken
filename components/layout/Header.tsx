@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { siteConfig } from "@/lib/config";
 import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
+import { SITE_ACCESS_COOKIE, isValidSiteAccessToken } from "@/lib/site-access/token";
 import { HeaderSearchSlot } from "@/components/layout/HeaderSearchSlot";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { ShoppingListBadgeCount } from "@/components/shopping/ShoppingListBadgeCount";
@@ -38,6 +40,13 @@ export async function Header() {
   // Se filheaderen til getCurrentUserFast i lib/auth.ts.
   const user = await getCurrentUserFast();
   const isAdmin = Boolean(user?.isAdmin);
+  // (26.09.2026) Styrer "Logg ut"-knappen under – skal KUN vises når man
+  // faktisk er logget inn med fellespassordet (Henrik: "den syns når man
+  // er på innloggingssiden også, det gir ikke mening, den må komme frem
+  // når man er logget inn"). Samme sjekk som proxy.ts/RecipeTeaser-veien
+  // gjør, bare her for selve visningen av knappen.
+  const cookieStore = await cookies();
+  const hasSiteAccess = await isValidSiteAccessToken(cookieStore.get(SITE_ACCESS_COOKIE)?.value);
 
   return (
     // backdrop-blur er bevisst skrudd av på mobil (backdrop-blur-none) og kun
@@ -134,21 +143,27 @@ export async function Header() {
               +
             </Link>
           )}
-          {/* (26.09.2026, Henrik: "legg til en 'logg ut'-knapp på siden.
-              feks øverst ved siden av NO/EN ellerno?") – logger ut av
-              FELLESPASSORDET for hele nettstedet (se proxy.ts), ikke en
-              personlig konto. Synlig for alle, med vilje – ikke gated på
-              isAdmin som "+"-snarveien over. Ren lenke til en GET-rute
-              (app/logg-ut/route.ts) som sletter cookien og sender tilbake
-              til forsiden – ingen egen "use client"-komponent trengs. */}
-          <Link
-            href="/logg-ut"
-            aria-label={t(lang, "nav.logOut")}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
-          >
-            <LogOutIcon className="h-5 w-5" />
-          </Link>
           <LanguageSwitcher lang={lang} className="ml-1" />
+          {/* (26.09.2026, Henrik: "legg til en 'logg ut'-knapp på siden.
+              feks øverst ved siden av NO/EN ellerno?", deretter: "den
+              syns når man er på innloggingssiden også... den må komme
+              frem når man er logget inn. og jeg vil at den skal være til
+              høyre for NO/EN") – logger ut av FELLESPASSORDET for hele
+              nettstedet (se proxy.ts), ikke en personlig konto. Synlig for
+              alle som ER logget inn (hasSiteAccess over), ikke gated på
+              isAdmin som "+"-snarveien lenger opp. Ren lenke til en
+              GET-rute (app/logg-ut/route.ts) som sletter cookien og sender
+              tilbake til forsiden – ingen egen "use client"-komponent
+              trengs. */}
+          {hasSiteAccess && (
+            <Link
+              href="/logg-ut"
+              aria-label={t(lang, "nav.logOut")}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
+            >
+              <LogOutIcon className="h-5 w-5" />
+            </Link>
+          )}
         </nav>
       </div>
     </header>
