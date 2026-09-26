@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { siteConfig } from "@/lib/config";
 import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
-import { SITE_ACCESS_COOKIE, isValidSiteAccessToken } from "@/lib/site-access/token";
 import { HeaderSearchSlot } from "@/components/layout/HeaderSearchSlot";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { ShoppingListBadgeCount } from "@/components/shopping/ShoppingListBadgeCount";
@@ -15,7 +13,6 @@ import {
   HeartIcon,
   HelpCircleIcon,
   LeafIcon,
-  LogOutIcon,
   SearchIcon,
   ShoppingBagIcon,
 } from "@/components/ui/icons";
@@ -32,7 +29,10 @@ import {
    app/oppskrifter/[slug]/page.tsx) – Header er allerede en async
    server-komponent, så brukeren sjekkes her på serveren (se
    getCurrentUserFast under) og "+" finnes rett og slett ikke i HTML-en som
-   sendes til andre besøkende (ikke bare skjult med CSS). */
+   sendes til andre besøkende (ikke bare skjult med CSS).
+
+   (27.09.2026) Fellespassord-innlogging (hasSiteAccess/"Logg ut") er
+   fjernet igjen – se filheaderen i proxy.ts for hele bildet. */
 export async function Header() {
   const lang = await getLang();
   // getCurrentUserFast (ikke getCurrentUser) – Header rendres på HVER eneste
@@ -40,13 +40,6 @@ export async function Header() {
   // Se filheaderen til getCurrentUserFast i lib/auth.ts.
   const user = await getCurrentUserFast();
   const isAdmin = Boolean(user?.isAdmin);
-  // (26.09.2026) Styrer "Logg ut"-knappen under – skal KUN vises når man
-  // faktisk er logget inn med fellespassordet (Henrik: "den syns når man
-  // er på innloggingssiden også, det gir ikke mening, den må komme frem
-  // når man er logget inn"). Samme sjekk som proxy.ts/RecipeTeaser-veien
-  // gjør, bare her for selve visningen av knappen.
-  const cookieStore = await cookies();
-  const hasSiteAccess = await isValidSiteAccessToken(cookieStore.get(SITE_ACCESS_COOKIE)?.value);
 
   return (
     // backdrop-blur er bevisst skrudd av på mobil (backdrop-blur-none) og kun
@@ -62,7 +55,6 @@ export async function Header() {
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
         <Link
           href="/"
-          prefetch={false}
           className="flex shrink-0 items-center gap-2.5 font-serif text-xl tracking-tight text-ink"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-clay text-cream">
@@ -73,23 +65,9 @@ export async function Header() {
 
         <HeaderSearchSlot lang={lang} />
 
-        {/* (26.09.2026, Henrik: "jeg kommer fortsatt til innloggingsiden når
-            jeg trykker på 'oppskrifter' ... etter å ha logget inn") –
-            prefetch={false} på ALLE lenkene i denne menyen. Header vises på
-            HVER side, også /adgang (selve innloggingssiden) – uten dette
-            forsøker Next.js å hente disse sidene i bakgrunnen i det
-            øyeblikket de kommer inn i synsfeltet, altså også mens man
-            fortsatt ser på /adgang og ikke har logget inn ennå. Den
-            uinnloggede bakgrunnshentingen fanges da opp av proxy.ts sin
-            fellespassord-sjekk og gir "krever innlogging" som svar – og
-            uten prefetch={false} kan svaret bli liggende igjen i Next sin
-            egen klientbufring, uavhengig av om man senere faktisk logger
-            inn. Et vanlig klikk fungerer akkurat likt uten prefetch, bare
-            uten forhåndsoppvarmingen – ingen synlig ulempe her. */}
         <nav aria-label={t(lang, "nav.mainNav")} className="ml-auto flex items-center gap-1 sm:gap-2">
           <Link
             href="/oppskrifter"
-            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <BookIcon className="h-4 w-4" />
@@ -97,7 +75,6 @@ export async function Header() {
           </Link>
           <Link
             href="/hva-kan-jeg-lage"
-            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <CameraIcon className="h-4 w-4" />
@@ -105,7 +82,6 @@ export async function Header() {
           </Link>
           <Link
             href="/hvordan-gjor-jeg-det"
-            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <HelpCircleIcon className="h-4 w-4" />
@@ -113,7 +89,6 @@ export async function Header() {
           </Link>
           <Link
             href="/favoritter"
-            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <HeartIcon className="h-4 w-4" />
@@ -125,7 +100,6 @@ export async function Header() {
               (WhatToEatTeaser/SeasonTeaser) på alle skjermstørrelser. */}
           <Link
             href="/hva-skal-vi-spise"
-            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink lg:flex"
           >
             <BowlIcon className="h-4 w-4" />
@@ -133,7 +107,6 @@ export async function Header() {
           </Link>
           <Link
             href="/sesong"
-            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink lg:flex"
           >
             <LeafIcon className="h-4 w-4" />
@@ -141,7 +114,6 @@ export async function Header() {
           </Link>
           <Link
             href="/oppskrifter"
-            prefetch={false}
             aria-label={t(lang, "nav.search")}
             className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:hidden"
           >
@@ -149,7 +121,6 @@ export async function Header() {
           </Link>
           <Link
             href="/handleliste"
-            prefetch={false}
             aria-label={t(lang, "nav.shoppingList")}
             className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
           >
@@ -166,26 +137,6 @@ export async function Header() {
             </Link>
           )}
           <LanguageSwitcher lang={lang} className="ml-1" />
-          {/* (26.09.2026, Henrik: "legg til en 'logg ut'-knapp på siden.
-              feks øverst ved siden av NO/EN ellerno?", deretter: "den
-              syns når man er på innloggingssiden også... den må komme
-              frem når man er logget inn. og jeg vil at den skal være til
-              høyre for NO/EN") – logger ut av FELLESPASSORDET for hele
-              nettstedet (se proxy.ts), ikke en personlig konto. Synlig for
-              alle som ER logget inn (hasSiteAccess over), ikke gated på
-              isAdmin som "+"-snarveien lenger opp. Ren lenke til en
-              GET-rute (app/logg-ut/route.ts) som sletter cookien og sender
-              tilbake til forsiden – ingen egen "use client"-komponent
-              trengs. */}
-          {hasSiteAccess && (
-            <Link
-              href="/logg-ut"
-              aria-label={t(lang, "nav.logOut")}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
-            >
-              <LogOutIcon className="h-5 w-5" />
-            </Link>
-          )}
         </nav>
       </div>
     </header>

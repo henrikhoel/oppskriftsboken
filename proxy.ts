@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-import { SITE_ACCESS_COOKIE, isValidSiteAccessToken } from "@/lib/site-access/token";
 
 // Next.js 16 gir nytt navn til dette filkonseptet: "proxy" i stedet for
 // "middleware" (samme funksjon, bare omdøpt for å unngå forveksling med
@@ -16,29 +15,15 @@ import { SITE_ACCESS_COOKIE, isValidSiteAccessToken } from "@/lib/site-access/to
 // tillegg eksplisitt at "middleware"-konvensjonen er den utdaterte, og at
 // "proxy" er den anbefalte, gjeldende konvensjonen i Next.js 16.
 //
-// (26.09.2026) Utvidet med fellespassordet for hele det offentlige
-// nettstedet (Henrik: "med tanke på copyright og at dette per dags dato er
-// en kokebok for folk jeg kjenner, bør den egentlig være låst med
-// brukernavn og passord?" -> landet på ETT delt passord, se
-// lib/site-access/token.ts og lib/actions/site-access.ts). To HELT separate
-// sjekker nå, med bevisst ulik matcher-strategi for hver:
-//
-//   1. /admin/* – Supabase-innlogging (updateSession under), UENDRET fra
-//      10.09.2026-innsnevringen. /admin skal ALDRI kreve fellespassordet
-//      først – Henrik skal kunne gå rett til /admin/login via
-//      "admin"-lenken nederst på siden (Footer.tsx) uten omveien om
-//      fellespassordet. updateSession() gjør et EKTE nettverkskall til
-//      Supabase (auth.getUser()) – det er nettopp DERFOR den fortsatt kun
-//      kjører på /admin-ruter, se den opprinnelige kommentaren i
-//      config-matcheren under.
-//
-//   2. Alt annet (det offentlige nettstedet) – fellespassord-sjekken
-//      (checkSiteAccess under). Denne gjør IKKE noe nettverkskall i det
-//      hele tatt – kun en lokal HMAC-verifisering av en allerede utstedt
-//      cookie (se isValidSiteAccessToken) – og kan derfor trygt kjøre på
-//      HVER offentlig sidevisning uten å gjeninnføre treigheten
-//      10.09.2026-fiksen fjernet. Matcheren er derfor utvidet til å dekke
-//      hele nettstedet (minus statiske filer), ikke lenger bare /admin.
+// (27.09.2026) Fellespassordet for hele det offentlige nettstedet (som
+// denne filen en periode gatet ALLE sider bak, se git-historikken rundt
+// 26.09.2026) er FJERNET igjen – Henrik: "jeg ønsker at du fjerner alt som
+// hadde med passordet å gjøre", etter gjentatte bugs der en gyldig
+// innlogging enten ikke satt seg ved klikk/refresh, eller falt ut igjen
+// kort tid etterpå (mest sannsynlig fordi SITE_ACCESS_SECRET ikke alltid
+// var konsekvent tilgjengelig samtidig i alle Vercels edge-regioner).
+// Denne filen er derfor tilbake til kun å håndtere /admin-innlogging,
+// akkurat som før 26.09.2026-utvidelsen.
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -46,130 +31,20 @@ export async function proxy(request: NextRequest) {
     return updateSession(request);
   }
 
-  const gateResponse = await checkSiteAccess(request);
-  if (gateResponse) return gateResponse;
-
   return NextResponse.next();
 }
 
-// Selve passordsiden (og Server Action-en bak "Fortsett"-knappen der, som
-// POST-er til SAMME sti) må være unntatt gaten – ellers en uendelig
-// omdirigerings-løkke.
-const SITE_ACCESS_PUBLIC_PATH = "/adgang";
-
-// (26.09.2026) /logg-ut må OGSÅ være unntatt – oppdaget av Henrik: "noen
-// ganger når jeg logger inn, så er adressen convite.no/logg-ut". Årsak: uten
-// dette unntaket blir /logg-ut behandlet som en hvilken som helst annen
-// beskyttet side. Havner man der UTEN gyldig cookie (f.eks. en gammel
-// nettleser-historikk/adressefelt-snarvei), sender gaten deg til
-// /adgang?next=/logg-ut – og straks du logger inn med riktig passord, blir
-// du sendt videre til nettopp /logg-ut, som øyeblikkelig SLETTER cookien du
-// nettopp fikk og sender deg til "/" igjen. Selve /logg-ut-ruten
-// (app/logg-ut/route.ts) avslører uansett ingen beskyttet informasjon – den
-// bare rydder en cookie som godt kan mangle fra før – så den er like trygg å
-// la stå åpen som /adgang selv.
-const SITE_ACCESS_LOGOUT_PATH = "/logg-ut";
-
-// (26.09.2026) SAMME feilen som /logg-ut over, men for selve
-// innloggings-mottakeren: Henrik: "nå får jeg jo ikke logget inn en gang?"
-// – da /adgang-skjemaet ble gjort om fra en Server Action til et ekte
-// <form method="post"> mot app/api/adgang/route.ts (se filheaderen der for
-// hvorfor), glemte jeg å unnta DENNE nye stien fra gaten under. Uten
-// unntaket blir selve POST-en til /api/adgang behandlet som en hvilken som
-// helst annen beskyttet side: besøkende har jo ennå ingen gyldig cookie
-// (det er nettopp det de prøver å skaffe seg), så gaten fanget den opp og
-// sendte den videre til /adgang FØR passordet i det hele tatt rakk å bli
-// sjekket – innlogging var dermed helt umulig. /api/adgang avslører ingen
-// beskyttet informasjon (den GJØR nettopp passord-sjekken), så den er like
-// trygg å la stå åpen som /adgang og /logg-ut.
-const SITE_ACCESS_LOGIN_SUBMIT_PATH = "/api/adgang";
-
-// (26.09.2026) Enkeltoppskrifter (IKKE selve /oppskrifter-oversikten) er
-// unntatt omdirigeringen – Henrik: "man får opp toppen av oppskriften, med
-// navn og bilde osv, men så er det fadet til svart nedover, og for å se
-// resten (fremgangsmåte, ingredienser) så må man logge inn". Uten dette
-// unntaket ville en delt oppskrift-lenke bare vist "Adgang"-passordsiden i
-// en lenkeforhåndsvisning (Messenger/iMessage/Slack osv.), siden proxy()
-// omdirigerer FØR selve siden (og dermed generateMetadata sin Open
-// Graph-tittel/bilde) i det hele tatt rekker å rendres. Selve siden
-// (app/oppskrifter/[slug]/page.tsx) avgjør heretter SELV om en besøkende
-// uten fellespassordet får se hele oppskriften eller kun en "teaser" (se
-// RecipeTeaser.tsx) – ingrediens-/fremgangsmåte-INNHOLDET havner uansett
-// aldri i HTML-en for en ikke-innlogget besøkende, se filheaderen i
-// RecipeTeaser.tsx for hvorfor det er trygt nok til å slippe forbi her.
-const RECIPE_DETAIL_PATH = /^\/oppskrifter\/[^/]+\/?$/;
-
-async function checkSiteAccess(request: NextRequest): Promise<NextResponse | null> {
-  const { pathname } = request.nextUrl;
-  if (pathname === SITE_ACCESS_PUBLIC_PATH) return null;
-  if (pathname === SITE_ACCESS_LOGOUT_PATH) return null;
-  if (pathname === SITE_ACCESS_LOGIN_SUBMIT_PATH) return null;
-  if (RECIPE_DETAIL_PATH.test(pathname)) return null;
-
-  const token = request.cookies.get(SITE_ACCESS_COOKIE)?.value;
-  if (await isValidSiteAccessToken(token)) return null;
-
-  // (26.09.2026, Henrik, bekreftet ved faktisk testing i nettleseren: "jeg
-  // havner fortsatt på innloggingsiden! uansett hva jeg trykker på, det
-  // skjer om jeg trykker på en oppskrift på selve forsiden også") – kilden
-  // var IKKE cookien (en direkte fetch() til /oppskrifter fra en ellers
-  // innlogget side lyktes hver gang) – det var Next.js sin EGEN bakgrunns-
-  // forhåndshenting av lenker (skjer ved museover, IKKE bare når en lenke
-  // kommer i synsfelt – prefetch={false} på selve <Link> stanser dette
-  // bare delvis, bekreftet med devtools). Så lenge man ENDA ikke er
-  // innlogget (f.eks. mens man fortsatt ser på /adgang, der HELE menyen
-  // med alle lenkene også vises), henter Next.js flere beskyttede sider i
-  // bakgrunnen samtidig – og når NOEN av disse bakgrunnskallene fikk en
-  // ordentlig omdirigering til /adgang tilbake, endte Next sin klient-rute
-  // opp med å vise DEN omdirigeringen i stedet for siden man faktisk
-  // trykket på, selv om selve klikket sitt eget kall lyktes.
-  //
-  // Løsningen: skiller nå på Next.js sine EGNE bakgrunns-forhåndshentinger
-  // (identifisert med next-router-prefetch-headeren den alltid setter selv)
-  // og en ekte sidevisning. En forhåndshenting som ville blitt avvist får
-  // et rent, tomt 204-svar i stedet for en omdirigering – avslører
-  // fortsatt INGENTING (ingen HTML, ingen redirect-mål å mellomlagre feil),
-  // men kan heller ikke forveksles med resultatet av et ekte klikk lenger.
-  // Et EKTE klikk (ingen slik header) sendes fortsatt korrekt til /adgang,
-  // nøyaktig som før.
-  if (request.headers.get("next-router-prefetch")) {
-    return new NextResponse(null, { status: 204, headers: { "Cache-Control": "no-store" } });
-  }
-
-  const url = new URL(SITE_ACCESS_PUBLIC_PATH, request.url);
-  url.searchParams.set("next", pathname + request.nextUrl.search);
-  const response = NextResponse.redirect(url);
-  // Uten en eksplisitt Cache-Control her er det en reell risiko for at
-  // DENNE "krever passord"-omdirigeringen blir liggende igjen i et
-  // mellomlager – enten nettleserens eget, eller Vercel sitt globale
-  // nettverk (CDN-en foran selve Edge-funksjonen) – og dermed fortsetter å
-  // bli servert for akkurat den stien selv etter at man har fått en gyldig
-  // cookie. no-store tvinger isteden et helt ferskt kall til proxy() for
-  // hvert eneste forsøk, slik at en nylig innlogging alltid blir sett med
-  // én gang.
-  response.headers.set("Cache-Control", "no-store");
-  return response;
-}
-
-// Matcher innsnevret til /admin 10.09.2026 (Henrik: "er det en grunn til at
-// siden er bittelitt treig, tar 2 sek å gå fra en side til en annen?").
+// Innsnevret til /admin 10.09.2026 (Henrik: "er det en grunn til at siden
+// er bittelitt treig, tar 2 sek å gå fra en side til en annen?").
 // updateSession() (lib/supabase/middleware.ts) kaller supabase.auth.getUser(),
 // som ALLTID gjør et ekte nettverkskall til Supabase sin auth-server for å
 // validere JWT-en på nytt (i motsetning til getSession(), som bare leser den
 // lokale, allerede-betrodde JWT-en uten nettverkskall) – se Supabase sin
-// egen dokumentasjon av forskjellen. Med den forrige (bredere) matcheren
-// betalte HVER ENESTE sidevisning på HELE siden denne nettverksrundturen
-// før noe som helst begynte å rendres – også for anonyme besøkende som
-// aldri logger inn, og som bare vil lese en oppskrift.
-//
-// (26.09.2026) Matcheren er nå bredere IGJEN – men det bryter IKKE med
-// resonnementet over, fordi selve proxy()-funksjonen fortsatt kun kaller
-// updateSession() (den kostbare Supabase-sjekken) for /admin-ruter, se
-// over. Fellespassord-sjekken som nå kjører på resten av rutene er ren
-// lokal HMAC-verifisering (ingen nettverkskall), og koster derfor i
-// praksis ingenting – standardmatcheren under (Next sitt eget anbefalte
-// eksempeloppsett) ekskluderer kun Next-interne filer og vanlige statiske
-// bildeformater, som uansett aldri trengte noen sjekk.
+// egen dokumentasjon av forskjellen. Med en bredere matcher betaler HVER
+// ENESTE sidevisning på HELE siden denne nettverksrundturen før noe som
+// helst begynner å rendres. Matcheren ble kortvarig utvidet 26.09.2026 for
+// fellespassordet – nå som det er fjernet igjen (27.09.2026), er den
+// tilbake til kun /admin.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico)$).*)"],
+  matcher: ["/admin/:path*"],
 };

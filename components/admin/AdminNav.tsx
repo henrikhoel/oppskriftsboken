@@ -41,14 +41,6 @@ export function AdminNav({ userEmail }: { userEmail: string | null }) {
             >
               Sesonger
             </Link>
-            {/* (26.09.2026) Bytte av fellespassordet for hele nettstedet –
-             * se app/admin/(dashboard)/innstillinger/page.tsx. */}
-            <Link
-              href="/admin/innstillinger"
-              className="rounded-full px-3 py-1.5 font-medium text-ink-soft hover:bg-cream-dark hover:text-ink"
-            >
-              Innstillinger
-            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm text-ink-faint">
