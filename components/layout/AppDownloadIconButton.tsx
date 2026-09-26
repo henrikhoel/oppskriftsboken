@@ -53,14 +53,21 @@ export function AppDownloadIconButton({ lang }: { lang: Lang }) {
 
   return (
     <>
+      {/* Liten strek under selve ikonet (ikke bare en hover-tilstand, som
+          uansett ikke vises på berøringsskjermer) – Henrik: "det må være en
+          strek under symbolet eller noe som antyder at den er klikkbar".
+          Samme "understreket lenke"-signal som den tidligere bannerlinjens
+          tekst hadde (underline decoration-ink/30), bare tegnet som en egen
+          liten stolpe siden det ikke er noen tekst igjen å understreke her. */}
       <button
         type="button"
         onClick={() => setShowHelp(true)}
         aria-label={t(lang, "appBanner.mobileCta")}
         title={t(lang, "appBanner.mobileCta")}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink sm:hidden"
+        className="flex h-8 w-8 shrink-0 flex-col items-center justify-center gap-1 rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink sm:hidden"
       >
         <SmartphoneIcon className="h-4 w-4" />
+        <span aria-hidden="true" className="h-px w-3.5 rounded-full bg-ink-soft/50" />
       </button>
 
       <Drawer

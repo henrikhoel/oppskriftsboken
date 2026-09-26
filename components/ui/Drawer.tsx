@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import { XIcon } from "@/components/ui/icons";
 
@@ -17,6 +18,23 @@ import { XIcon } from "@/components/ui/icons";
  * Bevisst enkel: ingen swipe-to-dismiss/animasjonsbibliotek, kun CSS-
  * transisjon + klikk-utenfor/Escape/X for å lukke – samme nivå av
  * enkelhet som resten av UI-et i appen.
+ *
+ * createPortal til document.body (26.09.2026, feilrettet etter Henriks
+ * skjermbilde av "Legg til på hjemskjerm"-arket, se
+ * AppDownloadIconButton.tsx): et vanlig barn i React-treet males INNI
+ * hvilken som helst stacking context foreldrene har – og BottomNav.tsx
+ * (z-40, position: fixed) ligger som en SØSKEN av Header.tsx (z-30,
+ * position: sticky) i layoutet. Da denne knappen (og dermed Draweren) flyttet
+ * INN i selve Header, fanget Headers egen z-30-stacking context Drawerens
+ * z-50 sammen med resten av Header-treet – Header som HELHET stables
+ * fortsatt kun på "z-30" blant sine søsken, uansett hvor høy z-index et
+ * barn inni den har, så BottomNav (z-40) endte opp over Draweren i stedet
+ * for omvendt. En portal til document.body maler Draveren HELT UTENFOR
+ * Header sin stacking context, uansett hvor knappen som åpner den befinner
+ * seg i treet – samme fiks løser dette for ALLE fremtidige bruk av Drawer
+ * fra et sted som (nå eller senere) selv har en egen stacking context.
+ * `mounted` (kjent først etter mount) er nødvendig siden document.body ikke
+ * finnes under server-rendering.
  */
 export function Drawer({
   open,
@@ -33,6 +51,12 @@ export function Drawer({
   closeLabel?: string;
   children: ReactNode;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {
@@ -42,9 +66,9 @@ export function Drawer({
     return () => window.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -74,6 +98,7 @@ export function Drawer({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
