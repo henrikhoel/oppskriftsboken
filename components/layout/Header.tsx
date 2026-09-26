@@ -72,9 +72,23 @@ export async function Header() {
 
         <HeaderSearchSlot lang={lang} />
 
+        {/* (26.09.2026, Henrik: "jeg kommer fortsatt til innloggingsiden når
+            jeg trykker på 'oppskrifter' ... etter å ha logget inn") –
+            prefetch={false} på ALLE lenkene i denne menyen. Header vises på
+            HVER side, også /adgang (selve innloggingssiden) – uten dette
+            forsøker Next.js å hente disse sidene i bakgrunnen i det
+            øyeblikket de kommer inn i synsfeltet, altså også mens man
+            fortsatt ser på /adgang og ikke har logget inn ennå. Den
+            uinnloggede bakgrunnshentingen fanges da opp av proxy.ts sin
+            fellespassord-sjekk og gir "krever innlogging" som svar – og
+            uten prefetch={false} kan svaret bli liggende igjen i Next sin
+            egen klientbufring, uavhengig av om man senere faktisk logger
+            inn. Et vanlig klikk fungerer akkurat likt uten prefetch, bare
+            uten forhåndsoppvarmingen – ingen synlig ulempe her. */}
         <nav aria-label={t(lang, "nav.mainNav")} className="ml-auto flex items-center gap-1 sm:gap-2">
           <Link
             href="/oppskrifter"
+            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <BookIcon className="h-4 w-4" />
@@ -82,6 +96,7 @@ export async function Header() {
           </Link>
           <Link
             href="/hva-kan-jeg-lage"
+            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <CameraIcon className="h-4 w-4" />
@@ -89,6 +104,7 @@ export async function Header() {
           </Link>
           <Link
             href="/hvordan-gjor-jeg-det"
+            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <HelpCircleIcon className="h-4 w-4" />
@@ -96,6 +112,7 @@ export async function Header() {
           </Link>
           <Link
             href="/favoritter"
+            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <HeartIcon className="h-4 w-4" />
@@ -107,6 +124,7 @@ export async function Header() {
               (WhatToEatTeaser/SeasonTeaser) på alle skjermstørrelser. */}
           <Link
             href="/hva-skal-vi-spise"
+            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink lg:flex"
           >
             <BowlIcon className="h-4 w-4" />
@@ -114,6 +132,7 @@ export async function Header() {
           </Link>
           <Link
             href="/sesong"
+            prefetch={false}
             className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink lg:flex"
           >
             <LeafIcon className="h-4 w-4" />

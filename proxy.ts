@@ -111,7 +111,20 @@ async function checkSiteAccess(request: NextRequest): Promise<NextResponse | nul
 
   const url = new URL(SITE_ACCESS_PUBLIC_PATH, request.url);
   url.searchParams.set("next", pathname + request.nextUrl.search);
-  return NextResponse.redirect(url);
+  const response = NextResponse.redirect(url);
+  // (26.09.2026, Henrik: "jeg kommer fortsatt til innloggingsiden når jeg
+  // trykker på 'oppskrifter' ... etter å ha logget inn") – uten en
+  // eksplisitt Cache-Control her er det en reell risiko for at DENNE
+  // "krever passord"-omdirigeringen (utstedt FØR innlogging, f.eks. fra
+  // Next.js sin egen lenke-prefetching i toppmenyen mens man fortsatt sto
+  // på /adgang) blir liggende igjen i et mellomlager – enten nettleserens
+  // eget, eller Vercel sitt globale nettverk (CDN-en foran selve
+  // Edge-funksjonen) – og dermed fortsetter å bli servert for akkurat den
+  // stien selv etter at man har fått en gyldig cookie. no-store tvinger
+  // isteden et helt ferskt kall til proxy() for hvert eneste forsøk, slik
+  // at en nylig innlogging alltid blir sett med én gang.
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }
 
 // Matcher innsnevret til /admin 10.09.2026 (Henrik: "er det en grunn til at

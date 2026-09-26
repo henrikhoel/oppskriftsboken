@@ -27,6 +27,18 @@ const NAV_ITEMS = [
  * Fast bunnmeny for mobil – dette er den viktigste navigasjonen når man
  * faktisk lager mat med telefonen i hånden. Skjules på større skjermer der
  * Header sin vanlige nav (inkl. språkbryteren) er synlig i stedet.
+ *
+ * (26.09.2026, Henrik: "jeg kommer fortsatt til innloggingsiden når jeg
+ * trykker på 'oppskrifter' 'hva kan jeg lage' osv etter å ha logget inn" –
+ * meldt fra telefon) – DETTE er den faktiske menyen han mente: Header sine
+ * tilsvarende lenker er skjult på mobil (md:flex), så denne bunnmenyen er
+ * det man faktisk trykker på med telefonen i hånden. Samme
+ * prefetch={false}-fiks som i Header.tsx og av samme grunn: denne menyen
+ * vises på HVER side, også /adgang (innloggingssiden) – uten
+ * prefetch={false} forsøker Next.js å hente disse sidene i bakgrunnen så
+ * snart de kommer i synsfeltet, altså også før man har logget inn, og det
+ * uinnloggede svaret ("krever innlogging") kan bli liggende igjen i Next
+ * sin klientbufring selv etter en vellykket innlogging.
  */
 export function BottomNav({ lang }: { lang: Lang }) {
   const pathname = usePathname();
@@ -44,6 +56,7 @@ export function BottomNav({ lang }: { lang: Lang }) {
             <li key={href}>
               <Link
                 href={href}
+                prefetch={false}
                 aria-current={active ? "page" : undefined}
                 className={clsx(
                   "relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",

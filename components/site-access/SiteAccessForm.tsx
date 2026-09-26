@@ -1,3 +1,4 @@
+import { siteConfig } from "@/lib/config";
 import { Button } from "@/components/ui/Button";
 
 /**
@@ -21,11 +22,36 @@ import { Button } from "@/components/ui/Button";
  * direkte til en Route Handler (app/api/adgang/route.ts) og fører til en
  * ekte ny side, er derimot nøyaktig mønsteret nettleserne ser etter. Se
  * filheaderen der for hele forklaringen.
+ *
+ * (26.09.2026, Henrik: "og jeg får fortsatt ikke muligheten til å lagre
+ * passordet på telefon") – enda en brikke manglet: de aller fleste
+ * nettlesere (spesielt Safari/iOS) krever et FELT DE OPPFATTER SOM
+ * BRUKERNAVN rett før passordfeltet for i det hele tatt å tolke skjemaet
+ * som en innlogging verdt å tilby å lagre – et skjema med KUN et
+ * passordfelt (som dette, siden det ikke finnes noen personlig konto her)
+ * blir ofte ikke gjenkjent i det hele tatt, uansett hvor riktig
+ * autoComplete på selve passordfeltet er. Løsningen er det skjulte feltet
+ * under: et helt fast "brukernavn" (nettstedets eget navn, samme for alle
+ * besøkende) som ALDRI vises eller kan endres av besøkende, men som likevel
+ * er tilstede i selve DOM-en (kun visuelt skjult via samme "sr-only"-triks
+ * som "Hopp til innhold"-lenken i app/layout.tsx bruker – IKKE
+ * type="hidden" eller display:none, som nettlesere bevisst ignorerer i
+ * denne sammenhengen) – nøyaktig mønsteret Safari/Chrome leter etter.
  */
 export function SiteAccessForm({ next, error }: { next: string; error?: boolean }) {
   return (
     <form action="/api/adgang" method="post" className="space-y-4">
       <input type="hidden" name="next" value={next} />
+      <input
+        type="text"
+        name="username"
+        autoComplete="username"
+        defaultValue={siteConfig.name}
+        readOnly
+        tabIndex={-1}
+        aria-hidden="true"
+        className="sr-only"
+      />
       <div>
         <label htmlFor="site-password" className="mb-1.5 block text-sm font-medium text-ink">
           Passord
