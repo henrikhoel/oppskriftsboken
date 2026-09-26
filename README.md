@@ -115,6 +115,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=recipe-images
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+SITE_ACCESS_SECRET=<lang, tilfeldig verdi – se 3.7>
 ```
 
 `.env.local` lastes automatisk av Next.js og skal **aldri** committes (den ligger allerede i `.gitignore`). `SUPABASE_SERVICE_ROLE_KEY` brukes kun av `scripts/seed.ts` som kjører lokalt på din maskin – den sendes aldri til nettleseren.
@@ -143,6 +144,17 @@ kun når du faktisk trenger dem (typisk helt i starten, eller etter at du har en
 3. Rediger raden og sett `is_admin` til `true`.
 4. Start dev-serveren (`npm run dev`), gå til `/admin/login`, og logg inn med e-posten og passordet fra steg 1.
 
+### 3.7 Fellespassord for hele nettstedet
+
+(26.09.2026) Hele det offentlige nettstedet krever ett felles passord før man slipper inn – kjør migrasjonen [`supabase/migrations/0019_site_access_password.sql`](supabase/migrations/0019_site_access_password.sql) på samme måte som i 3.2 (SQL Editor, eller `supabase db push`). Den setter opp:
+
+- En `site_access`-tabell med ett bcrypt-hashet passord (startverdi `convite2026` – bytt det fra `/admin/innstillinger` når du er logget inn).
+- To databasefunksjoner (`verify_site_password`/`set_site_password`) som gjør selve sjekken/byttet – selve hashen forlater aldri databasen, se filheaderen i migrasjonen for hvorfor.
+
+I tillegg må `SITE_ACCESS_SECRET` (se 3.4) være satt – denne signerer "husket innlogging"-cookien og har ingenting med selve passordet å gjøre. Generer en egen verdi med `openssl rand -hex 32` og bruk SAMME verdi i alle miljøer (lokalt og Vercel); bytter du den senere logges alle besøkende ut og må skrive passordet på nytt.
+
+`/admin` (inkl. innloggingssiden) er unntatt fellespassordet – admin har sin egen, separate Supabase-innlogging (se 3.6), og nås direkte via "Admin"-lenken nederst på siden.
+
 ## 4. Kjøre lokalt
 
 ```bash
@@ -169,6 +181,7 @@ npm run seed:all      # seed alt sammen (guider + sesonginnhold + eksempeloppskr
    - `SUPABASE_SERVICE_ROLE_KEY` (kun nødvendig dersom du vil kunne kjøre seed-scriptet mot produksjonsdatabasen fra et annet sted – trengs ikke for at selve nettsiden skal fungere)
    - `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET`
    - `NEXT_PUBLIC_SITE_URL` → sett til din faktiske Vercel-URL (f.eks. `https://oppskriftsboken.vercel.app`), oppdater igjen når du kobler på eget domene
+   - `SITE_ACCESS_SECRET` → SAMME verdi som i `.env.local` (se 3.7), ikke en ny en
 4. Klikk **Deploy**.
 
 ## 6. Eget domene

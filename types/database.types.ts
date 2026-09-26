@@ -494,11 +494,40 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["seasonal_ingredients"]["Insert"]>;
         Relationships: [];
       };
+      // (26.09.2026) Fellespassordet for hele nettstedet – se filheaderen i
+      // supabase/migrations/0019_site_access_password.sql. Nøyaktig én rad.
+      // password_hash leses/skrives ALDRI direkte herfra i appkoden (ingen
+      // RLS-policy slipper det til) – kun via RPC-funksjonene under.
+      site_access: {
+        Row: {
+          id: boolean;
+          password_hash: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          password_hash: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["site_access"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      // (26.09.2026) Se filheaderen i
+      // supabase/migrations/0019_site_access_password.sql – returnerer KUN
+      // true/false, eksponerer aldri selve hashen.
+      verify_site_password: {
+        Args: { candidate: string };
+        Returns: boolean;
+      };
+      set_site_password: {
+        Args: { new_password: string };
+        Returns: undefined;
+      };
       rate_recipe: {
         Args: {
           recipe_id: string;
