@@ -111,6 +111,11 @@ export function IngredientGroupsEditor({
   // viser (evt. avkortet) navn, og åpner et bunn-ark (samme Drawer-
   // primitiv som resten av appen bruker) med et stort tekstfelt og en
   // tydelig "Ferdig"-knapp med hake, akkurat slik Henrik beskrev det.
+  //
+  // KUN på mobil fra og med 26.09.2026 (Henrik: "det var ment for telefon
+  // når man ikke så hva man skrev, men det trengs ikke på macen") – fra og
+  // med sm-breakpointet er navnefeltet et vanlig inline tekstfelt, se
+  // rad-markupet under.
   const [editingItem, setEditingItem] = useState<{ groupIndex: number; itemIndex: number } | null>(null);
   const editingGroup = editingItem ? groups[editingItem.groupIndex] : null;
   const editingIngredient = editingItem ? editingGroup?.items[editingItem.itemIndex] : null;
@@ -220,17 +225,36 @@ export function IngredientGroupsEditor({
                   aria-label="Enhet"
                   className="min-w-0 rounded-lg border border-line-strong bg-paper px-2 py-2 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-sm"
                 />
-                {/* Navnet er en KNAPP (ikke et inline tekstfelt) – trykk åpner
-                    et stort redigeringsark under, se editingItem-state over.
-                    Ser ellers ut som resten av feltene i raden. */}
-                <button
-                  type="button"
-                  onClick={() => setEditingItem({ groupIndex, itemIndex })}
-                  aria-label={`Rediger ingrediensnavn: ${item.name || "(tomt)"}`}
-                  className="min-w-0 truncate rounded-lg border border-line-strong bg-paper px-2.5 py-2 text-left text-base text-ink focus:outline-none sm:text-sm"
-                >
-                  {item.name || <span className="text-ink-faint">Ingrediens</span>}
-                </button>
+                {/* Navnet var tidligere ALLTID en knapp som åpnet et stort
+                    redigeringsark (Drawer under) – lagt til 26.08.2026 for
+                    mobil, der den smale, kompakte raden gjorde det vanskelig
+                    å se hva man skrev. Splittet 26.09.2026 (Henrik: "det var
+                    ment for telefon når man ikke så hva man skrev, men det
+                    trengs ikke på macen") til et VANLIG inline tekstfelt fra
+                    og med sm-breakpointet (~640px, samme
+                    mobil/desktop-grense appen ellers bruker, se
+                    text-base/sm:text-sm-mønsteret på feltene rundt) – admin
+                    skriver da direkte i raden som de andre feltene. Under
+                    sm-breakpointet er det fortsatt samme knapp+ark som før,
+                    uendret. Begge ligger i samme rutenett-celle (wrapperen
+                    under), kun én av dem synlig av gangen via hidden/sm:*. */}
+                <div className="min-w-0">
+                  <input
+                    value={item.name}
+                    onChange={(e) => updateItem(groupIndex, itemIndex, { ...item, name: e.target.value })}
+                    placeholder="Ingrediens"
+                    aria-label="Ingrediensnavn"
+                    className="hidden w-full min-w-0 rounded-lg border border-line-strong bg-paper px-2.5 py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none sm:block"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditingItem({ groupIndex, itemIndex })}
+                    aria-label={`Rediger ingrediensnavn: ${item.name || "(tomt)"}`}
+                    className="block w-full min-w-0 truncate rounded-lg border border-line-strong bg-paper px-2.5 py-2 text-left text-base text-ink focus:outline-none sm:hidden"
+                  >
+                    {item.name || <span className="text-ink-faint">Ingrediens</span>}
+                  </button>
+                </div>
                 <input
                   value={item.note}
                   onChange={(e) =>
