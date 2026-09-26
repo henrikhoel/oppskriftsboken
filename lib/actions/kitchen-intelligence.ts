@@ -1238,8 +1238,8 @@ export async function getEveningCuration(
  * svaret ER selve teksten, ingen felter å skille fra hverandre, så det
  * enklere, rå tekst-kallet er tilstrekkelig og litt raskere.
  *
- * Cachet (i motsetning til f.eks. getWineRecommendation i lib/actions/ai.ts,
- * som er bevisst UCACHET) – her er det reell sannsynlighet for at flere
+ * Cachet (i motsetning til f.eks. getMealWineRecommendation i
+ * lib/actions/ai.ts, som er bevisst UCACHET) – her er det reell sannsynlighet for at flere
  * besøkende stiller nøyaktig det samme, vanlige spørsmålet om samme rett
  * ("kan denne fryses?", "kan jeg bruke X i stedet for Y?"), og cache-nøkkelen
  * (normalisert spørsmålstekst) fanger nettopp det gjenbrukstilfellet uten å

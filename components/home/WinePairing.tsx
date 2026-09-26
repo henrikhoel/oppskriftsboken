@@ -5,33 +5,51 @@ import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
 import { searchRecipesForPicker } from "@/lib/actions/search";
-import { getWineRecommendation } from "@/lib/actions/ai";
-import { getVinmonopoletWineSuggestion, type VinmonopoletSuggestion } from "@/lib/actions/vinmonopolet";
+import { getRecipeDrinkPairingById } from "@/lib/actions/recipes";
+import {
+  getVinmonopoletWineSuggestion,
+  resolveVinmonopoletProductById,
+  type VinmonopoletSuggestion,
+} from "@/lib/actions/vinmonopolet";
 import { matchWineToRecipes, matchWineToRecipesFromImage, type WineRecipeMatch } from "@/lib/actions/wine-match";
+import { drinkOptionSearchText, type PinnedVinmonopoletProduct, type LocalizedDrinkOption } from "@/lib/kitchen-intelligence/drink-pairing";
 import { resizeImageFileToJpegBase64 } from "@/lib/utils/image";
 import type { SearchableRecipe } from "@/lib/utils/search";
 import { SearchIcon, ChevronRightIcon, CameraIcon } from "@/components/ui/icons";
-import { localizedTitle } from "@/lib/utils/format";
+import { localizedTitle, localizedDrinkPairingOption } from "@/lib/utils/format";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
  * Forsidens "Mat & vin"-seksjon – tenkt som en signaturfunksjon, ikke bare
  * en reklameplakat for funksjonen som allerede finnes på oppskriftssiden
- * (components/recipe/WineSection.tsx). Beholder samme mørke, gastronomiske
- * uttrykk som resten av siden (bevisst IKKE en lys pustepause – det er
- * Cook Mode-seksjonen sin jobb, se CookModeShowcase.tsx).
+ * (components/recipe/DrinkPairingSection.tsx). Beholder samme mørke,
+ * gastronomiske uttrykk som resten av siden (bevisst IKKE en lys
+ * pustepause – det er Cook Mode-seksjonen sin jobb, se
+ * CookModeShowcase.tsx).
  *
- * To retninger, begge bygget på den SAMME eksisterende AI-/Vinmonopolet-
- * logikken, ikke et parallelt system:
+ * To retninger:
  *
- *   RETT -> VIN    gjenbruker getWineRecommendation + getVinmonopoletWineSuggestion
- *                  direkte (nøyaktig samme kall som på oppskriftssiden)
- *   VIN -> RETTER  lib/actions/wine-match.ts (matchWineToRecipes /
- *                  matchWineToRecipesFromImage), som gjør det motsatte:
- *                  finner de beste rettene i katalogen for en vin gjesten
- *                  selv beskriver – som tekst, eller nå også som et FOTO
- *                  av flasken/etiketten, samme kamera-mønster som
- *                  WineMatchChecker i components/recipe/WineSection.tsx
+ *   RETT -> VIN    (FoodToWine) leser recipes.drink_pairing for den valgte
+ *                  retten via getRecipeDrinkPairingById – SAMME
+ *                  forhåndsgenererte forslag som "Drikke til" viser på selve
+ *                  oppskriftssiden, ikke et eget AI-kall. OMLAGT 26.09.2026
+ *                  (Henrik: "denne funksjonen er ai generering, så man får
+ *                  et helt annet svar enn inne på selve oppskriften. jeg
+ *                  vil at svaret man får her skal være det samme som inne
+ *                  på selve retten, altså ikke ai generert. har jeg ikke
+ *                  lagt inn vin, får man heller ikke treff.") – ingen
+ *                  drink_pairing lagret for retten = "ingen treff", ikke en
+ *                  AI-gjettet erstatning. "Vil du ha et konkret forslag fra
+ *                  Vinmonopolet?"-steget etterpå bruker fortsatt
+ *                  getVinmonopoletWineSuggestion (eller admin sitt pinnede
+ *                  produkt, om satt) – identisk med oppskriftssidens egen
+ *                  "Finn en konkret vin"-knapp, se
+ *                  DrinkPairingSection.tsx.
+ *   VIN -> RETTER  (WineToFood) er UPÅVIRKET av dette – fortsatt et ekte,
+ *                  live AI-kall for HVER beskrivelse/hvert bilde (Henrik:
+ *                  "'sjekk vinen min' må naturligvis fortsatt være ai
+ *                  generering"), se lib/actions/wine-match.ts
+ *                  (matchWineToRecipes/matchWineToRecipesFromImage).
  */
 
 type Tab = "food" | "wine";
@@ -113,16 +131,19 @@ function DishPicker({ lang, onPick }: { lang: Lang; onPick: (recipe: SearchableR
   );
 }
 
-/** RETT -> VIN, i to steg (ikke ett) – matcher nå mønsteret fra
- * "Vinanbefaling" på oppskriftssiden (components/recipe/WineSection.tsx):
- * første klikk gir kun en BESKRIVELSE av vinstilen som passer (samme
- * getWineRecommendation-kall), og bare dersom gjesten selv ber om det
- * («Vil du ha et konkret forslag fra Vinmonopolet?»-knappen) hentes et
- * faktisk, navngitt produkt. Før hoppet dette rett til et konkret
- * Vinmonopolet-produkt uten å vise vinstil-beskrivelsen i det hele tatt. */
+/** RETT -> VIN, i to steg (ikke ett) – matcher mønsteret fra "Drikke til"
+ * på oppskriftssiden (components/recipe/DrinkPairingSection.tsx): første
+ * klikk henter kun BESKRIVELSEN av vinstilen som allerede er lagret på
+ * retten (recipes.drink_pairing, samme kilde – IKKE et eget AI-kall lenger,
+ * se filheaderen over), og bare dersom gjesten selv ber om det («Vil du ha
+ * et konkret forslag fra Vinmonopolet?»-knappen) hentes et faktisk,
+ * navngitt produkt (admin sitt pinnede produkt, om satt – ellers samme
+ * getVinmonopoletWineSuggestion-søk som på oppskriftssiden). */
 function FoodToWine({ lang }: { lang: Lang }) {
   const [selected, setSelected] = useState<SearchableRecipe | null>(null);
-  const [recommendation, setRecommendation] = useState<string | null>(null);
+  const [pairing, setPairing] = useState<LocalizedDrinkOption | null>(null);
+  const [pinnedWine, setPinnedWine] = useState<PinnedVinmonopoletProduct | null>(null);
+  const [noPairing, setNoPairing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -141,7 +162,9 @@ function FoodToWine({ lang }: { lang: Lang }) {
 
   function handlePick(recipe: SearchableRecipe) {
     setSelected(recipe);
-    setRecommendation(null);
+    setPairing(null);
+    setPinnedWine(null);
+    setNoPairing(false);
     setSuggestion(null);
     setError(null);
     setVinError(null);
@@ -149,8 +172,14 @@ function FoodToWine({ lang }: { lang: Lang }) {
 
     startTransition(async () => {
       try {
-        const text = await getWineRecommendation(recipeContextFor(recipe), lang);
-        setRecommendation(text);
+        const drinkPairing = await getRecipeDrinkPairingById(recipe.id);
+        const wine = drinkPairing ? localizedDrinkPairingOption(drinkPairing.wine, lang) : null;
+        if (!wine || !wine.style) {
+          setNoPairing(true);
+          return;
+        }
+        setPairing(wine);
+        setPinnedWine(drinkPairing?.pinnedWine ?? null);
       } catch (err) {
         setError(err instanceof Error ? err.message : t(lang, "home.wine.error"));
       }
@@ -158,7 +187,7 @@ function FoodToWine({ lang }: { lang: Lang }) {
   }
 
   function handleFindWine() {
-    if (!selected || !recommendation) return;
+    if (!selected || !pairing) return;
     setVinError(null);
     setVinLoading(true);
     setSuggestion(null);
@@ -166,7 +195,28 @@ function FoodToWine({ lang }: { lang: Lang }) {
 
     (async () => {
       try {
-        const result = await getVinmonopoletWineSuggestion(recipeContextFor(selected), recommendation, lang);
+        if (pinnedWine) {
+          // Admin har pinnet et konkret produkt – ingen AI-søk, kun en
+          // fersk pris-sjekk, akkurat som samme forgrening i
+          // DrinkPairingSection.tsx (DrinkPairingResult.handleFindWine).
+          const resolved = await resolveVinmonopoletProductById(pinnedWine.productId, pinnedWine.url);
+          const product = resolved.success && resolved.product ? resolved.product : null;
+          setSuggestion({
+            productName: product?.productName ?? pinnedWine.productName,
+            productId: pinnedWine.productId,
+            url: product?.url ?? pinnedWine.url,
+            imageUrl: product?.imageUrl ?? pinnedWine.imageUrl,
+            priceNok: product?.priceNok ?? pinnedWine.priceNok,
+            reasoning: pinnedWine.reasoning || t(lang, "wine.pinnedReasoningFallback"),
+            confirmed: true,
+            searchTerm: "",
+            alternates: [],
+          });
+          return;
+        }
+
+        const searchText = drinkOptionSearchText(pairing);
+        const result = await getVinmonopoletWineSuggestion(recipeContextFor(selected), searchText, lang);
         setSuggestion(result);
       } catch (err) {
         setVinError(err instanceof Error ? err.message : t(lang, "wine.vinmonopoletError"));
@@ -178,7 +228,9 @@ function FoodToWine({ lang }: { lang: Lang }) {
 
   function reset() {
     setSelected(null);
-    setRecommendation(null);
+    setPairing(null);
+    setPinnedWine(null);
+    setNoPairing(false);
     setSuggestion(null);
     setError(null);
     setVinError(null);
@@ -212,9 +264,15 @@ function FoodToWine({ lang }: { lang: Lang }) {
 
       {error && <p className="mt-5 text-sm text-clay-dark">{error}</p>}
 
-      {recommendation && (
+      {!isPending && noPairing && (
+        <p className="mt-5 text-sm text-ink-faint">{t(lang, "home.wine.foodNoPairing")}</p>
+      )}
+
+      {pairing && (
         <div className="mt-5 border-t border-line pt-5">
-          <p className="text-sm leading-relaxed text-ink">{recommendation}</p>
+          <p className="font-serif text-lg text-ink">{pairing.style}</p>
+          {pairing.detail && <p className="mt-1 text-xs text-ink-faint">{pairing.detail}</p>}
+          {pairing.note && <p className="mt-2 text-sm leading-relaxed text-ink-soft">{pairing.note}</p>}
 
           {!suggestion && (
             <div className="mt-3">

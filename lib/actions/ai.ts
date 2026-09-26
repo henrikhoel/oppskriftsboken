@@ -40,39 +40,23 @@ interface RecipeContext {
   ingredientNames: string[];
 }
 
-/** Kort, generell vinanbefaling – generert på forespørsel av en besøkende. */
-export async function getWineRecommendation(recipe: RecipeContext, lang: Lang = "no"): Promise<string> {
-  const system =
-    lang === "en"
-      ? "You are a knowledgeable sommelier who gives short, concrete wine pairing suggestions for dinner dishes, in English. " +
-        "Since you don't have access to a specific wine selection right now, suggest a WINE STYLE/GRAPE (e.g. \"a full-bodied, dark red like Syrah or Malbec\"), not a specific producer. " +
-        "Answer in max 2-3 sentences, warm and everyday in tone, no heading or preamble."
-      : "Du er en kunnskapsrik sommelier som gir korte, konkrete vinanbefalinger til middagsretter, på norsk. " +
-        "Siden du ikke har tilgang til et konkret vinsortiment akkurat nå, foreslå en VINSTIL/DRUE (f.eks. «en fyldig, mørk rødvin som Syrah eller Malbec»), ikke et bestemt produsentnavn. " +
-        "Svar med maks 2-3 setninger, varmt og hverdagslig, ingen overskrift eller innledning.";
-
-  const prompt =
-    lang === "en"
-      ? `Dish: ${recipe.title}\nDescription: ${recipe.description || "(no description)"}\nMain ingredients: ${recipe.ingredientNames.slice(0, 15).join(", ") || "(unknown)"}\n\nSuggest a wine that goes well with this dish.`
-      : `Rett: ${recipe.title}\nBeskrivelse: ${recipe.description || "(ingen beskrivelse)"}\nHovedingredienser: ${recipe.ingredientNames.slice(0, 15).join(", ") || "(ukjent)"}\n\nForeslå en vin som passer til denne retten.`;
-
-  const text = await callClaude(system, prompt, 250);
-  return text.trim();
-}
-
 /**
- * MENYNIVÅ-VIN (Fase 5 – Experience, 5.6). Samme prinsipp som
- * getWineRecommendation over (vinSTIL, ikke et bestemt produsentnavn – det
- * er getVinmonopoletWineSuggestion i lib/actions/vinmonopolet.ts sin jobb),
- * men vurderer HELE MENYEN under ett i stedet for én rett – bygger direkte
- * på MealSession-objektet fra Fase 5 steg 1 (se
- * components/meal/MealView.tsx), ikke bare på ankerretten alene.
+ * MENYNIVÅ-VIN (Fase 5 – Experience, 5.6). Foreslår en VINSTIL/DRUE (ikke
+ * et bestemt produsentnavn – det er getVinmonopoletWineSuggestion i
+ * lib/actions/vinmonopolet.ts sin jobb), men vurderer HELE MENYEN under
+ * ett i stedet for én rett – bygger direkte på MealSession-objektet fra
+ * Fase 5 steg 1 (se components/meal/MealView.tsx), ikke bare på
+ * ankerretten alene. ULIK "Mat & vin" på forsiden (WinePairing.tsx), som
+ * fra 26.09.2026 kun leser recipes.drink_pairing (se
+ * getRecipeDrinkPairingById i lib/actions/recipes.ts) – en fritt
+ * sammensatt meny har ingen tilsvarende forhåndsgenerert egenskap å lese,
+ * så denne blir stående som et live AI-kall.
  *
- * IKKE cachet, av samme grunn som getWineRecommendation: en gitt
- * meny-sammensetning er en personlig, unik kombinasjon denne ene besøkende
- * satte sammen – langt mindre sannsynlig å gjenbrukes på tvers av andre
- * besøkende enn f.eks. et menyforslag for én bestemt oppskrift, så caching
- * ville gitt lite reell gjenbruksverdi for kompleksiteten det tilfører.
+ * IKKE cachet: en gitt meny-sammensetning er en personlig, unik
+ * kombinasjon denne ene besøkende satte sammen – langt mindre sannsynlig
+ * å gjenbrukes på tvers av andre besøkende enn f.eks. et menyforslag for
+ * én bestemt oppskrift, så caching ville gitt lite reell gjenbruksverdi
+ * for kompleksiteten det tilfører.
  */
 export async function getMealWineRecommendation(
   meal: { title: string; courses: { roleLabel: string; title: string }[] },

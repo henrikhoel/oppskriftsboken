@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
 import { createClient } from "@/lib/supabase/server";
-import { getAllRecipeSlugsForCollisionCheck, getPublishedRecipeSummaries } from "@/lib/data/recipes";
+import { getAllRecipeSlugsForCollisionCheck, getPublishedRecipeSummaries, getRecipesByIds } from "@/lib/data/recipes";
 import { ensureUniqueSlug, slugify } from "@/lib/utils/slug";
 import { recipeInputSchema, type RecipeInput } from "@/lib/validation/recipe-schema";
 import {
@@ -1691,4 +1691,23 @@ export async function removeRecipeFromMood(recipeId: string, moodId: MoodId): Pr
 export async function getRecipesByMood(moodId: MoodId): Promise<RecipeSummary[]> {
   const recipes = await getPublishedRecipeSummaries();
   return recipes.filter((r) => (r.moods ?? []).includes(moodId));
+}
+
+/**
+ * Leseside til "Finn vin til maten" i den ANDRE "Mat & vin"-seksjonen på
+ * forsiden (components/home/WinePairing.tsx, retning RETT -> VIN). Fram
+ * til 26.09.2026 kalte den samme knappen getWineRecommendation (nå
+ * fjernet fra lib/actions/ai.ts) og fikk et helt FRITT, live AI-generert
+ * svar hver gang – Henrik: "denne funksjonen er ai generering, så man
+ * får et helt annet svar enn inne på selve oppskriften. jeg vil at
+ * svaret man får her skal være det samme som inne på selve retten,
+ * altså ikke ai generert." Returnerer nå i stedet nøyaktig samme
+ * forhåndsgenererte recipes.drink_pairing som "Drikke til" på selve
+ * oppskriftssiden (se generateDrinkPairing over og
+ * DrinkPairingSection.tsx) – null her betyr "ingen vin lagt inn ennå",
+ * og UI-et skal da vise "ingen treff", ikke dikte opp noe selv.
+ */
+export async function getRecipeDrinkPairingById(recipeId: string): Promise<DrinkPairing | null> {
+  const [recipe] = await getRecipesByIds([recipeId]);
+  return recipe?.drinkPairing ?? null;
 }

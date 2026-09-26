@@ -227,9 +227,13 @@ export const AI_CACHE_FEATURES = [
   // lib/actions/recipes.ts og lib/kitchen-intelligence/drink-pairing.ts.
   // Gamle cache-rader med feature="drink_pairing" kan trygt ligge urørt/
   // slettes manuelt i ai_suggestion_cache – de leses ikke av noe lenger.
-  // getWineRecommendation i lib/actions/ai.ts er UPÅVIRKET av dette – den
-  // brukes fortsatt av den HELT ANDRE "Mat & vin"-seksjonen på forsiden
-  // (components/home/WinePairing.tsx, retning RETT -> VIN).
+  // "Mat & vin" på forsiden (components/home/WinePairing.tsx, retning
+  // RETT -> VIN) brukte tidligere en egen, ucachet getWineRecommendation i
+  // lib/actions/ai.ts for et helt eget, live AI-svar – denne er 26.09.2026
+  // fjernet (Henrik ville ha samme svar som på selve oppskriftssiden), og
+  // den seksjonen leser nå i stedet rett fra recipes.drink_pairing (se
+  // getRecipeDrinkPairingById i lib/actions/recipes.ts), samme kilde som
+  // "Drikke til" over.
   // "manual_meal_fit" (10.09.2026): evaluateManualMeal i
   // lib/actions/kitchen-intelligence.ts – "Bygg en meny selv" (/meny/ny,
   // ManualMealBuilder.tsx). Motsatt retning av "meal_plan": her har
