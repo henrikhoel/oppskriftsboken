@@ -16,13 +16,17 @@ export const metadata: Metadata = {
  * (men aldri for /admin, se filheaderen der – admin har sin egen, separate
  * innlogging). `next` er stien de egentlig prøvde å nå, satt av proxy.ts,
  * slik at de havner rett tilbake der etter riktig passord.
+ *
+ * `feil=1` settes av app/api/adgang/route.ts (se filheaderen der for
+ * hvorfor selve innsendingen er en ordentlig Route Handler og ikke en
+ * React Server Action) når passordet var galt.
  */
 export default async function SiteAccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; feil?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, feil } = await searchParams;
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-16">
@@ -34,7 +38,7 @@ export default async function SiteAccessPage({
         <p className="mt-1.5 text-sm text-ink-soft">Skriv inn passordet for å komme inn.</p>
       </div>
       <div className="rounded-card border border-line bg-paper p-6 shadow-card sm:p-8">
-        <SiteAccessForm next={next && next.startsWith("/") ? next : "/"} />
+        <SiteAccessForm next={next && next.startsWith("/") ? next : "/"} error={feil === "1"} />
       </div>
     </div>
   );

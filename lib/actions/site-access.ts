@@ -1,71 +1,25 @@
 "use server";
 
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 import { requireAdmin } from "@/lib/auth";
-import { SITE_ACCESS_COOKIE, createSiteAccessToken } from "@/lib/site-access/token";
+import { createClient } from "@/lib/supabase/server";
 
 /**
- * Handlingene bak fellespassordet for hele nettstedet (26.09.2026) – se
+ * Handlingen bak fellespassordet for hele nettstedet (26.09.2026) – se
  * filheaderen i proxy.ts og supabase/migrations/0019_site_access_password.sql
- * for hele bildet. To helt separate ting her, ikke å forveksle med
- * lib/actions/auth.ts sin admin-innlogging: dette er ETT delt passord alle
- * besøkende bruker for å slippe inn på det offentlige nettstedet i det hele
- * tatt, ikke en personlig konto.
+ * for hele bildet. Ikke å forveksle med lib/actions/auth.ts sin
+ * admin-innlogging: dette er ETT delt passord alle besøkende bruker for å
+ * slippe inn på det offentlige nettstedet i det hele tatt, ikke en
+ * personlig konto.
+ *
+ * Selve verifiseringen av passordet (som besøkende taster inn på /adgang)
+ * skjer IKKE lenger her som en Server Action – se app/api/adgang/route.ts
+ * for hvorfor (26.09.2026, Henrik: "jeg får ikke opp muligheten til å lagre
+ * passordet eller face id på telefon" – en Server Action sendes som et
+ * usynlig fetch-kall når JavaScript er lastet, og blir dermed ALDRI fanget
+ * opp av nettleserens "lagre passord?"/Face ID-tilbud, i motsetning til en
+ * ordentlig skjema-innsending). Denne filen har derfor kun igjen
+ * admin-siden av fellespassordet: selve BYTTET av det.
  */
-
-export interface SiteAccessActionState {
-  error: string | null;
-}
-
-/**
- * "Lås opp" fellespassord-siden (/adgang, se proxy.ts) – krever IKKE at man
- * er innlogget (besøkende har jo ingen konto her), sjekker i stedet det ene
- * delte passordet mot databasen via verify_site_password (SECURITY DEFINER
- * RPC – se migrasjonen for hvorfor det er en RPC og ikke et rått
- * tabelloppslag). Selve hashen forlater aldri databasen.
- */
-export async function verifySitePassword(
-  _prevState: SiteAccessActionState,
-  formData: FormData,
-): Promise<SiteAccessActionState> {
-  if (!isSupabaseConfigured) {
-    return { error: "Ikke konfigurert ennå. Se README.md." };
-  }
-
-  const password = String(formData.get("password") ?? "");
-  if (!password) {
-    return { error: "Skriv inn passordet." };
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("verify_site_password", { candidate: password });
-
-  if (error || data !== true) {
-    return { error: "Feil passord." };
-  }
-
-  const cookieStore = await cookies();
-  cookieStore.set(SITE_ACCESS_COOKIE, await createSiteAccessToken(), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    // Ett år – "husk meg"-varighet var eksplisitt ønsket (Henrik, 26.09.2026:
-    // "ett enkelt passord er smart"), pluss at nettleserens egen lagrede
-    // passord+Face ID/Touch ID-autofyll (se autoComplete på passordfeltet i
-    // components/SiteAccessForm.tsx) uansett gjør en eventuell ny
-    // innlogging rask selv om denne cookien skulle utløpe eller bli slettet.
-    maxAge: 60 * 60 * 24 * 365,
-  });
-
-  // Kun relative stier innenfor egen side (aldri en ekstern URL som skulle
-  // ha sneket seg inn i ?next=, som ellers kunne blitt en åpen redirect).
-  const nextPath = String(formData.get("next") ?? "/");
-  redirect(nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/");
-}
 
 export interface UpdateSitePasswordState {
   error: string | null;

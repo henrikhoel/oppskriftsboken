@@ -1,10 +1,4 @@
-"use client";
-
-import { useActionState } from "react";
-import { verifySitePassword, type SiteAccessActionState } from "@/lib/actions/site-access";
 import { Button } from "@/components/ui/Button";
-
-const initialState: SiteAccessActionState = { error: null };
 
 /**
  * Selve passordfeltet på /adgang (se app/adgang/page.tsx og proxy.ts).
@@ -16,12 +10,21 @@ const initialState: SiteAccessActionState = { error: null };
  * Face ID/Touch ID for å fylle det ut automatisk neste besøk – ren
  * nettleser-funksjonalitet, ingen ekstra kode her utover disse to
  * attributtene og et ordentlig <form>.
+ *
+ * (26.09.2026, Henrik: "jeg får ikke opp muligheten til å lagre passordet
+ * eller face id på telefon") – DERFOR er dette bevisst IKKE lenger en
+ * "use client"-komponent med en React Server Action (useActionState). Så
+ * lenge JavaScript er lastet, sender React en Server Action som et
+ * fetch()-kall i bakgrunnen, og et slikt usynlig kall blir ALDRI fanget opp
+ * av Safari/Chrome sin "vil du lagre passordet?"-boks – uansett hvor riktig
+ * autoComplete er satt opp. Et vanlig <form method="post"> som POST-er
+ * direkte til en Route Handler (app/api/adgang/route.ts) og fører til en
+ * ekte ny side, er derimot nøyaktig mønsteret nettleserne ser etter. Se
+ * filheaderen der for hele forklaringen.
  */
-export function SiteAccessForm({ next }: { next: string }) {
-  const [state, formAction, isPending] = useActionState(verifySitePassword, initialState);
-
+export function SiteAccessForm({ next, error }: { next: string; error?: boolean }) {
   return (
-    <form action={formAction} className="space-y-4">
+    <form action="/api/adgang" method="post" className="space-y-4">
       <input type="hidden" name="next" value={next} />
       <div>
         <label htmlFor="site-password" className="mb-1.5 block text-sm font-medium text-ink">
@@ -38,14 +41,14 @@ export function SiteAccessForm({ next }: { next: string }) {
         />
       </div>
 
-      {state.error && (
+      {error && (
         <p role="alert" className="rounded-xl bg-clay-light px-4 py-2.5 text-sm text-clay-dark">
-          {state.error}
+          Feil passord.
         </p>
       )}
 
-      <Button type="submit" fullWidth disabled={isPending}>
-        {isPending ? "Sjekker …" : "Fortsett"}
+      <Button type="submit" fullWidth>
+        Fortsett
       </Button>
     </form>
   );
