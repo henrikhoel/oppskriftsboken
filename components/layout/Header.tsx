@@ -13,6 +13,7 @@ import {
   HeartIcon,
   HelpCircleIcon,
   LeafIcon,
+  LogOutIcon,
   SearchIcon,
   ShoppingBagIcon,
 } from "@/components/ui/icons";
@@ -133,6 +134,20 @@ export async function Header() {
               +
             </Link>
           )}
+          {/* (26.09.2026, Henrik: "legg til en 'logg ut'-knapp på siden.
+              feks øverst ved siden av NO/EN ellerno?") – logger ut av
+              FELLESPASSORDET for hele nettstedet (se proxy.ts), ikke en
+              personlig konto. Synlig for alle, med vilje – ikke gated på
+              isAdmin som "+"-snarveien over. Ren lenke til en GET-rute
+              (app/logg-ut/route.ts) som sletter cookien og sender tilbake
+              til forsiden – ingen egen "use client"-komponent trengs. */}
+          <Link
+            href="/logg-ut"
+            aria-label={t(lang, "nav.logOut")}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
+          >
+            <LogOutIcon className="h-5 w-5" />
+          </Link>
           <LanguageSwitcher lang={lang} className="ml-1" />
         </nav>
       </div>

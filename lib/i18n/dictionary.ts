@@ -28,6 +28,12 @@ const DICT = {
   // stått igjen med det gamle, mer kliniske navnet.
   "nav.pantry": { no: "Hva kan jeg lage?", en: "What can I make?" },
   "nav.language": { no: "Språk", en: "Language" },
+  // (26.09.2026) Logger ut av FELLESPASSORDET for hele nettstedet (se
+  // proxy.ts/app/logg-ut/route.ts) – IKKE det samme som admin sin egen
+  // SignOutButton.tsx (som logger ut av en Supabase-konto). Synlig for
+  // alle, ikke bare admin – Henrik ønsket den godt synlig ved siden av
+  // NO/EN-bryteren i toppmenyen, se Header.tsx.
+  "nav.logOut": { no: "Logg ut", en: "Log out" },
 
   // --- AppDownloadBanner: KUN mobil (10.09.2026, fjernet fra Mac/PC helt –
   // se filheaderen i AppDownloadBannerClient.tsx). Et trykk åpner et lite
