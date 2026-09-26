@@ -614,6 +614,11 @@ const DICT = {
     en: "Ingredients and instructions are only visible to those who are logged in.",
   },
   "recipeDetail.lockedCta": { no: "Logg inn for å se resten", en: "Log in to see the rest" },
+  // (26.09.2026, Henrik: "jeg vil at man skal kunne dele lenken til
+  // oppskriften via snarveien på telefonen ... en liten knapp ved siden av
+  // hjertet på oppskriftsiden hadde vært gull") – se ShareButton.tsx.
+  "recipeDetail.share": { no: "Del oppskriften", en: "Share recipe" },
+  "recipeDetail.linkCopied": { no: "Lenke kopiert", en: "Link copied" },
   "recipeDetail.ingredientsHeading": { no: "Ingredienser", en: "Ingredients" },
   "servings.label": { no: "Porsjoner", en: "Servings" },
   "servings.chooseAria": { no: "Velg antall porsjoner", en: "Choose number of servings" },

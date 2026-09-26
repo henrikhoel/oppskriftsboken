@@ -78,6 +78,7 @@ export function RecipeHero({
   editHref,
   editLabel,
   favorite,
+  share,
   rating,
   meta,
 }: {
@@ -99,6 +100,11 @@ export function RecipeHero({
   editHref: string;
   editLabel: string;
   favorite: ReactNode;
+  // (26.09.2026, Henrik: "en liten knapp ved siden av hjertet på
+  // oppskriftsiden hadde vært gull") – valgfri, kun rendret som node her
+  // akkurat som favorite/rating/meta (selve ShareButton.tsx-logikken eies
+  // av RecipeInteractive.tsx, se filheaderen der).
+  share?: ReactNode;
   rating: ReactNode;
   meta: ReactNode;
 }) {
@@ -208,6 +214,7 @@ export function RecipeHero({
                   </Link>
                 )}
                 {favorite}
+                {share}
               </div>
             </div>
 

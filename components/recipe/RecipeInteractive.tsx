@@ -19,10 +19,12 @@ import type { ParallelTaskGroup } from "@/lib/actions/kitchen-intelligence";
 import { DrinkPairingSection } from "@/components/recipe/DrinkPairingSection";
 import { RecipeQuestionSection } from "@/components/recipe/RecipeQuestionSection";
 import { FavoriteButton } from "@/components/recipe/FavoriteButton";
+import { ShareButton } from "@/components/recipe/ShareButton";
 import { RatingStars } from "@/components/recipe/RatingStars";
 import { RecipeMeta } from "@/components/recipe/RecipeMeta";
 import { Button } from "@/components/ui/Button";
 import { CheckIcon, PlayIcon, ShoppingBagIcon } from "@/components/ui/icons";
+import { siteConfig } from "@/lib/config";
 import { scaleAmount } from "@/lib/utils/scale";
 import { convertAmountToUs, type UnitSystem } from "@/lib/utils/units";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
@@ -382,6 +384,13 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
             // Favoritt sitter nå diskret sammen med ratingen i stedet for på
             // linje med tittelen, se RecipeHero.tsx.
             size="sm"
+            lang={lang}
+          />
+        }
+        share={
+          <ShareButton
+            title={displayTitle}
+            url={`${siteConfig.url}/oppskrifter/${recipe.slug}`}
             lang={lang}
           />
         }

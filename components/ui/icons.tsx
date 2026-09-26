@@ -400,3 +400,19 @@ export function ExternalLinkIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** Del-ikon (boks med pil ut/opp) – brukt av ShareButton.tsx på
+ * oppskriftssiden (26.09.2026, Henrik: "jeg vil at man skal kunne dele
+ * lenken til oppskriften via snarveien på telefonen ... en liten knapp ved
+ * siden av hjertet"). Samme gjenkjennelige "del"-form som iOS/Android sine
+ * egne del-ikoner (boks + pil ut av toppen), tegnet i settets vanlige
+ * håndtegnede strek-stil i stedet for en importert ikonpakke. */
+export function ShareIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" />
+      <path d="M16 6.5 12 2.5 8 6.5" />
+      <path d="M12 2.5v13" />
+    </svg>
+  );
+}
