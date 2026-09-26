@@ -106,21 +106,42 @@ export default async function HomePage() {
           minste, STABILE høyden – heroen endrer aldri størrelse mens man
           scroller. */}
       <section
-        className="relative isolate flex items-center overflow-hidden border-b border-line bg-cream"
+        className="relative isolate flex items-start overflow-hidden border-b border-line bg-cream lg:items-center"
         style={{
           minHeight:
             "calc(100svh - var(--app-banner-h, 2.375rem) - var(--header-h, 4.0625rem) - var(--bottom-nav-h, 0px))",
         }}
       >
         {/* Stemningsbilde bak CONVITE-ordmerket. Rent dekorativt (alt=""). Ekte
-            foto (ikke AI-generert) – se public/images/hero.jpg. */}
+            foto (ikke AI-generert). To separate bilder fra og med 27.09.2026
+            (Henrik: "neste problemet er hero bildet på telefon nå. jeg vil ha
+            et eget bilde der") – det brede skrivebordsbildet (hero.jpg, se
+            under) hadde det mørke partiet og burgeren fordelt LANGS BREDDEN,
+            noe som rett og slett ikke finnes på en smal telefonskjerm etter
+            object-cover sin beskjæring: enten forsvant burgeren nesten helt,
+            eller det mørke tekstpartiet gjorde det. hero-mobile.jpg er et
+            eget, stående (portrait) bilde av samme rett, med det mørke
+            partiet ØVERST i stedet for til venstre – se lg:items-center
+            rett over/items-start på selve <section>: teksten er derfor
+            flyttet fra vertikalt sentrert til toppstilt på mobil/nettbrett
+            (samme brekkpunkt, lg, som resten av denne seksjonen allerede
+            skiller på), slik at den fortsatt lander midt i det mørke partiet
+            i STÅENDE bilde i stedet for å ende opp midt oppå burgeren. */}
+        <Image
+          src="/images/hero-mobile.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover lg:hidden"
+        />
         <Image
           src="/images/hero.jpg"
           alt=""
           fill
           priority
           sizes="100vw"
-          className="object-cover"
+          className="hidden object-cover lg:block"
         />
         {/* To sammenslåtte nedtoninger i stedet for bare én vertikal som før
             – Henrik, etter at riktig hero-bilde endelig vistes korrekt:
