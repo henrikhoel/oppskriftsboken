@@ -574,24 +574,33 @@ export async function extractCaptionTextFromImages(
  * når importFromSocialUrl over ikke får tak i siden i det hele tatt (vanlig
  * nok med Instagram/TikTok at dette er en FØRSTEKLASSES vei inn, ikke bare
  * en nødløsning). Samme tekstfelt gjenbrukes ALTSÅ for en transkribert
- * håndskrevet oppskrift (se extractCaptionTextFromImages sin filheader) –
- * `textKind` styrer hvilken AI-tolkningsprompt som brukes under, siden en
- * håndskrevet oppskrift skrives helt annerledes enn en Instagram-bildetekst.
+ * håndskrevet oppskrift (se extractCaptionTextFromImages sin filheader), OG
+ * (26.09.2026) for "Lim inn en oppskrift" i selve oppskriftsskjemaet – der
+ * limer admin inn en ferdig oppskrift kopiert fra et annet sted (typisk
+ * generert av ChatGPT) og forventer at den overføres ORDRETT inn i feltene,
+ * samme prinsipp som parseDrinkPairingFromText i lib/actions/recipes.ts.
+ * `textKind` styrer hvilken AI-tolkningsprompt som brukes under, siden disse
+ * tre kildetypene skrives helt forskjellig fra hverandre.
  * `sourceUrl` er valgfri – admin kan lime inn lenken til innlegget for
  * sporbarhet (samme `source`-felt som de andre importveiene), eller la den
- * stå tom dersom de ikke har den for hånden (ALLTID tom ved håndskrift). */
+ * stå tom dersom de ikke har den for hånden (ALLTID tom ved håndskrift/limt
+ * inn tekst). */
 export async function importRecipeFromCaptionText(
   captionText: string,
   sourceUrl: string,
   categories: { id: string; name: string }[],
-  textKind: "caption" | "handwritten" = "caption",
+  textKind: "caption" | "handwritten" | "pasted" = "caption",
 ): Promise<RecipeImportDraft> {
   await requireAdmin();
 
   const trimmedCaption = captionText.trim();
   if (!trimmedCaption) {
     throw new Error(
-      textKind === "handwritten" ? "Lim inn den transkriberte teksten først." : "Lim inn bildeteksten først.",
+      textKind === "handwritten"
+        ? "Lim inn den transkriberte teksten først."
+        : textKind === "pasted"
+          ? "Lim inn oppskriften først."
+          : "Lim inn bildeteksten først.",
     );
   }
 
@@ -608,24 +617,48 @@ export async function importRecipeFromCaptionText(
   return await parseCaptionToDraft(trimmedCaption.slice(0, MAX_PLAIN_TEXT_CHARS), source, categories, null, textKind);
 }
 
-/** Delt AI-tolkning for TRE veier inn: Instagram/TikTok-bildetekst (automatisk
- * hentet og:description, ELLER manuelt limt inn/skjermbilde-transkribert), og
- * (26.08.2026) en transkribert HÅNDSKREVET oppskrift (se filheaderen til
- * importRecipeFromCaptionText over) – `textKind` velger hvilken av de to
- * (ganske ulike) tolkningspromptene som brukes. Egen prompt-familie her,
- * uansett `textKind`, i motsetning til importFromPlainText sin prompt (som
- * er tilpasset ordentlig artikkeltekst fra en oppskriftsside). */
+/** Delt AI-tolkning for FIRE veier inn: Instagram/TikTok-bildetekst (automatisk
+ * hentet og:description, ELLER manuelt limt inn/skjermbilde-transkribert), en
+ * transkribert HÅNDSKREVET oppskrift (26.08.2026), og (26.09.2026) en
+ * oppskrift limt inn ordrett fra en annen kilde, typisk ChatGPT (se
+ * filheaderen til importRecipeFromCaptionText over) – `textKind` velger
+ * hvilken av de tre (ganske ulike) tolkningspromptene som brukes. Egen
+ * prompt-familie her, uansett `textKind`, i motsetning til
+ * importFromPlainText sin prompt (som er tilpasset ordentlig artikkeltekst
+ * fra en oppskriftsside). */
 async function parseCaptionToDraft(
   captionText: string,
   source: string,
   categories: { id: string; name: string }[],
   heroImageUrl: string | null,
-  textKind: "caption" | "handwritten" = "caption",
+  textKind: "caption" | "handwritten" | "pasted" = "caption",
 ): Promise<RecipeImportDraft> {
   const categoryNames = categories.map((c) => c.name);
 
   const system =
-    textKind === "handwritten"
+    textKind === "pasted"
+      ? "Du hjelper til med å overføre en oppskrift som admin har LIMT INN fra et annet sted (typisk generert av " +
+        "ChatGPT, eller kopiert fra en annen kilde), til strukturerte felter i en norsk oppskriftsapp. Du dikter " +
+        "IKKE opp noe nytt innhold og omformulerer IKKE kreativt – bruk admins EGNE ord så ordrett som mulig, del " +
+        "teksten kun opp i riktige felter (tittel, beskrivelse, ingredienser med mengde/enhet/navn/note, " +
+        "fremgangsmåte som steg, porsjoner, tider, osv.) ut fra hvordan den allerede er strukturert i kilden. IKKE " +
+        "oversett teksten til et annet språk, og IKKE konverter måleenheter eller temperaturer selv – behold " +
+        "eksakt det som står i kilden, uendret. Gjett ALDRI på verdier (porsjoner/tider/mengder) som ikke faktisk " +
+        "står i teksten – bruk null der de mangler, i stedet for å fylle inn en typisk verdi. " +
+        "Vær EKSTRA nøye med å dele hver ingredienslinje riktig i fire deler, siden dette er det viktigste admin " +
+        "gjennomgår etterpå: \"amount\" er KUN selve tallet/brøken/intervallet (f.eks. \"2\", \"1/2\", \"2-3\", " +
+        "\"250\") uten enheten limt på; \"unit\" er måleenheten som ord/forkortelse rett etter tallet (g, kg, dl, " +
+        "l, ss, ts, stk, klype, boks, fedd, osv.) – dersom ingrediensen ikke har noen egen enhet (f.eks. \"3 egg\" " +
+        "eller \"1 løk\") skal \"unit\" være en tom streng og selve ordet (egg/løk) stå i \"name\", IKKE gjettes " +
+        "til \"stk\". Dersom linjen mangler mengde helt (f.eks. \"Salt og pepper etter smak\") skal \"amount\" og " +
+        "\"unit\" være tomme strenger og hele resten stå i \"name\". \"name\" er selve ingrediensnavnet (f.eks. " +
+        "\"mel\", \"gulrøtter\", \"kyllingfilet\"), mens ekstra beskrivelse av TILSTAND/TILBEREDNING av samme " +
+        "ingrediens (f.eks. \"finhakket\", \"i terninger\", \"romtemperert\", \"etter smak\", eller noe i parentes " +
+        "rett etter navnet) skal stå i \"note\", IKKE bakes inn i \"name\" – behold likevel admins egne ord " +
+        "ordrett i alle fire feltene, du skal bare PLASSERE dem riktig, ikke skrive dem om. Foreslå " +
+        "vanskelighetsgrad, opptil 5 norske emneknagger, og en kategori KUN dersom en av de oppgitte passer " +
+        `eksakt. Svar KUN med gyldig JSON i dette skjemaet: ${RECIPE_OUTPUT_SCHEMA}`
+      : textKind === "handwritten"
       ? "Du hjelper til med å tolke en oppskrift som er transkribert fra et HÅNDSKREVET notat (f.eks. et " +
         "oppskriftskort, en side i en notatbok, eller en løs lapp), til bruk i en norsk oppskriftsapp. " +
         "Håndskrevne oppskrifter skrives ofte kompakt og stikkordspreget: forkortede måleenheter (ss/ts/dl/g), " +
@@ -656,7 +689,9 @@ async function parseCaptionToDraft(
   const prompt =
     textKind === "handwritten"
       ? `Transkribert tekst fra håndskrevet oppskrift:\n${captionText}\n\nTilgjengelige kategorier: ${categoryNames.join(", ") || "(ingen)"}`
-      : `Bildetekst:\n${captionText}\n\nTilgjengelige kategorier: ${categoryNames.join(", ") || "(ingen)"}`;
+      : textKind === "pasted"
+        ? `Limt inn oppskrift:\n${captionText}\n\nTilgjengelige kategorier: ${categoryNames.join(", ") || "(ingen)"}`
+        : `Bildetekst:\n${captionText}\n\nTilgjengelige kategorier: ${categoryNames.join(", ") || "(ingen)"}`;
 
   const result = await callAndParse(system, prompt);
   return assembleDraft(result, {
@@ -667,13 +702,23 @@ async function parseCaptionToDraft(
     knownPrep: null,
     knownCook: null,
     knownTotal: null,
+    // Ordrett-limingen (26.09.2026) skrur AV den ellers automatiske
+    // enhets-/temperaturkonverteringen under – Henrik ba eksplisitt om at
+    // limt inn tekst overføres ORDRETT, samme prinsipp som
+    // parseDrinkPairingFromText. AI-en er allerede bedt om å ikke
+    // oversette/konvertere selv (se system-prompten over); dette er i
+    // tillegg det deterministiske sikkerhetsnettet fra de to andre
+    // tekst-kildene, som her heller ikke skal røre tallene.
+    convertUnits: textKind !== "pasted",
     warning:
       textKind === "handwritten"
         ? "Hentet fra et bilde av en håndskrevet oppskrift – håndskrift kan bli feiltolket, spesielt tall og " +
           'mengder. Se etter "[uklart]"-merker og gå ekstra nøye gjennom ingredienser og fremgangsmåte før du ' +
           "publiserer."
-        : "Hentet fra en bildetekst (Instagram/TikTok) – disse er ofte skrevet uformelt og kan mangle presise " +
-          "mengder/tider. Gå ekstra nøye gjennom ingredienser og fremgangsmåte før du publiserer.",
+        : textKind === "pasted"
+          ? "Tolket fra limt inn tekst – sjekk gjerne at mengder, tider og trinn stemmer før du publiserer."
+          : "Hentet fra en bildetekst (Instagram/TikTok) – disse er ofte skrevet uformelt og kan mangle presise " +
+            "mengder/tider. Gå ekstra nøye gjennom ingredienser og fremgangsmåte før du publiserer.",
   });
 }
 
@@ -709,8 +754,16 @@ function assembleDraft(
     knownCook: number | null;
     knownTotal: number | null;
     warning: string | null;
+    /** Default true. Satt til false for ordrett-limt tekst (26.09.2026,
+     * textKind "pasted") – da skal IKKE engang den ellers deterministiske
+     * amerikanske->norske enhets-/temperaturkonverteringen under røre
+     * tallene, siden hele poenget er at teksten overføres eksakt slik
+     * admin limte den inn. */
+    convertUnits?: boolean;
   },
 ): RecipeImportDraft {
+  const convertUnits = opts.convertUnits ?? true;
+
   const ingredientGroups: RecipeImportIngredientGroup[] = (result.ingredientGroups ?? [])
     .map((g) => ({
       title: typeof g.title === "string" && g.title.trim() ? g.title.trim() : null,
@@ -726,8 +779,10 @@ function assembleDraft(
         // dl/l/g/kg), avrundet til naturlige tall – se filheaderen øverst
         // for hvorfor dette gjøres her (deterministisk kode), ikke av AI-en
         // over. Enheter som allerede er metriske (eller ukjente) returnerer
-        // null fra convertImperialAmount og står helt urørt.
+        // null fra convertImperialAmount og står helt urørt. Hoppes helt
+        // over når convertUnits er false (se opts-kommentaren over).
         .map((i) => {
+          if (!convertUnits) return i;
           const converted = convertImperialAmount(i.amount, i.unit);
           return converted ? { ...i, amount: converted.amount, unit: converted.unit } : i;
         }),
@@ -740,10 +795,12 @@ function assembleDraft(
       // Samme resonnement som over, for ovnstemperaturer OG amerikanske mål
       // nevnt midt i selve fremgangsmåteteksten ("350°F" -> "175°C", "5 cups
       // ragu" -> "1 l ragu") – ren tekstsubstitusjon, resten av steget står
-      // uendret.
+      // uendret. Hoppes over når convertUnits er false.
       text:
         typeof s.text === "string"
-          ? convertImperialUnitsInText(convertFahrenheitInText(s.text.trim()))
+          ? convertUnits
+            ? convertImperialUnitsInText(convertFahrenheitInText(s.text.trim()))
+            : s.text.trim()
           : "",
     }))
     .filter((s) => s.text !== "");

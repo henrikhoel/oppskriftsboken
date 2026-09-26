@@ -468,6 +468,48 @@ export function RecipeForm({
     }
   }
 
+  // "Lim inn en oppskrift" (26.09.2026 – ønsket av Henrik: "jeg vil ha en
+  // fritekst boks hvor jeg kan kopiere fra chatgpt og den fører over ordrett
+  // det jeg har limt inn. samme som den gjør på drikkeforslag", pluss
+  // oppfølgingen "jeg vil også at jeg kan lime inn antall porsjoner,
+  // forberedelse, total tid osv, og den legger også inn det riktig i
+  // skjemaet nedover") – EGEN, alltid synlig seksjon (ikke gjemt bak en
+  // "vis"-lenke som Instagram/TikTok-fallbacken over), siden dette ventes å
+  // bli en av de vanligste inngangene til nye oppskrifter. Gjenbruker SAMME
+  // rør som bildetekst-/håndskrift-importen (importRecipeFromCaptionText ->
+  // applyImportedDraft, som allerede fyller porsjoner/tider/vanskelighetsgrad
+  // fra draftet), bare med en egen textKind ("pasted") som ber AI-en
+  // overføre teksten ORDRETT uten å oversette eller konvertere noe selv –
+  // samme prinsipp som parseDrinkPairingFromText i lib/actions/recipes.ts.
+  // Se filheaderen til importRecipeFromCaptionText i
+  // lib/actions/recipe-import.ts for selve AI-tolkningen. Egen state, ikke
+  // gjenbruk av captionText/showCaptionPaste over, siden dette er en annen,
+  // alltid-synlig inngang.
+  const [pastedRecipeText, setPastedRecipeText] = useState("");
+  const [isImportingPastedRecipe, setIsImportingPastedRecipe] = useState(false);
+  const [pastedRecipeError, setPastedRecipeError] = useState<string | null>(null);
+  const [pastedRecipeWarning, setPastedRecipeWarning] = useState<string | null>(null);
+
+  async function handlePastedRecipeImport() {
+    setPastedRecipeError(null);
+    setPastedRecipeWarning(null);
+    setIsImportingPastedRecipe(true);
+    try {
+      const draft = await importRecipeFromCaptionText(
+        pastedRecipeText,
+        "",
+        categories.map((c) => ({ id: c.id, name: c.name })),
+        "pasted",
+      );
+      applyImportedDraft(draft);
+      if (draft.warning) setPastedRecipeWarning(draft.warning);
+    } catch (err) {
+      setPastedRecipeError(err instanceof Error ? err.message : "Kunne ikke tolke oppskriften. Prøv igjen.");
+    } finally {
+      setIsImportingPastedRecipe(false);
+    }
+  }
+
   // "Generer resten med AI" (26.08.2026 – ønsket av Henrik: "jeg vil ha
   // muligheten til å generere resten av oppskriften også, så jeg har noe mer
   // å jobbe ut ifra") – fyller ingredienser/steg/tid/vanskelighetsgrad fra
@@ -1701,6 +1743,46 @@ export function RecipeForm({
               ))}
             </div>
           )}
+        </section>
+      )}
+
+      {/* "Lim inn en oppskrift" (26.09.2026) – se filheaderen ved
+       * pastedRecipeText-state over for begrunnelsen. Alltid synlig (i
+       * motsetning til Instagram/TikTok-bildetekst-fallbacken lenger ned,
+       * som er gjemt bak en "vis"-lenke), og plassert FØR "Importer fra
+       * lenke" siden dette ventes å bli den vanligste inngangen. */}
+      {!isEditing && (
+        <section className="space-y-3 rounded-card border border-line bg-paper p-5 sm:p-6">
+          <div>
+            <h2 className="font-serif text-xl text-ink">Lim inn en oppskrift (f.eks. fra ChatGPT)</h2>
+            <p className="mt-1 text-xs text-ink-faint">
+              Lim inn en ferdig oppskrift du har kopiert et annet sted fra – teksten føres over ordrett inn i
+              feltene under (tittel, ingredienser, fremgangsmåte, porsjoner, tider osv.), uten at AI-en dikter
+              opp eller omformulerer noe. Gå gjennom (og juster om nødvendig) før du oppretter oppskriften.
+            </p>
+          </div>
+          <textarea
+            placeholder="Lim inn hele oppskriften her …"
+            value={pastedRecipeText}
+            onChange={(e) => setPastedRecipeText(e.target.value)}
+            disabled={isImportingPastedRecipe}
+            rows={8}
+            className={inputClass}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void handlePastedRecipeImport()}
+            disabled={isImportingPastedRecipe || !pastedRecipeText.trim()}
+          >
+            {isImportingPastedRecipe ? "Tolker …" : "Fyll inn fra tekst"}
+          </Button>
+          {pastedRecipeError && (
+            <p role="alert" className="rounded-xl bg-clay-light px-4 py-3 text-sm text-clay-dark">
+              {pastedRecipeError}
+            </p>
+          )}
+          {pastedRecipeWarning && <p className="text-xs text-clay-dark">{pastedRecipeWarning}</p>}
         </section>
       )}
 
