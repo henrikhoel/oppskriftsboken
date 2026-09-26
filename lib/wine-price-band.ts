@@ -18,15 +18,15 @@ export const WINE_PRICE_BANDS: WinePriceBand[] = ["under_150", "150_250", "250_4
 
 export const WINE_PRICE_BAND_LABELS: Record<WinePriceBand, string> = {
   under_150: "Under 150 kr",
-  "150_250": "150–250 kr",
-  "250_400": "250–400 kr",
+  "150_250": "150-250 kr",
+  "250_400": "250-400 kr",
   over_400: "Over 400 kr",
 };
 
 export const WINE_PRICE_BAND_LABELS_EN: Record<WinePriceBand, string> = {
   under_150: "Under 150 NOK",
-  "150_250": "150–250 NOK",
-  "250_400": "250–400 NOK",
+  "150_250": "150-250 NOK",
+  "250_400": "250-400 NOK",
   over_400: "Over 400 NOK",
 };
 

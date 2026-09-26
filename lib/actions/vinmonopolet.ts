@@ -266,7 +266,7 @@ export async function resolveVinmonopoletProductById(
   if (!details) {
     return {
       success: false,
-      error: "Fant ikke produktet hos Vinmonopolet – sjekk at ID-en/lenken faktisk peker på en gyldig produktside.",
+      error: "Fant ikke produktet hos Vinmonopolet. Sjekk at ID-en/lenken faktisk peker på en gyldig produktside.",
     };
   }
 

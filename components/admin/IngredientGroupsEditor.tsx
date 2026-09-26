@@ -199,7 +199,7 @@ export function IngredientGroupsEditor({
                   onPointerMove={(e) => handleDragPointerMove(e, groupIndex, item.key)}
                   onPointerUp={handleDragPointerEnd}
                   onPointerCancel={handleDragPointerEnd}
-                  aria-label="Endre rekkefølge – trykk og dra opp eller ned"
+                  aria-label="Endre rekkefølge, trykk og dra opp eller ned"
                   style={{ touchAction: "none" }}
                   className={`flex h-9 w-7 shrink-0 cursor-grab items-center justify-center rounded-lg text-ink-faint hover:bg-cream-dark hover:text-ink active:cursor-grabbing ${
                     draggingKey === item.key ? "cursor-grabbing bg-cream-dark text-clay-dark" : ""

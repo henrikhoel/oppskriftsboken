@@ -84,7 +84,7 @@ const MONTH_NAMES: Record<"no" | "en", string[]> = {
 export function monthRangeLabel(start: number, end: number, lang: "no" | "en" = "no"): string {
   const names = MONTH_NAMES[lang];
   if (start === end) return names[start - 1];
-  return `${names[start - 1]}–${names[end - 1]}`;
+  return `${names[start - 1]}-${names[end - 1]}`;
 }
 
 export function monthName(month: number, lang: "no" | "en" = "no"): string {

@@ -209,7 +209,7 @@ export function SeasonalIngredientsEditor({
                     onChangeValue={(v) => updateIngredient(index, { ...ingredient, availableStartMonth: v })}
                     ariaLabel={`Tilgjengelig fra måned for råvare ${index + 1}`}
                   />
-                  <span className="text-ink-faint">–</span>
+                  <span className="text-ink-faint">-</span>
                   <MonthSelect
                     value={ingredient.availableEndMonth}
                     onChangeValue={(v) => updateIngredient(index, { ...ingredient, availableEndMonth: v })}
@@ -226,7 +226,7 @@ export function SeasonalIngredientsEditor({
                     ariaLabel={`Sesong fra måned for råvare ${index + 1}`}
                     fallbackLabel="Som sesongen"
                   />
-                  <span className="text-ink-faint">–</span>
+                  <span className="text-ink-faint">-</span>
                   <MonthSelect
                     value={ingredient.seasonEndMonth}
                     onChangeValue={(v) => updateIngredient(index, { ...ingredient, seasonEndMonth: v })}
@@ -246,7 +246,7 @@ export function SeasonalIngredientsEditor({
                     ariaLabel={`Peak fra måned for råvare ${index + 1}`}
                     fallbackLabel="Ingen peak"
                   />
-                  <span className="text-ink-faint">–</span>
+                  <span className="text-ink-faint">-</span>
                   <MonthSelect
                     value={ingredient.peakEndMonth}
                     onChangeValue={(v) => updateIngredient(index, { ...ingredient, peakEndMonth: v })}
@@ -280,7 +280,7 @@ export function SeasonalIngredientsEditor({
                 <textarea
                   value={ingredient.seasonNoteNo}
                   onChange={(e) => updateIngredient(index, { ...ingredient, seasonNoteNo: e.target.value })}
-                  placeholder="Lengre, kildebasert forklaring (norsk) – vises kun på råvaresiden"
+                  placeholder="Lengre, kildebasert forklaring (norsk), vises kun på råvaresiden"
                   aria-label={`Sesongnotat norsk for råvare ${index + 1}`}
                   rows={2}
                   className={`${inputClass} resize-y`}

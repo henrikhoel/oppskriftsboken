@@ -92,11 +92,11 @@ function BeatNumber({ n }: { n: string }) {
  * beskrivelse vises bevisst ikke her (se toppkommentar/brukerens spec). */
 function MetaLine({ recipe, lang, className = "" }: { recipe: RecipeSummary; lang: Lang; className?: string }) {
   const time = formatMinutes(recipe.totalTimeMinutes, lang);
-  if (!recipe.category && time === "–") return null;
+  if (!recipe.category && time === "-") return null;
   return (
     <p className={`text-[10px] uppercase tracking-[0.15em] text-ink-faint ${className}`}>
       {recipe.category && <span className="text-clay">{localizedCategoryName(recipe.category, lang)}</span>}
-      {recipe.category && time !== "–" && " · "}
+      {recipe.category && time !== "-" && " · "}
       {time}
     </p>
   );

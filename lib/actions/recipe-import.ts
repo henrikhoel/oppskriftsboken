@@ -157,7 +157,7 @@ function detectSocialPlatform(url: URL): SocialPlatform | null {
 }
 
 const SOCIAL_FETCH_BLOCKED_MESSAGE =
-  "Klarte ikke å hente bildeteksten automatisk fra denne lenken – Instagram og TikTok blokkerer ofte automatisk " +
+  "Klarte ikke å hente bildeteksten automatisk fra denne lenken. Instagram og TikTok blokkerer ofte automatisk " +
   "henting, eller innlegget krever innlogging for å vises. Lim heller inn selve bildeteksten manuelt under " +
   "(kopier den fra appen/nettsiden), så tolkes den på akkurat samme måte.";
 
@@ -238,7 +238,7 @@ export async function importRecipeFromUrl(
     });
     if (!res.ok) {
       throw new Error(
-        `Siden svarte med feil ${res.status}. Noen sider blokkerer automatisk henting – prøv en annen kilde, eller fyll ut skjemaet manuelt.`,
+        `Siden svarte med feil ${res.status}. Noen sider blokkerer automatisk henting. Prøv en annen kilde, eller fyll ut skjemaet manuelt.`,
       );
     }
     const fullHtml = await res.text();
@@ -371,7 +371,7 @@ async function importFromPlainText(
     knownCook: null,
     knownTotal: null,
     warning:
-      "Fant ingen strukturert oppskriftsdata på siden – innholdet er tolket fra fri sidetekst av AI. " +
+      "Fant ingen strukturert oppskriftsdata på siden. Innholdet er tolket fra fri sidetekst av AI. " +
       "Gå ekstra nøye gjennom ingredienser og fremgangsmåte før du publiserer.",
   });
 }
@@ -627,7 +627,7 @@ export async function importRecipeFromCaptionText(
     try {
       source = new URL(trimmedSourceUrl).toString();
     } catch {
-      throw new Error("Lenken til innlegget ser ikke gyldig ut – la feltet stå tomt dersom du ikke har den.");
+      throw new Error("Lenken til innlegget ser ikke gyldig ut. La feltet stå tomt dersom du ikke har den.");
     }
   }
 
@@ -736,12 +736,12 @@ async function parseCaptionToDraft(
     convertUnits: textKind !== "pasted",
     warning:
       textKind === "handwritten"
-        ? "Hentet fra et bilde av en håndskrevet oppskrift – håndskrift kan bli feiltolket, spesielt tall og " +
+        ? "Hentet fra et bilde av en håndskrevet oppskrift. Håndskrift kan bli feiltolket, spesielt tall og " +
           'mengder. Se etter "[uklart]"-merker og gå ekstra nøye gjennom ingredienser og fremgangsmåte før du ' +
           "publiserer."
         : textKind === "pasted"
-          ? "Tolket fra limt inn tekst – sjekk gjerne at mengder, tider og trinn stemmer før du publiserer."
-          : "Hentet fra en bildetekst (Instagram/TikTok) – disse er ofte skrevet uformelt og kan mangle presise " +
+          ? "Tolket fra limt inn tekst. Sjekk gjerne at mengder, tider og trinn stemmer før du publiserer."
+          : "Hentet fra en bildetekst (Instagram/TikTok). Disse er ofte skrevet uformelt og kan mangle presise " +
             "mengder/tider. Gå ekstra nøye gjennom ingredienser og fremgangsmåte før du publiserer.",
   });
 }

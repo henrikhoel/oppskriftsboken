@@ -22,7 +22,7 @@ export default function GlobalError({
       </div>
       <h1 className="font-serif text-3xl text-ink">Noe gikk galt</h1>
       <p className="mt-3 text-ink-soft">
-        Det oppstod en uventet feil. Prøv gjerne igjen – dersom problemet vedvarer kan det være at
+        Det oppstod en uventet feil. Prøv gjerne igjen. Dersom problemet vedvarer kan det være at
         Supabase midlertidig ikke svarer.
       </p>
       <div className="mt-8">

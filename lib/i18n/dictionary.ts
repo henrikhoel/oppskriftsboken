@@ -66,13 +66,13 @@ const DICT = {
   "footer.backToTop": { no: "Til toppen", en: "Back to top" },
 
   "demo.banner": {
-    no: "Demo-modus: viser eksempeloppskrifter. Koble til Supabase i .env.local for å bruke din egen database og admin-panel – se README.md.",
-    en: "Demo mode: showing example recipes. Connect Supabase in .env.local to use your own database and admin panel – see README.md.",
+    no: "Demo-modus: viser eksempeloppskrifter. Koble til Supabase i .env.local for å bruke din egen database og admin-panel. Se README.md.",
+    en: "Demo mode: showing example recipes. Connect Supabase in .env.local to use your own database and admin panel. See README.md.",
   },
 
   "home.eyebrow": { no: "Din digitale kokebok", en: "Your digital cookbook" },
   "home.title": {
-    no: "Oppskriftene du faktisk lager – igjen og igjen",
+    no: "Oppskriftene du faktisk lager, igjen og igjen",
     en: "The recipes you actually cook, again and again",
   },
   "home.subtitleRest": {
@@ -113,8 +113,8 @@ const DICT = {
     en: "Couldn't find suggestions right now. Please try again.",
   },
   "moodMode.none": {
-    no: "Fant ingen gode treff akkurat nå – prøv en annen stemning.",
-    en: "No good matches right now – try a different mood.",
+    no: "Fant ingen gode treff akkurat nå. Prøv en annen stemning.",
+    en: "No good matches right now. Try a different mood.",
   },
 
   // --- Redesignet forside under hero: editorial utvalg-seksjon ---
@@ -147,6 +147,13 @@ const DICT = {
   "home.wine.foodSearchPlaceholder": { no: "Søk etter oppskrift …", en: "Search for a recipe …" },
   "home.wine.foodNoResults": { no: "Ingen treff. Prøv et annet søk.", en: "No matches. Try another search." },
   "home.wine.foodFinding": { no: "Finner vin til «{title}» …", en: "Finding a wine for “{title}” …" },
+  // Vises når retten ikke har noe lagret drikkeforslag ennå (recipes.drink_pairing
+  // er null/tomt for vin) – se getRecipeDrinkPairingById i lib/actions/recipes.ts.
+  // Henrik: "har jeg ikke lagt inn vin, får man heller ikke treff."
+  "home.wine.foodNoPairing": {
+    no: "Ingen vinanbefaling er lagt inn for denne retten ennå.",
+    en: "No wine pairing has been added for this dish yet.",
+  },
   "home.wine.ourPick": { no: "Vårt valg", en: "Our pick" },
   "home.wine.changeDish": { no: "Velg en annen rett", en: "Choose another dish" },
   "home.wine.winePrompt": { no: "Beskriv vinen du har", en: "Describe the wine you have" },
@@ -163,8 +170,8 @@ const DICT = {
   },
   "home.wine.error": { no: "Klarte ikke å fullføre akkurat nå. Prøv igjen.", en: "Couldn't finish just now. Try again." },
   "home.wine.disclaimer": {
-    no: "Vurdert av AI ut fra beskrivelsen og oppskriftene i katalogen – ikke en absolutt fasit.",
-    en: "Assessed by AI from the description and the recipes in the catalog – not an absolute answer.",
+    no: "Vurdert av AI ut fra beskrivelsen og oppskriftene i katalogen, ikke en absolutt fasit.",
+    en: "Assessed by AI from the description and the recipes in the catalog, not an absolute answer.",
   },
 
   // --- Cook Mode-showcase ---
@@ -178,13 +185,13 @@ const DICT = {
   "home.cookMode.mockDish": { no: "Kremet trøffelpasta", en: "Creamy truffle pasta" },
   "home.cookMode.mockStepLabel": { no: "Steg 3 av 6", en: "Step 3 of 6" },
   "home.cookMode.mockStepText": {
-    no: "Ha i fløten og la sausen småkoke i 3–4 minutter til den tykner.",
-    en: "Add the cream and let the sauce simmer for 3–4 minutes until it thickens.",
+    no: "Ha i fløten og la sausen småkoke i 3-4 minutter til den tykner.",
+    en: "Add the cream and let the sauce simmer for 3-4 minutes until it thickens.",
   },
   "home.cookMode.mockMarkDone": { no: "Merk som gjort", en: "Mark as done" },
   "home.cookMode.note": {
-    no: "Skjermen holdes våken automatisk, og du kan styre stegene med stemmen – ingen grunn til å taste inn koden med sausete fingre.",
-    en: "The screen stays awake automatically, and you can move through the steps with your voice – no need to unlock your phone with saucy fingers.",
+    no: "Skjermen holdes våken automatisk, og du kan styre stegene med stemmen. Ingen grunn til å taste inn koden med sausete fingre.",
+    en: "The screen stays awake automatically, and you can move through the steps with your voice. No need to unlock your phone with saucy fingers.",
   },
 
   // --- Kategori-seksjon ---
@@ -198,8 +205,8 @@ const DICT = {
 
   "recipesPage.title": { no: "Alle oppskrifter", en: "All recipes" },
   "recipesPage.description": {
-    no: "Søk på navn, ingrediens, kategori eller tag – eller bruk filtrene til å snevre inn.",
-    en: "Search by name, ingredient, category or tag – or use the filters to narrow it down.",
+    no: "Søk på navn, ingrediens, kategori eller tag, eller bruk filtrene til å snevre inn.",
+    en: "Search by name, ingredient, category or tag, or use the filters to narrow it down.",
   },
   "recipesPage.metaDescription": {
     no: "Søk og filtrer i alle oppskriftene i samlingen.",
@@ -242,12 +249,12 @@ const DICT = {
   // Se kommentaren ved nav.pantry over – samme rename, samme dato/grunn.
   "pantryPage.title": { no: "I kjøleskapet", en: "In the fridge" },
   "pantryPage.metaDescription": {
-    no: "Fortell oss hva du har i kjøleskapet eller skapet – vi finner oppskrifter du kan lage med det.",
-    en: "Tell us what's in your fridge or pantry – we'll find recipes you can make with it.",
+    no: "Fortell oss hva du har i kjøleskapet eller skapet, så finner vi oppskrifter du kan lage med det.",
+    en: "Tell us what's in your fridge or pantry, and we'll find recipes you can make with it.",
   },
   "pantryPage.intro": {
-    no: "Skriv inn eller ta bilde av det du har liggende – enten det er rester fra i går eller bare det som er i kjøleskapet – så finner vi oppskrifter som passer.",
-    en: "Type in or take a photo of what you have on hand – leftovers from yesterday or just what's in the fridge – and we'll find recipes that fit.",
+    no: "Skriv inn eller ta bilde av det du har liggende, enten det er rester fra i går eller bare det som er i kjøleskapet, så finner vi oppskrifter som passer.",
+    en: "Type in or take a photo of what you have on hand, whether it's leftovers from yesterday or just what's in the fridge, and we'll find recipes that fit.",
   },
   "pantryPage.inputPlaceholder": { no: "F.eks. løk, fløte, kylling …", en: "E.g. onion, cream, chicken …" },
   "pantryPage.inputAria": { no: "Legg til ingrediens", en: "Add ingredient" },
@@ -259,8 +266,8 @@ const DICT = {
     en: "Couldn't read the photo. Try another one, or type the ingredients in yourself.",
   },
   "pantryPage.photoDetectedNone": {
-    no: "Fant ingen tydelige matvarer på bildet – prøv et nærmere bilde, eller skriv inn selv.",
-    en: "Couldn't clearly identify any food in the photo – try a closer photo, or type them in yourself.",
+    no: "Fant ingen tydelige matvarer på bildet. Prøv et nærmere bilde, eller skriv inn selv.",
+    en: "Couldn't clearly identify any food in the photo. Try a closer photo, or type them in yourself.",
   },
   "pantryPage.removeIngredientAria": { no: "Fjern {name}", en: "Remove {name}" },
   "pantryPage.searchButton": { no: "Finn oppskrifter", en: "Find recipes" },
@@ -356,8 +363,8 @@ const DICT = {
   "shoppingPage.clearAll": { no: "Tøm listen", en: "Clear list" },
   "shoppingPage.from": { no: "Fra", en: "From" },
   "shoppingPage.pantryStapleHint": {
-    no: "Basisvare – antatt at du har den fra før",
-    en: "Pantry staple – assumed you already have it",
+    no: "Basisvare (antatt at du har den fra før)",
+    en: "Pantry staple (assumed you already have it)",
   },
   "shoppingPage.buyingTipLabel": { no: "Tips", en: "Tip" },
   "shoppingPage.removeAria": { no: "Fjern {name} fra handlelisten", en: "Remove {name} from the shopping list" },
@@ -496,8 +503,8 @@ const DICT = {
   "recipeDetail.timelinePrepLabel": { no: "Start forberedelser", en: "Start prep" },
   "recipeDetail.timelineReadyAtLabel": { no: "Klart til servering", en: "Ready to serve" },
   "recipeDetail.timelineEstimatedNote": {
-    no: "Anslått varighet – juster gjerne selv underveis.",
-    en: "Estimated duration – feel free to adjust as you go.",
+    no: "Anslått varighet. Juster gjerne selv underveis.",
+    en: "Estimated duration. Feel free to adjust as you go.",
   },
   "recipeDetail.timelineParallelButton": {
     no: "Se hva som kan gjøres samtidig",
@@ -668,14 +675,14 @@ const DICT = {
   "nutrition.hide": { no: "Skjul næringsinnhold", en: "Hide nutrition information" },
   "nutrition.perServing": { no: "Per porsjon", en: "Per serving" },
   "nutrition.disclaimer": {
-    no: "Estimert ut fra ingrediensene – kan avvike noe fra faktisk innhold.",
-    en: "Estimated from the ingredients – actual values may vary slightly.",
+    no: "Estimert ut fra ingrediensene. Kan avvike noe fra faktisk innhold.",
+    en: "Estimated from the ingredients. Actual values may vary slightly.",
   },
   "nutrition.calories": { no: "Kalorier", en: "Calories" },
   "nutrition.fat": { no: "Fett", en: "Fat" },
-  "nutrition.saturatedFat": { no: "– hvorav mettet fett", en: "– of which saturates" },
+  "nutrition.saturatedFat": { no: "hvorav mettet fett", en: "of which saturates" },
   "nutrition.carbs": { no: "Karbohydrater", en: "Carbs" },
-  "nutrition.sugar": { no: "– hvorav sukkerarter", en: "– of which sugars" },
+  "nutrition.sugar": { no: "hvorav sukkerarter", en: "of which sugars" },
   "nutrition.fiber": { no: "Fiber", en: "Fiber" },
   "nutrition.protein": { no: "Protein", en: "Protein" },
   "nutrition.salt": { no: "Salt", en: "Salt" },
@@ -825,8 +832,8 @@ const DICT = {
   "mealPage.metaTitle": { no: "Din meny", en: "Your menu" },
   "mealPage.notFoundHeading": { no: "Fant ikke menyen", en: "Menu not found" },
   "mealPage.notFoundBody": {
-    no: "Denne menyen finnes ikke på denne enheten – menyer lagres kun lokalt i nettleseren de ble laget i.",
-    en: "This menu doesn't exist on this device – menus are only stored locally in the browser they were created in.",
+    no: "Denne menyen finnes ikke på denne enheten. Menyer lagres kun lokalt i nettleseren de ble laget i.",
+    en: "This menu doesn't exist on this device. Menus are only stored locally in the browser they were created in.",
   },
   "mealPage.emptyState": { no: "Denne menyen er tom.", en: "This menu is empty." },
   // Lenke tilbake til oppskriften menyen ble bygget rundt (26.08.2026,
@@ -844,8 +851,8 @@ const DICT = {
   },
   "mealPage.notesLabel": { no: "Notater", en: "Notes" },
   "mealPage.notesPlaceholder": {
-    no: "Egne notater om menyen – f.eks. hvem som kommer, eller ting å huske …",
-    en: "Your own notes about the menu – e.g. who's coming, or things to remember …",
+    no: "Egne notater om menyen, f.eks. hvem som kommer, eller ting å huske …",
+    en: "Your own notes about the menu, e.g. who's coming, or things to remember …",
   },
   "mealPage.suggestedDescriptionLabel": { no: "Om forslaget", en: "About the suggestion" },
   "mealPage.createFromSuggestion": { no: "Opprett som oppskrift", en: "Create as recipe" },
@@ -857,8 +864,8 @@ const DICT = {
   // både én rett og en hel meny).
   "mealWine.heading": { no: "Vin til hele menyen", en: "Wine for the whole meal" },
   "mealWine.description": {
-    no: "Få et vinforslag som tar hensyn til hele måltidet – ikke bare én rett.",
-    en: "Get a wine suggestion that considers the whole meal – not just one dish.",
+    no: "Få et vinforslag som tar hensyn til hele måltidet, ikke bare én rett.",
+    en: "Get a wine suggestion that considers the whole meal, not just one dish.",
   },
   "mealWine.button": { no: "Foreslå vin til menyen", en: "Suggest wine for the menu" },
   "mealWine.fetching": { no: "Tenker …", en: "Thinking …" },
@@ -870,8 +877,8 @@ const DICT = {
 
   "mealMood.heading": { no: "Gjør det til en kveld", en: "Make it an evening" },
   "mealMood.description": {
-    no: "Få et forslag til stemning rundt måltidet – musikk, borddekning og tonen for kvelden.",
-    en: "Get a mood suggestion for the meal – music, table setting and the tone for the evening.",
+    no: "Få et forslag til stemning rundt måltidet: musikk, borddekning og tonen for kvelden.",
+    en: "Get a mood suggestion for the meal: music, table setting and the tone for the evening.",
   },
   "mealMood.button": { no: "Foreslå stemning", en: "Suggest a mood" },
   "mealMood.fetching": { no: "Tenker …", en: "Thinking …" },
@@ -971,8 +978,8 @@ const DICT = {
   // lenger, se filheaderen der).
   "eveningExperience.entryHeading": { no: "Gjør det til en kveld", en: "Make it an evening" },
   "eveningExperience.entryDescription": {
-    no: "Vin, bord, stemning og musikk – kuratert rundt akkurat denne menyen.",
-    en: "Wine, table, mood and music – curated around this exact menu.",
+    no: "Vin, bord, stemning og musikk, kuratert rundt akkurat denne menyen.",
+    en: "Wine, table, mood and music, curated around this exact menu.",
   },
   "eveningExperience.dialogAria": { no: "Gjør det til en kveld", en: "Make it an evening" },
   "eveningExperience.eyebrow": { no: "CONVITE", en: "CONVITE" },

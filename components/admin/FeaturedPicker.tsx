@@ -118,7 +118,7 @@ export function FeaturedPicker({
       <section>
         <h2 className="font-serif text-xl text-ink">I utvalget ({featured.length})</h2>
         <p className="mt-1 text-sm text-ink-soft">
-          Rekkefølgen her styrer "Ukens utvalg" på forsiden – øverst vises først.
+          Rekkefølgen her styrer "Ukens utvalg" på forsiden. Øverst vises først.
         </p>
 
         {featured.length === 0 ? (

@@ -25,7 +25,7 @@ export default async function AdminMoodPage() {
         <h1 className="font-serif text-2xl text-ink sm:text-3xl">Humør</h1>
         <p className="mt-1 text-sm text-ink-soft">
           Velg hvilke oppskrifter som skal dukke opp under hver stemning i "Hva passer humøret ditt?" på
-          forsiden. En oppskrift kan stå i flere humør samtidig, eller ingen – da vises den under ingen av
+          forsiden. En oppskrift kan stå i flere humør samtidig, eller ingen. Da vises den under ingen av
           dem.
         </p>
       </div>

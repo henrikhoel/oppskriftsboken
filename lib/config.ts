@@ -19,9 +19,9 @@ export const siteConfig = {
   tagline: "Cook well. Eat better.",
   taglineEn: "Cook well. Eat better.",
   description:
-    "En personlig digital kokebok med oppskrifter, fremgangsmåter og handlelister – samlet på ett sted.",
+    "En personlig digital kokebok med oppskrifter, fremgangsmåter og handlelister, samlet på ett sted.",
   descriptionEn:
-    "A personal digital cookbook with recipes, instructions and shopping lists – all in one place.",
+    "A personal digital cookbook with recipes, instructions and shopping lists, all in one place.",
   /** Brukes til absolutte URL-er i Open Graph / JSON-LD / canonical. */
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   /** Emoji/tekst-basert favicon-erstatning inntil egen logo er lastet opp. */

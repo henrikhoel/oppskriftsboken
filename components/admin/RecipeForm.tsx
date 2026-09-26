@@ -1316,7 +1316,7 @@ export function RecipeForm({
   async function handleFindWineCandidate() {
     if (!recipe) return;
     if (!drinkWine.style.trim()) {
-      setWineToolError("Skriv inn (eller generer) en vinstil over først – søket bruker den teksten.");
+      setWineToolError("Skriv inn (eller generer) en vinstil over først. Søket bruker den teksten.");
       return;
     }
     setWineToolError(null);
@@ -1707,7 +1707,7 @@ export function RecipeForm({
           <div>
             <h2 className="font-serif text-xl text-ink">Finn oppskrift</h2>
             <p className="mt-1 text-xs text-ink-faint">
-              Skriv inn navnet på en rett – f.eks. «Pasta Carbonara» – og velg om du vil finne ekte
+              Skriv inn navnet på en rett (f.eks. «Pasta Carbonara») og velg om du vil finne ekte
               oppskrifter for den på nett, eller la AI-en dikte opp en fra bunnen av.
             </p>
           </div>
@@ -1762,7 +1762,7 @@ export function RecipeForm({
           <div>
             <h2 className="font-serif text-xl text-ink">Lim inn en oppskrift (f.eks. fra ChatGPT)</h2>
             <p className="mt-1 text-xs text-ink-faint">
-              Lim inn en ferdig oppskrift du har kopiert et annet sted fra – teksten føres over ordrett inn i
+              Lim inn en ferdig oppskrift du har kopiert et annet sted fra. Teksten føres over ordrett inn i
               feltene under (tittel, ingredienser, fremgangsmåte, porsjoner, tider, samt Tips og Pass på lenger
               ned dersom kilden har det), uten at AI-en dikter opp eller omformulerer noe. Gå gjennom (og juster
               om nødvendig) før du oppretter oppskriften.
@@ -1799,7 +1799,7 @@ export function RecipeForm({
             <h2 className="font-serif text-xl text-ink">Importer fra lenke</h2>
             <p className="mt-1 text-xs text-ink-faint">
               Lim inn en lenke til en oppskrift på en annen nettside, eller til et Instagram- eller
-              TikTok-innlegg der oppskriften står i selve bildeteksten – resten av skjemaet under fylles ut
+              TikTok-innlegg der oppskriften står i selve bildeteksten. Resten av skjemaet under fylles ut
               automatisk. Amerikanske mål (cups/oz/lb/°F) konverteres til norske kjøkkenmål (dl/g/kg/°C),
               avrundet til naturlige tall. Gå gjennom (og juster om nødvendig) før du oppretter oppskriften.
             </p>
@@ -1884,7 +1884,7 @@ export function RecipeForm({
 
               <p className="text-xs text-ink-faint">
                 Eller: har du en håndskrevet oppskrift (f.eks. et oppskriftskort eller en side i en notatbok)?
-                Last opp bilde(r) av den, så leses teksten inn automatisk under – gå ekstra nøye gjennom
+                Last opp bilde(r) av den, så leses teksten inn automatisk under. Gå ekstra nøye gjennom
                 resultatet etterpå, spesielt mengder, siden håndskrift av og til blir feiltolket.
               </p>
               <label className="inline-flex w-fit cursor-pointer items-center gap-2 text-xs font-medium text-clay hover:text-clay-dark">
@@ -1917,7 +1917,7 @@ export function RecipeForm({
               <input
                 type="url"
                 inputMode="url"
-                placeholder="Lenke til innlegget (valgfritt) – https://…"
+                placeholder="Lenke til innlegget (valgfritt): https://…"
                 value={captionSourceUrl}
                 onChange={(e) => setCaptionSourceUrl(e.target.value)}
                 disabled={isImportingCaption}
@@ -1943,7 +1943,7 @@ export function RecipeForm({
           <div>
             <h2 className="font-serif text-xl text-ink">Generer resten med AI</h2>
             <p className="mt-1 text-xs text-ink-faint">
-              Skriv inn tittel og eventuelt kort beskrivelse og antall porsjoner under, trykk så her – AI-en
+              Skriv inn tittel og eventuelt kort beskrivelse og antall porsjoner under, trykk så her. AI-en
               dikter opp ingredienser, fremgangsmåte, tid og vanskelighetsgrad du kan jobbe videre ut ifra.
               Erstatter det som eventuelt allerede står i ingrediens-/fremgangsmåtefeltene lenger ned. Gå
               grundig gjennom (og juster) før du oppretter oppskriften.
@@ -1999,7 +1999,7 @@ export function RecipeForm({
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-ink-faint">
-            Fyll ut ingredienser og fremgangsmåte under, trykk så her – AI-en leser det du faktisk har skrevet og
+            Fyll ut ingredienser og fremgangsmåte under, trykk så her. AI-en leser det du faktisk har skrevet og
             foreslår en kort beskrivelse ut fra akkurat denne retten.
           </p>
           <Button
@@ -2140,7 +2140,7 @@ export function RecipeForm({
           </>
         ) : (
           <p className="text-xs italic text-ink-faint">
-            Opprett og lagre oppskriften først – deretter kan du generere en engelsk variant her.
+            Opprett og lagre oppskriften først. Deretter kan du generere en engelsk variant her.
           </p>
         )}
       </section>
@@ -2150,7 +2150,7 @@ export function RecipeForm({
           <div>
             <h2 className="font-serif text-xl text-ink">Smaksprofil</h2>
             <p className="mt-1 text-xs text-ink-faint">
-              Vises fast, langt oppe på oppskriftssiden – IKKE noe besøkende laster inn selv. Generer
+              Vises fast, langt oppe på oppskriftssiden. IKKE noe besøkende laster inn selv. Generer
               (eller regenerer) her etter at ingrediensene under er fylt ut.
             </p>
           </div>
@@ -2202,7 +2202,7 @@ export function RecipeForm({
           </>
         ) : (
           <p className="text-xs italic text-ink-faint">
-            Opprett og lagre oppskriften først – deretter kan du generere en smaksprofil her.
+            Opprett og lagre oppskriften først. Deretter kan du generere en smaksprofil her.
           </p>
         )}
       </section>
@@ -2212,7 +2212,7 @@ export function RecipeForm({
           <div>
             <h2 className="font-serif text-xl text-ink">Næringsinnhold</h2>
             <p className="mt-1 text-xs text-ink-faint">
-              Vises bak en "Vis næringsinnhold"-knapp på oppskriftssiden, ikke fast synlig – de som ikke vil
+              Vises bak en "Vis næringsinnhold"-knapp på oppskriftssiden, ikke fast synlig. De som ikke vil
               se det trenger ikke. Generer (eller regenerer) her etter at ingredienser/porsjoner under er
               fylt ut, siden mengdene brukes direkte i beregningen.
             </p>
@@ -2261,7 +2261,7 @@ export function RecipeForm({
           </>
         ) : (
           <p className="text-xs italic text-ink-faint">
-            Opprett og lagre oppskriften først – deretter kan du generere næringsinnhold her.
+            Opprett og lagre oppskriften først. Deretter kan du generere næringsinnhold her.
           </p>
         )}
       </section>
@@ -2271,9 +2271,9 @@ export function RecipeForm({
           <div>
             <h2 className="font-serif text-xl text-ink">Drikkeforslag</h2>
             <p className="mt-1 text-xs text-ink-faint">
-              Vises bak "Drikke til"-knappen på oppskriftssiden – forhåndsgenerert her, ikke lenger en
+              Vises bak "Drikke til"-knappen på oppskriftssiden. Forhåndsgenerert her, ikke lenger en
               live beregning for hver besøkende. Skriv inn feltene for hånd, generer et forslag med AI,
-              eller generer og juster etterpå – begge deler går fint.
+              eller generer og juster etterpå. Begge deler går fint.
             </p>
           </div>
           {isEditing && (
@@ -2306,7 +2306,7 @@ export function RecipeForm({
                   value={drinkPairingPasteText}
                   onChange={(e) => setDrinkPairingPasteText(e.target.value)}
                   rows={4}
-                  placeholder="Lim inn hele teksten – trenger ikke være ryddig delt opp i felt. Fyller kun inn kategoriene (vin/øl/alkoholfritt) teksten faktisk nevner, uten å røre de andre."
+                  placeholder="Lim inn hele teksten. Trenger ikke være ryddig delt opp i felt. Fyller kun inn kategoriene (vin/øl/alkoholfritt) teksten faktisk nevner, uten å røre de andre."
                   className={inputClass}
                 />
               </Field>
@@ -2364,7 +2364,7 @@ export function RecipeForm({
                 <p className="mt-1 text-xs text-ink-faint">
                   Pin ett bestemt Vinmonopolet-produkt her, så viser "Finn en konkret vin på
                   Vinmonopolet"-knappen på oppskriftssiden DETTE direkte i stedet for å søke live med AI
-                  hver gang – valgfritt, uten en pin fungerer knappen akkurat som før.
+                  hver gang. Valgfritt, uten en pin fungerer knappen akkurat som før.
                 </p>
               </div>
 
@@ -2422,7 +2422,7 @@ export function RecipeForm({
                       value={pinnedWine.reasoning}
                       onChange={(e) => setPinnedWine({ ...pinnedWine, reasoning: e.target.value })}
                       rows={2}
-                      placeholder="Vises på oppskriftssiden – la stå tomt for en generisk tekst."
+                      placeholder="Vises på oppskriftssiden. La stå tomt for en generisk tekst."
                       className={inputClass}
                     />
                   </Field>
@@ -2474,7 +2474,7 @@ export function RecipeForm({
                         <p className="text-xs text-ink-soft">{wineCandidate.priceNok} kr</p>
                       ) : (
                         <p className="text-xs text-clay-dark">
-                          Ubekreftet – fant ingen pris (kan være utgått hos Vinmonopolet)
+                          Ubekreftet: fant ingen pris (kan være utgått hos Vinmonopolet)
                         </p>
                       )}
                       <a
@@ -2541,7 +2541,7 @@ export function RecipeForm({
           </>
         ) : (
           <p className="text-xs italic text-ink-faint">
-            Opprett og lagre oppskriften først – deretter kan du skrive inn eller generere et
+            Opprett og lagre oppskriften først. Deretter kan du skrive inn eller generere et
             drikkeforslag her.
           </p>
         )}
@@ -2552,8 +2552,8 @@ export function RecipeForm({
           <div>
             <h2 className="font-serif text-xl text-ink">Vegetarversjon</h2>
             <p className="mt-1 text-xs text-ink-faint">
-              Vises bak en "Ønsker du en vegetarversjon?"-knapp på oppskriftssiden – KUN dersom en variant er
-              lagret her. Generer med AI og/eller skriv/rediger for hånd – lagres sammen med resten av
+              Vises bak en "Ønsker du en vegetarversjon?"-knapp på oppskriftssiden. KUN dersom en variant er
+              lagret her. Generer med AI og/eller skriv/rediger for hånd. Lagres sammen med resten av
               oppskriften når du trykker "Lagre endringer" nederst på siden.
             </p>
           </div>
@@ -2607,7 +2607,7 @@ export function RecipeForm({
           </>
         ) : (
           <p className="text-xs italic text-ink-faint">
-            Opprett og lagre oppskriften først – deretter kan du legge til en vegetarversjon her.
+            Opprett og lagre oppskriften først. Deretter kan du legge til en vegetarversjon her.
           </p>
         )}
       </section>
@@ -2617,7 +2617,7 @@ export function RecipeForm({
           <div>
             <h2 className="font-serif text-xl text-ink">Tid og porsjoner</h2>
             <p className="mt-1 text-xs text-ink-faint">
-              Fyll ut ingredienser og fremgangsmåte under, trykk så her – AI-en leser det du faktisk har
+              Fyll ut ingredienser og fremgangsmåte under, trykk så her. AI-en leser det du faktisk har
               skrevet og foreslår forberedelses-/tilberedningstid og vanskelighetsgrad ut fra det. Nyttig for
               oppskrifter skrevet for hånd eller limt inn uten tid/vanskelighetsgrad.
             </p>
@@ -2761,7 +2761,7 @@ export function RecipeForm({
                       implemented={implementedImprovementKeys.has(`ing-${i}`)}
                       onToggle={toggleImprovementSelection}
                     >
-                      <span className="font-medium text-ink">{item.name}</span> – {item.reason}
+                      <span className="font-medium text-ink">{item.name}</span>: {item.reason}
                     </ImprovementRow>
                   ))}
                 </div>
@@ -2807,7 +2807,7 @@ export function RecipeForm({
               improvement.methodImprovements.length === 0 &&
               improvement.otherTips.length === 0 && (
                 <p className="text-ink-faint">
-                  Fant ingen konkrete forbedringsforslag – oppskriften ser bra ut som den er.
+                  Fant ingen konkrete forbedringsforslag. Oppskriften ser bra ut som den er.
                 </p>
               )}
             {(improvement.ingredientAdditions.length > 0 ||
@@ -2826,7 +2826,7 @@ export function RecipeForm({
                       : "Implementer valgte"}
                 </Button>
                 <p className="mt-2 text-xs text-ink-faint">
-                  Huk av forslagene du vil bruke over, trykk her – ingredienser/tips legges rett til, mens
+                  Huk av forslagene du vil bruke over, trykk her. Ingredienser/tips legges rett til, mens
                   fremgangsmåte-forbedringer veves inn i riktig steg (eller settes inn på riktig plass) av
                   AI-en. Gå gjennom og juster før du lagrer.
                 </p>
@@ -2862,7 +2862,7 @@ export function RecipeForm({
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-ink-faint">
-            Fyll ut ingredienser og fremgangsmåte over, trykk så her – AI-en leser det du faktisk har skrevet og
+            Fyll ut ingredienser og fremgangsmåte over, trykk så her. AI-en leser det du faktisk har skrevet og
             foreslår tips og en «pass på»-notis ut fra akkurat denne retten.
           </p>
           <Button

@@ -9,7 +9,7 @@ import type {
 
 /** Formaterer minutter som "45 min" eller "1 t 15 min" (evt. "1 h 15 min" på engelsk). */
 export function formatMinutes(minutes: number | null | undefined, lang: "no" | "en" = "no"): string {
-  if (minutes == null || Number.isNaN(minutes)) return "–";
+  if (minutes == null || Number.isNaN(minutes)) return "-";
   const minUnit = lang === "en" ? "min" : "min";
   if (minutes < 60) return `${minutes} ${minUnit}`;
 
@@ -29,10 +29,10 @@ export function formatMinutesRange(
   max: number | null | undefined,
   lang: "no" | "en" = "no",
 ): string {
-  if (min == null || Number.isNaN(min)) return "–";
+  if (min == null || Number.isNaN(min)) return "-";
   if (max == null || Number.isNaN(max) || max === min) return formatMinutes(min, lang);
   if (min < 60 && max < 60) return `${min}-${max} min`;
-  return `${formatMinutes(min, lang)}–${formatMinutes(max, lang)}`;
+  return `${formatMinutes(min, lang)}-${formatMinutes(max, lang)}`;
 }
 
 /**

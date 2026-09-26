@@ -20,7 +20,7 @@ export default async function AdminFeaturedPage() {
       <div className="mb-6">
         <h1 className="font-serif text-2xl text-ink sm:text-3xl">Ukens utvalg</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Velg og sorter hvilke oppskrifter som vises som "ukens utvalg" på forsiden – helt uavhengig
+          Velg og sorter hvilke oppskrifter som vises som "ukens utvalg" på forsiden, helt uavhengig
           av hva du har hjertet.
         </p>
       </div>
