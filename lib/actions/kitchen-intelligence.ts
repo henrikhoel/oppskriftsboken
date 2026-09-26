@@ -61,7 +61,12 @@ export async function getParallelTaskHints(
   // dekker det vanlige tilfellet (samme oppskrift sett av mange besøkende).
   const cacheKey = `${lang}:${steps.map((s) => s.id).join(",")}`;
   const cached = await getCachedAiSuggestion<ParallelTaskGroup[]>(recipeId, "parallel_tasks", cacheKey);
-  if (cached) return cached;
+  // .length > 0, ikke bare "cached er ikke null": et tomt array ER en gyldig
+  // verdi å lagre i cachen (JS-typen tvinger ikke til dette), men å STOLE
+  // på et tomt cachet svar for alltid ville låst fast en forbigående
+  // AI-glipp for godt – se tilsvarende fiks i getMoodRecommendations lenger
+  // ned, samme rotårsak, oppdaget der 26.09.2026.
+  if (cached && cached.length > 0) return cached;
 
   const stepsList = steps.map((s) => `${s.stepNumber}. (id: ${s.id}) ${s.text}`).join("\n");
 
@@ -330,7 +335,8 @@ export async function getMenuSuggestions(
   const cached = await getCachedAiSuggestion<{ recipeId: string; note: string }[]>(recipeId, "menu_suggestion", lang);
 
   let picks: { recipeId: string; note: string }[];
-  if (cached) {
+  // .length > 0 – se kommentaren ved parallel_tasks-cachen over for hvorfor.
+  if (cached && cached.length > 0) {
     picks = cached;
   } else {
     const candidateList = others
@@ -407,7 +413,17 @@ export async function getMoodRecommendations(mood: MoodId, lang: Lang = "no"): P
   const cached = await getCachedAiSuggestion<string[]>(null, "mood_mode", cacheKey);
 
   let ids: string[];
-  if (cached) {
+  // BUG funnet 26.09.2026 (Henrik: "Hva passer humøret ditt fungerer ikke,
+  // jeg prøver å velge koselig kveld, og den finner ingen oppskrifter"):
+  // `if (cached)` er sant selv for et TOMT array – skjedde AI-kallet å
+  // returnere/bli tolket som [] én eneste gang (transient API-feil, snevert
+  // LLM-svar, ustabil parsing etc.), ble den tomme listen cachet for alltid
+  // og ALDRI forsøkt på nytt, uansett hvor mange passende oppskrifter som
+  // faktisk finnes. Krever nå et FAKTISK treff (.length > 0) for å stole på
+  // cachen; ellers spørres AI-en på nytt, og det (forhåpentligvis) ekte
+  // svaret overskriver den gamle, tomme raden (samme cache_key => update,
+  // ikke ny rad – se setCachedAiSuggestion).
+  if (cached && cached.length > 0) {
     ids = cached;
   } else {
     const candidateList = recipes
