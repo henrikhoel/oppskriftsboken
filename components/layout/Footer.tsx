@@ -26,17 +26,27 @@ export function Footer({ lang }: { lang: Lang }) {
              * frase som heroen nå, for ett konsistent avsluttende inntrykk. */}
             <p className="mt-2 max-w-sm text-sm italic text-ink-soft">{t(lang, "home.subtitleRest")}</p>
           </div>
+          {/* (26.09.2026, Henrik, med skjermbilde: "passordlagring fikset.
+              men jeg havner FORTSATT her, selv om jeg har logget inn!") –
+              prefetch={false} på alle fire, av samme grunn som i
+              Header.tsx/BottomNav.tsx: Footer vises på HVER side, også
+              /adgang (innloggingssiden) selv. Uten dette prøver Next.js å
+              hente disse sidene i bakgrunnen mens man fortsatt ser på
+              passordskjermen, og det uinnloggede svaret kan bli liggende
+              igjen selv etter en vellykket innlogging. /admin/login er
+              IKKE gatet av fellespassordet (se proxy.ts) og trengte
+              egentlig ikke dette, men er tatt med for konsekvens. */}
           <nav aria-label={t(lang, "footer.ariaLabel")} className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
-            <Link href="/oppskrifter" className="text-ink-soft hover:text-ink">
+            <Link href="/oppskrifter" prefetch={false} className="text-ink-soft hover:text-ink">
               {t(lang, "footer.allRecipes")}
             </Link>
-            <Link href="/favoritter" className="text-ink-soft hover:text-ink">
+            <Link href="/favoritter" prefetch={false} className="text-ink-soft hover:text-ink">
               {t(lang, "footer.favorites")}
             </Link>
-            <Link href="/handleliste" className="text-ink-soft hover:text-ink">
+            <Link href="/handleliste" prefetch={false} className="text-ink-soft hover:text-ink">
               {t(lang, "footer.shoppingList")}
             </Link>
-            <Link href="/admin/login" className="text-ink-soft hover:text-ink">
+            <Link href="/admin/login" prefetch={false} className="text-ink-soft hover:text-ink">
               {t(lang, "footer.admin")}
             </Link>
           </nav>

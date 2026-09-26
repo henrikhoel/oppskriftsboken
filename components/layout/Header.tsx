@@ -62,6 +62,7 @@ export async function Header() {
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
         <Link
           href="/"
+          prefetch={false}
           className="flex shrink-0 items-center gap-2.5 font-serif text-xl tracking-tight text-ink"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-clay text-cream">
@@ -140,6 +141,7 @@ export async function Header() {
           </Link>
           <Link
             href="/oppskrifter"
+            prefetch={false}
             aria-label={t(lang, "nav.search")}
             className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:hidden"
           >
@@ -147,6 +149,7 @@ export async function Header() {
           </Link>
           <Link
             href="/handleliste"
+            prefetch={false}
             aria-label={t(lang, "nav.shoppingList")}
             className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
           >
