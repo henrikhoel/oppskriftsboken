@@ -57,6 +57,19 @@ export async function proxy(request: NextRequest) {
 // omdirigerings-løkke.
 const SITE_ACCESS_PUBLIC_PATH = "/adgang";
 
+// (26.09.2026) /logg-ut må OGSÅ være unntatt – oppdaget av Henrik: "noen
+// ganger når jeg logger inn, så er adressen convite.no/logg-ut". Årsak: uten
+// dette unntaket blir /logg-ut behandlet som en hvilken som helst annen
+// beskyttet side. Havner man der UTEN gyldig cookie (f.eks. en gammel
+// nettleser-historikk/adressefelt-snarvei), sender gaten deg til
+// /adgang?next=/logg-ut – og straks du logger inn med riktig passord, blir
+// du sendt videre til nettopp /logg-ut, som øyeblikkelig SLETTER cookien du
+// nettopp fikk og sender deg til "/" igjen. Selve /logg-ut-ruten
+// (app/logg-ut/route.ts) avslører uansett ingen beskyttet informasjon – den
+// bare rydder en cookie som godt kan mangle fra før – så den er like trygg å
+// la stå åpen som /adgang selv.
+const SITE_ACCESS_LOGOUT_PATH = "/logg-ut";
+
 // (26.09.2026) Enkeltoppskrifter (IKKE selve /oppskrifter-oversikten) er
 // unntatt omdirigeringen – Henrik: "man får opp toppen av oppskriften, med
 // navn og bilde osv, men så er det fadet til svart nedover, og for å se
@@ -75,6 +88,7 @@ const RECIPE_DETAIL_PATH = /^\/oppskrifter\/[^/]+\/?$/;
 async function checkSiteAccess(request: NextRequest): Promise<NextResponse | null> {
   const { pathname } = request.nextUrl;
   if (pathname === SITE_ACCESS_PUBLIC_PATH) return null;
+  if (pathname === SITE_ACCESS_LOGOUT_PATH) return null;
   if (RECIPE_DETAIL_PATH.test(pathname)) return null;
 
   const token = request.cookies.get(SITE_ACCESS_COOKIE)?.value;
