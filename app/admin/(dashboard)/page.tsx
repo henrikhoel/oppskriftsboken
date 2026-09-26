@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getAllRecipesForAdmin } from "@/lib/data/recipes";
 import { Button } from "@/components/ui/Button";
 import { AdminRecipeRow } from "@/components/admin/AdminRecipeRow";
+import { CopyTitlesButton } from "@/components/admin/CopyTitlesButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BookIcon, PlusIcon } from "@/components/ui/icons";
 
@@ -19,10 +20,13 @@ export default async function AdminDashboardPage() {
             {recipes.length} {recipes.length === 1 ? "oppskrift" : "oppskrifter"} totalt
           </p>
         </div>
-        <Button href="/admin/oppskrifter/ny">
-          <PlusIcon className="h-4 w-4" />
-          Ny oppskrift
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {recipes.length > 0 && <CopyTitlesButton titles={recipes.map((r) => r.title)} />}
+          <Button href="/admin/oppskrifter/ny">
+            <PlusIcon className="h-4 w-4" />
+            Ny oppskrift
+          </Button>
+        </div>
       </div>
 
       {recipes.length === 0 ? (
