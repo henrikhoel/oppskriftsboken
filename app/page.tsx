@@ -127,6 +127,25 @@ export default async function HomePage() {
             (samme brekkpunkt, lg, som resten av denne seksjonen allerede
             skiller på), slik at den fortsatt lander midt i det mørke partiet
             i STÅENDE bilde i stedet for å ende opp midt oppå burgeren. */}
+        {/* object-position 50% 85% (26.09.2026) – Henrik testet i faktisk
+            mobil-nettleser (ikke "lagt til på hjemskjermen"-appen, der det
+            allerede var perfekt) og burgeren klemte seg helt ut mot kantene/
+            bunnmenyen. Årsak: Safaris egne adresse-/verktøylinjer (som appen
+            i hjemskjermmodus ikke har) gjør selve <section> synlig lavere
+            enn i appen – target/container-forholdet blir da så mye
+            "kortere" at object-cover må beskjære en god del av bildets
+            HØYDE for å dekke bredden, og med standard object-position (50%
+            50%, sentrert) spiser den seg innover fra topp OG bunn likt, helt
+            inn i burgeren, jo kortere containeren blir. Løst med
+            object-position i stedet for å beskjære selve filen på nytt
+            (ville gitt tilbake akkurat oppløsningstapet Henrik nettopp
+            reagerte på): 85% vertikalt betyr at 85 % av det som må
+            beskjæres bort tas fra TOPPEN (rikelig med mørk bakgrunn der uansett)
+            og bare 15 % fra bunnen – testet med faktiske skjermmål fra
+            nettleseren (~390×513, forholdstall ~0,76, og opptil ~0,90 for
+            enda strammere tilfeller) og treffer godt med margin over OG
+            under burgeren i begge tilfeller, uten å måtte gå på bekostning
+            av bildets fulle oppløsning. */}
         <Image
           src="/images/hero-mobile.jpg"
           alt=""
@@ -134,6 +153,7 @@ export default async function HomePage() {
           priority
           sizes="100vw"
           className="object-cover lg:hidden"
+          style={{ objectPosition: "50% 85%" }}
         />
         <Image
           src="/images/hero.jpg"
