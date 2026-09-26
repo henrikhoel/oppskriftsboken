@@ -108,7 +108,7 @@ export default async function HomePage() {
         className="relative isolate flex items-start overflow-hidden border-b border-line bg-cream lg:items-center"
         style={{
           minHeight:
-            "calc(100svh - var(--app-banner-h, 2.375rem) - var(--header-h, 4.0625rem) - var(--bottom-nav-h, 0px))",
+            "calc(100svh - var(--header-h, 4.0625rem) - var(--bottom-nav-h, 0px))",
         }}
       >
         {/* Stemningsbilde bak CONVITE-ordmerket. Rent dekorativt (alt=""). Ekte

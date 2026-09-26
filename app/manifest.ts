@@ -24,8 +24,7 @@ import { siteConfig } from "@/lib/config";
  * (gjennomsiktige hjørner) – en "maskable"-flagging ville fått Android til å
  * legge SIN EGEN maske oppå i tillegg, med fare for at gull-flaten beskjæres
  * dobbelt. Bytt til ekte butikk-ikonografi/maskable-variant den dagen appen
- * faktisk publiseres i en butikk (se AppDownloadBanner.tsx sin filheader for
- * samme "ikke ekte ennå"-forbehold).
+ * faktisk publiseres i en butikk.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {

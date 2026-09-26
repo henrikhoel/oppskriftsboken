@@ -9,7 +9,6 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { DemoModeBanner } from "@/components/layout/DemoModeBanner";
-import { AppDownloadBanner } from "@/components/layout/AppDownloadBanner";
 import { ChromeHeightVars } from "@/components/layout/ChromeHeightVars";
 
 const fraunces = Fraunces({
@@ -117,7 +116,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             dette, f.eks. må 'snart som app' bort"). */}
         <div className="print:hidden">
           <DemoModeBanner />
-          <AppDownloadBanner />
           <Header />
         </div>
         <main id="main-content" className="flex-1 pb-20 md:pb-0 print:pb-0">

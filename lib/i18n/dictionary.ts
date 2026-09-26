@@ -34,10 +34,11 @@ const DICT = {
   // NO/EN-bryteren i toppmenyen, se Header.tsx.
   "nav.logOut": { no: "Logg ut", en: "Log out" },
 
-  // --- AppDownloadBanner: KUN mobil (10.09.2026, fjernet fra Mac/PC helt –
-  // se filheaderen i AppDownloadBannerClient.tsx). Et trykk åpner et lite
-  // hjelpe-ark med fremgangsmåten for "Legg til på hjemskjerm", siden selve
-  // installasjonen ikke kan trigges med ett trykk fra JavaScript.
+  // --- "Legg til på hjemskjerm": nå et lite ikon i headeren (26.09.2026,
+  // se filheaderen i AppDownloadIconButton.tsx), tidligere en egen
+  // bannerlinje, KUN mobil. Et trykk åpner et lite hjelpe-ark med
+  // fremgangsmåten, siden selve installasjonen ikke kan trigges med ett
+  // trykk fra JavaScript.
   // appBanner.text/scanHint er fra den nå fjernede desktop-QR-varianten –
   // stående ubrukt, ingen andre steder refererer til dem.
   "appBanner.text": { no: "Snart som app", en: "Coming soon as an app" },

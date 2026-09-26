@@ -5,6 +5,7 @@ import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 import { HeaderSearchSlot } from "@/components/layout/HeaderSearchSlot";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { AppDownloadIconButton } from "@/components/layout/AppDownloadIconButton";
 import { ShoppingListBadgeCount } from "@/components/shopping/ShoppingListBadgeCount";
 import {
   BookIcon,
@@ -52,15 +53,21 @@ export async function Header() {
       className="sticky top-0 z-30 border-b border-line bg-cream/95 backdrop-blur-none sm:backdrop-blur"
     >
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-2.5 font-serif text-xl tracking-tight text-ink"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-clay text-cream">
-            {siteConfig.logoInitial}
-          </span>
-          <span className="hidden tracking-wide sm:inline">{siteConfig.name}</span>
-        </Link>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Link href="/" className="flex items-center gap-2.5 font-serif text-xl tracking-tight text-ink">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-clay text-cream">
+              {siteConfig.logoInitial}
+            </span>
+            <span className="hidden tracking-wide sm:inline">{siteConfig.name}</span>
+          </Link>
+          {/* "Legg til på hjemskjerm", nå kun et lite ikon her i stedet for
+              en egen bannerlinje over hele headeren – se filheaderen i
+              AppDownloadIconButton.tsx (Henrik, 26.09.2026: "tar for mye
+              plass på nettleser versjonen ... da vil også bildet av
+              burgeren få mer plass"). Egen sibling ved siden av Link-en over
+              (ikke inni den) – en knapp kan ikke ligge nestet inni en lenke. */}
+          <AppDownloadIconButton lang={lang} />
+        </div>
 
         <HeaderSearchSlot lang={lang} />
 

@@ -349,7 +349,7 @@ export function SparklesIcon(props: IconProps) {
 }
 
 /** Generisk telefon-ikon (ingen butikk-logo – unngår varemerkede
- * App Store/Google Play-merker) brukt av AppDownloadBanner.tsx. */
+ * App Store/Google Play-merker) brukt av AppDownloadIconButton.tsx. */
 export function SmartphoneIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
