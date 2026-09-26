@@ -70,6 +70,20 @@ const SITE_ACCESS_PUBLIC_PATH = "/adgang";
 // la stå åpen som /adgang selv.
 const SITE_ACCESS_LOGOUT_PATH = "/logg-ut";
 
+// (26.09.2026) SAMME feilen som /logg-ut over, men for selve
+// innloggings-mottakeren: Henrik: "nå får jeg jo ikke logget inn en gang?"
+// – da /adgang-skjemaet ble gjort om fra en Server Action til et ekte
+// <form method="post"> mot app/api/adgang/route.ts (se filheaderen der for
+// hvorfor), glemte jeg å unnta DENNE nye stien fra gaten under. Uten
+// unntaket blir selve POST-en til /api/adgang behandlet som en hvilken som
+// helst annen beskyttet side: besøkende har jo ennå ingen gyldig cookie
+// (det er nettopp det de prøver å skaffe seg), så gaten fanget den opp og
+// sendte den videre til /adgang FØR passordet i det hele tatt rakk å bli
+// sjekket – innlogging var dermed helt umulig. /api/adgang avslører ingen
+// beskyttet informasjon (den GJØR nettopp passord-sjekken), så den er like
+// trygg å la stå åpen som /adgang og /logg-ut.
+const SITE_ACCESS_LOGIN_SUBMIT_PATH = "/api/adgang";
+
 // (26.09.2026) Enkeltoppskrifter (IKKE selve /oppskrifter-oversikten) er
 // unntatt omdirigeringen – Henrik: "man får opp toppen av oppskriften, med
 // navn og bilde osv, men så er det fadet til svart nedover, og for å se
@@ -89,6 +103,7 @@ async function checkSiteAccess(request: NextRequest): Promise<NextResponse | nul
   const { pathname } = request.nextUrl;
   if (pathname === SITE_ACCESS_PUBLIC_PATH) return null;
   if (pathname === SITE_ACCESS_LOGOUT_PATH) return null;
+  if (pathname === SITE_ACCESS_LOGIN_SUBMIT_PATH) return null;
   if (RECIPE_DETAIL_PATH.test(pathname)) return null;
 
   const token = request.cookies.get(SITE_ACCESS_COOKIE)?.value;
