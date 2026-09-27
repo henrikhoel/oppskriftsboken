@@ -46,6 +46,19 @@ export function Footer({ lang }: { lang: Lang }) {
             <Link href="/admin/login" className="text-ink-soft hover:text-ink">
               {t(lang, "footer.admin")}
             </Link>
+            {/* (27.09.2026) Svært diskret inngang til DSVDV – det skjulte,
+             * passordbeskyttede jobbmat-området for kolleger (se
+             * app/dsvdv/ og lib/dsvdv/session.ts). Bevisst IKKE i
+             * hovednavigasjonen (Header.tsx) – kun her, plassert sammen med
+             * de minst fremtredende lenkene. Ingen forklaring/tooltip/
+             * undertittel ("de som vet, de vet") – derfor heller ingen
+             * t(lang, ...)-oversettelse, aria-label eller title-attributt,
+             * bare den nakne teksten "DSVDV". text-ink-faint (mattere enn
+             * text-ink-soft de andre lenkene bruker) for at den skal synke
+             * enda lenger ned i bakgrunnen visuelt. */}
+            <Link href="/dsvdv" className="text-ink-faint hover:text-ink-soft">
+              DSVDV
+            </Link>
           </nav>
         </div>
         <p className="mt-10 text-xs text-ink-faint">
