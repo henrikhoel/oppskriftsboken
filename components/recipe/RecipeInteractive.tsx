@@ -787,9 +787,12 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
           fikk bakgrunnsbilde: "flytt seksjonen litt lenger opp, det er
           litt for mye tomt svart område over" – luften ned til seksjonen
           var ren sidebakgrunn uten noe i seg, og ble mer synlig/unødvendig
-          nå som seksjonen under selv har et bilde å vise frem). */}
+          nå som seksjonen under selv har et bilde å vise frem). Deretter
+          strammet ytterligere inn KUN på mobil (mt-4, samme runde,
+          oppfølgingsbeskjed: "flytt også seksjonen litt lenger opp på
+          telefon") – sm:mt-10 (desktop) er uendret fra forrige justering. */}
       {recipe.showMealBuilder && (
-        <div className="mt-8 sm:mt-10">
+        <div className="mt-4 sm:mt-10">
           <MealBuilder
             recipe={{
               id: recipe.id,

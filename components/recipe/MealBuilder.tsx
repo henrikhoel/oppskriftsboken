@@ -387,22 +387,41 @@ export function MealBuilder({
           className={clsx(hasPlan && "lg:grid lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-12")}
         >
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+            {/* MOBILVISNING JUSTERT 30.09.2026 (skjermbilde + tilbakemelding:
+                "typografien er nå for stor på mobil og gjør at
+                introduksjonen tar for mye plass [...] mer raffinert og
+                kompakt mobilkomposisjon med tydeligere typografisk
+                hierarki"). Alle klasser under følger derfor konsekvent
+                mønsteret "mindre BASE-verdi + sm:<uendret original-verdi>"
+                – desktop (sm og opp) er dermed pixel-for-pixel uendret,
+                kun mobil (under sm/640px) er strammet inn. */}
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-clay sm:text-xs">
               {t(lang, "mealBuilder.eyebrow")}
             </p>
-            <h2 className="mt-4 text-balance font-serif text-4xl text-ink sm:text-5xl">
+            {/* text-4xl (36px) → text-3xl (30px) på mobil, ca. -17 %, midt i
+                det ønskede 15-20 %-spennet – fortsatt stor/editorial, men
+                sikter mot en naturlig topolinjers linjebrytning ("Bygg en
+                kveld" / "rundt retten.") i stedet for å presses ned mot én
+                linje. text-balance (uendret) hjelper linjebalansen. */}
+            <h2 className="mt-3 text-balance font-serif text-3xl text-ink sm:mt-4 sm:text-5xl">
               {t(lang, "mealBuilder.heading")}
             </h2>
-            <p className="mt-4 max-w-prose font-serif text-lg text-ink-soft sm:text-xl">
+            {/* text-lg (18px) → text-[17px] på mobil (midt i det ønskede
+                17-18px-spennet, men merkbart mindre/roligere enn før i
+                kombinasjon med den nå mindre headingen over) +
+                leading-relaxed for et mer balansert linjeavstand. sm:text-xl
+                bringer med seg sin egen line-height og gjenoppretter
+                desktop-visningen fullstendig uendret. */}
+            <p className="mt-3 max-w-prose font-serif text-[17px] leading-relaxed text-ink-soft sm:mt-4 sm:text-xl">
               {t(lang, "mealBuilder.intro")}
             </p>
 
             {!hasPlan && (
-              <div className="mt-10 max-w-md">
-                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
+              <div className="mt-6 max-w-md sm:mt-10">
+                <p className="text-[0.625rem] font-semibold uppercase tracking-[0.3em] text-clay sm:text-[0.7rem]">
                   {t(lang, "mealBuilder.timeLabel")}
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-2 sm:mt-3">
                   {TIME_BUDGET_OPTIONS.map((option) => {
                     const active = selectedMinutes === option.minutes;
                     return (
@@ -428,7 +447,7 @@ export function MealBuilder({
                   type="button"
                   onClick={handleBuild}
                   disabled={loading}
-                  className="mt-8 rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
+                  className="mt-5 rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint sm:mt-8"
                 >
                   {loading ? t(lang, "mealBuilder.loading") : t(lang, "mealBuilder.button")}
                 </button>
