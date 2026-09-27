@@ -22,6 +22,11 @@ interface SpeechRecognitionResultList {
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
+  // Peker på det FØRSTE resultatet i `results` som er nytt siden forrige
+  // `onresult`-kall – nødvendig fra 23.09.2026 av (se doc-kommentaren i
+  // useVoiceCommands.ts) fordi `interimResults: true` nå gir flere
+  // `onresult`-kall per talesegment mens ordet fortsatt formes.
+  resultIndex: number;
 }
 
 interface SpeechRecognitionErrorEvent extends Event {
@@ -37,6 +42,7 @@ interface SpeechRecognition extends EventTarget {
   abort: () => void;
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onstart: (() => void) | null;
   onend: (() => void) | null;
 }
 

@@ -42,6 +42,26 @@ function getSpeechRecognitionCtor(): (new () => SpeechRecognition) | undefined {
  * iOS/Safari stopper gjenkjenningen seg selv etter en stille periode selv
  * i "continuous"-modus; onend starter den derfor automatisk på nytt så
  * lenge brukeren ikke selv har trykket "av".
+ *
+ * `interimResults` (23.09.2026 – Henrik testet stemmestyringen for en
+ * kollega: den virket, men "reagerer litt sakte, så man kan ende med å si
+ * det flere ganger fordi man ikke tror den reagerer"). Årsaken var todelt:
+ * 1) `interimResults` sto til `false`, så nettleseren ventet på en LITEN
+ *    PAUSE i talen før den i det hele tatt rapporterte et resultat –
+ *    kommandoen "trigget" altså ikke før man var ferdig å snakke OG en
+ *    kort stillhet hadde gått. Nå matches kommandoordet allerede i det
+ *    (foreløpige) resultatet så snart ordet er formet, uten å vente på at
+ *    hele frasen skal bli "endelig".
+ * 2) Det fantes ingen synlig bekreftelse på at et ord faktisk ble hørt –
+ *    kun den statiske "Lytter …"-teksten, uansett om noe ble gjenkjent
+ *    eller ikke. `lastCommand` under gir UI-et (se CookMode.tsx/
+ *    MultiCookMode.tsx) noe konkret å vise et par sekunder når et ord
+ *    faktisk trigger en kommando, akkurat som "✓ Timer startet"-mønsteret
+ *    for timer-knappen i CookMode.tsx.
+ * `handledResultIndexesRef` hindrer at samme talesegment (som Web Speech
+ * API kan sende flere ganger med voksende tekst mens man snakker, siden
+ * `interimResults` nå er på) trigger kommandoen på nytt for hvert lille
+ * tillegg – kun FØRSTE gang et gitt segment inneholder et kjent ord.
  */
 export function useVoiceCommands({
   lang,
@@ -61,6 +81,11 @@ export function useVoiceCommands({
   const [isInsecureContext, setIsInsecureContext] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  // Siste gjenkjente kommando, kun til øyeblikkelig UI-bekreftelse ("✓
+  // Hørte: neste") – null'es ut igjen automatisk et lite stykke ned.
+  // IKKE ment å leses for selve kommando-logikken (den går via
+  // onCommand-callbacken som før); dette er ren tilbakemelding til øyet.
+  const [lastCommand, setLastCommand] = useState<VoiceCommand | null>(null);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const shouldListenRef = useRef(false);
@@ -68,6 +93,16 @@ export function useVoiceCommands({
   // (som lever på tvers av re-renders) aldri kaller en foreldet closure.
   const onCommandRef = useRef(onCommand);
   onCommandRef.current = onCommand;
+  // Hvilke resultat-indekser i inneværende lytteøkt som allerede har
+  // trigget en kommando – nullstilles for hver `recognition.onstart`
+  // (dvs. både ved manuell start og ved automatiske restarter fra onend).
+  const handledResultIndexesRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!lastCommand) return;
+    const timeout = setTimeout(() => setLastCommand(null), 2000);
+    return () => clearTimeout(timeout);
+  }, [lastCommand]);
 
   useEffect(() => {
     const ctor = getSpeechRecognitionCtor();
@@ -91,13 +126,26 @@ export function useVoiceCommands({
     const recognition = new SpeechRecognitionCtor();
     recognition.lang = lang === "en" ? "en-US" : "nb-NO";
     recognition.continuous = true;
-    recognition.interimResults = false;
+    // Se doc-kommentaren over funksjonen (23.09.2026) – på for raskere
+    // respons: kommandoord matches allerede i det foreløpige resultatet,
+    // uten å vente på en pause i talen.
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      handledResultIndexesRef.current = new Set();
+    };
 
     recognition.onresult = (event) => {
-      const lastResult = event.results[event.results.length - 1];
-      const transcript = lastResult?.[0]?.transcript ?? "";
-      const command = matchCommand(transcript);
-      if (command) onCommandRef.current(command);
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (handledResultIndexesRef.current.has(i)) continue;
+        const transcript = event.results[i]?.[0]?.transcript ?? "";
+        const command = matchCommand(transcript);
+        if (command) {
+          handledResultIndexesRef.current.add(i);
+          setLastCommand(command);
+          onCommandRef.current(command);
+        }
+      }
     };
 
     recognition.onerror = (event) => {
@@ -141,5 +189,5 @@ export function useVoiceCommands({
     };
   }, []);
 
-  return { isSupported, isInsecureContext, isListening, permissionDenied, start, stop };
+  return { isSupported, isInsecureContext, isListening, permissionDenied, lastCommand, start, stop };
 }

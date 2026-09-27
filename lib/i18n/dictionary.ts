@@ -439,6 +439,15 @@ const DICT = {
     no: "Lytter … si «neste», «tilbake», «gjenta» eller «ferdig»",
     en: "Listening … say “next”, “back”, “repeat” or “done”",
   },
+  // Øyeblikkelig bekreftelse i samme tekstlinje som cookMode.voiceListening
+  // (23.09.2026 – se doc-kommentaren over useVoiceCommands for bakgrunnen:
+  // uten dette trodde man ofte at mikrofonen ikke reagerte og gjentok
+  // kommandoen flere ganger). Vises et par sekunder, så går den tilbake
+  // til den vanlige "Lytter …"-teksten.
+  "cookMode.voiceHeardNext": { no: "✓ Hørte: neste", en: "✓ Heard: next" },
+  "cookMode.voiceHeardPrevious": { no: "✓ Hørte: tilbake", en: "✓ Heard: back" },
+  "cookMode.voiceHeardRepeat": { no: "✓ Hørte: gjenta", en: "✓ Heard: repeat" },
+  "cookMode.voiceHeardMarkDone": { no: "✓ Hørte: ferdig", en: "✓ Heard: done" },
   "cookMode.voicePermissionDenied": {
     no: "Fikk ikke tilgang til mikrofonen. Sjekk mikrofon-innstillingene for nettleseren.",
     en: "Microphone access was denied. Check your browser's microphone settings.",

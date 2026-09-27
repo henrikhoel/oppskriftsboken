@@ -13,7 +13,7 @@ import {
 import { useMealCookModeState } from "@/lib/hooks/useMealCookModeState";
 import { useCookModeTimers } from "@/lib/hooks/useCookModeTimers";
 import { useWakeLock } from "@/lib/hooks/useWakeLock";
-import { useVoiceCommands } from "@/lib/hooks/useVoiceCommands";
+import { useVoiceCommands, type VoiceCommand } from "@/lib/hooks/useVoiceCommands";
 import { playTimerDoneSound } from "@/lib/utils/timer-sound";
 import { formatShoppingAmount } from "@/lib/utils/shopping-list";
 import { scaleAmount } from "@/lib/utils/scale";
@@ -39,7 +39,16 @@ import {
   remainingMs,
 } from "@/lib/kitchen-intelligence/timers";
 import type { IngredientGroup, RecipeStep } from "@/lib/types";
-import { t, type Lang } from "@/lib/i18n";
+import { t, type Lang, type DictKey } from "@/lib/i18n";
+
+// Øyeblikkelig "✓ Hørte: …"-bekreftelse i stemmestyrings-banneret – se
+// doc-kommentaren over useVoiceCommands (23.09.2026) for bakgrunnen.
+const VOICE_HEARD_KEYS: Record<VoiceCommand, DictKey> = {
+  next: "cookMode.voiceHeardNext",
+  previous: "cookMode.voiceHeardPrevious",
+  repeat: "cookMode.voiceHeardRepeat",
+  markDone: "cookMode.voiceHeardMarkDone",
+};
 
 /**
  * COOK MODE FOR EN HEL MENY (Fase 5-finale, 5.16/5.17) – ERSTATTER den
@@ -309,6 +318,7 @@ export function MultiCookMode({
     isInsecureContext: voiceInsecureContext,
     isListening: voiceListening,
     permissionDenied: voicePermissionDenied,
+    lastCommand: voiceLastCommand,
     start: startVoice,
     stop: stopVoice,
   } = useVoiceCommands({
@@ -515,7 +525,7 @@ export function MultiCookMode({
       )}
       {voiceListening && (
         <p className="bg-clay/10 px-4 py-1.5 text-center text-[11px] text-clay-dark sm:px-6">
-          {t(lang, "cookMode.voiceListening")}
+          {voiceLastCommand ? t(lang, VOICE_HEARD_KEYS[voiceLastCommand]) : t(lang, "cookMode.voiceListening")}
         </p>
       )}
       {voicePermissionDenied && (
