@@ -1,19 +1,38 @@
-import Link from "next/link";
 import { getAllSeasonsWithIngredients } from "@/lib/data/seasons";
 import { resolveCurrentSeason, resolveInSeasonIngredients } from "@/lib/kitchen-intelligence/seasonal";
 import { localizedIngredientName, localizedSeasonName } from "@/lib/utils/season-format";
+import { Button } from "@/components/ui/Button";
 import { ChevronRightIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
- * Liten forsideteaser for "I sesong" (spesifikasjon punkt 6) – henter sin
- * egen, minimale data (gjeldende sesong + et par råvarenavn) direkte her
- * fremfor å laste app/page.tsx sin allerede store data-hentende
- * server-komponent ytterligere ned; samme "async server-komponent lenger
- * ned i treet henter sitt eget"-mønster Next.js App Router bygger på.
- * Returnerer null (viser ingenting) i det usannsynlige tilfellet at ingen
- * publisert sesong dekker inneværende måned – robusthet fremfor en tom/
- * ødelagt seksjon, se filheaderen til resolveCurrentSeason.
+ * Forsidens "I sesong nå"-seksjon – omgjort 27.09.2026 fra et smalt,
+ * sentrert lenke-kort til en full-bredde stemningsseksjon med samme plass
+ * og oppsett som "Mat & vin" (WinePairing.tsx), på Henriks ønske: "'I
+ * sesong nå' fortjener samme plass og oppsett som 'mat & vin'. Jeg vil at
+ * seksjonen forblir der den er på siden." – POSISJONEN i app/page.tsx
+ * (mellom AtmosphereSection og CategoryShowcase) er derfor UENDRET, kun
+ * selve seksjonens eget uttrykk er bygget om.
+ *
+ * Gjenbruker bevisst nøyaktig samme seksjons-"skall" som WinePairing.tsx
+ * (relative isolate overflow-hidden bg-cream-dark py-16 sm:py-20 +
+ * bakgrunnsbilde satt via vanlig CSS background-image, ikke next/image,
+ * med samme kraftige bg-cream-dark/80-overlegg) – se filheaderen der for
+ * hvorfor: faller elegant tilbake til den rene bg-cream-dark-fargen uten
+ * "broken image"-ikon om public/images/season.jpg skulle mangle, og
+ * teksten beholder samme lesbarhet uansett hvor lyst/mørkt bildet selv er.
+ * Bildet (rå grønnsaker på en mørk benk) er valgt av Henrik spesifikt til
+ * denne seksjonen.
+ *
+ * Innholdet selv er fortsatt EKTE, live data (ikke statisk mock-tekst som
+ * CookModeShowcase) – henter sin egen minimale sesongdata direkte her, se
+ * den opprinnelige filheader-begrunnelsen under for hvorfor. Selve
+ * sesongnavnet (f.eks. "Høst") er nå hovedoverskriften, med et utvalg
+ * råvarenavn som ingress under – samme informasjon som det tidligere
+ * kortet viste, bare i seksjonens nye, større format. Returnerer null
+ * (viser ingenting) i det usannsynlige tilfellet at ingen publisert
+ * sesong dekker inneværende måned – robusthet fremfor en tom/ødelagt
+ * seksjon, se filheaderen til resolveCurrentSeason.
  */
 export async function SeasonTeaser({ lang }: { lang: Lang }) {
   const seasons = await getAllSeasonsWithIngredients();
@@ -21,28 +40,35 @@ export async function SeasonTeaser({ lang }: { lang: Lang }) {
   const currentSeason = resolveCurrentSeason(seasons, now);
   if (!currentSeason) return null;
 
-  const inSeason = resolveInSeasonIngredients(seasons, now).slice(0, 4);
+  const inSeason = resolveInSeasonIngredients(seasons, now).slice(0, 6);
 
   return (
-    <Link
-      href="/sesong"
-      className="group flex flex-col items-start gap-4 rounded-card border border-line bg-paper p-6 transition-colors hover:bg-cream-dark/40 sm:flex-row sm:items-center sm:justify-between sm:p-8"
-    >
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-clay-dark">
+    <section className="relative isolate overflow-hidden bg-cream-dark py-16 sm:py-20">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url(/images/season.jpg)" }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-cream-dark/80" aria-hidden="true" />
+
+      <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-clay">
           {t(lang, "home.seasonTeaser.eyebrow")}
         </p>
-        <h2 className="mt-2 font-serif text-2xl text-ink sm:text-3xl">{localizedSeasonName(currentSeason, lang)}</h2>
+        <h2 className="mt-3 text-balance font-serif text-3xl leading-tight text-ink sm:text-4xl">
+          {localizedSeasonName(currentSeason, lang)}
+        </h2>
         {inSeason.length > 0 && (
-          <p className="mt-1 max-w-xl text-sm text-ink-soft">
+          <p className="mt-2 text-pretty text-sm text-ink-soft sm:text-base">
             {inSeason.map((entry) => localizedIngredientName(entry.ingredient, lang)).join(", ")}
           </p>
         )}
+
+        <Button href="/sesong" variant="primary" size="md" className="mt-8">
+          {t(lang, "home.seasonTeaser.cta")}
+          <ChevronRightIcon className="h-4 w-4" />
+        </Button>
       </div>
-      <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-clay transition-colors group-hover:text-clay-dark">
-        {t(lang, "home.seasonTeaser.cta")}
-        <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-      </span>
-    </Link>
+    </section>
   );
 }

@@ -239,19 +239,18 @@ export default async function HomePage() {
 
         <AtmosphereSection lang={lang} />
 
-        {/* Rolig inngangs-teaser (spesifikasjon punkt 6) – "I sesong".
-            Bevisst KUN et lenke-kort her, ikke selve funksjonen (den bor på
-            /sesong). "Hva skal vi spise?"-teaseren sto her tidligere ved
-            siden av denne (to kolonner) – fjernet 26.09.2026 på Henriks
-            ønske: "hele 'hva skal vi spise' funksjonen kan fjernes. man kan
-            omtrent gjøre det samme inne på 'Oppskrifter'." Kortet er nå
-            alene og derfor smalere/sentrert i stedet for å strekke seg over
-            hele bredden, som ville sett rart ut for ett enkelt kort. */}
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <div className="mx-auto max-w-2xl">
-            <SeasonTeaser lang={lang} />
-          </div>
-        </div>
+        {/* "I sesong nå" (spesifikasjon punkt 6) – bygget om 27.09.2026 fra
+            et smalt, sentrert lenke-kort til en full-bredde seksjon med
+            samme plass/oppsett som WinePairing over (Henrik: "'I sesong nå'
+            fortjener samme plass og oppsett som 'mat & vin' ... jeg vil at
+            seksjonen forblir der den er på siden"). Selve POSISJONEN her
+            (mellom AtmosphereSection og CategoryShowcase) er derfor
+            bevisst UENDRET – kun seksjonens eget uttrykk er bygget om, se
+            SeasonTeaser.tsx sin egen filheader. Ingen ekstra
+            wrapper-div/padding her lenger – SeasonTeaser er nå en
+            selvstendig, full-bredde <section>, akkurat som <WinePairing />
+            og <CookModeShowcase /> over/under. */}
+        <SeasonTeaser lang={lang} />
 
         <div className="py-16 sm:py-20">
           <CategoryShowcase categories={categories} counts={categoryCounts} lang={lang} />
