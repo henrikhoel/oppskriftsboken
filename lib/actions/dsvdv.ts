@@ -1,6 +1,7 @@
 "use server";
 
-import { verifyDsvdvPassword, setDsvdvSessionCookie } from "@/lib/dsvdv/session";
+import { redirect } from "next/navigation";
+import { verifyDsvdvPassword, setDsvdvSessionCookie, clearDsvdvSessionCookie } from "@/lib/dsvdv/session";
 
 /**
  * Eneste inngangen til DSVDV-området (se filheaderen i lib/dsvdv/session.ts
@@ -29,4 +30,16 @@ export async function loginToDsvdv(password: string): Promise<{ success: boolean
 
   await setDsvdvSessionCookie();
   return { success: true };
+}
+
+/**
+ * "Ut"-knappen (DsvdvTopBar.tsx). Samme redirect()-i-Server Action-mønster
+ * som den vanlige signOutAccount (lib/actions/account.ts) bruker – sletter
+ * cookien og sender rett tilbake til forsiden, ut av DSVDV-området helt.
+ * Et nytt besøk på /dsvdv krever passordet på nytt (se
+ * clearDsvdvSessionCookie sin filheader for hvorfor path må matche).
+ */
+export async function logoutFromDsvdv(): Promise<void> {
+  await clearDsvdvSessionCookie();
+  redirect("/");
 }

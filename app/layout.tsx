@@ -10,6 +10,8 @@ import { Footer } from "@/components/layout/Footer";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { DemoModeBanner } from "@/components/layout/DemoModeBanner";
 import { ChromeHeightVars } from "@/components/layout/ChromeHeightVars";
+import { HideOnDsvdv } from "@/components/layout/HideOnDsvdv";
+import { SiteMain } from "@/components/layout/SiteMain";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -113,17 +115,25 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             – uten dette printer nettleseren HELE sideskallet (header, PWA-
             banner, bunnmeny, footer) sammen med den faktiske utskriftsvennlige
             visningen, se tilbakemelding 26.08.2026 ("må være penere enn
-            dette, f.eks. må 'snart som app' bort"). */}
+            dette, f.eks. må 'snart som app' bort").
+
+            HideOnDsvdv (27.09.2026) – hele denne blokken (og Footer/
+            BottomNav-blokken under) skjules på /dsvdv: "dette er et eget
+            lite sted liksom", se filheaderen i HideOnDsvdv.tsx for hele
+            resonnementet og hvorfor akkurat DSVDV sin egen, minimale "Ut"-
+            knapp (app/dsvdv/layout.tsx) erstatter dem der i stedet. */}
         <div className="print:hidden">
-          <DemoModeBanner />
-          <Header />
+          <HideOnDsvdv>
+            <DemoModeBanner />
+            <Header />
+          </HideOnDsvdv>
         </div>
-        <main id="main-content" className="flex-1 pb-20 md:pb-0 print:pb-0">
-          {children}
-        </main>
+        <SiteMain>{children}</SiteMain>
         <div className="print:hidden">
-          <Footer lang={lang} />
-          <BottomNav lang={lang} />
+          <HideOnDsvdv>
+            <Footer lang={lang} />
+            <BottomNav lang={lang} />
+          </HideOnDsvdv>
         </div>
       </body>
     </html>

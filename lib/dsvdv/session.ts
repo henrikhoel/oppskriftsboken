@@ -103,6 +103,27 @@ export async function setDsvdvSessionCookie(): Promise<void> {
   });
 }
 
+/**
+ * Sletter sesjonscookien ("Ut"-knappen, se components/dsvdv/DsvdvTopBar.tsx
+ * og lib/actions/dsvdv.ts sin logoutFromDsvdv). Samme path/flagg som da den
+ * ble satt (setDsvdvSessionCookie over) – en cookie identifiseres av
+ * navn+path, så et avvikende path her ville satt en NY, tom cookie ved
+ * siden av i stedet for å faktisk fjerne den gamle. Etter dette er man
+ * logget helt ut – et nytt besøk på /dsvdv krever passordet på nytt (ikke
+ * bare en "gå ut av visningen"-knapp som lar sesjonen leve videre i
+ * bakgrunnen).
+ */
+export async function clearDsvdvSessionCookie(): Promise<void> {
+  const store = await cookies();
+  store.set(COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/dsvdv",
+    maxAge: 0,
+  });
+}
+
 /** Ren lesing – trygg å kalle fra hvor som helst server-side, inkl. vanlige Server Components. */
 export async function hasDsvdvSession(): Promise<boolean> {
   // process.env.DSVDV_PASSWORD kan mangle i et miljø der ingen har satt den

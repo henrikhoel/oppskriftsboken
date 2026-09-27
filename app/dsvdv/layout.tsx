@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { hasDsvdvSession } from "@/lib/dsvdv/session";
+import { DsvdvTopBar } from "@/components/dsvdv/DsvdvTopBar";
 
 /**
  * Gjelder for HELE DSVDV-området (denne siden og alle undersider:
@@ -16,16 +18,32 @@ import type { ReactNode } from "react";
  * app/robots.ts, som for tiden disallow-er hele nettstedet av en
  * uavhengig, eldre grunn – denne eksplisitte noindex-en her er riktig og
  * ønsket uansett, og upåvirket om/når den globale disallow-en endres.
- *
- * Rent gjennomsyn – ingen egen <html>/<body>, ingen navigasjon lagt til
- * eller fjernet her. DSVDV-sidene rendres fortsatt inne i det vanlige
- * sideskallet (Header/Footer/BottomNav i app/layout.tsx), bevisst for å
- * ikke røre eksisterende funksjonalitet/design mer enn nødvendig.
  */
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function DsvdvLayout({ children }: { children: ReactNode }) {
-  return children;
+/**
+ * (27.09.2026) Henrik: "jeg vil at hele øverste linja, med 'i kjøleskapet'
+ * osv skal forsvinne når man er inne her, dette er et eget lite sted
+ * liksom. også må man ha en ut knapp" – det vanlige sideskallet (Header/
+ * Footer/BottomNav) er nå skjult for HELE /dsvdv (se
+ * components/layout/HideOnDsvdv.tsx i app/layout.tsx), og erstattet med
+ * DsvdvTopBar sin egen, minimale "Ut"-knapp her.
+ *
+ * DsvdvTopBar vises KUN når man faktisk er logget inn – ikke oppå selve
+ * innloggingsskjermaet (der `hasDsvdvSession()` er false), det gir ingen
+ * mening å tilby "gå ut" av noe man ikke er inne i ennå. Dette er en ren
+ * LESING (ingen redirect/skriving), trygt å gjøre her i tillegg til hver
+ * beskyttede sides egen `requireDsvdvSession()`-vakt.
+ */
+export default async function DsvdvLayout({ children }: { children: ReactNode }) {
+  const loggedIn = await hasDsvdvSession();
+
+  return (
+    <>
+      {loggedIn && <DsvdvTopBar />}
+      {children}
+    </>
+  );
 }
