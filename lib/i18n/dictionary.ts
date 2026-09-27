@@ -970,6 +970,11 @@ const DICT = {
   // egen nøkkel siden de to brukes til helt ulike ting (browser-tittel vs.
   // synlig eyebrow) og ikke nødvendigvis skal endres sammen senere.
   "mealPage.menuEyebrow": { no: "Din meny", en: "Your menu" },
+  // Liten uppercase gull-eyebrow øverst i handlingskolonnen ved siden av
+  // selve menyen (29.09.2026, 24. runde – Henrik: "Legg til en liten
+  // uppercase gull-label øverst i høyrekolonnen: MENYVALG") – samme
+  // formel/token som de andre eyebrowene i denne filen, se MealView.tsx.
+  "mealPage.actionsEyebrow": { no: "Menyvalg", en: "Menu actions" },
   // Undertittel under "PLANLEGG KVELDEN"-eyebrowen (27.09.2026-redesignet).
   "mealPage.planSubtitle": {
     no: "Få alt klart til riktig tid.",

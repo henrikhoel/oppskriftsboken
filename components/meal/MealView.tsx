@@ -400,7 +400,26 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         </Link>
       )}
 
-      <div className="lg:grid lg:grid-cols-[1fr_auto] lg:items-start lg:gap-12">
+      {/* (29.09.2026, 24. runde – Henrik: "Det som fortsatt må redesignes
+          er høyrekolonnen [...] Akkurat nå er denne kolonnen for smal,
+          teksten brytes over flere linjer") – grid-kolonnene satt til en
+          eksplisitt 70/30-fordeling (`7fr_3fr`, var `1fr_auto` + en fast
+          `lg:w-52` (208px) på selve høyrekolonnen, for smalt til at "Legg
+          hele menyen i handlelisten" fikk plass på én linje). `lg:items-
+          start` FJERNET (ikke bare endret) – det var nettopp den som gjorde
+          at skillelinjen mellom kolonnene kun strakk seg langs
+          handlingenes egen (korte) høyde. Uten den bruker grid-raden sin
+          DEFAULT `align-items: stretch`, akkurat som `lg:grid-cols-
+          [1.6fr_1fr]`-gridene i EveningExperience.tsx (I GLASSET/"Vinen
+          din", Stemning/Musikk – se filheaderen der) gjør – høyrekolonnens
+          boks blir dermed automatisk like høy som venstrekolonnen (tittel +
+          hele retteren), og `border-l`-streken på høyrekolonnen (se under)
+          strekker seg derfor naturlig fra "DIN MENY" og helt ned til bunnen
+          av dessert-raden, i stedet for å stoppe der handlingsteksten selv
+          slutter. Selve innholdet i høyrekolonnen ligger fortsatt øverst
+          (vanlig dokumentflyt i en `flex-col`), kun BOKSEN (og dermed
+          streken) er nå strukket. */}
+      <div className="lg:grid lg:grid-cols-[7fr_3fr] lg:gap-12">
         {/* VENSTRE: DIN MENY – eyebrow/tittel/beskrivelse + retteliste. */}
         <div>
           {/* 1. DIN MENY – tittel er hovedpersonen, beskrivelsen er diskret.
@@ -594,12 +613,27 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
             (tertiær). Samme mobil-border-t/desktop-border-l-mønster som "I
             glasset"/"Vinen din" i EveningExperience.tsx – på mobil stables
             denne under venstrekolonnen med en hårfin strek over, på desktop
-            står den ved siden av med en loddrett hårfin strek i stedet.
-            Venstrestilt (ikke lenger `items-end`) – leser nå som en liten,
-            rolig vertikal meny av handlinger i sin egen smale spalte, samme
-            lesevei som resten av siden. */}
-        <div className="mt-8 border-t border-ink/10 pt-6 lg:mt-0 lg:w-52 lg:border-t-0 lg:border-l lg:border-ink/10 lg:pl-10 lg:pt-0">
-          <div className="flex flex-col items-start gap-2.5">
+            står den ved siden av med en loddrett hårfin strek i stedet (nå
+            forlenget til hele venstrekolonnens høyde, se grid-avsnittet
+            over). Venstrestilt (ikke lenger `items-end`) – leser nå som en
+            liten, rolig vertikal meny av handlinger i sin egen smale
+            spalte, samme lesevei som resten av siden.
+
+            (24. runde) `lg:w-52` (en fast 208px-bredde som klemte teksten,
+            se skjermbilde-tilbakemeldingen) fjernet – kolonnen får nå sin
+            bredde fra selve grid-oppsettet (`7fr_3fr`) i stedet. `lg:pl-10`
+            → `lg:pl-6` ("Flytt handlingene nærmere skillelinjen") – mindre
+            avstand fra streken til selve teksten. Ny "MENYVALG"-eyebrow
+            (`mealPage.actionsEyebrow`) øverst, samme
+            `text-[0.7rem]/tracking-[0.3em]`-formel som course-labelene i
+            retterlisten til venstre – gir høyrekolonnen sin egen tydelige
+            "kapitteltittel", i stedet for at handlingene bare starter
+            uanmeldt rett under streken. */}
+        <div className="mt-8 border-t border-ink/10 pt-6 lg:mt-0 lg:border-t-0 lg:border-l lg:border-ink/10 lg:pl-6 lg:pt-0">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
+            {t(lang, "mealPage.actionsEyebrow")}
+          </p>
+          <div className="mt-4 flex flex-col items-start gap-2.5">
             {saved ? (
               <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-clay">
                 <CheckIcon className="h-4 w-4" />

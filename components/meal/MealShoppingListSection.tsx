@@ -73,6 +73,15 @@ import { t, type Lang } from "@/lib/i18n";
  * `justify-start`) – samme prinsipp som den gangen, bare motsatt retning:
  * teksten skal følge kolonnens egen justering, ikke stå isolert
  * høyrestilt i en nå venstrestilt spalte.
+ *
+ * (29.09.2026, 24. runde – Henrik, med skjermbilde: "høyrekolonnen er for
+ * smal, teksten brytes over flere linjer [...] Sørg for at høyrekolonnen
+ * er bred nok til at 'Legg hele menyen i handlelisten' står på én linje")
+ * – roten var en for smal, fast `lg:w-52`-bredde på selve kolonnen i
+ * MealView.tsx (nå fjernet til fordel for en ordentlig 70/30 grid-
+ * fordeling, se filheaderen der). Lagt til `whitespace-nowrap` her i
+ * tillegg, som en eksplisitt garanti – knappeteksten skal aldri brekke
+ * linje uansett kolonnebredde.
  */
 export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot[]; lang: Lang }) {
   const { addFromRecipe } = useShoppingList();
@@ -125,7 +134,7 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
           type="button"
           onClick={handleAdd}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ShoppingBagIcon className="h-3.5 w-3.5" />
           {loading ? t(lang, "mealShopping.loading") : t(lang, "mealShopping.button")}
