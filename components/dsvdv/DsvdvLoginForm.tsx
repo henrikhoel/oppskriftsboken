@@ -79,7 +79,24 @@ export function DsvdvLoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoFocus
-            autoComplete="off"
+            // (27.09.2026) Henrik fikk Chromes "Vil du oppdatere passordet?"
+            // -boks med KONTOENS egen e-post forhåndsutfylt, på DSVDV-
+            // innloggingen. Chrome respekterer ikke autocomplete="off" på
+            // passordfelt (har ignorert den verdien der bevisst siden 2014,
+            // nettopp for å presse nettsteder til å bruke passordbehandleren
+            // i stedet) – med kun ETT passordfelt og ingen brukernavnfelt i
+            // nærheten, matcher Chrome det mot det eneste lagrede
+            // innlogget-passordet for convite.no (den ekte kontoen) og
+            // tilbyr å SKRIVE OVER det med DSVDV-passordet ved innsending.
+            // autoComplete="new-password" er nettleserens offisielt
+            // anbefalte signal for "dette er IKKE kontoens eksisterende
+            // passord" (se f.eks. web.dev sine retningslinjer for
+            // innloggingsskjemaer) – det stopper både feil-autofyllingen og
+            // "oppdater det lagrede passordet"-forslaget. Chrome kan i
+            // stedet tilby å lagre DETTE som et NYTT passord for siden; det
+            // er trygt å avslå, det berører ikke den ekte kontoens lagrede
+            // innlogging uansett.
+            autoComplete="new-password"
             // text-base (16px), ikke text-sm – samme iOS Safari-begrunnelse
             // som resten av sidens søke-/tekstfelt (se f.eks. SearchBar.tsx).
             className="w-full rounded-full border border-line-strong bg-ink px-5 py-3 text-center text-base text-cream placeholder:text-cream/40 focus:border-clay/50 focus:outline-none"
