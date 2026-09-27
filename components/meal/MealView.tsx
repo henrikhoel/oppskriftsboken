@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { clsx } from "clsx";
 import { useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
 import {
   MEAL_OCCASION_LABELS,
@@ -375,279 +374,275 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
     <>
     {/* ============ SEGMENT 1: DIN MENY (mørk, standard sidebunn) ============ */}
     <div className="mx-auto max-w-4xl space-y-10 px-4 pt-10 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
-      {/* (29.09.2026, 19. runde – Henrik, med skjermbilde fra mobil: "på
-          telefon ser det litt rotete ut øverst. lagre som pdf, lagre meny og
-          legg i handleliste kan stå på høyre side. og i stedet for hele
-          navnet på retten kan det stå 'tilbake til oppskrift' feks") – to
-          rettelser: 1) `flex-wrap` fjernet – tilbake-lenken og høyrekolonnen
-          (skriv ut/lagre/handleliste) skal alltid stå på SAMME rad, lenken
-          til venstre og kolonnen presset helt til høyre, aldri falle ned
-          under på egen rad slik den kunne på smale skjermer. `items-start`
-          (var `items-baseline`) siden høyrekolonnen nå kan være tre rader
-          høy. 2) Selve tilbake-teksten er korta fra hele rettenavnet
-          (`mealPage.backToRecipe`, "Tilbake til Lammecarré med
-          potetgrateng…" – ofte to linjer på mobil) til en kort, fast tekst
-          (`mealPage.backToRecipeShort`, "Tilbake til oppskrift") – se
-          filheaderen i dictionary.ts. */}
-      <div className="flex items-start justify-between gap-4">
-        {anchorSlot ? (
-          <Link
-            href={`/oppskrifter/${anchorSlot.slug}?fromMealId=${mealId}`}
-            className="text-sm font-medium text-ink-faint transition-colors hover:text-clay-dark"
-          >
-            {t(lang, "mealPage.backToRecipeShort")}
-          </Link>
-        ) : (
-          <span />
-        )}
+      {/* (29.09.2026, 23. runde – Henrik: "Dette redesignet gikk i feil
+          retning [...] Jeg vil ha en mer raffinert komposisjon, ikke større
+          typografi [...] Det viktigste nye grepet skal være layouten: Lag
+          en tydelig, balansert todelt komposisjon") – reverserer 22. rundes
+          størrelsesøkninger (ekstra luft rundt tittelen, hovedrett-
+          skalering, brede `py`-verdier på retteradene) og erstatter
+          samtidig toppraden (tilbake-lenke + handlingsgruppe presset øverst
+          til høyre i viewporten) med en ekte todelt grid-komposisjon:
+          venstre = DIN MENY (eyebrow/tittel/beskrivelse + den kompakte
+          tre-rettersmenyen), høyre = en smal handlings-"sidebar" som
+          starter på høyde med tittelen. Atskilt med samme hårfine
+          `border-ink/10`-strek (og samme mobil-stables-med-border-t/
+          desktop-border-l-mønster) som "I glasset"/"Vinen din" i
+          EveningExperience.tsx allerede bruker – se filheaderen der.
+          Tilbake-lenken står nå alene øverst, ikke lenger i en
+          justify-between-rad med handlingsgruppen (som ikke lenger bor
+          der). */}
+      {anchorSlot && (
+        <Link
+          href={`/oppskrifter/${anchorSlot.slug}?fromMealId=${mealId}`}
+          className="text-sm font-medium text-ink-faint transition-colors hover:text-clay-dark"
+        >
+          {t(lang, "mealPage.backToRecipeShort")}
+        </Link>
+      )}
 
-        {/* Handlingsgruppe øverst til høyre, nå i eksplisitt
-            prioritert rekkefølge (22. runde, se REDESIGNET-avsnittet i
-            filheaderen over): Lagre menyen (primær) → Legg i handlelisten
-            (sekundær) → Skriv ut/PDF (tertiær, mest diskret). Kun
-            størrelse/farge/ikon/rekkefølge er nytt – all lagre/fjern- og
-            handleliste-logikk under er uendret. */}
-        <div className="flex flex-col items-end gap-2">
-          {saved ? (
-            <div className="flex items-center gap-1.5 text-sm font-medium text-clay">
-              <CheckIcon className="h-4 w-4" />
-              {t(lang, "mealPage.savedLabel")}
-              <span className="text-ink-faint">·</span>
+      <div className="lg:grid lg:grid-cols-[1fr_auto] lg:items-start lg:gap-12">
+        {/* VENSTRE: DIN MENY – eyebrow/tittel/beskrivelse + retteliste. */}
+        <div>
+          {/* 1. DIN MENY – tittel er hovedpersonen, beskrivelsen er diskret.
+              Tett `space-y-3`-stabling og opprinnelig eyebrow-formel
+              (`tracking-[0.3em]`, ingen `sm:text-sm`) – 22. rundes ekstra
+              luft (`mt-5 sm:mt-6` rundt tittel/beskrivelse) og bredere
+              eyebrow-tracking er reversert. Selve tittel-tekststørrelsen
+              (`text-3xl`/`sm:text-4xl`/`md:text-5xl`) har vært UENDRET
+              gjennom hele denne historien – det var alltid kun luften og
+              eyebrow-en rundt den som vokste i 22. runde, ikke selve
+              teksten. */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+              {t(lang, "mealPage.menuEyebrow")}
+            </p>
+            <textarea
+              ref={titleRef}
+              rows={1}
+              value={session.title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                // Tittelen er logisk sett fortsatt én sammenhengende streng
+                // (ingen manuelle linjeskift lagret) – Enter skal ikke sette
+                // inn "\n", kun automatisk visuell wrap skal brekke linjen.
+                if (e.key === "Enter") e.preventDefault();
+              }}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+              className="block w-full resize-none overflow-hidden rounded-lg border border-transparent bg-transparent font-serif text-3xl leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl md:text-5xl"
+            />
+
+            {descriptionEditing ? (
+              <input
+                type="text"
+                value={session.description ?? ""}
+                onChange={(e) => setDescription(e.target.value)}
+                onBlur={() => setDescriptionEditing(false)}
+                placeholder={t(lang, "mealPage.descriptionPlaceholder")}
+                autoFocus
+                className="w-full rounded-lg border border-transparent bg-transparent font-serif text-base italic text-ink-faint transition-colors placeholder:not-italic focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-lg"
+              />
+            ) : session.description ? (
               <button
                 type="button"
-                onClick={() => removeFromIndex(mealId)}
+                onClick={() => setDescriptionEditing(true)}
+                className="block w-full rounded-lg text-left font-serif text-base italic text-ink-faint transition-colors hover:text-ink-soft sm:text-lg"
+              >
+                {session.description}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setDescriptionEditing(true)}
                 className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
               >
-                {t(lang, "savedMealsPage.removeButton")}
+                {t(lang, "mealPage.addDescription")}
               </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => addToIndex(mealId)}
-              className="flex items-center gap-1.5 text-sm font-medium text-clay transition-colors hover:text-clay-dark"
-            >
-              <BookIcon className="h-4 w-4" />
-              {t(lang, "mealPage.saveButton")}
-            </button>
-          )}
-
-          {/* "Legg i handlelisten" – sekundær handling, se
-              MealShoppingListSection.tsx sin filheader for ikonet lagt til
-              der (22. runde) og for historikken til selve flyttingen hit
-              (8. runde). */}
-          {slots.length > 0 && (
-            <div id="meal-shopping-list">
-              <MealShoppingListSection slots={slots} lang={lang} />
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="text-[11px] font-medium text-ink-faint/70 underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
-          >
-            {t(lang, "mealPrint.button")}
-          </button>
-        </div>
-      </div>
-
-      {/* 1. DIN MENY – tittel er hovedpersonen, beskrivelsen er diskret
-          (se REDESIGNET-avsnittet i filheaderen over). Egen, litt smalere
-          `max-w-3xl`-lesekolonne (22. runde) – se filheaderen over for
-          hvorfor dette IKKE er en retur til 6. rundes sperre. */}
-      <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-clay sm:text-sm">
-          {t(lang, "mealPage.menuEyebrow")}
-        </p>
-        <textarea
-          ref={titleRef}
-          rows={1}
-          value={session.title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => {
-            // Tittelen er logisk sett fortsatt én sammenhengende streng
-            // (ingen manuelle linjeskift lagret) – Enter skal ikke sette
-            // inn "\n", kun automatisk visuell wrap skal brekke linjen.
-            if (e.key === "Enter") e.preventDefault();
-          }}
-          onInput={(e) => {
-            const el = e.currentTarget;
-            el.style.height = "auto";
-            el.style.height = `${el.scrollHeight}px`;
-          }}
-          className="mt-5 block w-full resize-none overflow-hidden rounded-lg border border-transparent bg-transparent font-serif text-3xl leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:mt-6 sm:text-4xl md:text-5xl"
-        />
-
-        <div className="mt-5 sm:mt-6">
-          {descriptionEditing ? (
-            <input
-              type="text"
-              value={session.description ?? ""}
-              onChange={(e) => setDescription(e.target.value)}
-              onBlur={() => setDescriptionEditing(false)}
-              placeholder={t(lang, "mealPage.descriptionPlaceholder")}
-              autoFocus
-              className="w-full rounded-lg border border-transparent bg-transparent font-serif text-base italic text-ink-faint transition-colors placeholder:not-italic focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-lg"
-            />
-          ) : session.description ? (
-            <button
-              type="button"
-              onClick={() => setDescriptionEditing(true)}
-              className="block w-full rounded-lg text-left font-serif text-base italic text-ink-faint transition-colors hover:text-ink-soft sm:text-lg"
-            >
-              {session.description}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setDescriptionEditing(true)}
-              className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
-            >
-              {t(lang, "mealPage.addDescription")}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {slots.length === 0 ? (
-        <p className="max-w-3xl text-sm text-ink-faint">{t(lang, "mealPage.emptyState")}</p>
-      ) : (
-        <>
-          {/* 2. SELVE MENYEN – presentert som en rolig restaurantmeny, ingen
-              kort/bokser rundt hver rett, kun hårfine skillelinjer
-              (`divide-ink/10`, samme token som EveningExperience.tsx sine
-              kapitler bruker – se REDESIGNET-avsnittet i filheaderen over).
-              Siste kapittel i DETTE (mørke) segmentet – "Planlegg kvelden"
-              og "Gjør det til en kveld" er egne, fullbredde segmenter
-              under. */}
-          <div className="max-w-3xl divide-y divide-ink/10">
-            {slots.map((slot) => {
-              const expanded = expandedSlotIds.has(slot.id);
-              // Hovedretten får "ørlite mer visuell tyngde" (Henrik, 22.
-              // runde) – ett trinn større tittel og litt mer luft, ellers
-              // identisk behandling som forrett/dessert.
-              const isMain = slot.role === "main";
-              return (
-                <div
-                  key={slot.id}
-                  className={clsx(
-                    "flex flex-col gap-2 first:pt-0 last:pb-0",
-                    isMain ? "py-8 sm:py-10" : "py-7 sm:py-8",
-                  )}
-                >
-                  <span className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
-                    {t(lang, `mealBuilder.role.${slot.role}`)}
-                  </span>
-
-                  {slot.source === "existing" ? (
-                    <Link
-                      href={`/oppskrifter/${slot.slug}?fromMealId=${mealId}`}
-                      className={clsx(
-                        "font-serif text-ink hover:text-clay-dark",
-                        isMain ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl",
-                      )}
-                    >
-                      {slot.title}
-                    </Link>
-                  ) : (
-                    <p
-                      className={clsx(
-                        "font-serif text-ink",
-                        isMain ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl",
-                      )}
-                    >
-                      {slot.title}
-                    </p>
-                  )}
-
-                  {/* "Nytt forslag"-merket og forslagsbeskrivelsen er reell
-                      informasjon (skiller et AI-forslag fra en ekte
-                      oppskrift) – UENDRET, alltid synlig, i motsetning til
-                      "Finnes i oppskriftsboken" for eksisterende retter
-                      (fjernet helt, se filheaderen over). */}
-                  {slot.source === "suggested" && (
-                    <span className="text-[11px] font-medium text-mustard-dark">
-                      {t(lang, "mealBuilder.suggestedBadge")}
-                    </span>
-                  )}
-
-                  {slot.source === "suggested" && slot.description && (
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-                        {t(lang, "mealPage.suggestedDescriptionLabel")}
-                      </p>
-                      <p className="text-xs leading-relaxed text-ink-faint">{slot.description}</p>
-                    </div>
-                  )}
-
-                  {/* Kun synlig for innlogget admin (server-sjekket, se
-                   * isAdmin-prop-en/app/meny/[id]/page.tsx). Fører til "Ny
-                   * oppskrift" med tittel/beskrivelse forhåndsutfylt, pluss
-                   * fromMealId/fromSlotId som RecipeForm.tsx bruker til å
-                   * bytte DENNE plassen fra et AI-forslag til en ordentlig
-                   * oppskrift så snart den er lagret. */}
-                  {isAdmin && slot.source === "suggested" && (
-                    <Link
-                      href={`/admin/oppskrifter/ny?${new URLSearchParams({
-                        title: slot.title,
-                        description: slot.description,
-                        servings: String(slot.servings),
-                        fromMealId: mealId,
-                        fromSlotId: slot.id,
-                      }).toString()}`}
-                      className="self-start text-xs font-medium text-clay hover:text-clay-dark"
-                    >
-                      {t(lang, "mealPage.createFromSuggestion")}
-                    </Link>
-                  )}
-
-                  {/* Porsjoner + "Fjern fra menyen" bak en "Rediger"-lenke
-                      (se REDESIGNET-avsnittet i filheaderen over) – course
-                      og rettnavn skal eie oppmerksomheten, ikke
-                      redigeringskontrollene. */}
-                  <button
-                    type="button"
-                    onClick={() => toggleExpanded(slot.id)}
-                    className="mt-0.5 self-start text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
-                  >
-                    {expanded ? t(lang, "eveningExperience.whyHide") : t(lang, "mealPage.editDish")}
-                  </button>
-
-                  {expanded && (
-                    <div className="mt-1 flex flex-wrap items-center gap-4">
-                      <label className="flex items-center gap-2 text-xs text-ink-faint">
-                        {t(lang, "mealBuilder.servingsLabel")}
-                        <input
-                          type="number"
-                          min={1}
-                          max={50}
-                          value={slot.servings}
-                          onChange={(e) => {
-                            const next = Number(e.target.value);
-                            if (Number.isFinite(next) && next >= 1) setServings(slot.id, Math.round(next));
-                          }}
-                          // text-base på mobil (unngår iOS-innzooming ved fokus).
-                          className="w-16 rounded-lg border border-line bg-cream px-2 py-1 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
-                        />
-                      </label>
-
-                      <button
-                        type="button"
-                        onClick={() => remove(slot.id)}
-                        className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
-                      >
-                        {t(lang, "mealBuilder.remove")}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            )}
           </div>
 
-        </>
-      )}
+          {slots.length === 0 ? (
+            <p className="mt-6 text-sm text-ink-faint">{t(lang, "mealPage.emptyState")}</p>
+          ) : (
+            /* 2. SELVE MENYEN – kompakt restaurantmeny-liste, ingen kort/
+                bokser, kun hårfine skillelinjer (`divide-ink/10`, samme
+                token som EveningExperience.tsx sine kapitler bruker).
+                Redusert fra 22. rundes luftige `py-7/py-8`
+                (`py-8/py-10` for hovedretten) tilbake til en tettere `py-5`
+                – litt strammere enn selv den opprinnelige `py-6` (Henrik,
+                23. runde: "Gjør hele listen [...] mer kompakt igjen").
+                Hovedrettens egen, større tittel-skalering er fjernet helt
+                (Henrik: "Ikke gi hovedretten større font enn de andre
+                rettene. Hierarkiet kommer allerede fra rekkefølgen og
+                labelene") – alle tre retter har nå identisk
+                tittel-/label-størrelse igjen. */
+            <div className="mt-6 divide-y divide-ink/10">
+              {slots.map((slot) => {
+                const expanded = expandedSlotIds.has(slot.id);
+                return (
+                  <div key={slot.id} className="flex flex-col gap-1.5 py-5 first:pt-0 last:pb-0">
+                    <span className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
+                      {t(lang, `mealBuilder.role.${slot.role}`)}
+                    </span>
+
+                    {slot.source === "existing" ? (
+                      <Link
+                        href={`/oppskrifter/${slot.slug}?fromMealId=${mealId}`}
+                        className="font-serif text-xl text-ink hover:text-clay-dark sm:text-2xl"
+                      >
+                        {slot.title}
+                      </Link>
+                    ) : (
+                      <p className="font-serif text-xl text-ink sm:text-2xl">{slot.title}</p>
+                    )}
+
+                    {/* "Nytt forslag"-merket og forslagsbeskrivelsen er reell
+                        informasjon (skiller et AI-forslag fra en ekte
+                        oppskrift) – UENDRET, alltid synlig, i motsetning til
+                        "Finnes i oppskriftsboken" for eksisterende retter
+                        (fjernet helt, se filheaderen over). */}
+                    {slot.source === "suggested" && (
+                      <span className="text-[11px] font-medium text-mustard-dark">
+                        {t(lang, "mealBuilder.suggestedBadge")}
+                      </span>
+                    )}
+
+                    {slot.source === "suggested" && slot.description && (
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
+                          {t(lang, "mealPage.suggestedDescriptionLabel")}
+                        </p>
+                        <p className="text-xs leading-relaxed text-ink-faint">{slot.description}</p>
+                      </div>
+                    )}
+
+                    {/* Kun synlig for innlogget admin (server-sjekket, se
+                     * isAdmin-prop-en/app/meny/[id]/page.tsx). Fører til "Ny
+                     * oppskrift" med tittel/beskrivelse forhåndsutfylt, pluss
+                     * fromMealId/fromSlotId som RecipeForm.tsx bruker til å
+                     * bytte DENNE plassen fra et AI-forslag til en ordentlig
+                     * oppskrift så snart den er lagret. */}
+                    {isAdmin && slot.source === "suggested" && (
+                      <Link
+                        href={`/admin/oppskrifter/ny?${new URLSearchParams({
+                          title: slot.title,
+                          description: slot.description,
+                          servings: String(slot.servings),
+                          fromMealId: mealId,
+                          fromSlotId: slot.id,
+                        }).toString()}`}
+                        className="self-start text-xs font-medium text-clay hover:text-clay-dark"
+                      >
+                        {t(lang, "mealPage.createFromSuggestion")}
+                      </Link>
+                    )}
+
+                    {/* Porsjoner + "Fjern fra menyen" bak en "Rediger"-lenke
+                        (se REDESIGNET-avsnittet i filheaderen over) – course
+                        og rettnavn skal eie oppmerksomheten, ikke
+                        redigeringskontrollene. */}
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded(slot.id)}
+                      className="mt-0.5 self-start text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+                    >
+                      {expanded ? t(lang, "eveningExperience.whyHide") : t(lang, "mealPage.editDish")}
+                    </button>
+
+                    {expanded && (
+                      <div className="mt-1 flex flex-wrap items-center gap-4">
+                        <label className="flex items-center gap-2 text-xs text-ink-faint">
+                          {t(lang, "mealBuilder.servingsLabel")}
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={slot.servings}
+                            onChange={(e) => {
+                              const next = Number(e.target.value);
+                              if (Number.isFinite(next) && next >= 1) setServings(slot.id, Math.round(next));
+                            }}
+                            // text-base på mobil (unngår iOS-innzooming ved fokus).
+                            className="w-16 rounded-lg border border-line bg-cream px-2 py-1 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => remove(slot.id)}
+                          className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+                        >
+                          {t(lang, "mealBuilder.remove")}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* HØYRE: handlingsgruppe – nå en del av selve menykomposisjonen i
+            stedet for løsrevet øverst i høyre hjørne av viewporten (Henrik,
+            23. runde: "De skal være en del av selve menykomposisjonen").
+            Prioritert rekkefølge uendret fra 22. runde: Lagre menyen
+            (primær) → Legg i handlelisten (sekundær) → Skriv ut/PDF
+            (tertiær). Samme mobil-border-t/desktop-border-l-mønster som "I
+            glasset"/"Vinen din" i EveningExperience.tsx – på mobil stables
+            denne under venstrekolonnen med en hårfin strek over, på desktop
+            står den ved siden av med en loddrett hårfin strek i stedet.
+            Venstrestilt (ikke lenger `items-end`) – leser nå som en liten,
+            rolig vertikal meny av handlinger i sin egen smale spalte, samme
+            lesevei som resten av siden. */}
+        <div className="mt-8 border-t border-ink/10 pt-6 lg:mt-0 lg:w-52 lg:border-t-0 lg:border-l lg:border-ink/10 lg:pl-10 lg:pt-0">
+          <div className="flex flex-col items-start gap-2.5">
+            {saved ? (
+              <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-clay">
+                <CheckIcon className="h-4 w-4" />
+                {t(lang, "mealPage.savedLabel")}
+                <span className="text-ink-faint">·</span>
+                <button
+                  type="button"
+                  onClick={() => removeFromIndex(mealId)}
+                  className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+                >
+                  {t(lang, "savedMealsPage.removeButton")}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => addToIndex(mealId)}
+                className="flex items-center gap-1.5 text-sm font-medium text-clay transition-colors hover:text-clay-dark"
+              >
+                <BookIcon className="h-4 w-4" />
+                {t(lang, "mealPage.saveButton")}
+              </button>
+            )}
+
+            {/* "Legg i handlelisten" – sekundær handling, se
+                MealShoppingListSection.tsx sin filheader for ikonet
+                (22. runde) og venstrestillingen (23. runde). */}
+            {slots.length > 0 && (
+              <div id="meal-shopping-list">
+                <MealShoppingListSection slots={slots} lang={lang} />
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="text-[11px] font-medium text-ink-faint/70 underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+            >
+              {t(lang, "mealPrint.button")}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     {/* ============ SEGMENT 2: PLANLEGG KVELDEN (lys kremflate, fullbredde) ============

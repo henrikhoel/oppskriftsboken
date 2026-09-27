@@ -62,6 +62,17 @@ import { t, type Lang } from "@/lib/i18n";
  * og ble gull, se MealView.tsx) uten å gjøre den til en tung, fylt knapp.
  * Kun selve `<button>`-elementets barn er endret – all logikk under
  * (handleAdd, ferdig/feil-tilstandene) er uendret.
+ *
+ * VENSTRESTILT IGJEN 29.09.2026 (23. runde – Henrik forkastet 22. rundes
+ * plassering øverst til høyre: "Ikke la handlingene ligge helt oppe i
+ * høyre hjørne av viewporten [...] De skal være en del av selve
+ * menykomposisjonen") – handlingsgruppen flyttet fra en høyrestilt
+ * topp-rad til en venstrestilt sidebar-spalte ved siden av selve menyen
+ * (se MealView.tsx). Ytre wrapper derfor byttet TILBAKE fra `text-right`
+ * (8. runde) til `text-left` (og "ferdig"-raden fra `justify-end` til
+ * `justify-start`) – samme prinsipp som den gangen, bare motsatt retning:
+ * teksten skal følge kolonnens egen justering, ikke stå isolert
+ * høyrestilt i en nå venstrestilt spalte.
  */
 export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot[]; lang: Lang }) {
   const { addFromRecipe } = useShoppingList();
@@ -108,7 +119,7 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
   }
 
   return (
-    <div className="text-right">
+    <div className="text-left">
       {!result ? (
         <button
           type="button"
@@ -120,7 +131,7 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
           {loading ? t(lang, "mealShopping.loading") : t(lang, "mealShopping.button")}
         </button>
       ) : (
-        <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
+        <div className="flex flex-wrap items-center justify-start gap-2 text-xs">
           <span className="text-olive-dark">{t(lang, "mealShopping.done")}</span>
           <Link href="/handleliste" className="font-medium text-clay hover:text-clay-dark">
             {t(lang, "mealShopping.viewList")} →
