@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { siteConfig } from "@/lib/config";
 import { loginToDsvdv } from "@/lib/actions/dsvdv";
 
@@ -42,7 +43,26 @@ export function DsvdvLoginForm() {
   }
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center px-4">
+    // (27.09.2026) Henrik, med skjermbilde av innloggingsskjermaet: "det må
+    // være en tilbakeknapp her også, hvis ikke er man låst her om man ikke
+    // kan passordet" – helt riktig: Header/Footer/BottomNav er nå skjult
+    // på HELE /dsvdv (se components/layout/HideOnDsvdv.tsx), inkludert
+    // akkurat denne siden, og DsvdvTopBar sin "Ut"-knapp vises bevisst KUN
+    // når man allerede er innlogget (se app/dsvdv/layout.tsx) – uten noe
+    // her ville en besøkende som ikke kjenner passordet ikke hatt noen vei
+    // tilbake til resten av CONVITE i det hele tatt. `relative` på denne
+    // ytre wrapperen + `absolute`-plassert lenke i hjørnet, samme
+    // "tilbake ett hakk"-følelse som resten av siden bruker andre steder
+    // (se f.eks. backHref-lenken øverst i app/oppskrifter/[slug]/page.tsx),
+    // men bevisst IKKE inne i selve den sentrerte skjema-kolonnen – dette
+    // er en vei UT av DSVDV, ikke en del av selve innloggingen.
+    <div className="relative flex min-h-[70vh] items-center justify-center px-4">
+      <Link
+        href="/"
+        className="absolute left-4 top-4 text-xs font-medium text-ink-faint transition-colors hover:text-clay-dark sm:left-6 sm:top-6"
+      >
+        ← Tilbake
+      </Link>
       <div className="w-full max-w-xs text-center">
         <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-clay font-serif text-base text-cream">
           {siteConfig.logoInitial}
