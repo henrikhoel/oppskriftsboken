@@ -373,7 +373,28 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
   return (
     <>
     {/* ============ SEGMENT 1: DIN MENY (mørk, standard sidebunn) ============ */}
-    <div className="mx-auto max-w-4xl space-y-10 px-4 pt-10 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
+    {/* (29.09.2026, 25. runde – Henrik: "flytt 'tilbake til oppskrift'
+        helt ut oppe til venstre der det er tomt. og gjør den mindre") –
+        tilbake-lenken flyttet ut av selve `pt-10`-polstrede innholds-
+        containeren og inn i sin egen, tettere `pt-4`-stripe rett under
+        headeren (var samme `pt-10` som resten av segmentet, med god
+        ledig plass over headeren og lenken) – henter ut den ellers tomme
+        luften der i stedet for å legge lenken langt nede i det polstrede
+        innholdet. Selve teksten er samtidig krympet fra `text-sm` til
+        `text-xs`. Segmentets egen `pt-10` er dempet til `pt-6` siden
+        lenken nå har sin egen topp-polstring rett over. */}
+    {anchorSlot && (
+      <div className="mx-auto max-w-4xl px-4 pt-4 sm:px-6 lg:px-8 print:hidden">
+        <Link
+          href={`/oppskrifter/${anchorSlot.slug}?fromMealId=${mealId}`}
+          className="text-xs font-medium text-ink-faint transition-colors hover:text-clay-dark"
+        >
+          {t(lang, "mealPage.backToRecipeShort")}
+        </Link>
+      </div>
+    )}
+
+    <div className="mx-auto max-w-4xl space-y-10 px-4 pt-6 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
       {/* (29.09.2026, 23. runde – Henrik: "Dette redesignet gikk i feil
           retning [...] Jeg vil ha en mer raffinert komposisjon, ikke større
           typografi [...] Det viktigste nye grepet skal være layouten: Lag
@@ -388,17 +409,8 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
           `border-ink/10`-strek (og samme mobil-stables-med-border-t/
           desktop-border-l-mønster) som "I glasset"/"Vinen din" i
           EveningExperience.tsx allerede bruker – se filheaderen der.
-          Tilbake-lenken står nå alene øverst, ikke lenger i en
-          justify-between-rad med handlingsgruppen (som ikke lenger bor
-          der). */}
-      {anchorSlot && (
-        <Link
-          href={`/oppskrifter/${anchorSlot.slug}?fromMealId=${mealId}`}
-          className="text-sm font-medium text-ink-faint transition-colors hover:text-clay-dark"
-        >
-          {t(lang, "mealPage.backToRecipeShort")}
-        </Link>
-      )}
+          Tilbake-lenken er (25. runde) flyttet UT av denne containeren, se
+          egen, tettere-polstret stripe rett over. */}
 
       {/* (29.09.2026, 24. runde – Henrik: "Det som fortsatt må redesignes
           er høyrekolonnen [...] Akkurat nå er denne kolonnen for smal,
