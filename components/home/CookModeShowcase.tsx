@@ -19,6 +19,11 @@ import { t, type Lang } from "@/lib/i18n";
  * cookMode.startTimerForStep direkte (samme tekst som den ekte knappen i
  * CookMode.tsx) med et statisk 4-tall som matcher mockStepText sitt
  * "3-4 minutter".
+ *
+ * "Merk som gjort"-avkrysningsraden som lå her tidligere er fjernet
+ * (27.09.2026, samme runde som selve funksjonen ble fjernet fra ekte
+ * CookMode.tsx, se den filens historikk) – mockupen skal speile virkelig
+ * UI, og etter fjerningen fantes ikke lenger raden den viste frem.
  */
 export function CookModeShowcase({ lang, recipeSlug }: { lang: Lang; recipeSlug: string | null }) {
   return (
@@ -66,10 +71,6 @@ export function CookModeShowcase({ lang, recipeSlug }: { lang: Lang; recipeSlug:
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-center gap-2 rounded-full border border-ink/20 px-3 py-2 text-[0.7rem] text-ink/85">
-                    <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[0.25rem] border border-ink/40" />
-                    {t(lang, "home.cookMode.mockMarkDone")}
-                  </div>
                   <div className="flex items-center justify-center gap-1.5 text-[0.7rem] font-medium text-clay">
                     <ClockIcon className="h-3.5 w-3.5" />
                     {t(lang, "cookMode.startTimerForStep", { minutes: 4 })}

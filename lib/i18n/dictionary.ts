@@ -189,7 +189,6 @@ const DICT = {
     no: "Ha i fløten og la sausen småkoke i 3-4 minutter til den tykner.",
     en: "Add the cream and let the sauce simmer for 3-4 minutes until it thickens.",
   },
-  "home.cookMode.mockMarkDone": { no: "Merk som gjort", en: "Mark as done" },
   "home.cookMode.note": {
     no: "Skjermen holdes våken automatisk, og du kan styre stegene med stemmen. Ingen grunn til å taste inn koden med sausete fingre.",
     en: "The screen stays awake automatically, and you can move through the steps with your voice. No need to unlock your phone with saucy fingers.",
