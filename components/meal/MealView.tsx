@@ -650,7 +650,18 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         EveningExperience.tsx (bevisst beholdt i forrige runde nettopp fordi
         den DA skilte mot en bildeløs inngang) – fjernet nå (se filheaderen
         der), siden inngangen og I GLASSET deler samme bilde-driftne visuelle
-        språk og ikke lenger trenger en synlig sømlinje mellom seg. */}
+        språk og ikke lenger trenger en synlig sømlinje mellom seg.
+
+        FADE TIL SVART, KUN NEDERST (29.09.2026, 17. runde – Henrik: "bildet
+        på 'gjør det til en kveld' må fades til svart nederst, trenger ikke
+        gjøre det øverst") – et ekstra gradient-overlegg OVENPÅ den
+        eksisterende flate `bg-cream/86`-flaten, samme `var(--color-cream)`-
+        fargetoken (sidens ekte sorte) i en `linear-gradient` som er helt
+        gjennomsiktig øverst (toppen av inngangen beholdes som den er – ingen
+        fade der) og solid nederst, der inngangen møter EveningExperience
+        sitt eget bilde (evening-table.jpg, se EveningExperience.tsx sin
+        filheader) rett under – en myk overgang mellom de to bildene i stedet
+        for en brå kant. */}
     {slots.length > 0 && (
       <section className="bg-paper print:hidden">
         <div className="relative isolate overflow-hidden">
@@ -660,6 +671,10 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
             aria-hidden="true"
           />
           <div className="absolute inset-0 bg-cream/86" aria-hidden="true" />
+          <div
+            className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,transparent_65%,var(--color-cream)_100%)]"
+            aria-hidden="true"
+          />
 
           <div className="relative mx-auto max-w-2xl px-5 pb-24 pt-24 text-center sm:px-10 sm:pb-36 sm:pt-36">
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-clay sm:text-sm">

@@ -574,7 +574,18 @@ export function EveningExperience({
            * fortsatt sin egen rolige, bildeløse `bg-cream`-avslutning (se
            * deres egne filheadere) – bevisst kontrast: bildet hører til
            * selve "gjør det til en kveld"-oppbyggingen, ikke til
-           * avslutningen. */}
+           * avslutningen.
+           *
+           * FADE TIL SVART, TOPP+BUNN (29.09.2026, 17. runde – Henrik:
+           * "bildet som går over de tre seksjonene må fades til svart både
+           * oppe og nede") – et ekstra, lagvis gradient-overlegg OVENPÅ den
+           * eksisterende flate `bg-cream/86`-flaten, samme `var(--color-
+           * cream)`-fargetoken (sidens ekte sorte, se filheaderen øverst i
+           * filen) i en `linear-gradient` som er helt solid i begge ender
+           * og gjennomsiktig i midten – gir en myk overgang til svart der
+           * segmentet møter kapittel-inngangen over (som nå har sitt eget
+           * bilde, se MealView.tsx) og VED SERVERING under (som har sin
+           * egne flate `bg-cream`), i stedet for en brå bildekant. */}
           <div className="relative isolate overflow-hidden">
             <div
               className="absolute inset-0 bg-cover bg-center"
@@ -582,6 +593,10 @@ export function EveningExperience({
               aria-hidden="true"
             />
             <div className="absolute inset-0 bg-cream/86" aria-hidden="true" />
+            <div
+              className="absolute inset-0 bg-[linear-gradient(to_bottom,var(--color-cream)_0%,transparent_18%,transparent_82%,var(--color-cream)_100%)]"
+              aria-hidden="true"
+            />
 
             <div className="relative">
           <Reveal>
@@ -814,7 +829,17 @@ export function EveningExperience({
            * "Se hvorfor"-lenken under. */}
           {curation.servingTip && (
             <Reveal>
-              <section className="border-t border-ink/10 bg-cream px-5 py-14 text-center sm:px-10 sm:py-20">
+              {/* (29.09.2026, 17. runde – Henrik: "og linje som deler
+               * 'stemning' og 'ved servering' må fjernes") – `border-t
+               * border-ink/10` fjernet. Samme resonnement som 15./16. runde
+               * over: nå som hele det bildedrevne segmentet (I
+               * GLASSET/PÅ BORDET/STEMNING+MUSIKK) ikke lenger har noen
+               * synlige skillelinjer internt, og bakgrunnsbildet dessuten
+               * nå fader til svart nederst (se filheaderen ved
+               * bilde-wrapperen), er selve fargeskiftet til `bg-cream` her
+               * nok til å markere overgangen til VED SERVERING – ingen
+               * hard strek trengs i tillegg. */}
+              <section className="bg-cream px-5 py-14 text-center sm:px-10 sm:py-20">
                 <div className="mx-auto max-w-md">
                   <Eyebrow>{t(lang, "eveningExperience.servingHeading")}</Eyebrow>
                   <GlossaryText
