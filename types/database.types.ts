@@ -520,6 +520,43 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["site_access"]["Insert"]>;
         Relationships: [];
       };
+      // (27.09.2026) Kontoeksklusive favoritter – se
+      // supabase/migrations/0021_user_accounts.sql. Sammensatt primærnøkkel
+      // (user_id, recipe_id), ikke egen id-kolonne.
+      favorites: {
+        Row: {
+          user_id: string;
+          recipe_id: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          recipe_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["favorites"]["Insert"]>;
+        Relationships: [];
+      };
+      // (27.09.2026) Kontoeksklusiv handleliste – se
+      // supabase/migrations/0021_user_accounts.sql. `entry` speiler
+      // ShoppingListEntry (lib/types.ts) minus dens klientsidige `id` –
+      // radens egen `id` ER entry-id-en for en innlogget bruker.
+      shopping_list_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          entry: unknown;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          entry: unknown;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["shopping_list_items"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
