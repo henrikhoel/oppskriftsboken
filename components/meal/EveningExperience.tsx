@@ -7,7 +7,7 @@ import { getVinmonopoletWineSuggestion, type VinmonopoletSuggestion } from "@/li
 import { sortSlotsByRole, type MealSession } from "@/lib/kitchen-intelligence";
 import { MealWineInput } from "@/components/meal/MealWineInput";
 import { siteConfig } from "@/lib/config";
-import { t, type DictKey, type Lang } from "@/lib/i18n";
+import { t, type Lang } from "@/lib/i18n";
 
 /**
  * "GJØR DET TIL EN KVELD" (Fase 5-finale, 5.9–5.11/5.14) – vin/bord/stemning/
@@ -141,8 +141,22 @@ import { t, type DictKey, type Lang } from "@/lib/i18n";
  *    (`bg-cream`, se punkt 4). Ingen av dem er et "card" – hver flate er
  *    full bredde, kun typografien/max-w-xl-kolonnen holder innholdet smalt.
  *
- * Selve AI-kurateringen (getEveningCuration/getVinmonopoletWineSuggestion),
- * ordforklaringene og "Se hvorfor"-mekanikken er FORTSATT urørt.
+ * Selve AI-kurateringen (getEveningCuration/getVinmonopoletWineSuggestion)
+ * og ordforklaringene er FORTSATT urørt.
+ *
+ * REDESIGNET 29.09.2026 (6. runde – Henrik: "i stedet for 'se hvorfor' så
+ * kan man heller trykke på selve tingen, feks kan man trykke på 'Kaldt vann
+ * i glass' og få opp hvorfor, i stedet for så mange små gule se hvorfor").
+ * "Se hvorfor"-mekanikken ER nå endret: den forrige, separate
+ * `WhyToggle`-lenken (liten gull tekst-knapp under hvert element) er
+ * erstattet med `WhyReveal`, som gjør selve elementet/overskriften/teksten
+ * TIL knappen (vinnavnet i I GLASSET, hvert element i PÅ BORDET, stemnings-
+ * og musikk-teksten, rådet i VED SERVERING) – se WhyReveal sin egen
+ * filheader for detaljer, inkludert hvordan den samspiller med
+ * GlossaryText sine egne, nøstede ordforklarings-knapper
+ * (`stopPropagation`, se der). Ingen endring i NÅR en "hvorfor" vises
+ * (fortsatt kun når AI-en faktisk ga en begrunnelse) – kun HVORDAN den
+ * trykkes frem.
  */
 
 function escapeRegExp(value: string): string {
@@ -193,40 +207,64 @@ function Reveal({ children }: { children: ReactNode }) {
   );
 }
 
-/** "Se hvorfor →"/"Se detaljer →"-knapp (26.08.2026) – vist under en
- * curation-seksjon (vin/bord-ting/stemning/musikk/servering) NÅR AI-en
- * faktisk ga en begrunnelse for akkurat den (see*Why-feltene i
- * EveningCuration). Skjult helt (returnerer null) når feltet mangler –
- * enten fordi AI-en ikke fant noen god begrunnelse denne gangen, ELLER fordi
- * raden ble cachet før denne utvidelsen fantes (se filheaderen i
- * kitchen-intelligence.ts) – begge tilfellene skal se identiske ut for
- * besøkende, ikke vise en tom/ødelagt knapp. `showKey`/`hideKey` lar
- * PÅ BORDET-seksjonen bruke egen ordlyd ("Se detaljer →") i stedet for
- * standard "Se hvorfor →" – samme mekanikk, kun ulik tekst. */
-function WhyToggle({
+/** Klikkbar avdekk-"hvorfor"-wrapper (29.09.2026 – erstatter den forrige
+ * separate "Se hvorfor →"/"Se detaljer →"-lenken, se WhyToggle i
+ * Git-historikken hvis den trengs igjen). Henrik: "i stedet for 'se
+ * hvorfor' så kan man heller trykke på selve tingen, feks kan man trykke
+ * på 'Kaldt vann i glass' og få opp hvorfor, i stedet for så mange små
+ * gule se hvorfor". Selve teksten/overskriften (children) ER nå knappen –
+ * ingen egen synlig lenke ved siden av. Samme visuelle språk som de
+ * enkelte ordforklaringene i GlossaryText under (tynn prikket
+ * understreking, gull ved hover) – "prikket understreking = trykk for
+ * mer" er nå ett konsekvent mønster gjennom hele "Gjør det til en kveld",
+ * enten det er ett fagord eller en hel setning som er trykkbar.
+ *
+ * `role="button"` (ikke en ekte `<button>`) fordi children ofte er
+ * GlossaryText, som selv kan inneholde ekte `<button>`-er for enkeltord –
+ * en `<button>` kan ikke inneholde en annen `<button>` (ugyldig HTML).
+ * GlossaryText sin egen term-knapp kaller `stopPropagation()` (se der) slik
+ * at et trykk på ETT fagord inni teksten ikke også åpner/lukker HELE
+ * "hvorfor"-forklaringen.
+ *
+ * Skjult helt (rendrer kun children, uten klikk-egenskaper) når feltet
+ * mangler – enten fordi AI-en ikke fant noen god begrunnelse denne gangen,
+ * ELLER fordi raden ble cachet før denne utvidelsen fantes (se filheaderen
+ * i kitchen-intelligence.ts) – begge tilfellene skal se identiske, helt
+ * vanlige (ikke-klikkbare) ut for besøkende. */
+function WhyReveal({
   why,
   lang,
-  showKey = "eveningExperience.whyShow",
-  hideKey = "eveningExperience.whyHide",
+  className,
+  children,
 }: {
   why: string | null | undefined;
   lang: Lang;
-  showKey?: DictKey;
-  hideKey?: DictKey;
+  className?: string;
+  children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  if (!why) return null;
+  if (!why) return <div className={className}>{children}</div>;
   return (
-    <div className="mt-2">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
+    <div>
+      <div
+        role="button"
+        tabIndex={0}
         aria-expanded={open}
-        className="font-sans text-[0.7rem] font-medium text-clay hover:text-clay-dark"
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((o) => !o);
+          }
+        }}
+        className={clsx(
+          "cursor-pointer underline decoration-dotted decoration-ink-faint underline-offset-4 transition-colors hover:decoration-clay",
+          className,
+        )}
       >
-        {t(lang, open ? hideKey : showKey)}
-      </button>
-      {open && <p className="mt-1.5 max-w-md font-sans text-xs leading-relaxed text-ink-faint">{why}</p>}
+        {children}
+      </div>
+      {open && <p className="mt-2 max-w-md font-sans text-xs leading-relaxed text-ink-faint">{why}</p>}
     </div>
   );
 }
@@ -275,14 +313,20 @@ function GlossaryText({
           <span key={i}>
             <button
               type="button"
-              onClick={() =>
+              onClick={(e) => {
+                // (29.09.2026) stopPropagation – GlossaryText brukes nå ofte
+                // inni WhyReveal (se der), som selv lytter etter klikk på
+                // HELE teksten for å avdekke "hvorfor". Uten dette ville et
+                // trykk på ett enkelt fagord her også åpnet/lukket hele
+                // "hvorfor"-forklaringen ved siden av ordforklaringen.
+                e.stopPropagation();
                 setOpenTerms((prev) => {
                   const next = new Set(prev);
                   if (next.has(match.term)) next.delete(match.term);
                   else next.add(match.term);
                   return next;
-                })
-              }
+                });
+              }}
               aria-expanded={isOpen}
               className="underline decoration-dotted decoration-ink-faint underline-offset-4 transition-colors hover:decoration-clay"
             >
@@ -427,9 +471,16 @@ export function EveningExperience({
                   <div>
                     {curation.wine ? (
                       <>
-                        <p className="text-balance font-serif text-2xl text-ink sm:text-3xl">
+                        {/* (29.09.2026) Selve vinnavnet ER nå knappen for
+                         * "hvorfor" – se WhyReveal sin filheader. Erstatter
+                         * den forrige separate "Se hvorfor →"-lenken under. */}
+                        <WhyReveal
+                          why={curation.wine.why}
+                          lang={lang}
+                          className="text-balance font-serif text-2xl text-ink sm:text-3xl"
+                        >
                           {curation.wine.label || curation.wine.style}
-                        </p>
+                        </WhyReveal>
                         {curation.wine.tags && curation.wine.tags.length > 0 && (
                           <p className="mt-2.5 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-ink-faint">
                             {curation.wine.tags.join(" · ")}
@@ -443,21 +494,18 @@ export function EveningExperience({
                           />
                         )}
 
-                        <div className="mt-4 flex flex-col items-start gap-2">
-                          <WhyToggle why={curation.wine.why} lang={lang} />
-                          {!vinResult && (
-                            <button
-                              type="button"
-                              onClick={handleFindWine}
-                              disabled={vinLoading}
-                              className="font-sans text-xs font-medium text-clay hover:text-clay-dark disabled:cursor-not-allowed disabled:text-ink-faint"
-                            >
-                              {vinLoading
-                                ? t(lang, "wine.vinmonopoletLoading")
-                                : t(lang, "eveningExperience.findWineButton")}
-                            </button>
-                          )}
-                        </div>
+                        {!vinResult && (
+                          <button
+                            type="button"
+                            onClick={handleFindWine}
+                            disabled={vinLoading}
+                            className="mt-4 font-sans text-xs font-medium text-clay hover:text-clay-dark disabled:cursor-not-allowed disabled:text-ink-faint"
+                          >
+                            {vinLoading
+                              ? t(lang, "wine.vinmonopoletLoading")
+                              : t(lang, "eveningExperience.findWineButton")}
+                          </button>
+                        )}
                         {vinError && <p className="mt-2 font-sans text-xs text-clay-dark">{vinError}</p>}
 
                         {vinResult && (
@@ -532,11 +580,15 @@ export function EveningExperience({
            * skal bort"). Fra én "·"-atskilt linje TIL et responsivt
            * rutenett (`sm:grid-cols-2 lg:grid-cols-3`) – hvert element får
            * sin egen luft/spalte i stedet for å flyte i samme setning,
-           * fortsatt ren typografi (ingen cards/bokser/rammer). "Se
-           * detaljer" er fortsatt bevisst lite/sekundært under hvert
-           * element. Antall elementer varierer med AI-svaret (typisk 2–5)
-           * – rutenettet folder naturlig, ingen fast tre-kolonne-antakelse.
-           * Stables i én kolonne på mobil. */}
+           * fortsatt ren typografi (ingen cards/bokser/rammer). Antall
+           * elementer varierer med AI-svaret (typisk 2–5) – rutenettet
+           * folder naturlig, ingen fast tre-kolonne-antakelse. Stables i én
+           * kolonne på mobil.
+           *
+           * (29.09.2026) Selve elementteksten (f.eks. "Kaldt vann i glass")
+           * ER nå selve "hvorfor"-knappen, se WhyReveal sin filheader –
+           * erstatter den forrige separate "Se detaljer →"-lenken under
+           * hvert element. */}
           {curation.tableAccompaniments.length > 0 && (
             <Reveal>
               <section className="border-t border-ink/10 bg-cream-dark px-5 py-10 sm:px-10 sm:py-14">
@@ -545,18 +597,14 @@ export function EveningExperience({
                   <ul className="mt-6 grid grid-cols-1 gap-x-10 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
                     {curation.tableAccompaniments.map((item, i) => (
                       <li key={i}>
-                        <GlossaryText
-                          text={item}
-                          glossary={curation.glossary}
-                          as="span"
-                          className="font-serif text-lg leading-snug text-ink"
-                        />
-                        <WhyToggle
-                          why={curation.tableAccompanimentsWhy?.[item]}
-                          lang={lang}
-                          showKey="eveningExperience.detailsShow"
-                          hideKey="eveningExperience.detailsHide"
-                        />
+                        <WhyReveal why={curation.tableAccompanimentsWhy?.[item]} lang={lang}>
+                          <GlossaryText
+                            text={item}
+                            glossary={curation.glossary}
+                            as="span"
+                            className="font-serif text-lg leading-snug text-ink"
+                          />
+                        </WhyReveal>
                       </li>
                     ))}
                   </ul>
@@ -591,23 +639,21 @@ export function EveningExperience({
                   {curation.mood && (
                     <div>
                       <Eyebrow>{t(lang, "eveningExperience.moodHeading")}</Eyebrow>
-                      <GlossaryText
-                        text={curation.mood}
-                        glossary={curation.glossary}
-                        className="mt-5 text-balance font-serif text-3xl leading-snug text-ink sm:text-4xl"
-                      />
-                      <WhyToggle why={curation.moodWhy} lang={lang} />
+                      <WhyReveal
+                        why={curation.moodWhy}
+                        lang={lang}
+                        className="mt-5 block text-balance font-serif text-3xl leading-snug text-ink sm:text-4xl"
+                      >
+                        <GlossaryText text={curation.mood} glossary={curation.glossary} as="span" />
+                      </WhyReveal>
                     </div>
                   )}
                   {curation.musicDirection && (
                     <div className={curation.mood ? "mt-12 lg:mt-16" : ""}>
                       <Eyebrow>{t(lang, "eveningExperience.musicHeading")}</Eyebrow>
-                      <GlossaryText
-                        text={curation.musicDirection}
-                        glossary={curation.glossary}
-                        className="mt-5 font-serif text-lg text-ink-soft"
-                      />
-                      <WhyToggle why={curation.musicDirectionWhy} lang={lang} />
+                      <WhyReveal why={curation.musicDirectionWhy} lang={lang} className="mt-5 block font-serif text-lg text-ink-soft">
+                        <GlossaryText text={curation.musicDirection} glossary={curation.glossary} as="span" />
+                      </WhyReveal>
                     </div>
                   )}
                 </div>
@@ -626,21 +672,23 @@ export function EveningExperience({
            * sidens egen mørkeste/"grunn"-tone, se filheaderen øverst i
            * filen) i stedet for å arve samme flate som kapitlene over.
            * Vises KUN når AI-en faktisk fant et genuint relevant råd
-           * (curation.servingTip er null ellers). "Se hvorfor" ligger
-           * fortsatt diskret under, sentrert. */}
+           * (curation.servingTip er null ellers).
+           *
+           * (29.09.2026) Selve rådteksten ER nå "hvorfor"-knappen (se
+           * WhyReveal sin filheader) – erstatter den forrige, sentrerte
+           * "Se hvorfor"-lenken under. */}
           {curation.servingTip && (
             <Reveal>
               <section className="border-t border-ink/10 bg-cream px-5 py-14 text-center sm:px-10 sm:py-20">
                 <div className="mx-auto max-w-sm">
                   <Eyebrow>{t(lang, "eveningExperience.servingHeading")}</Eyebrow>
-                  <GlossaryText
-                    text={curation.servingTip}
-                    glossary={curation.glossary}
-                    className="mt-6 font-serif text-xl italic leading-relaxed text-ink sm:text-2xl"
-                  />
-                  <div className="mt-3 flex justify-center">
-                    <WhyToggle why={curation.servingTipWhy} lang={lang} />
-                  </div>
+                  <WhyReveal
+                    why={curation.servingTipWhy}
+                    lang={lang}
+                    className="mt-6 block font-serif text-xl italic leading-relaxed text-ink sm:text-2xl"
+                  >
+                    <GlossaryText text={curation.servingTip} glossary={curation.glossary} as="span" />
+                  </WhyReveal>
                 </div>
               </section>
             </Reveal>
