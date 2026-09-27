@@ -406,13 +406,14 @@ export function MealBuilder({
             <h2 className="mt-3 text-balance font-serif text-3xl text-ink sm:mt-4 sm:text-5xl">
               {t(lang, "mealBuilder.heading")}
             </h2>
-            {/* text-lg (18px) → text-[17px] på mobil (midt i det ønskede
-                17-18px-spennet, men merkbart mindre/roligere enn før i
-                kombinasjon med den nå mindre headingen over) +
-                leading-relaxed for et mer balansert linjeavstand. sm:text-xl
-                bringer med seg sin egen line-height og gjenoppretter
-                desktop-visningen fullstendig uendret. */}
-            <p className="mt-3 max-w-prose font-serif text-[17px] leading-relaxed text-ink-soft sm:mt-4 sm:text-xl">
+            {/* Ytterligere ned 30.09.2026 ("jeg syns fortsatt 'vi setter
+                sammen forrett, ...' blir for stor") – text-[17px] var
+                fortsatt for stor i praksis; text-[15px] gir en tydeligere,
+                mer sekundær følelse. leading-relaxed beholdt for balansert
+                linjeavstand. sm:text-xl bringer med seg sin egen
+                line-height og gjenoppretter desktop-visningen fullstendig
+                uendret. */}
+            <p className="mt-3 max-w-prose font-serif text-[15px] leading-relaxed text-ink-soft sm:mt-4 sm:text-xl">
               {t(lang, "mealBuilder.intro")}
             </p>
 
