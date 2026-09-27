@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MealView } from "@/components/meal/MealView";
+import { LockedPanel } from "@/components/ui/LockedPanel";
 import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
@@ -24,9 +25,21 @@ export default async function MealPage({ params }: { params: Promise<{ id: strin
   // isAdmin i app/oppskrifter/[slug]/page.tsx), IKKE bare skjult med CSS.
   const user = await getCurrentUserFast();
 
+  // (27.09.2026) "Bygg din egen meny"/"Gjør det til en kveld" er
+  // kontoeksklusiv – se favoritter/page.tsx for samme resonnement. Gjelder
+  // også visning av en allerede bygget meny her, ikke bare selve
+  // byggingen i app/meny/ny/page.tsx.
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-      <MealView mealId={id} isAdmin={Boolean(user?.isAdmin)} lang={lang} />
+      {user ? (
+        <MealView mealId={id} isAdmin={Boolean(user?.isAdmin)} lang={lang} />
+      ) : (
+        <LockedPanel
+          message={t(lang, "featureLocked.mealMessage")}
+          ctaLabel={t(lang, "featureLocked.cta")}
+          nextPath={`/meny/${id}`}
+        />
+      )}
     </div>
   );
 }

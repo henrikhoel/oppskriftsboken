@@ -696,15 +696,36 @@ const DICT = {
   "recipeDetail.editButton": { no: "Rediger", en: "Edit" },
   "recipeDetail.allRecipesLink": { no: "Alle oppskrifter", en: "All recipes" },
   "recipeDetail.imagePending": { no: "Bilde kommer", en: "Image coming" },
-  // (26.09.2026) "Teaser"-visningen av en oppskrift for besøkende som ikke
-  // har logget inn med fellespassordet ennå (se RecipeTeaser.tsx) – kun
-  // toppen av oppskriften (bilde/tittel/beskrivelse) er synlig, resten er
-  // faded til svart med denne meldingen og knappen over.
+  // (26.09.2026, gjenopplivet 27.09.2026 mot ny konto-innlogging i stedet
+  // for det gamle fellespassordet) "Teaser"-visningen av en oppskrift for
+  // besøkende som ikke er logget inn (se RecipeTeaser.tsx) – kun toppen av
+  // oppskriften (bilde/tittel/beskrivelse) er synlig, resten er faded til
+  // svart med denne meldingen og knappen over.
   "recipeDetail.lockedMessage": {
     no: "Ingredienser og fremgangsmåte er kun synlig for dem som er logget inn.",
     en: "Ingredients and instructions are only visible to those who are logged in.",
   },
   "recipeDetail.lockedCta": { no: "Logg inn for å se resten", en: "Log in to see the rest" },
+  // (27.09.2026) Generiske "låst"-tekster – se components/ui/LockedPanel.tsx.
+  // Brukt av favoritter/handleliste/"I kjøleskapet"/"Bygg din egen meny",
+  // som alle er kontoeksklusive (se prosjektnotatet "Plan: brukerkonto").
+  "featureLocked.cta": { no: "Logg inn", en: "Log in" },
+  "featureLocked.favoritesMessage": {
+    no: "Favoritter er kun tilgjengelig når du er logget inn.",
+    en: "Favorites are only available when you're logged in.",
+  },
+  "featureLocked.shoppingListMessage": {
+    no: "Handlelisten er kun tilgjengelig når du er logget inn.",
+    en: "The shopping list is only available when you're logged in.",
+  },
+  "featureLocked.pantryMessage": {
+    no: "«I kjøleskapet» er kun tilgjengelig når du er logget inn.",
+    en: "\"In the fridge\" is only available when you're logged in.",
+  },
+  "featureLocked.mealMessage": {
+    no: "Meny-byggeren er kun tilgjengelig når du er logget inn.",
+    en: "The menu builder is only available when you're logged in.",
+  },
   // (26.09.2026, Henrik: "jeg vil at man skal kunne dele lenken til
   // oppskriften via snarveien på telefonen ... en liten knapp ved siden av
   // hjertet på oppskriftsiden hadde vært gull") – se ShareButton.tsx.
@@ -1176,6 +1197,13 @@ const DICT = {
   "guides.demoBadge": { no: "Demo", en: "Demo" },
   "guides.readGuide": { no: "Les guiden", en: "Read guide" },
   "guides.backToLibrary": { no: "Hvordan gjør jeg det?", en: "How do I do that?" },
+  // (27.09.2026) Henrik: "jeg får ikke sett noen av guidene uten å være
+  // logget inn" – se app/hvordan-gjor-jeg-det/[slug]/page.tsx.
+  "guides.lockedMessage": {
+    no: "Denne guiden er kun synlig for dem som er logget inn.",
+    en: "This guide is only visible to those who are logged in.",
+  },
+  "guides.lockedCta": { no: "Logg inn for å se guiden", en: "Log in to see the guide" },
   "guides.categoryEmpty": {
     no: "Ingen guider i denne kategorien ennå.",
     en: "No guides in this category yet.",

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { getSearchableRecipes } from "@/lib/data/recipes";
+import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 import { ManualMealBuilder } from "@/components/meal/ManualMealBuilder";
+import { LockedPanel } from "@/components/ui/LockedPanel";
 
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLang();
@@ -22,11 +24,21 @@ export async function generateMetadata(): Promise<Metadata> {
  * localStorage (se useMealSession).
  */
 export default async function NewManualMealPage() {
-  const [recipes, lang] = await Promise.all([getSearchableRecipes(), getLang()]);
+  const [recipes, lang, user] = await Promise.all([getSearchableRecipes(), getLang(), getCurrentUserFast()]);
 
+  // (27.09.2026) "Bygg din egen meny" er kontoeksklusiv – se
+  // favoritter/page.tsx for samme resonnement.
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-      <ManualMealBuilder recipes={recipes} lang={lang} />
+      {user ? (
+        <ManualMealBuilder recipes={recipes} lang={lang} />
+      ) : (
+        <LockedPanel
+          message={t(lang, "featureLocked.mealMessage")}
+          ctaLabel={t(lang, "featureLocked.cta")}
+          nextPath="/meny/ny"
+        />
+      )}
     </div>
   );
 }

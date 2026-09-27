@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PantryMatchView } from "@/components/pantry/PantryMatchView";
+import { LockedPanel } from "@/components/ui/LockedPanel";
 import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
@@ -31,8 +32,18 @@ export default async function PantryPage() {
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <h1 className="font-serif text-3xl text-ink sm:text-4xl">{t(lang, "pantryPage.title")}</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">{t(lang, "pantryPage.intro")}</p>
+      {/* (27.09.2026) "I kjøleskapet" er kontoeksklusiv – se
+          favoritter/page.tsx for samme resonnement. */}
       <div className="mt-8">
-        <PantryMatchView lang={lang} isAdmin={Boolean(user?.isAdmin)} />
+        {user ? (
+          <PantryMatchView lang={lang} isAdmin={Boolean(user?.isAdmin)} />
+        ) : (
+          <LockedPanel
+            message={t(lang, "featureLocked.pantryMessage")}
+            ctaLabel={t(lang, "featureLocked.cta")}
+            nextPath="/hva-kan-jeg-lage"
+          />
+        )}
       </div>
     </div>
   );

@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getGuideBySlug, getAllGuideSlugs } from "@/lib/data/guides";
+import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 import { GuideContent } from "@/components/guide/GuideContent";
+import { LockedPanel } from "@/components/ui/LockedPanel";
 import { localizedGuideIntro } from "@/lib/utils/guide-format";
 import { localizedTitle } from "@/lib/utils/format";
 import { siteConfig } from "@/lib/config";
@@ -44,7 +46,7 @@ export default async function GuidePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [guide, lang] = await Promise.all([getGuideBySlug(slug), getLang()]);
+  const [guide, lang, user] = await Promise.all([getGuideBySlug(slug), getLang(), getCurrentUserFast()]);
 
   if (!guide) notFound();
 
@@ -59,7 +61,22 @@ export default async function GuidePage({
       </Link>
 
       <div className="mt-6">
-        <GuideContent guide={guide} lang={lang} />
+        {/* (27.09.2026) Henrik: "kan jeg trykke inn på 'guider' men jeg får
+            ikke sett noen av guidene uten å være logget inn" – i motsetning
+            til oppskrifter (se RecipeTeaser.tsx) får en ikke-innlogget
+            besøkende INGEN smakebit her, ikke engang tittelen (den rendres
+            av GuideContent selv, se filheaderen der – "Les guiden"-kortene
+            på /hvordan-gjor-jeg-det viser fortsatt tittel/kategori/bilde
+            fritt, kun selve guide-INNHOLDET er låst). */}
+        {user ? (
+          <GuideContent guide={guide} lang={lang} />
+        ) : (
+          <LockedPanel
+            message={t(lang, "guides.lockedMessage")}
+            ctaLabel={t(lang, "guides.lockedCta")}
+            nextPath={`/hvordan-gjor-jeg-det/${guide.slug}`}
+          />
+        )}
       </div>
     </article>
   );

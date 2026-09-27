@@ -7,6 +7,7 @@ import { siteConfig } from "@/lib/config";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 import { RecipeInteractive } from "@/components/recipe/RecipeInteractive";
+import { RecipeTeaser } from "@/components/recipe/RecipeTeaser";
 import { buildRecipeJsonLd } from "@/lib/utils/seo";
 import { localizedTitle, localizedDescription } from "@/lib/utils/format";
 import { ChevronLeftIcon } from "@/components/ui/icons";
@@ -74,6 +75,42 @@ export default async function RecipePage({
   const [recipe, user, lang] = await Promise.all([getRecipeBySlug(slug), getCurrentUserFast(), getLang()]);
 
   if (!recipe) notFound();
+
+  // (27.09.2026) Henrik: "man skal kunne trykke inn på alt på siden, men at
+  // funksjonene er låst ... oppskrifter, jeg kan trykke inn på en
+  // oppskrift, men man ser kun bildet og beskrivelsen med mindre man er
+  // logget inn". Se RecipeTeaser.tsx for hele resonnementet bak hvorfor
+  // dette er en egen komponent som ALDRI får ingredienser/fremgangsmåte
+  // sendt inn til seg for en ikke-innlogget besøkende.
+  if (!user) {
+    const title = localizedTitle(recipe, lang);
+    const description = localizedDescription(recipe, lang);
+    return (
+      <article className="pb-24">
+        <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8 xl:max-w-[1280px]">
+          <Link
+            href="/oppskrifter"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+          >
+            <ChevronLeftIcon className="h-4 w-4" />
+            {t(lang, "recipeDetail.allRecipesLink")}
+          </Link>
+
+          <div className="mt-6 sm:mt-8">
+            <RecipeTeaser
+              title={title}
+              description={description}
+              imageUrl={recipe.heroImageUrl}
+              imageAlt={recipe.heroImageAlt ?? title}
+              categoryLabel={recipe.category?.name}
+              nextPath={`/oppskrifter/${recipe.slug}`}
+              lang={lang}
+            />
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   const jsonLd = buildRecipeJsonLd(recipe, lang);
 
