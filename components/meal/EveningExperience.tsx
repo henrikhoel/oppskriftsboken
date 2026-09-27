@@ -157,6 +157,24 @@ import { t, type Lang } from "@/lib/i18n";
  * (`stopPropagation`, se der). Ingen endring i NÅR en "hvorfor" vises
  * (fortsatt kun når AI-en faktisk ga en begrunnelse) – kun HVORDAN den
  * trykkes frem.
+ *
+ * "HVORFOR" INNSNEVRET 29.09.2026 (7. runde – Henrik: "vi ikke trenger å
+ * vite hvorfor man må ha varme tallerken, eller stemning og musikk. så det
+ * kan fjernes. det gjelder kun hva som skal stå på bordet, og vinen").
+ * `WhyReveal` (klikk-for-å-avdekke-begrunnelse) brukes nå KUN i I GLASSET
+ * (vinen) og PÅ BORDET (hvert bordelement) – fjernet fra STEMNING+MUSIKK og
+ * VED SERVERING, som nå rendrer teksten sin rett frem via `GlossaryText`
+ * alene (fortsatt med ordforklarings-mekanikken for enkeltord, kun selve
+ * "hvorfor hele setningen"-avdekkingen er borte). `curation.moodWhy`/
+ * `musicDirectionWhy`/`servingTipWhy` genereres fortsatt av AI-kalt (rørt
+ * ved i kitchen-intelligence.ts), bare ikke lenger vist noe sted i UI-en.
+ *
+ * Samtidig rettet: VED SERVERING sin kolonne var `max-w-sm` (384px) – for
+ * smal til at enkelte lange, sammensatte ord (f.eks. "lammecarréen") fikk
+ * plass på én linje ved denne italic-serif-størrelsen, som tvang nettleseren
+ * til å brekke MIDT I ordet (Henrik, med skjermbilde: "det er en sperre helt
+ * nederst sånn at lammecarréen blir kuttet"). Utvidet til `max-w-md` – gir
+ * nok bredde til normal ord-for-ord-wrap uten å brekke et enkelt ord.
  */
 
 function escapeRegExp(value: string): string {
@@ -639,21 +657,23 @@ export function EveningExperience({
                   {curation.mood && (
                     <div>
                       <Eyebrow>{t(lang, "eveningExperience.moodHeading")}</Eyebrow>
-                      <WhyReveal
-                        why={curation.moodWhy}
-                        lang={lang}
-                        className="mt-5 block text-balance font-serif text-3xl leading-snug text-ink sm:text-4xl"
-                      >
-                        <GlossaryText text={curation.mood} glossary={curation.glossary} as="span" />
-                      </WhyReveal>
+                      <GlossaryText
+                        text={curation.mood}
+                        glossary={curation.glossary}
+                        as="p"
+                        className="mt-5 text-balance font-serif text-3xl leading-snug text-ink sm:text-4xl"
+                      />
                     </div>
                   )}
                   {curation.musicDirection && (
                     <div className={curation.mood ? "mt-12 lg:mt-16" : ""}>
                       <Eyebrow>{t(lang, "eveningExperience.musicHeading")}</Eyebrow>
-                      <WhyReveal why={curation.musicDirectionWhy} lang={lang} className="mt-5 block font-serif text-lg text-ink-soft">
-                        <GlossaryText text={curation.musicDirection} glossary={curation.glossary} as="span" />
-                      </WhyReveal>
+                      <GlossaryText
+                        text={curation.musicDirection}
+                        glossary={curation.glossary}
+                        as="p"
+                        className="mt-5 font-serif text-lg text-ink-soft"
+                      />
                     </div>
                   )}
                 </div>
@@ -680,15 +700,14 @@ export function EveningExperience({
           {curation.servingTip && (
             <Reveal>
               <section className="border-t border-ink/10 bg-cream px-5 py-14 text-center sm:px-10 sm:py-20">
-                <div className="mx-auto max-w-sm">
+                <div className="mx-auto max-w-md">
                   <Eyebrow>{t(lang, "eveningExperience.servingHeading")}</Eyebrow>
-                  <WhyReveal
-                    why={curation.servingTipWhy}
-                    lang={lang}
-                    className="mt-6 block font-serif text-xl italic leading-relaxed text-ink sm:text-2xl"
-                  >
-                    <GlossaryText text={curation.servingTip} glossary={curation.glossary} as="span" />
-                  </WhyReveal>
+                  <GlossaryText
+                    text={curation.servingTip}
+                    glossary={curation.glossary}
+                    as="p"
+                    className="mt-6 font-serif text-xl italic leading-relaxed text-ink sm:text-2xl"
+                  />
                 </div>
               </section>
             </Reveal>
