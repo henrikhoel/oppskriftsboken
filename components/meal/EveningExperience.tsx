@@ -620,7 +620,16 @@ export function EveningExperience({
               <div className="mx-auto max-w-2xl">
                 <Eyebrow>{t(lang, "eveningExperience.wineHeading")}</Eyebrow>
 
-                <div className="mt-6 lg:grid lg:grid-cols-[1.3fr_1fr] lg:gap-12">
+                {/* (29.09.2026, 21. runde – Henrik: "den vertikale linja
+                    oppe på 'i glasset' må være rett over linja mellom
+                    stemning og musikk") – grid-kolonnene her hadde et annet
+                    forhold (`1.3fr_1fr`/`gap-12`) enn STEMNING+MUSIKK sitt
+                    grid lenger ned (`1.6fr_1fr`/`gap-14`), så selv om begge
+                    ligger i samme `max-w-2xl`-bredde landet de to
+                    `border-l`-strekene på ulik x-posisjon. Satt til SAMME
+                    `1.6fr_1fr`/`gap-14` som STEMNING+MUSIKK (se der) – nå
+                    står de to loddrette strekene rett over hverandre. */}
+                <div className="mt-6 lg:grid lg:grid-cols-[1.6fr_1fr] lg:gap-14">
                   {/* Venstre: AI-ens egen vinstil-anbefaling. */}
                   <div>
                     {curation.wine ? (
