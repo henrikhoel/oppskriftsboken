@@ -512,6 +512,14 @@ export function EveningExperience({
            * text-ink – bildet er allerede svært mørkt i seg selv (kun
            * stearinlys-glød sentralt), så overlegget lar noe av varmen/
            * gløden skinne gjennom i stedet for å flate det helt ut.
+           *
+           * (29.09.2026, 11. runde – Henrik, etter å ha sett det live:
+           * "kan du prøve å legge en veldig mørk overlay? sånn at det
+           * nesten blir helt mørk? nå ble det litt for mye synlig bilde")
+           * – skrudd opp fra `/72` til `/94`. Bildet er nå såpass tonet ned
+           * at det leses som en anelse dybde/tekstur bak teksten (fortsatt
+           * synlig stearinlys-glød i mørket) fremfor et tydelig fotografi
+           * ved siden av innholdet.
            * PÅ BORDET sin tidligere `bg-cream-dark`-flate (se filheaderen
            * lenger ned) er derfor fjernet – gjennomsiktig, som de to andre,
            * slik at bildet skinner gjennom overalt. VED SERVERING og
@@ -526,7 +534,7 @@ export function EveningExperience({
               style={{ backgroundImage: "url(/images/evening-table.jpg)" }}
               aria-hidden="true"
             />
-            <div className="absolute inset-0 bg-cream-dark/72" aria-hidden="true" />
+            <div className="absolute inset-0 bg-cream-dark/94" aria-hidden="true" />
 
             <div className="relative">
           <Reveal>
