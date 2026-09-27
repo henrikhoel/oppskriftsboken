@@ -307,19 +307,23 @@ const DICT = {
     no: "Oppskriftene du har markert som favoritt.",
     en: "The recipes you've marked as favorites.",
   },
-  "favoritesPage.guestDescription": {
-    no: "Favorittene dine lagres i denne nettleseren, så de er tilgjengelige neste gang du besøker siden herfra.",
-    en: "Your favorites are saved in this browser, so they'll be here next time you visit from this device.",
+  // (27.09.2026) Omdøpt fra "guest*" – favoritter for en innlogget,
+  // ikke-admin bruker er nå kontobaserte (favorites-tabellen, på tvers av
+  // enheter), ikke lenger localStorage. Se app/favoritter/page.tsx sin
+  // AccountFavorites.
+  "favoritesPage.accountDescription": {
+    no: "Favorittene dine lagres på kontoen din, så de er tilgjengelige uansett hvilken enhet du logger inn fra.",
+    en: "Your favorites are saved to your account, so they're available no matter which device you sign in from.",
   },
   "favoritesPage.adminEmptyTitle": { no: "Ingen favoritter ennå", en: "No favorites yet" },
   "favoritesPage.adminEmptyDescription": {
     no: "Trykk på hjertet på en oppskrift for å legge den til her.",
     en: "Tap the heart on a recipe to add it here.",
   },
-  "favoritesPage.guestEmptyTitle": { no: "Ingen favoritter ennå", en: "No favorites yet" },
-  "favoritesPage.guestEmptyDescription": {
-    no: "Trykk på hjertet på en oppskrift for å lagre den her. Favorittene dine lagres i denne nettleseren.",
-    en: "Tap the heart on a recipe to save it here. Your favorites are saved in this browser.",
+  "favoritesPage.accountEmptyTitle": { no: "Ingen favoritter ennå", en: "No favorites yet" },
+  "favoritesPage.accountEmptyDescription": {
+    no: "Trykk på hjertet på en oppskrift for å lagre den her. Favorittene dine følger kontoen din på tvers av enheter.",
+    en: "Tap the heart on a recipe to save it here. Your favorites follow your account across devices.",
   },
 
   // Se kommentaren ved nav.pantry over – samme rename, samme dato/grunn.

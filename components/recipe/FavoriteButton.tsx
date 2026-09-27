@@ -5,28 +5,56 @@ import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { HeartIcon } from "@/components/ui/icons";
 import { useFavorites } from "@/lib/hooks/useFavorites";
+import { useAccountFavorites } from "@/lib/hooks/useAccountFavorites";
 import { toggleAdminFavorite } from "@/lib/actions/favorites";
 import { t, type Lang } from "@/lib/i18n";
 
+/**
+ * Tre helt separate favoritt-mekanismer bak samme knapp (27.09.2026, se
+ * lib/hooks/useAccountFavorites.ts sin filheader):
+ * - isAdmin: recipes.favorited_by_admin – ÉN delt, admin-kuratert liste.
+ * - isLoggedIn (og ikke admin): favorites-tabellen, per bruker, på tvers av
+ *   enheter – useAccountFavorites().
+ * - verken/eller (gjest): localStorage, kun i denne nettleseren –
+ *   useFavorites().
+ * `isAdmin` og `isLoggedIn` kommer prop-tredd fra serveren (samme mønster
+ * som isAdmin alltid har brukt), så knappen selv trenger ingen egen
+ * auth-sjekk.
+ */
 export function FavoriteButton({
   recipeId,
   initialFavorited,
   isAdmin,
+  isLoggedIn,
   size = "md",
   lang = "no",
 }: {
   recipeId: string;
   initialFavorited: boolean;
   isAdmin: boolean;
+  isLoggedIn: boolean;
   size?: "sm" | "md";
   lang?: Lang;
 }) {
-  const { isFavorite, toggle, hydrated } = useFavorites();
+  const { isFavorite: isGuestFavorite, toggle: toggleGuest, hydrated: guestHydrated } = useFavorites();
+  const {
+    isFavorite: isAccountFavorite,
+    toggle: toggleAccount,
+    hydrated: accountHydrated,
+  } = useAccountFavorites();
   const [adminFavorited, setAdminFavorited] = useState(initialFavorited);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const favorited = isAdmin ? adminFavorited : hydrated ? isFavorite(recipeId) : initialFavorited;
+  const favorited = isAdmin
+    ? adminFavorited
+    : isLoggedIn
+      ? accountHydrated
+        ? isAccountFavorite(recipeId)
+        : initialFavorited
+      : guestHydrated
+        ? isGuestFavorite(recipeId)
+        : initialFavorited;
 
   function handleClick(e: MouseEvent) {
     // stopPropagation+preventDefault – FavoriteButton rendres i noen
@@ -47,8 +75,10 @@ export function FavoriteButton({
           setAdminFavorited(!next);
         }
       });
+    } else if (isLoggedIn) {
+      toggleAccount(recipeId);
     } else {
-      toggle(recipeId);
+      toggleGuest(recipeId);
     }
   }
 

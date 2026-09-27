@@ -64,7 +64,7 @@ const MOOD_ICONS = {
  * oppskriftskortene (designet for en mørk bakgrunn) leser fint uansett
  * hvor mange rader resultatet vokser til.
  */
-export function MoodModeSection({ lang }: { lang: Lang }) {
+export function MoodModeSection({ lang, isLoggedIn = false }: { lang: Lang; isLoggedIn?: boolean }) {
   const [activeMood, setActiveMood] = useState<MoodId | null>(null);
   const [recipes, setRecipes] = useState<RecipeSummary[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -154,7 +154,9 @@ export function MoodModeSection({ lang }: { lang: Lang }) {
             {!loading && recipes && recipes.length === 0 && (
               <p className="text-center text-sm text-ink-faint">{t(lang, "moodMode.none")}</p>
             )}
-            {!loading && recipes && recipes.length > 0 && <RecipeGrid recipes={recipes} lang={lang} />}
+            {!loading && recipes && recipes.length > 0 && (
+              <RecipeGrid recipes={recipes} isLoggedIn={isLoggedIn} lang={lang} />
+            )}
           </div>
         )}
       </div>

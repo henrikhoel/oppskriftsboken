@@ -658,7 +658,11 @@ export function PantryMatchView({ lang, isAdmin = false }: { lang: Lang; isAdmin
                 return (
                   <div key={result.recipe.id} className="flex flex-col gap-2">
                     <div className="relative">
-                      <RecipeCard recipe={result.recipe} lang={lang} />
+                      {/* (27.09.2026) PantryMatchView rendres kun for
+                          innloggede brukere (se app/hva-kan-jeg-lage/page.tsx),
+                          derfor hardkodet isLoggedIn – se FavoriteButton.tsx
+                          sin filheader. */}
+                      <RecipeCard recipe={result.recipe} isLoggedIn={true} lang={lang} />
                       {/* Plassert øverst til venstre – RecipeCard bruker selv
                           øverst til høyre til favoritt-hjertet, se
                           RecipeCard.tsx. */}

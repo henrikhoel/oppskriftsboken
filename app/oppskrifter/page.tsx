@@ -83,6 +83,7 @@ export default async function RecipesPage() {
             recipes={recipes}
             categories={categories}
             isAdmin={Boolean(user?.isAdmin)}
+            isLoggedIn={Boolean(user)}
             lang={lang}
           />
         </Suspense>

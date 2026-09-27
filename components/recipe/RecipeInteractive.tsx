@@ -378,8 +378,14 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
         favorite={
           <FavoriteButton
             recipeId={recipe.id}
-            initialFavorited={recipe.favoritedByAdmin}
+            initialFavorited={isAdmin ? recipe.favoritedByAdmin : false}
             isAdmin={isAdmin}
+            // (27.09.2026) RecipeInteractive rendres KUN når user er
+            // truthy (se app/oppskrifter/[slug]/page.tsx sin tidlige
+            // "if (!user) return <RecipeTeaser/>"-gren, før denne
+            // komponenten i det hele tatt kalles) – trygt å hardkode uten
+            // en egen prop her. Se FavoriteButton.tsx sin filheader.
+            isLoggedIn={true}
             // Kompakt (kun ikon) fra venstrekolonne-raffinementet 31.08.2026 –
             // Favoritt sitter nå diskret sammen med ratingen i stedet for på
             // linje med tittelen, se RecipeHero.tsx.

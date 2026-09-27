@@ -89,6 +89,49 @@ export async function getAdminFavoriteRecipes(): Promise<RecipeSummary[]> {
   return all.filter((r) => r.favoritedByAdmin);
 }
 
+/**
+ * Kontobaserte favoritter (27.09.2026, steg 1 av "kontolagring på tvers av
+ * enheter" – se prosjektnotatet). Erstatter den tidligere localStorage-
+ * varianten (lib/hooks/useFavorites.ts) for INNLOGGEDE, ikke-admin
+ * brukere – helt separat fra `favoritedByAdmin` over, som er en delt,
+ * admin-kuratert liste, ikke en per-bruker en.
+ *
+ * Parameterisert på `userId` (IKKE getCurrentUser() her) – se filheaderen
+ * øverst i denne filen: auth-sjekk hører hjemme hos kalleren (Server
+ * Action/side), ikke i selve datatilgangslaget. RLS-policyene på
+ * `favorites` (0021_user_accounts.sql: `user_id = auth.uid()`) håndhever
+ * uansett at en spørring aldri kan returnere en ANNEN brukers rader, selv
+ * om en feilaktig `userId` skulle bli sendt inn.
+ */
+export async function getFavoriteRecipeIdsForUser(userId: string): Promise<string[]> {
+  if (!isSupabaseConfigured) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("favorites").select("recipe_id").eq("user_id", userId);
+
+  if (error) {
+    console.error("Kunne ikke hente favoritt-ID-er:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => row.recipe_id as string);
+}
+
+/**
+ * Samme kilde som getFavoriteRecipeIdsForUser over, men slått opp mot de
+ * faktiske oppskriftene (RecipeSummary) – brukt av /favoritter-siden for
+ * en innlogget, ikke-admin bruker. Gjenbruker getRecipesByIds (samme
+ * to-stegs "ID-er → fulle rader"-mønster som handlelisten allerede bruker
+ * den funksjonen til) fremfor en egen embedded-spørring.
+ */
+export async function getFavoriteRecipesForUser(userId: string): Promise<RecipeSummary[]> {
+  const ids = await getFavoriteRecipeIdsForUser(userId);
+  if (ids.length === 0) return [];
+
+  const recipes = await getRecipesByIds(ids);
+  return recipes.filter((r) => r.isPublished).map(toSummary);
+}
+
 export async function getRecipesByCategory(categorySlug: string): Promise<RecipeSummary[]> {
   const all = await getPublishedRecipeSummaries();
   return all.filter((r) => r.category?.slug === categorySlug);

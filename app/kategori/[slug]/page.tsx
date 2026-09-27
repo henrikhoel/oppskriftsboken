@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAllCategories } from "@/lib/data/categories";
 import { getRecipesByCategory } from "@/lib/data/recipes";
+import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t, recipeCountLabel } from "@/lib/i18n";
 import { RecipeGrid } from "@/components/recipe/RecipeGrid";
@@ -34,7 +35,7 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [categories, lang] = await Promise.all([getAllCategories(), getLang()]);
+  const [categories, user, lang] = await Promise.all([getAllCategories(), getCurrentUserFast(), getLang()]);
   const category = categories.find((c) => c.slug === slug);
 
   if (!category) notFound();
@@ -53,6 +54,7 @@ export default async function CategoryPage({
           recipes={recipes}
           emptyTitle={t(lang, "categoryPage.emptyTitle")}
           emptyDescription={t(lang, "categoryPage.emptyDescription", { name: localizedCategoryName(category, lang) })}
+          isLoggedIn={Boolean(user)}
           lang={lang}
         />
       </div>

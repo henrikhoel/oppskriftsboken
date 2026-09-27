@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { getCurrentUserFast } from "@/lib/auth";
-import { getAdminFavoriteRecipes, getPublishedRecipeSummaries } from "@/lib/data/recipes";
+import { getAdminFavoriteRecipes, getFavoriteRecipesForUser } from "@/lib/data/recipes";
 import { getLang } from "@/lib/i18n/lang";
 import { t, type Lang } from "@/lib/i18n";
 import { RecipeGrid } from "@/components/recipe/RecipeGrid";
-import { GuestFavoritesGrid } from "@/components/recipe/GuestFavoritesGrid";
 import { LockedPanel } from "@/components/ui/LockedPanel";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,18 +25,17 @@ export default async function FavoritesPage() {
           ? t(lang, "favoritesPage.metaDescription")
           : user.isAdmin
             ? t(lang, "favoritesPage.adminDescription")
-            : t(lang, "favoritesPage.guestDescription")}
+            : t(lang, "favoritesPage.accountDescription")}
       </p>
 
       {/* (27.09.2026) Henrik: "man skal kunne trykke inn på alt på siden,
           men at funksjonene er låst" – favoritter er kontoeksklusivt (se
-          prosjektnotatet "Plan: brukerkonto"), derfor låst i stedet for å
-          vise det gamle localStorage-baserte GuestFavorites-innholdet til
-          en ikke-innlogget besøkende. En innlogget IKKE-admin-bruker ser
-          fortsatt GuestFavorites (fortsatt localStorage under panseret,
-          bare nå bak innlogging) – konvertering av selve LAGRINGEN til
-          `favorites`-tabellen (0021_user_accounts.sql) er et eget,
-          senere steg. */}
+          prosjektnotatet "Plan: brukerkonto"), derfor låst for en helt
+          ikke-innlogget besøkende. En innlogget IKKE-admin-bruker ser nå
+          AccountFavorites – kontobaserte favoritter lagret i
+          `favorites`-tabellen (0021_user_accounts.sql), på tvers av
+          enheter, IKKE lenger localStorage (steg 1 av
+          "kontolagring på tvers av enheter", se prosjektnotatet). */}
       <div className="mt-8">
         {!user ? (
           <LockedPanel
@@ -48,7 +46,7 @@ export default async function FavoritesPage() {
         ) : user.isAdmin ? (
           <AdminFavorites lang={lang} />
         ) : (
-          <GuestFavorites lang={lang} />
+          <AccountFavorites userId={user.id} lang={lang} />
         )}
       </div>
     </div>
@@ -62,12 +60,26 @@ async function AdminFavorites({ lang }: { lang: Lang }) {
       recipes={favorites}
       emptyTitle={t(lang, "favoritesPage.adminEmptyTitle")}
       emptyDescription={t(lang, "favoritesPage.adminEmptyDescription")}
+      // (27.09.2026) Manglet tidligere – hjertene på DENNE siden (admins
+      // egen kuraterte liste) falt dermed ubemerket tilbake til
+      // gjeste-hooken (localStorage) i stedet for å veksle den faktiske,
+      // delte favoritted_by_admin-verdien. Oppdaget mens favoritter ble
+      // lagt om til kontobasert lagring for vanlige brukere.
+      isAdmin
       lang={lang}
     />
   );
 }
 
-async function GuestFavorites({ lang }: { lang: Lang }) {
-  const recipes = await getPublishedRecipeSummaries();
-  return <GuestFavoritesGrid recipes={recipes} lang={lang} />;
+async function AccountFavorites({ userId, lang }: { userId: string; lang: Lang }) {
+  const favorites = await getFavoriteRecipesForUser(userId);
+  return (
+    <RecipeGrid
+      recipes={favorites}
+      emptyTitle={t(lang, "favoritesPage.accountEmptyTitle")}
+      emptyDescription={t(lang, "favoritesPage.accountEmptyDescription")}
+      isLoggedIn
+      lang={lang}
+    />
+  );
 }

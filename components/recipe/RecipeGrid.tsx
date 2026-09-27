@@ -9,12 +9,16 @@ export function RecipeGrid({
   emptyTitle,
   emptyDescription,
   isAdmin = false,
+  isLoggedIn = false,
   lang = "no",
 }: {
   recipes: RecipeSummary[];
   emptyTitle?: string;
   emptyDescription?: string;
   isAdmin?: boolean;
+  /** (27.09.2026) Sendes videre til RecipeCard/FavoriteButton – se
+   * FavoriteButton.tsx sin filheader. */
+  isLoggedIn?: boolean;
   lang?: Lang;
 }) {
   if (recipes.length === 0) {
@@ -30,7 +34,14 @@ export function RecipeGrid({
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {recipes.map((recipe, i) => (
-        <RecipeCard key={recipe.id} recipe={recipe} priority={i < 4} isAdmin={isAdmin} lang={lang} />
+        <RecipeCard
+          key={recipe.id}
+          recipe={recipe}
+          priority={i < 4}
+          isAdmin={isAdmin}
+          isLoggedIn={isLoggedIn}
+          lang={lang}
+        />
       ))}
     </div>
   );

@@ -248,7 +248,7 @@ export default async function HomePage() {
       {/* scroll-mt-20: gir litt luft opp mot den sticky headeren når man
           lander her via "bla nedover"-pilen i heroen. */}
       <div id="etter-hero" className="scroll-mt-20">
-        <MoodModeSection lang={lang} />
+        <MoodModeSection lang={lang} isLoggedIn={Boolean(user)} />
 
         {editorialMain && (
           // Kun pb (ikke pt) helt frem til 27.09.2026 – MoodModeSection over

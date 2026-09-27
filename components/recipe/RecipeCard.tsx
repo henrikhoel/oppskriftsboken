@@ -18,16 +18,22 @@ export function RecipeCard({
   recipe,
   priority = false,
   isAdmin = false,
+  isLoggedIn = false,
   lang = "no",
 }: {
   recipe: RecipeSummary;
   priority?: boolean;
   /** Kun sant på sider som faktisk henter innlogget bruker server-side (se
    * app/oppskrifter/page.tsx) – avgjør om hjertet i hjørnet skriver til den
-   * DELTE admin-favoritten (favoritedByAdmin i databasen) eller til
-   * besøkendes EGEN, lokale favorittliste (useFavorites-hooken inni
-   * FavoriteButton). Samme skille som på selve oppskriftssiden. */
+   * DELTE admin-favoritten (favoritedByAdmin i databasen) i stedet for en
+   * kontobasert eller lokal favorittliste (se isLoggedIn under). Samme
+   * skille som på selve oppskriftssiden. */
   isAdmin?: boolean;
+  /** (27.09.2026) Sant for enhver innlogget, ikke-admin bruker – avgjør om
+   * FavoriteButton bruker den kontobaserte favorittlisten (database, på
+   * tvers av enheter) eller gjeste-varianten (kun denne nettleseren). Se
+   * FavoriteButton.tsx sin filheader for hele skillet. */
+  isLoggedIn?: boolean;
   lang?: Lang;
 }) {
   return (
@@ -53,8 +59,9 @@ export function RecipeCard({
         <div className="absolute right-3 top-3 shadow-card">
           <FavoriteButton
             recipeId={recipe.id}
-            initialFavorited={recipe.favoritedByAdmin}
+            initialFavorited={isAdmin ? recipe.favoritedByAdmin : false}
             isAdmin={isAdmin}
+            isLoggedIn={isLoggedIn}
             size="sm"
             lang={lang}
           />
