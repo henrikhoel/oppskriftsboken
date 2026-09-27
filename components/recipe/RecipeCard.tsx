@@ -56,16 +56,22 @@ export function RecipeCard({
             <span className="font-serif text-lg">{t(lang, "recipeCard.imageComing")}</span>
           </div>
         )}
-        <div className="absolute right-3 top-3 shadow-card">
-          <FavoriteButton
-            recipeId={recipe.id}
-            initialFavorited={isAdmin ? recipe.favoritedByAdmin : false}
-            isAdmin={isAdmin}
-            isLoggedIn={isLoggedIn}
-            size="sm"
-            lang={lang}
-          />
-        </div>
+        {/* (27.09.2026) Ingen hjerte-knapp i det hele tatt for en
+            ikke-innlogget besøkende – se FavoriteButton.tsx sin filheader.
+            Wrapperen droppes helt her (ikke bare selve knappen) for å
+            unngå en tom, absolutt posisjonert boks i hjørnet. */}
+        {(isAdmin || isLoggedIn) && (
+          <div className="absolute right-3 top-3 shadow-card">
+            <FavoriteButton
+              recipeId={recipe.id}
+              initialFavorited={isAdmin ? recipe.favoritedByAdmin : false}
+              isAdmin={isAdmin}
+              isLoggedIn={isLoggedIn}
+              size="sm"
+              lang={lang}
+            />
+          </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex flex-wrap items-center gap-2">

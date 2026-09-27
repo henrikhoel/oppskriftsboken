@@ -7,7 +7,6 @@ import type { SearchableRecipe } from "@/lib/utils/search";
 import { filterRecipes } from "@/lib/utils/search";
 import { FilterPanel } from "@/components/search/FilterPanel";
 import { RecipeGrid } from "@/components/recipe/RecipeGrid";
-import { useFavorites } from "@/lib/hooks/useFavorites";
 import { useAccountFavorites } from "@/lib/hooks/useAccountFavorites";
 import { recipeCountLabel, type Lang } from "@/lib/i18n";
 
@@ -21,16 +20,14 @@ export function BrowseRecipesClient({
   recipes: SearchableRecipe[];
   categories: Category[];
   isAdmin?: boolean;
-  /** (27.09.2026) Se FavoriteButton.tsx sin filheader. Styrer i tillegg
-   * HVILKEN favorittliste "vis kun favoritter"-filteret under (filters.
-   * favoritesOnly, se lib/utils/search.ts) overlagres fra – se
-   * withFavoritesOverlay under. */
+  /** (27.09.2026) Se FavoriteButton.tsx sin filheader. Styrer i tillegg om
+   * "vis kun favoritter"-filteret under skal overlagres fra kontoens
+   * favorittliste – se withAccountFavorites under. */
   isLoggedIn?: boolean;
   lang: Lang;
 }) {
   const searchParams = useSearchParams();
   const queryParam = searchParams.get("q") ?? "";
-  const { favoriteIds: guestFavoriteIds, hydrated: guestHydrated } = useFavorites();
   const { favoriteIds: accountFavoriteIds, hydrated: accountHydrated } = useAccountFavorites();
 
   const [filters, setFilters] = useState<RecipeFilters>({ query: queryParam });
@@ -51,28 +48,35 @@ export function BrowseRecipesClient({
     setFilters((prev) => (prev.query === queryParam ? prev : { ...prev, query: queryParam }));
   }, [queryParam]);
 
-  // Overlag brukerens EGEN favorittliste inn i favoritedByAdmin-feltet, kun
+  // Overlag kontoens EGEN favorittliste inn i favoritedByAdmin-feltet, kun
   // for "vis kun favoritter"-filteret (filters.favoritesOnly) sin del –
   // FavoriteButton/RecipeCard bruker fortsatt isAdmin/isLoggedIn til å vise
-  // riktig hjerte-status og til å skrive til riktig sted, se der. Sjekker
-  // isLoggedIn (kontobasert, database) fremfor guest (localStorage) når
-  // brukeren er innlogget – de to listene er separate.
-  const withOwnFavorites = useMemo(() => {
-    const ids = isLoggedIn ? accountFavoriteIds : guestFavoriteIds;
-    const hydrated = isLoggedIn ? accountHydrated : guestHydrated;
-    if (!hydrated) return recipes;
-    return recipes.map((r) => (ids.includes(r.id) ? { ...r, favoritedByAdmin: true } : r));
-  }, [recipes, isLoggedIn, accountFavoriteIds, accountHydrated, guestFavoriteIds, guestHydrated]);
+  // riktig hjerte-status og til å skrive til riktig sted, se der. Admin
+  // trenger ingen overlagring – favoritedByAdmin kommer allerede riktig
+  // fra selve dataen for den rollen. En ikke-innlogget besøkende har ingen
+  // favoritter i det hele tatt lenger (se FavoriteButton.tsx sin filheader
+  // – hjerte-knappen vises ikke, og FilterPanel skjuler dette filteret for
+  // dem, se canFavorite under), så ingen overlagring trengs der heller.
+  const withAccountFavorites = useMemo(() => {
+    if (!isLoggedIn || !accountHydrated) return recipes;
+    return recipes.map((r) => (accountFavoriteIds.includes(r.id) ? { ...r, favoritedByAdmin: true } : r));
+  }, [recipes, isLoggedIn, accountFavoriteIds, accountHydrated]);
 
   const filtered = useMemo(
-    () => filterRecipes(withOwnFavorites, filters),
-    [withOwnFavorites, filters],
+    () => filterRecipes(withAccountFavorites, filters),
+    [withAccountFavorites, filters],
   );
 
   return (
     <div className="grid gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside>
-        <FilterPanel categories={categories} filters={filters} onChange={setFilters} lang={lang} />
+        <FilterPanel
+          categories={categories}
+          filters={filters}
+          onChange={setFilters}
+          canFavorite={isAdmin || isLoggedIn}
+          lang={lang}
+        />
       </aside>
       <div>
         <p className="mb-4 text-sm text-ink-faint">{recipeCountLabel(lang, filtered.length)}</p>

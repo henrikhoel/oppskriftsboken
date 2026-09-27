@@ -19,11 +19,17 @@ export function FilterPanel({
   categories,
   filters,
   onChange,
+  canFavorite = false,
   lang,
 }: {
   categories: Category[];
   filters: RecipeFilters;
   onChange: (filters: RecipeFilters) => void;
+  /** (27.09.2026) isAdmin || isLoggedIn fra kalleren – "vis kun
+   * favoritter"-filteret under gir ingen mening for en ikke-innlogget
+   * besøkende nå som favoritter er 100 % kontoeksklusivt (ingen hjerte å
+   * filtrere på i det hele tatt, se FavoriteButton.tsx sin filheader). */
+  canFavorite?: boolean;
   lang: Lang;
 }) {
   return (
@@ -112,20 +118,22 @@ export function FilterPanel({
           />
         </div>
 
-        <button
-          type="button"
-          onClick={() => onChange({ ...filters, favoritesOnly: !filters.favoritesOnly })}
-          aria-pressed={Boolean(filters.favoritesOnly)}
-          className={clsx(
-            "flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
-            filters.favoritesOnly
-              ? "border-clay bg-clay-light text-clay-dark"
-              : "border-line-strong text-ink-soft hover:bg-cream-dark",
-          )}
-        >
-          <HeartIcon filled={filters.favoritesOnly} className="h-4 w-4" />
-          {t(lang, "filter.favoritesOnly")}
-        </button>
+        {canFavorite && (
+          <button
+            type="button"
+            onClick={() => onChange({ ...filters, favoritesOnly: !filters.favoritesOnly })}
+            aria-pressed={Boolean(filters.favoritesOnly)}
+            className={clsx(
+              "flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
+              filters.favoritesOnly
+                ? "border-clay bg-clay-light text-clay-dark"
+                : "border-line-strong text-ink-soft hover:bg-cream-dark",
+            )}
+          >
+            <HeartIcon filled={filters.favoritesOnly} className="h-4 w-4" />
+            {t(lang, "filter.favoritesOnly")}
+          </button>
+        )}
       </div>
     </div>
   );

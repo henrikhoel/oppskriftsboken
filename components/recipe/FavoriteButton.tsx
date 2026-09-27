@@ -4,22 +4,30 @@ import { useState, useTransition, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { HeartIcon } from "@/components/ui/icons";
-import { useFavorites } from "@/lib/hooks/useFavorites";
 import { useAccountFavorites } from "@/lib/hooks/useAccountFavorites";
 import { toggleAdminFavorite } from "@/lib/actions/favorites";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
- * Tre helt separate favoritt-mekanismer bak samme knapp (27.09.2026, se
- * lib/hooks/useAccountFavorites.ts sin filheader):
+ * To favoritt-mekanismer bak samme knapp:
  * - isAdmin: recipes.favorited_by_admin – ÉN delt, admin-kuratert liste.
  * - isLoggedIn (og ikke admin): favorites-tabellen, per bruker, på tvers av
- *   enheter – useAccountFavorites().
- * - verken/eller (gjest): localStorage, kun i denne nettleseren –
- *   useFavorites().
+ *   enheter – useAccountFavorites() (se filheaderen der).
  * `isAdmin` og `isLoggedIn` kommer prop-tredd fra serveren (samme mønster
  * som isAdmin alltid har brukt), så knappen selv trenger ingen egen
  * auth-sjekk.
+ *
+ * Vises IKKE i det hele tatt for en ikke-innlogget besøkende (27.09.2026,
+ * Henrik: "det gir ikke mening at man skal kunne lagre retter i
+ * favoritter når man ikke er logget inn. hjerte knappen må fjernes helt
+ * for ikke-innloggede"). Frem til nå fantes det en tredje, gjeste-variant
+ * her som lagret til localStorage (lib/hooks/useFavorites.ts, nå slettet
+ * – ingen andre steder i kodebasen brukte den lenger etter denne
+ * fjerningen) – den lot en ikke-innlogget besøkende hjerte retter og
+ * filtrere på dem via "vis kun favoritter" i FilterPanel.tsx, men kunne
+ * ALDRI se en egen oversikt, siden /favoritter alltid har vist LockedPanel
+ * for !user. Favoritter er nå 100 % kontoeksklusivt overalt, konsekvent
+ * med resten av innholdsgatingen (se prosjektnotatet).
  */
 export function FavoriteButton({
   recipeId,
@@ -36,7 +44,13 @@ export function FavoriteButton({
   size?: "sm" | "md";
   lang?: Lang;
 }) {
-  const { isFavorite: isGuestFavorite, toggle: toggleGuest, hydrated: guestHydrated } = useFavorites();
+  // useAccountFavorites() kalles ubetinget, uansett isAdmin/isLoggedIn –
+  // React sine hook-regler tillater ikke at et hook-kall selv er
+  // betinget. Selve returverdien brukes kun i den innloggede,
+  // ikke-admin-grenen under; helt ufarlig (og et rent no-op, ingen
+  // nettverkskall) at hooken "kjører" for admin også, siden
+  // ensureHydrated() der uansett aldri kalles for en admin-økt i praksis
+  // (ingen komponent leser accountHydrated/isAccountFavorite for isAdmin).
   const {
     isFavorite: isAccountFavorite,
     toggle: toggleAccount,
@@ -46,15 +60,9 @@ export function FavoriteButton({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const favorited = isAdmin
-    ? adminFavorited
-    : isLoggedIn
-      ? accountHydrated
-        ? isAccountFavorite(recipeId)
-        : initialFavorited
-      : guestHydrated
-        ? isGuestFavorite(recipeId)
-        : initialFavorited;
+  if (!isAdmin && !isLoggedIn) return null;
+
+  const favorited = isAdmin ? adminFavorited : accountHydrated ? isAccountFavorite(recipeId) : initialFavorited;
 
   function handleClick(e: MouseEvent) {
     // stopPropagation+preventDefault – FavoriteButton rendres i noen
@@ -75,10 +83,8 @@ export function FavoriteButton({
           setAdminFavorited(!next);
         }
       });
-    } else if (isLoggedIn) {
-      toggleAccount(recipeId);
     } else {
-      toggleGuest(recipeId);
+      toggleAccount(recipeId);
     }
   }
 
