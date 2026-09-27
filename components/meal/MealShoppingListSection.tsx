@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getMealShoppingIngredients } from "@/lib/actions/meal-shopping-list";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
 import type { ExistingMealCourseSlot, MealCourseSlot } from "@/lib/kitchen-intelligence";
+import { ShoppingBagIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
@@ -51,6 +52,16 @@ import { t, type Lang } from "@/lib/i18n";
  * siden denne nå sitter i en høyrestilt (`items-end`) kolonne øverst på
  * siden i stedet for alene, sentrert, i sin egen brede seksjon. Denne
  * komponenten har fortsatt ingen andre importører enn MealView.tsx.
+ *
+ * IKON 29.09.2026 (22. runde – del av Henriks store DIN MENY-redesign, se
+ * REDESIGNET-avsnittet i MealView.tsx sin filheader: "Lagre menyen" =
+ * primær, "Legg hele menyen i handlelisten" = sekundær, "Skriv ut/PDF" =
+ * tertiær, "bruk gjerne små ikoner dersom det passer") – et lite
+ * `ShoppingBagIcon` foran selve knappeteksten, for å skille denne
+ * sekundære handlingen visuelt fra "Lagre menyen" (som fikk et `BookIcon`
+ * og ble gull, se MealView.tsx) uten å gjøre den til en tung, fylt knapp.
+ * Kun selve `<button>`-elementets barn er endret – all logikk under
+ * (handleAdd, ferdig/feil-tilstandene) er uendret.
  */
 export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot[]; lang: Lang }) {
   const { addFromRecipe } = useShoppingList();
@@ -103,8 +114,9 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
           type="button"
           onClick={handleAdd}
           disabled={loading}
-          className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
+          <ShoppingBagIcon className="h-3.5 w-3.5" />
           {loading ? t(lang, "mealShopping.loading") : t(lang, "mealShopping.button")}
         </button>
       ) : (
