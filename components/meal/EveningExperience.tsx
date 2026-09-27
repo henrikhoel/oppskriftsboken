@@ -542,6 +542,23 @@ export function EveningExperience({
            * (29.09.2026, 14. runde – Henrik: "uff, vi må ha den litt opp
            * igjen") – `/78` var for lyst/synlig igjen; skrudd opp til `/86`,
            * et sted midt mellom `/78` og `/94`.
+           *
+           * RETTET (15. runde – Henrik, med skjermbilde: "fjern strekene
+           * mellom disse seksjonene, og flytt 'på bordet' til å være like
+           * langt inn som 'i glasset' og 'stemning'") – to ting rettet:
+           * 1) `border-t border-ink/10` fjernet fra PÅ BORDET og
+           *    STEMNING+MUSIKK sine egne `<section>`-elementer (de to
+           *    skillelinjene som kuttet tvers over det nå delte
+           *    bakgrunnsbildet) – I GLASSET beholder sin egen `border-t`,
+           *    siden den skiller dette segmentet fra kapittel-inngangen
+           *    ("GJØR DET TIL EN KVELD"/"Alt rundt bordet.") RETT OVER,
+           *    ikke fra et av de tre sammenslåtte kapitlene.
+           * 2) PÅ BORDET sin indre kolonne var `max-w-xl` (smalere enn I
+           *    GLASSET/STEMNING sin `max-w-2xl`) – `mx-auto` sentrerer hver
+           *    kolonne for seg, så en smalere bredde ga en synlig lengre
+           *    venstremarg enn de to andre kapitlene (nøyaktig det Henrik
+           *    pekte på i skjermbildet). Satt til samme `max-w-2xl` – felles
+           *    venstrekant gjennom hele segmentet nå.
            * PÅ BORDET sin tidligere `bg-cream-dark`-flate (se filheaderen
            * lenger ned) er derfor fjernet – gjennomsiktig, som de to andre,
            * slik at bildet skinner gjennom overalt. VED SERVERING og
@@ -561,12 +578,14 @@ export function EveningExperience({
             <div className="relative">
           <Reveal>
             <section className="border-t border-ink/10 px-5 py-10 sm:px-10 sm:py-14">
-              {/* max-w-2xl (bredere enn de øvrige kapitlenes max-w-xl, se
-                  under) – gir 2-kolonne-oppsettet nødvendig bredde på
-                  desktop uten et for stort brudd i venstrekant mot
-                  kapitlene rett under; en bevisst, moderat asymmetri
-                  (magasin-oppslag varierer også spaltebredde per feature),
-                  ikke en inkonsekvens. */}
+              {/* max-w-2xl – gir 2-kolonne-oppsettet nødvendig bredde på
+                  desktop. Alle tre kapitlene i dette delte bakgrunnsbilde-
+                  segmentet (I GLASSET/PÅ BORDET/STEMNING+MUSIKK) bruker nå
+                  SAMME max-w-2xl (PÅ BORDET brukte tidligere en smalere
+                  max-w-xl, se RETTET-avsnittet i filheaderen øverst – 15.
+                  runde, Henrik: "flytt 'på bordet' til å være like langt
+                  inn som 'i glasset' og 'stemning'") – felles venstrekant
+                  gjennom hele segmentet. */}
               <div className="mx-auto max-w-2xl">
                 <Eyebrow>{t(lang, "eveningExperience.wineHeading")}</Eyebrow>
 
@@ -695,8 +714,8 @@ export function EveningExperience({
            * hvert element. */}
           {curation.tableAccompaniments.length > 0 && (
             <Reveal>
-              <section className="border-t border-ink/10 px-5 py-10 sm:px-10 sm:py-14">
-                <div className="mx-auto max-w-xl">
+              <section className="px-5 py-10 sm:px-10 sm:py-14">
+                <div className="mx-auto max-w-2xl">
                   <Eyebrow>{t(lang, "eveningExperience.tableHeading")}</Eyebrow>
                   <ul className="mt-6 grid grid-cols-1 gap-x-10 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
                     {curation.tableAccompaniments.map((item, i) => (
@@ -738,7 +757,7 @@ export function EveningExperience({
            * bakgrunnstone-rytmen mellom kapitlene. */}
           {(curation.mood || curation.musicDirection) && (
             <Reveal>
-              <section className="border-t border-ink/10 px-5 py-10 sm:px-10 sm:py-14">
+              <section className="px-5 py-10 sm:px-10 sm:py-14">
                 <div className="mx-auto max-w-2xl lg:grid lg:grid-cols-[1.6fr_1fr] lg:items-start lg:gap-14">
                   {curation.mood && (
                     <div>
