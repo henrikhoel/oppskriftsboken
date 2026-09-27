@@ -80,14 +80,6 @@ const DICT = {
     no: "Det beste skjer rundt bordet.",
     en: "The best things happen around the table.",
   },
-  /** Brukt i AtmosphereSection (den mørke stemningsseksjonen med
-   * kakestabel-/vinglassbildet) i stedet for home.subtitleRest – samme
-   * frase der og i heroen (pluss footeren) rett over ble opplevd som
-   * gjentakende av Henrik, se tilbakemelding 24.08.2026. */
-  "home.atmosphere.tagline": {
-    no: "Tenn stearinlysene. Fyll glasset. Nyt.",
-    en: "Light the candles. Fill the glass. Enjoy.",
-  },
   "home.browseAll": { no: "Bla gjennom alle oppskrifter", en: "Browse all recipes" },
   "home.seeFavorites": { no: "Se favoritter", en: "See favorites" },
   "home.featuredRecipes": { no: "Utvalgte oppskrifter", en: "Featured recipes" },

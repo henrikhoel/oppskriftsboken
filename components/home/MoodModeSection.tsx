@@ -23,7 +23,7 @@ const MOOD_ICONS = {
 
 /**
  * "Hva passer humøret ditt?" (Fase 4 – Smak) – forsideseksjon, samme
- * redaksjonelle stil som AtmosphereSection/WinePairing over. Fem faste
+ * redaksjonelle stil som WinePairing over. Fem faste
  * stemninger (se lib/kitchen-intelligence/moods.ts sin filheader for
  * hvorfor de er faste, ikke fritekst).
  *
@@ -39,8 +39,9 @@ const MOOD_ICONS = {
  * Redesignet 26.08.2026 (tilbakemelding: føltes for lite/lett å scrolle
  * forbi, mindre luft over enn under teksten). Nå et tydelig, luftig bånd
  * – prøvde en stund et svakt bakgrunnsbilde her (public/images/mood-
- * section.jpg via ParallaxBackdrop, samme som AtmosphereSection), men
- * Henrik tok det tilbake samme dag ("tror det blir bedre med svart") –
+ * section.jpg via ParallaxBackdrop, samme teknikk den daværende
+ * AtmosphereSection brukte for sitt eget bilde), men Henrik tok det
+ * tilbake samme dag ("tror det blir bedre med svart") –
  * ren mørk bakgrunn (samme bg-cream som resten av siden) igjen. Bildet og
  * ParallaxBackdrop-bruken ligger fortsatt urørt i hhv. public/images/ og
  * components/home/ hvis det skulle bli aktuelt igjen senere. py-verdien

@@ -401,27 +401,6 @@ function BeatBlock({ beat, lang }: { beat: Beat; lang: Lang }) {
   );
 }
 
-/** Avsluttende sitat, nederst i seksjonen (se NewestRecipesFeed sin egen
- * bunnseksjon for plasseringen relativt til den nye "Bla gjennom alle
- * oppskrifter"-knappen). Et ekte, kreditert sitat, ikke et rent
- * bakgrunnsbilde (vurdert og forkastet, se samtale). Sitatet/attribusjonen
- * er bevisst alltid på fransk (matcher "CONVITE"-navnet); kun den lille
- * oversettelseslinjen bytter språk med
- * resten av siden. */
-function ClosingQuote({ lang }: { lang: Lang }) {
-  return (
-    <div className="max-w-sm">
-      <p className="text-balance font-serif text-lg italic leading-snug text-ink sm:text-2xl">
-        «Dis-moi ce que tu manges, je te dirai ce que tu es.»
-      </p>
-      <p className="mt-3 text-sm tracking-wide text-clay-dark">Jean Anthelme Brillat-Savarin, 1825</p>
-      <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-ink-faint">
-        {t(lang, "home.editorial.closingQuoteTranslation")}
-      </p>
-    </div>
-  );
-}
-
 export function NewestRecipesFeed({
   recipes,
   lang,
@@ -432,11 +411,15 @@ export function NewestRecipesFeed({
   /** "Bla gjennom alle oppskrifter"-knappen (app/page.tsx), plassert her
    * (IKKE etter hele denne komponenten fra kallestedet) – Henrik, 11.09.2026:
    * "den må komme over den quoten … rett under siste rett". Rendres derfor
-   * alltid rett under selve beat-rutenettet og FØR ClosingQuote under, som
-   * nå alltid er ett enkelt, avsluttende element (se fjernet `filler`-triks
-   * i PairedBeat/BeatBlock sine filheadere). Valgfri kun for at komponenten
-   * fortsatt skal kunne brukes helt uten knapp om det trengs et annet sted
-   * en gang. */
+   * alltid rett under selve beat-rutenettet, som ALLTID er det siste denne
+   * komponenten selv tegner nå (se fjernet `filler`-triks i
+   * PairedBeat/BeatBlock sine filheadere). Det avsluttende sitatet
+   * ("quoten" Henrik viser til) er 27.09.2026 flyttet UT av denne
+   * komponenten til en egen ClosingQuoteSection, rendret rett etter i
+   * app/page.tsx – rekkefølgen (knapp, så sitat) er den samme, kun eid av
+   * kallestedet nå i stedet for av NewestRecipesFeed selv. Valgfri kun for
+   * at komponenten fortsatt skal kunne brukes helt uten knapp om det
+   * trengs et annet sted en gang. */
   bottomAction?: ReactNode;
 }) {
   if (recipes.length === 0) return null;
@@ -472,13 +455,10 @@ export function NewestRecipesFeed({
         ))}
       </div>
 
-      {/* Knappen rett under siste rett, sitatet under der igjen – i den
-          rekkefølgen, se bottomAction-kommentaren over. */}
+      {/* Knappen rett under siste rett – sitatet som fulgte rett under DER
+          igjen bor nå i en egen ClosingQuoteSection, se
+          bottomAction-kommentaren over. */}
       {bottomAction && <div className="mt-16 flex justify-center sm:mt-20">{bottomAction}</div>}
-
-      <div className={bottomAction ? "mt-14 sm:mt-16" : "mt-20 sm:mt-28 lg:mt-36"}>
-        <ClosingQuote lang={lang} />
-      </div>
     </>
   );
 }

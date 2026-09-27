@@ -4,19 +4,24 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 
 /**
- * Svært subtil scroll-parallax på bakgrunnsbildet i AtmosphereSection –
- * kun en liten vertikal forskyvning (maks ~18px) drevet av
- * requestAnimationFrame, ikke noe "flashy". Kobler seg helt av dersom
- * brukeren har skrudd på prefers-reduced-motion, og bruker passive
- * scroll-lytting + rAF-throttling for å holde det performant.
+ * Svært subtil scroll-parallax på et fullbredde bakgrunnsbilde – kun en
+ * liten vertikal forskyvning (maks ~18px) drevet av requestAnimationFrame,
+ * ikke noe "flashy". Kobler seg helt av dersom brukeren har skrudd på
+ * prefers-reduced-motion, og bruker passive scroll-lytting + rAF-throttling
+ * for å holde det performant.
  *
- * objectPosition er en prop (ikke hardkodet) nettopp fordi seksjonen er
- * lav og bred (h-[55vh] i AtmosphereSection) mens motivet i bildet ofte
- * ikke er det – uten justering klipper en enkel senter-beskjæring gjerne
- * bort akkurat det som gjør bildet gjenkjennelig. Standardverdien er
- * "center" (samme som før); AtmosphereSection.tsx setter i dag en verdi
- * tunet for det nåværende bildet (kakestabelen) – juster den der neste
- * gang bildet byttes ut, i stedet for å hardkode det inn her.
+ * objectPosition er en prop (ikke hardkodet) nettopp fordi seksjonen som
+ * bruker den ofte er lav og bred mens motivet i bildet ikke er det – uten
+ * justering klipper en enkel senter-beskjæring gjerne bort akkurat det som
+ * gjør bildet gjenkjennelig. Standardverdien er "center".
+ *
+ * OPPRINNELIG bygget for components/home/AtmosphereSection.tsx (h-[55vh],
+ * kakestabelbildet) – den seksjonen ble fjernet 27.09.2026 (Henrik: "fjern
+ * hele 'tenn stearlinlysene. nyt' delen fra siden"), så denne komponenten
+ * er akkurat nå IKKE i faktisk bruk noe sted. Beholdt likevel urørt, samme
+ * begrunnelse som public/images/mood-section.jpg i MoodModeSection.tsx sin
+ * filheader: en ferdig, fungerende byggekloss i reserve om et fremtidig
+ * bakgrunnsbilde skal ha den samme subtile parallaksen igjen.
  */
 export function ParallaxBackdrop({
   src,

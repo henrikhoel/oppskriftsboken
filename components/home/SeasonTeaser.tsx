@@ -11,8 +11,10 @@ import { t, type Lang } from "@/lib/i18n";
  * og oppsett som "Mat & vin" (WinePairing.tsx), på Henriks ønske: "'I
  * sesong nå' fortjener samme plass og oppsett som 'mat & vin'. Jeg vil at
  * seksjonen forblir der den er på siden." – POSISJONEN i app/page.tsx
- * (mellom AtmosphereSection og CategoryShowcase) er derfor UENDRET, kun
- * selve seksjonens eget uttrykk er bygget om.
+ * (mellom CookModeShowcase og CategoryShowcase, der AtmosphereSection
+ * tidligere lå – den seksjonen ble selv fjernet samme dag, se
+ * app/page.tsx sin egen kommentar der) er derfor UENDRET, kun selve
+ * seksjonens eget uttrykk er bygget om.
  *
  * Gjenbruker bevisst nøyaktig samme seksjons-"skall" som WinePairing.tsx
  * (relative isolate overflow-hidden bg-cream-dark py-16 sm:py-20 +

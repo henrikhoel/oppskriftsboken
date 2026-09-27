@@ -17,11 +17,11 @@ import { ScrollDownHint } from "@/components/home/ScrollDownHint";
 import { FeaturedEditorial } from "@/components/home/FeaturedEditorial";
 import { WinePairing } from "@/components/home/WinePairing";
 import { CookModeShowcase } from "@/components/home/CookModeShowcase";
-import { AtmosphereSection } from "@/components/home/AtmosphereSection";
 import { MoodModeSection } from "@/components/home/MoodModeSection";
 import { CategoryShowcase } from "@/components/home/CategoryShowcase";
 import { NewestRecipesFeed } from "@/components/home/NewestRecipesFeed";
 import { SeasonTeaser } from "@/components/home/SeasonTeaser";
+import { ClosingQuoteSection } from "@/components/home/ClosingQuoteSection";
 
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLang();
@@ -237,19 +237,24 @@ export default async function HomePage() {
 
         <CookModeShowcase lang={lang} recipeSlug={editorialMain?.slug ?? newest[0]?.slug ?? null} />
 
-        <AtmosphereSection lang={lang} />
+        {/* AtmosphereSection ("Tenn stearinlysene. Fyll glasset. Nyt.") stod
+            tidligere her – fjernet 27.09.2026 på Henriks ønske ("fjern hele
+            'tenn stearlinlysene. nyt' delen fra siden"), sammen med
+            components/home/AtmosphereSection.tsx selv (se git-historikk for
+            den forrige varianten). Sesongseksjonen under overtar naturlig
+            rollen som "tung, fotografisk pause" her i rekkefølgen. */}
 
         {/* "I sesong nå" (spesifikasjon punkt 6) – bygget om 27.09.2026 fra
             et smalt, sentrert lenke-kort til en full-bredde seksjon med
             samme plass/oppsett som WinePairing over (Henrik: "'I sesong nå'
             fortjener samme plass og oppsett som 'mat & vin' ... jeg vil at
             seksjonen forblir der den er på siden"). Selve POSISJONEN her
-            (mellom AtmosphereSection og CategoryShowcase) er derfor
-            bevisst UENDRET – kun seksjonens eget uttrykk er bygget om, se
-            SeasonTeaser.tsx sin egen filheader. Ingen ekstra
-            wrapper-div/padding her lenger – SeasonTeaser er nå en
-            selvstendig, full-bredde <section>, akkurat som <WinePairing />
-            og <CookModeShowcase /> over/under. */}
+            (mellom CookModeShowcase og CategoryShowcase, der
+            AtmosphereSection tidligere lå) er derfor bevisst UENDRET – kun
+            seksjonens eget uttrykk er bygget om, se SeasonTeaser.tsx sin
+            egen filheader. Ingen ekstra wrapper-div/padding her lenger –
+            SeasonTeaser er nå en selvstendig, full-bredde <section>,
+            akkurat som <WinePairing /> og <CookModeShowcase /> over/under. */}
         <SeasonTeaser lang={lang} />
 
         <div className="py-16 sm:py-20">
@@ -282,6 +287,17 @@ export default async function HomePage() {
             </section>
           )}
         </div>
+
+        {/* Avsluttende sitat, nå med bakgrunnsbilde – flyttet ut av
+            NewestRecipesFeed.tsx (som selv IKKE lenger rendrer det, se dens
+            egen filheader) til en egen, selvstendig full-bredde seksjon her,
+            27.09.2026 på Henriks ønske: "nederst på siden har vi en quote
+            fra en kokk, denne quoten skal få et bakbrunnsbilde og quoten
+            skal midtstilles". Rekkefølgen (knapp over, sitat rett under,
+            se bottomAction-kommentaren over) er UENDRET – dette er fortsatt
+            det aller siste elementet på siden, kun nå sitt eget visuelle
+            "skall" i stedet for et nakent tekstavsnitt. */}
+        <ClosingQuoteSection lang={lang} />
       </div>
     </div>
   );

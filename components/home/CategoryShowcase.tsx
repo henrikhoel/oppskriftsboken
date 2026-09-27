@@ -15,7 +15,8 @@ import { localizedCategoryName } from "@/lib/utils/format";
  * rolige, redaksjonelle uttrykk). Ingen bilder, ikoner, kort eller
  * fargeflater her – kun typografi, luft og tynne linjer, ment å kjennes ut
  * som innholdsfortegnelsen i et eksklusivt mat-/livsstilsmagasin. Seksjonen
- * kommer rett etter en tung, fotografisk seksjon (AtmosphereSection), og er
+ * kommer rett etter en tung, fotografisk seksjon (SeasonTeaser, tidligere
+ * AtmosphereSection – se dens filheader for 27.09.2026-ombyggingen), og er
  * bevisst en rolig typografisk pause – IKKE fyll den med flere elementer.
  *
  * Hele raden er selve lenken (ikke bare navnet), for et stort, lett
