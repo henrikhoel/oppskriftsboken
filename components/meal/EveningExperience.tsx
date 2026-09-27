@@ -549,10 +549,18 @@ export function EveningExperience({
            * 1) `border-t border-ink/10` fjernet fra PÅ BORDET og
            *    STEMNING+MUSIKK sine egne `<section>`-elementer (de to
            *    skillelinjene som kuttet tvers over det nå delte
-           *    bakgrunnsbildet) – I GLASSET beholder sin egen `border-t`,
-           *    siden den skiller dette segmentet fra kapittel-inngangen
-           *    ("GJØR DET TIL EN KVELD"/"Alt rundt bordet.") RETT OVER,
-           *    ikke fra et av de tre sammenslåtte kapitlene.
+           *    bakgrunnsbildet) – I GLASSET beholdt DA sin egen `border-t`,
+           *    siden den skilte dette segmentet fra en bildeløs
+           *    kapittel-inngang ("GJØR DET TIL EN KVELD"/"Alt rundt
+           *    bordet.") RETT OVER.
+           *
+           * RETTET IGJEN (16. runde – Henrik la samtidig et eget
+           * bakgrunnsbilde bak selve kapittel-inngangen i MealView.tsx, se
+           * filheaderen der: "fjern linja som skiller seksjonene") – nå som
+           * inngangen OGSÅ har et bilde bak seg, er I GLASSET sin
+           * gjenværende `border-t` fjernet også – hele veien fra "GJØR DET
+           * TIL EN KVELD"-tittelen til STEMNING+MUSIKK er nå én
+           * sammenhengende, bildedrevet flate uten en eneste skillelinje.
            * 2) PÅ BORDET sin indre kolonne var `max-w-xl` (smalere enn I
            *    GLASSET/STEMNING sin `max-w-2xl`) – `mx-auto` sentrerer hver
            *    kolonne for seg, så en smalere bredde ga en synlig lengre
@@ -577,7 +585,7 @@ export function EveningExperience({
 
             <div className="relative">
           <Reveal>
-            <section className="border-t border-ink/10 px-5 py-10 sm:px-10 sm:py-14">
+            <section className="px-5 py-10 sm:px-10 sm:py-14">
               {/* max-w-2xl – gir 2-kolonne-oppsettet nødvendig bredde på
                   desktop. Alle tre kapitlene i dette delte bakgrunnsbilde-
                   segmentet (I GLASSET/PÅ BORDET/STEMNING+MUSIKK) bruker nå

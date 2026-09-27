@@ -631,20 +631,48 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         luft under 'akkurat denne menyen' som over 'gjør det til en
         kveld'") – pb er nå satt LIK pt (begge `pt-24 sm:pt-36`) i stedet
         for den mindre pb-16/pb-24 den hadde et øyeblikk – luften er nå
-        symmetrisk over eyebrowen og under beskrivelsen. */}
+        symmetrisk over eyebrowen og under beskrivelsen.
+
+        BAKGRUNNSBILDE 29.09.2026 (16. runde – Henrik sendte et mørkt,
+        uskarpt bilde av et kjøkken/spisestue om kvelden: "legg inn dette
+        bildet på 'gjør det til en kveld' seksjonen med samme overlay, og
+        fjern linja som skiller seksjonene") – kapittel-inngangen har nå
+        sitt eget bakgrunnsbilde (public/images/evening-entry.jpg), samme
+        `relative isolate overflow-hidden` + absolutt bilde/overlegg-teknikk
+        og samme `bg-cream/86`-overlegg som EveningExperience.tsx sitt delte
+        bakgrunnsbilde bruker for I GLASSET/PÅ BORDET/STEMNING (se
+        filheaderen der) – et EGET "rom" (kjøkkenet) rett før man går inn i
+        spiserommet, ikke samme bilde som resten av kapitlene. Selve
+        EveningExperience-komponenten er UTENFOR denne bilde-wrapperen (den
+        eier fortsatt sitt eget bilde), kun selve inngangs-teksten
+        (eyebrow/undertittel/strek/beskrivelse) har bildet bak seg.
+        "Linja som skiller seksjonene" var I GLASSET sin egen `border-t` i
+        EveningExperience.tsx (bevisst beholdt i forrige runde nettopp fordi
+        den DA skilte mot en bildeløs inngang) – fjernet nå (se filheaderen
+        der), siden inngangen og I GLASSET deler samme bilde-driftne visuelle
+        språk og ikke lenger trenger en synlig sømlinje mellom seg. */}
     {slots.length > 0 && (
       <section className="bg-paper print:hidden">
-        <div className="mx-auto max-w-2xl px-5 pb-24 pt-24 text-center sm:px-10 sm:pb-36 sm:pt-36">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-clay sm:text-sm">
-            {t(lang, "eveningExperience.entryHeading")}
-          </p>
-          <p className="mt-6 text-balance font-serif text-5xl text-ink sm:text-6xl">
-            {t(lang, "eveningExperience.entrySubtitle")}
-          </p>
-          <div className="mx-auto mt-8 h-px w-20 bg-clay/60" />
-          <p className="mx-auto mt-8 max-w-lg font-serif text-xl text-ink-soft sm:text-2xl">
-            {t(lang, "eveningExperience.entryDescription")}
-          </p>
+        <div className="relative isolate overflow-hidden">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: "url(/images/evening-entry.jpg)" }}
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-cream/86" aria-hidden="true" />
+
+          <div className="relative mx-auto max-w-2xl px-5 pb-24 pt-24 text-center sm:px-10 sm:pb-36 sm:pt-36">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-clay sm:text-sm">
+              {t(lang, "eveningExperience.entryHeading")}
+            </p>
+            <p className="mt-6 text-balance font-serif text-5xl text-ink sm:text-6xl">
+              {t(lang, "eveningExperience.entrySubtitle")}
+            </p>
+            <div className="mx-auto mt-8 h-px w-20 bg-clay/60" />
+            <p className="mx-auto mt-8 max-w-lg font-serif text-xl text-ink-soft sm:text-2xl">
+              {t(lang, "eveningExperience.entryDescription")}
+            </p>
+          </div>
         </div>
 
         <EveningExperience session={session} wine={session.wine} onWineChange={setWine} lang={lang} />
