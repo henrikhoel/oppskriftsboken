@@ -74,8 +74,12 @@ const TIME_BUDGET_OPTIONS: { key: TimeOptionKey; minutes: number | null }[] = [
  *    seksjoner) gjør at et fullbredde bakgrunnsbilde + mørke overlays/
  *    gradienter kan legges til SENERE som to ekstra `absolute inset-0`-lag
  *    helt uten strukturelle endringer – bevisst IKKE lagt til ennå (Henrik:
- *    "IKKE legg inn noe nytt bilde nå"). Generøs `py-16 sm:py-20 lg:py-24`
- *    gir seksjonen den "gode høyden" som er bedt om.
+ *    "IKKE legg inn noe nytt bilde nå"). Generøs `py-14 sm:py-18 lg:py-21`
+ *    gir seksjonen den "gode høyden" som er bedt om (justert ned ~10–15 %
+ *    fra opprinnelig `py-16 sm:py-20 lg:py-24` 29.09.2026 – tilbakemelding:
+ *    "redusert høyden/padding med kanskje 10–15 %", resten av
+ *    hierarkiet/spacingen inni seksjonen er UENDRET siden det leste "veldig
+ *    naturlig").
  * 2. VENSTREJUSTERT EDITORIAL INTRO (ikke lenger sentrert) – liten gull-
  *    eyebrow (`mealBuilder.eyebrow`, uendret tekst "Gjør det til en kveld"),
  *    stor serif-heading (`mealBuilder.heading`, tekst endret til "Bygg en
@@ -273,7 +277,7 @@ export function MealBuilder({
     // Full-bleed-teknikk identisk med RecipeHero.tsx (kun uten xl:-prefiks –
     // denne skal være fullbredde på alle skjermstørrelser).
     <section className="relative isolate left-1/2 -mx-[50vw] w-screen overflow-hidden bg-paper">
-      <div className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24 xl:max-w-[1280px]">
+      <div className="relative mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-18 lg:px-8 lg:py-21 xl:max-w-[1280px]">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
             {t(lang, "mealBuilder.eyebrow")}
