@@ -236,12 +236,17 @@ export default async function HomePage() {
         <MoodModeSection lang={lang} />
 
         {editorialMain && (
-          // pb (ikke py) med vilje – MoodModeSection over har allerede sin
-          // egen sjenerøse bunnpadding, se filheaderen i MoodModeSection.tsx.
-          // En pt her i tillegg ville doblet luften ned til denne seksjonen
-          // sammenlignet med luften mellom heroen og MoodModeSection over
-          // (nøyaktig tilbakemeldingen fra Henrik 26.08.2026).
-          <div className="pb-16 sm:pb-20">
+          // Kun pb (ikke pt) helt frem til 27.09.2026 – MoodModeSection over
+          // hadde da ingen egen bakgrunn, så dens bunnpadding var usynlig,
+          // nøytral "luft" i seg selv (nøyaktig tilbakemeldingen fra Henrik
+          // 26.08.2026 om at en ekstra pt her ville doblet luften ned til
+          // denne seksjonen). MoodModeSection fikk samme dag et fullbredde
+          // bakgrunnsbilde (se dens egen filheader) – den bunnpaddingen er nå
+          // synlig BILDE, ikke lenger nøytral tomrom, så overgangen til
+          // "Våre favoritter" ble brå (Henrik: "også må det være litt luft
+          // mellom bildet og 'våre favoritter'"). pt lagt tilbake, symmetrisk
+          // med den eksisterende pb.
+          <div className="pt-16 pb-16 sm:pt-20 sm:pb-20">
             <FeaturedEditorial main={editorialMain} others={editorialOthers} lang={lang} />
           </div>
         )}

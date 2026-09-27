@@ -49,14 +49,20 @@ const MOOD_ICONS = {
  * samme dag den kom, 26.08.2026 ("tror det blir bedre med svart"). Denne
  * gangen brukes IKKE ParallaxBackdrop (den ligger fortsatt urørt i reserve,
  * se dens egen filheader), men samme enkle CSS-background-image-teknikk som
- * WinePairing/SeasonTeaser/ClosingQuoteSection (samme kraftige
- * bg-cream-dark/80-overlegg) – nytt bilde, samme filnavn (public/images/
- * mood-section.jpg er overskrevet). Overlegget dekker HELE seksjonen,
- * inkludert det utvidbare resultat-rutenettet under stemningsknappene: den
- * mørke overlegg-fargen (#191917 @ 80%) er så nær identisk med sidens egen
- * bg-cream (#0b0b0a) at oppskriftskortene (som allerede er designet for å
- * sitte på en mørk bakgrunn) ser like riktige ut her som andre steder på
- * siden, uansett hvor mange rader resultatet vokser til.
+ * WinePairing/SeasonTeaser/ClosingQuoteSection – MEN med et lysere,
+ * svakere overlegg (bg-cream-dark/55, ikke /80): Henrik, samme dag bildet
+ * kom inn: "jeg tror det er penere om den ikke er såååå grå" – de tre
+ * andre seksjonene sitt kraftige /80-overlegg flatet ut nettopp dette
+ * bildets egen kontrast/stearinlys-glød til et jevnt grått slør. /55
+ * slipper mer av bildets egen mørke/varme gjennom, og siden denne
+ * seksjonen uansett har mye INNHOLD oppå (overskrift, knapper, evt. et
+ * helt oppskrift-rutenett) holder /55 fortsatt god nok lesbarhet for
+ * text-ink. Nytt bilde, samme filnavn (public/images/mood-section.jpg er
+ * overskrevet). Overlegget dekker HELE seksjonen, inkludert det utvidbare
+ * resultat-rutenettet under stemningsknappene: selv med det svakere
+ * overlegget ligger fargen fortsatt nær sidens egen bg-cream (#0b0b0a), så
+ * oppskriftskortene (designet for en mørk bakgrunn) leser fint uansett
+ * hvor mange rader resultatet vokser til.
  */
 export function MoodModeSection({ lang }: { lang: Lang }) {
   const [activeMood, setActiveMood] = useState<MoodId | null>(null);
@@ -98,7 +104,7 @@ export function MoodModeSection({ lang }: { lang: Lang }) {
         style={{ backgroundImage: "url(/images/mood-section.jpg)" }}
         aria-hidden="true"
       />
-      <div className="absolute inset-0 bg-cream-dark/80" aria-hidden="true" />
+      <div className="absolute inset-0 bg-cream-dark/55" aria-hidden="true" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-xl text-center">
