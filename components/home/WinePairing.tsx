@@ -324,6 +324,16 @@ function FoodToWine({ lang, isLoggedIn }: { lang: Lang; isLoggedIn: boolean }) {
             </div>
           )}
 
+          {/* (27.09.2026) Henrik: "det står fortsatt 'prøv et nytt
+           * forslag', dette må fjernes siden det ikke er ai generering
+           * lenger" – "prøv et nytt forslag"-knappen (som tilbakestilte
+           * `suggestion` og viste "vinmonopoletPrompt"-knappen på nytt) ga
+           * inntrykk av at et nytt kall ville gi et ANNET svar, slik den
+           * gamle AI-versjonen faktisk gjorde. Nå er både vinstil-teksten
+           * (RETT -> VIN, se filheaderen øverst) og selve Vinmonopolet-
+           * søket deterministisk pr. rett/pinnet produkt – et nytt forsøk
+           * gir samme svar igjen, så knappen er fjernet i stedet for å
+           * love en variasjon som ikke finnes. */}
           {suggestion && (
             <div className="mt-4 flex gap-4 border-t border-line pt-4">
               {!imageFailed && (
@@ -355,16 +365,6 @@ function FoodToWine({ lang, isLoggedIn }: { lang: Lang; isLoggedIn: boolean }) {
                   {t(lang, "wine.viewProduct")}
                   <ChevronRightIcon className="h-3.5 w-3.5" />
                 </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSuggestion(null);
-                    setImageFailed(false);
-                  }}
-                  className="mt-2 block text-xs font-medium text-clay hover:text-clay-dark"
-                >
-                  {t(lang, "wine.vinmonopoletNewSuggestion")}
-                </button>
               </div>
             </div>
           )}
