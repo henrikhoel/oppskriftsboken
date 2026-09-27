@@ -47,6 +47,12 @@ export function AdminNav({ userEmail }: { userEmail: string | null }) {
             >
               Humør
             </Link>
+            <Link
+              href="/admin/roller"
+              className="rounded-full px-3 py-1.5 font-medium text-ink-soft hover:bg-cream-dark hover:text-ink"
+            >
+              Roller
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm text-ink-faint">

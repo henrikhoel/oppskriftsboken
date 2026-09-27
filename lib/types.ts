@@ -3,6 +3,7 @@ import type { TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import type { NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
 import type { DrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
 import type { MoodId } from "@/lib/kitchen-intelligence/moods";
+import type { MealCourseRole } from "@/lib/kitchen-intelligence/types";
 
 /**
  * Domenetyper for oppskriftsboken. Disse speiler databaseskjemaet i
@@ -312,6 +313,27 @@ export interface Recipe {
    * '{}' i databasen).
    */
   moods?: MoodId[];
+  /** Admin-satte menyroller (forrett/hovedrett/tilbehør/dessert, se
+   * MealCourseRole i lib/kitchen-intelligence/types.ts) – styrer hvilke
+   * oppskrifter som vises som VALG for en gitt rolle i den manuelle
+   * menybyggeren (components/meal/ManualMealBuilder.tsx), satt fra
+   * /admin/roller (se RolePicker.tsx) – migrasjon 0022. Bygget 27.09.2026
+   * som en direkte parallell til moods over, etter ønske fra Henrik: "da
+   * må dette også være noe jeg som admin kan velge, på lik måte som
+   * humør... og her også kan det jo hende at flere passer i flere
+   * kategorier, så samme utforming som humør tror jeg er bra her". En
+   * oppskrift kan stå i FLERE roller samtidig (f.eks. en salat som både
+   * forrett og tilbehør), derfor en liste. Tom liste/valgfritt = ikke
+   * plassert i noen rolle ennå, dukker da ikke opp som valg for noen av
+   * dem i den manuelle menybyggeren – helt bevisst, samme begrunnelse som
+   * moods. Valgfritt her av samme grunn som moods (ikke satt i
+   * demo-data) – ikke fordi listen kan mangle i en ekte, lagret oppskrift
+   * (NOT NULL DEFAULT '{}' i databasen). Helt separat fra
+   * inferCourseRoleFromCategory (meal-session.ts), som fortsatt brukes
+   * uendret for ankerretten i den AI-baserte menybyggeren
+   * (MealBuilder.tsx).
+   */
+  courses?: MealCourseRole[];
   source: string | null;
   isPublished: boolean;
   isFeatured: boolean;
@@ -356,6 +378,7 @@ export type RecipeSummary = Pick<
   | "featuredSortOrder"
   | "favoritedByAdmin"
   | "moods"
+  | "courses"
   | "createdAt"
   | "isPublished"
   | "ratingSum"

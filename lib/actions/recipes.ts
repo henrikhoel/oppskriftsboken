@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
+import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
 import { createClient } from "@/lib/supabase/server";
 import { getAllRecipeSlugsForCollisionCheck, getPublishedRecipeSummaries, getRecipesByIds } from "@/lib/data/recipes";
 import { ensureUniqueSlug, slugify } from "@/lib/utils/slug";
@@ -1691,6 +1692,87 @@ export async function removeRecipeFromMood(recipeId: string, moodId: MoodId): Pr
 export async function getRecipesByMood(moodId: MoodId): Promise<RecipeSummary[]> {
   const recipes = await getPublishedRecipeSummaries();
   return recipes.filter((r) => (r.moods ?? []).includes(moodId));
+}
+
+/**
+ * "Roller" (27.09.2026, ønsket av Henrik, se migrasjon
+ * 0022_recipe_meal_roles.sql sin filheader for hele bakgrunnen) – egen
+ * admin-side (/admin/roller, RolePicker.tsx), HELT samme
+ * legg-til/fjern-mønster som addRecipeToMood/removeRecipeFromMood over,
+ * kun for et annet array-felt (courses i stedet for moods). Styrer
+ * hvilke oppskrifter som vises som VALG for en gitt rolle i den manuelle
+ * menybyggeren (ManualMealBuilder.tsx) – ikke selve ankerrett-plasseringen
+ * i den AI-baserte menybyggeren, som fortsatt bruker
+ * inferCourseRoleFromCategory uendret.
+ */
+export async function addRecipeToCourse(recipeId: string, role: MealCourseRole): Promise<void> {
+  await requireAdmin();
+  if (!ALL_MEAL_COURSE_ROLES.includes(role)) {
+    throw new Error("Ukjent rolle");
+  }
+  const supabase = await createClient();
+
+  const { data: row, error: fetchError } = await supabase
+    .from("recipes")
+    .select("courses")
+    .eq("id", recipeId)
+    .single();
+  if (fetchError || !row) {
+    throw new Error(fetchError?.message ?? "Fant ikke oppskriften");
+  }
+
+  const current = row.courses ?? [];
+  if (current.includes(role)) return;
+
+  const { error } = await supabase
+    .from("recipes")
+    .update({ courses: [...current, role] })
+    .eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke legge til rolle: ${error.message}`);
+  }
+  revalidateRecipePaths();
+  revalidatePath("/admin/roller");
+}
+
+export async function removeRecipeFromCourse(recipeId: string, role: MealCourseRole): Promise<void> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: row, error: fetchError } = await supabase
+    .from("recipes")
+    .select("courses")
+    .eq("id", recipeId)
+    .single();
+  if (fetchError || !row) {
+    throw new Error(fetchError?.message ?? "Fant ikke oppskriften");
+  }
+
+  const current = row.courses ?? [];
+  const { error } = await supabase
+    .from("recipes")
+    .update({ courses: current.filter((c: string) => c !== role) })
+    .eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke fjerne rolle: ${error.message}`);
+  }
+  revalidateRecipePaths();
+  revalidatePath("/admin/roller");
+}
+
+/**
+ * Leseside til "Roller" – brukt av ManualMealBuilder.tsx sin
+ * retteVELGER for å filtrere bort oppskrifter som ikke er plassert i den
+ * aktuelle rollen (Henrik: "det kun er oppskrifter i de kategoriene som
+ * kommer opp, så man ikke kan velge brownie til forrett"). I praksis
+ * kalles ikke denne direkte fra ManualMealBuilder.tsx (som allerede har
+ * hele katalogen som SearchableRecipe[] og filtrerer klient-side på
+ * recipe.courses), men tilbys som samme leseside-mønster som
+ * getRecipesByMood for konsistens og gjenbruk andre steder.
+ */
+export async function getRecipesByCourse(role: MealCourseRole): Promise<RecipeSummary[]> {
+  const recipes = await getPublishedRecipeSummaries();
+  return recipes.filter((r) => (r.courses ?? []).includes(role));
 }
 
 /**

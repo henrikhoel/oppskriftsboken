@@ -118,6 +118,12 @@ export interface Database {
           // andre steder i denne fila. NOT NULL DEFAULT '{}' i databasen –
           // aldri null, kan være en tom liste.
           moods: string[];
+          // Delmengde av "starter" | "main" | "side" | "dessert" – se
+          // migrasjon 0022_recipe_meal_roles.sql. Samme
+          // string[]-fremfor-MealCourseRole[]-begrunnelse som moods over.
+          // NOT NULL DEFAULT '{}' i databasen – aldri null, kan være en tom
+          // liste.
+          courses: string[];
           wine_pairing: string | null;
           vegetarian_note: string | null;
           vegetarian_ingredient_groups: unknown | null;
@@ -159,6 +165,7 @@ export interface Database {
           featured_sort_order?: number | null;
           favorited_by_admin?: boolean;
           moods?: string[];
+          courses?: string[];
           wine_pairing?: string | null;
           vegetarian_note?: string | null;
           vegetarian_ingredient_groups?: unknown | null;

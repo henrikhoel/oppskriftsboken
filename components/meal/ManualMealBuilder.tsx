@@ -9,7 +9,7 @@ import {
   type ManualMealFitResult,
 } from "@/lib/actions/kitchen-intelligence";
 import { generateMealId, useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
-import { ALL_MEAL_COURSE_ROLES, inferCourseRoleFromCategory, type MealCourseRole } from "@/lib/kitchen-intelligence";
+import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
 import { filterRecipes, type SearchableRecipe } from "@/lib/utils/search";
 import { localizedCategoryName, localizedTitle } from "@/lib/utils/format";
 import type { RecipeSummary } from "@/lib/types";
@@ -56,12 +56,19 @@ const MAX_PICKER_RESULTS = 40;
  * fylt kort (der er "Fjern fra menyen" fortsatt eneste handling, se
  * removeRole – tømmer kun retten, ikke selve rollen).
  *
- * Velgeren (Drawer-en) sorterer treff fra EGEN rolle (via
- * inferCourseRoleFromCategory på kategorinavnet) FØRST – ønsket 11.09.2026
- * ("når man trykker inn for å velge en rett så må de rettene i den
- * kategorien komme først"). Fortsatt kun én, søkbar liste (ikke en egen
- * kategori-filter-UI) – kun REKKEFØLGEN endres, alt blir fortsatt synlig og
- * søkbart.
+ * Velgeren (Drawer-en) viste OPPRINNELIG (11.09.2026) alle oppskrifter,
+ * kun sortert med rollens EGEN kategori (via inferCourseRoleFromCategory)
+ * først. OMLAGT 27.09.2026 etter ønske fra Henrik – kategori-gjetting var
+ * ikke godt nok ("man ikke kan velge brownie til forrett og rundstykker
+ * til dessert"): velgeren FILTRERER nå strengt på recipe.courses, det
+ * admin-satte feltet fra /admin/roller (RolePicker.tsx, migrasjon
+ * 0022_recipe_meal_roles.sql) – samme "admin-satt i stedet for gjettet"-
+ * prinsipp som humør fikk 26.09.2026. En oppskrift uten NOEN rolle satt
+ * dukker dermed ikke opp som valg for noen av de fire rollene her, før
+ * den er tagget i /admin/roller. inferCourseRoleFromCategory selv er
+ * UENDRET og brukes fortsatt av den AI-baserte menybyggeren (MealBuilder.tsx)
+ * til å plassere ankerretten – de to menybyggerne er bevisst ikke koblet
+ * sammen på dette punktet.
  */
 export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe[]; lang: Lang }) {
   const router = useRouter();
@@ -94,17 +101,12 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
 
   const pickerResults = useMemo(() => {
     if (pickerRole === null) return [];
-    const available = recipes.filter((r) => !usedIds.has(r.id));
+    // Strengt filtrert på recipe.courses (se filheaderen over) – kun
+    // oppskrifter admin faktisk har plassert i DENNE rollen i /admin/roller
+    // vises i det hele tatt, ikke bare sortert øverst som før 27.09.2026.
+    const available = recipes.filter((r) => !usedIds.has(r.id) && (r.courses ?? []).includes(pickerRole));
     const matches = filterRecipes(available, { query });
-    // Retter fra rollens EGEN kategori først (Array.prototype.sort er
-    // stabil, så rekkefølgen INNAD i hver av de to gruppene beholdes uendret
-    // – kun selve grupperingen "samme rolle" / "andre roller" er ny).
-    const sorted = [...matches].sort((a, b) => {
-      const aOwn = inferCourseRoleFromCategory(a.category?.name ?? null) === pickerRole ? 0 : 1;
-      const bOwn = inferCourseRoleFromCategory(b.category?.name ?? null) === pickerRole ? 0 : 1;
-      return aOwn - bOwn;
-    });
-    return sorted.slice(0, MAX_PICKER_RESULTS);
+    return matches.slice(0, MAX_PICKER_RESULTS);
   }, [pickerRole, recipes, usedIds, query]);
 
   function openPicker(role: MealCourseRole) {
