@@ -16,6 +16,7 @@ import { drinkOptionSearchText, type PinnedVinmonopoletProduct, type LocalizedDr
 import { resizeImageFileToJpegBase64 } from "@/lib/utils/image";
 import type { SearchableRecipe } from "@/lib/utils/search";
 import { SearchIcon, ChevronRightIcon, CameraIcon } from "@/components/ui/icons";
+import { LockedPanel } from "@/components/ui/LockedPanel";
 import { localizedTitle, localizedDrinkPairingOption } from "@/lib/utils/format";
 import { t, type Lang } from "@/lib/i18n";
 
@@ -50,6 +51,17 @@ import { t, type Lang } from "@/lib/i18n";
  *                  "'sjekk vinen min' må naturligvis fortsatt være ai
  *                  generering"), se lib/actions/wine-match.ts
  *                  (matchWineToRecipes/matchWineToRecipesFromImage).
+ *
+ * (27.09.2026) Henrik: "vin delen på forsiden fungerer fortsatt uten
+ * innlogging, det kan den ikke gjøre. man skal kunne velge rett feks, men
+ * ikke få opp svaret" – `isLoggedIn`-propen under styrer akkurat dette:
+ * DishPicker/søket/bilde-opplasting er fortsatt fritt for alle (ingen
+ * grunn til å gjemme selve INTERAKSJONEN), men selve svaret (vin-
+ * anbefalingen/rett-matchene) hentes aldri når `isLoggedIn` er false – se
+ * `locked`-state i FoodToWine og WineToFood under. matchWineToRecipes/
+ * -FromImage har i tillegg sin egen sperre server-side (se
+ * lib/actions/wine-match.ts), siden de er ekte, kostbare AI-kall som ikke
+ * bør kunne trigges direkte forbi UI-et.
  */
 
 type Tab = "food" | "wine";
@@ -139,13 +151,17 @@ function DishPicker({ lang, onPick }: { lang: Lang; onPick: (recipe: SearchableR
  * et konkret forslag fra Vinmonopolet?»-knappen) hentes et faktisk,
  * navngitt produkt (admin sitt pinnede produkt, om satt – ellers samme
  * getVinmonopoletWineSuggestion-søk som på oppskriftssiden). */
-function FoodToWine({ lang }: { lang: Lang }) {
+function FoodToWine({ lang, isLoggedIn }: { lang: Lang; isLoggedIn: boolean }) {
   const [selected, setSelected] = useState<SearchableRecipe | null>(null);
   const [pairing, setPairing] = useState<LocalizedDrinkOption | null>(null);
   const [pinnedWine, setPinnedWine] = useState<PinnedVinmonopoletProduct | null>(null);
   const [noPairing, setNoPairing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  // (27.09.2026) Henrik: "man skal kunne velge rett feks, men ikke få opp
+  // svaret" – se filheaderen øverst for hele resonnementet. `locked`
+  // betyr: en rett ER valgt, men vi har bevisst IKKE hentet/vist svaret.
+  const [locked, setLocked] = useState(false);
 
   const [suggestion, setSuggestion] = useState<VinmonopoletSuggestion | null>(null);
   const [vinLoading, setVinLoading] = useState(false);
@@ -169,6 +185,15 @@ function FoodToWine({ lang }: { lang: Lang }) {
     setError(null);
     setVinError(null);
     setImageFailed(false);
+    setLocked(false);
+
+    if (!isLoggedIn) {
+      // Valget av rett er fritt (DishPicker over er ikke gatet) – kun
+      // selve SVARET (vin-anbefalingen) er kontoeksklusivt, så vi lar
+      // være å kalle getRecipeDrinkPairingById i det hele tatt her.
+      setLocked(true);
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -234,6 +259,7 @@ function FoodToWine({ lang }: { lang: Lang }) {
     setSuggestion(null);
     setError(null);
     setVinError(null);
+    setLocked(false);
   }
 
   if (!selected) {
@@ -256,15 +282,25 @@ function FoodToWine({ lang }: { lang: Lang }) {
         </div>
       </div>
 
-      {isPending && (
+      {locked && (
+        <div className="mt-5">
+          <LockedPanel
+            message={t(lang, "home.wine.lockedMessage")}
+            ctaLabel={t(lang, "featureLocked.cta")}
+            nextPath="/"
+          />
+        </div>
+      )}
+
+      {!locked && isPending && (
         <p className="mt-5 text-sm italic text-ink-faint">
           {t(lang, "home.wine.foodFinding", { title: localizedTitle(selected, lang) })}
         </p>
       )}
 
-      {error && <p className="mt-5 text-sm text-clay-dark">{error}</p>}
+      {!locked && error && <p className="mt-5 text-sm text-clay-dark">{error}</p>}
 
-      {!isPending && noPairing && (
+      {!locked && !isPending && noPairing && (
         <p className="mt-5 text-sm text-ink-faint">{t(lang, "home.wine.foodNoPairing")}</p>
       )}
 
@@ -366,13 +402,17 @@ function MatchRow({ match, lang }: { match: WineRecipeMatch; lang: Lang }) {
   );
 }
 
-function WineToFood({ lang }: { lang: Lang }) {
+function WineToFood({ lang, isLoggedIn }: { lang: Lang; isLoggedIn: boolean }) {
   const [wineDescription, setWineDescription] = useState("");
   const [result, setResult] = useState<{ wineNameParsed: string; matches: WineRecipeMatch[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  // (27.09.2026) Se FoodToWine over – samme prinsipp: beskrive vinen/ta
+  // bilde er fritt, kun selve svaret (matchWineToRecipes(FromImage), et
+  // ekte AI-kall) er kontoeksklusivt.
+  const [locked, setLocked] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isBusy = isPending || isAnalyzingPhoto;
 
@@ -388,6 +428,14 @@ function WineToFood({ lang }: { lang: Lang }) {
     e.preventDefault();
     if (!wineDescription.trim()) return;
     setError(null);
+    setResult(null);
+
+    if (!isLoggedIn) {
+      setLocked(true);
+      return;
+    }
+    setLocked(false);
+
     startTransition(async () => {
       try {
         const res = await matchWineToRecipes(wineDescription, lang);
@@ -414,6 +462,15 @@ function WineToFood({ lang }: { lang: Lang }) {
       if (prev) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
     });
+
+    if (!isLoggedIn) {
+      // Bildet er fortsatt fritt å ta/vise (samme prinsipp som over) – vi
+      // sender det bare aldri videre til AI-kallet uten innlogging.
+      setLocked(true);
+      return;
+    }
+    setLocked(false);
+
     setIsAnalyzingPhoto(true);
     try {
       const { base64Data, mediaType } = await resizeImageFileToJpegBase64(file);
@@ -482,9 +539,19 @@ function WineToFood({ lang }: { lang: Lang }) {
         </div>
       )}
 
-      {error && <p className="mt-4 text-sm text-clay-dark">{error}</p>}
+      {locked && (
+        <div className="mt-6">
+          <LockedPanel
+            message={t(lang, "home.wine.lockedMessage")}
+            ctaLabel={t(lang, "featureLocked.cta")}
+            nextPath="/"
+          />
+        </div>
+      )}
 
-      {result && (
+      {!locked && error && <p className="mt-4 text-sm text-clay-dark">{error}</p>}
+
+      {!locked && result && (
         <div className="mt-6">
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-ink-faint">
             {t(lang, "home.wine.wineResultsFor", { wine: result.wineNameParsed })}
@@ -501,7 +568,7 @@ function WineToFood({ lang }: { lang: Lang }) {
   );
 }
 
-export function WinePairing({ lang }: { lang: Lang }) {
+export function WinePairing({ lang, isLoggedIn }: { lang: Lang; isLoggedIn: boolean }) {
   const [tab, setTab] = useState<Tab>("food");
 
   return (
@@ -577,7 +644,11 @@ export function WinePairing({ lang }: { lang: Lang }) {
         </div>
 
         <div className="mx-auto mt-8 max-w-xl rounded-3xl border border-line bg-paper p-6 sm:p-8">
-          {tab === "food" ? <FoodToWine lang={lang} /> : <WineToFood lang={lang} />}
+          {tab === "food" ? (
+            <FoodToWine lang={lang} isLoggedIn={isLoggedIn} />
+          ) : (
+            <WineToFood lang={lang} isLoggedIn={isLoggedIn} />
+          )}
         </div>
       </div>
     </section>

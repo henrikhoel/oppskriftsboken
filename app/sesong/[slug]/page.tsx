@@ -17,6 +17,8 @@ import {
 import { SeasonIngredientList } from "@/components/season/SeasonIngredientList";
 import { SeasonList } from "@/components/season/SeasonList";
 import { IngredientDetail } from "@/components/season/IngredientDetail";
+import { LockedPanel } from "@/components/ui/LockedPanel";
+import { getCurrentUserFast } from "@/lib/auth";
 import {
   localizedIngredientDescription,
   localizedIngredientName,
@@ -81,7 +83,32 @@ export default async function SeasonOrIngredientPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [season, lang] = await Promise.all([getSeasonBySlugWithIngredients(slug), getLang()]);
+  const [season, lang, user] = await Promise.all([getSeasonBySlugWithIngredients(slug), getLang(), getCurrentUserFast()]);
+
+  // (27.09.2026) Henrik: "'i sesong' må også være bak innlogging" – samme
+  // mønster som guider/oppskrifter. Ingen sesong-/råvarenavn eller -innhold
+  // vises til en ikke-innlogget besøkende, kun en generisk låst boks (se
+  // også app/sesong/page.tsx, som gater forsiden på samme måte).
+  if (season && !user) {
+    return (
+      <article className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+        <Link
+          href="/sesong"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+        >
+          <ChevronLeftIcon className="h-4 w-4" />
+          {t(lang, "seasonPage.backToIndex")}
+        </Link>
+        <div className="mt-10">
+          <LockedPanel
+            message={t(lang, "seasonPage.lockedMessage")}
+            ctaLabel={t(lang, "seasonPage.lockedCta")}
+            nextPath={`/sesong/${season.slug}`}
+          />
+        </div>
+      </article>
+    );
+  }
 
   if (season) {
     const [allIngredients, allSeasons, recipes] = await Promise.all([

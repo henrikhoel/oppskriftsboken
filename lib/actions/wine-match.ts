@@ -7,8 +7,27 @@ import {
   type SupportedImageMediaType,
 } from "@/lib/ai/anthropic";
 import { getPublishedRecipeSummaries } from "@/lib/data/recipes";
+import { getCurrentUserFast } from "@/lib/auth";
 import type { RecipeSummary } from "@/lib/types";
 import type { Lang } from "@/lib/i18n/lang";
+
+/**
+ * (27.09.2026) Henrik: "man skal kunne velge rett feks, men ikke få opp
+ * svaret" – "Sjekk vinen min" er et ekte, live AI-kall (se filheaderen
+ * under), så i tillegg til at components/home/WinePairing.tsx selv lar
+ * være å kalle disse to funksjonene når ingen er innlogget, sperres det
+ * også HER – disse to funksjonene brukes KUN av WinePairing.tsx, så dette
+ * påvirker ingen andre, allerede kontogatede steder (oppskriftsside/meny).
+ * AUTH_REQUIRED er en egen feilmelding (ikke bare "noe gikk galt") slik at
+ * WinePairing.tsx kan vise en "logg inn"-boks i stedet for en generisk
+ * feilmelding.
+ */
+async function requireUserForWineMatch(lang: Lang) {
+  const user = await getCurrentUserFast();
+  if (!user) {
+    throw new Error(lang === "en" ? "AUTH_REQUIRED" : "AUTH_REQUIRED");
+  }
+}
 
 /**
  * "Sjekk vinen min"-retningen på forsidens Mat & vin-seksjon: gjesten
@@ -131,6 +150,8 @@ export async function matchWineToRecipes(
   wineDescriptionRaw: string,
   lang: Lang = "no",
 ): Promise<WineToRecipesResult> {
+  await requireUserForWineMatch(lang);
+
   const wineDescription = wineDescriptionRaw.trim().slice(0, 200);
   if (!wineDescription) {
     throw new Error(lang === "en" ? "Describe a wine first." : "Beskriv en vin først.");
@@ -184,6 +205,8 @@ export async function matchWineToRecipesFromImage(
   image: { mediaType: string; base64Data: string },
   lang: Lang = "no",
 ): Promise<WineToRecipesResult> {
+  await requireUserForWineMatch(lang);
+
   if (!SUPPORTED_IMAGE_MEDIA_TYPES.includes(image.mediaType as SupportedImageMediaType)) {
     throw new Error(
       lang === "en"

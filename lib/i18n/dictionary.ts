@@ -221,6 +221,14 @@ const DICT = {
   },
   "home.wine.ourPick": { no: "Vårt valg", en: "Our pick" },
   "home.wine.changeDish": { no: "Velg en annen rett", en: "Choose another dish" },
+  // (27.09.2026) Henrik: "og vin delen på forsiden fungerer fortsatt uten
+  // innlogging, det kan den ikke gjøre. man skal kunne velge rett feks,
+  // men ikke få opp svaret" – se components/home/WinePairing.tsx. Selve
+  // valget/beskrivelsen/bildet er fortsatt fritt, kun SVARET er låst.
+  "home.wine.lockedMessage": {
+    no: "Vinforslag er kun tilgjengelig når du er logget inn.",
+    en: "Wine suggestions are only available when you're logged in.",
+  },
   "home.wine.winePrompt": { no: "Beskriv vinen du har", en: "Describe the wine you have" },
   "home.wine.winePlaceholder": {
     no: "F.eks. «en fyldig Chardonnay fra Burgund»",
@@ -1238,6 +1246,13 @@ const DICT = {
   "seasonPage.otherSeasonsHeading": { no: "Andre sesonger", en: "Other seasons" },
   "seasonPage.backToIndex": { no: "I sesong", en: "In season" },
   "seasonPage.currentBadge": { no: "Nå", en: "Now" },
+  // (27.09.2026) Henrik: "'i sesong' må også være bak innlogging" – se
+  // app/sesong/page.tsx og app/sesong/[slug]/page.tsx.
+  "seasonPage.lockedMessage": {
+    no: "Sesongguiden er kun synlig for dem som er logget inn.",
+    en: "The season guide is only visible to those who are logged in.",
+  },
+  "seasonPage.lockedCta": { no: "Logg inn for å se sesongen", en: "Log in to see what's in season" },
 
   // Utvidelsen 28.08.2026 (komplett, kildebasert råvareguide) – råvaresøk,
   // status "akkurat nå", og selve råvaresiden. Se filheaderen til

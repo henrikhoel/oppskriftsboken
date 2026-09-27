@@ -11,6 +11,8 @@ import {
 import { SeasonList } from "@/components/season/SeasonList";
 import { SeasonIngredientList } from "@/components/season/SeasonIngredientList";
 import { IngredientSearch } from "@/components/season/IngredientSearch";
+import { LockedPanel } from "@/components/ui/LockedPanel";
+import { getCurrentUserFast } from "@/lib/auth";
 import { localizedSeasonIntro, localizedSeasonName, ingredientStatusLabel, originGroupLabel } from "@/lib/utils/season-format";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
@@ -36,8 +38,31 @@ export async function generateMetadata(): Promise<Metadata> {
  * kilde, oppskrifter) ligger på selve råvaresiden – én klikk unna.
  */
 export default async function SeasonIndexPage() {
-  const [lang, seasonsWithIngredients, allIngredients, recipes] = await Promise.all([
-    getLang(),
+  const [lang, user] = await Promise.all([getLang(), getCurrentUserFast()]);
+
+  // (27.09.2026) Henrik: "'i sesong' må også være bak innlogging" – samme
+  // mønster som guider (se app/hvordan-gjor-jeg-det/[slug]/page.tsx): en
+  // ikke-innlogget besøkende får ikke engang se hvilken sesong det er nå
+  // eller hvilke råvarer som hører til, kun den generiske tittelen og en
+  // låst boks. All videre datahenting/-utregning under hoppes derfor
+  // bevisst over for denne besøkende.
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-faint">{t(lang, "seasonPage.eyebrow")}</p>
+        <h1 className="mt-2 font-serif text-3xl text-ink sm:text-4xl">{t(lang, "seasonPage.title")}</h1>
+        <div className="mt-8">
+          <LockedPanel
+            message={t(lang, "seasonPage.lockedMessage")}
+            ctaLabel={t(lang, "seasonPage.lockedCta")}
+            nextPath="/sesong"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const [seasonsWithIngredients, allIngredients, recipes] = await Promise.all([
     getAllSeasonsWithIngredients(),
     getAllSeasonalIngredientsFlat(),
     getSearchableRecipes(),

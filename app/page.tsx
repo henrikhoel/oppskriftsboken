@@ -10,6 +10,7 @@ import {
   getAdminFavoriteRecipes,
 } from "@/lib/data/recipes";
 import { getAllCategories, getCategoryRecipeCounts } from "@/lib/data/categories";
+import { getCurrentUserFast } from "@/lib/auth";
 import type { RecipeSummary } from "@/lib/types";
 import { SearchBar } from "@/components/search/SearchBar";
 import { Button } from "@/components/ui/Button";
@@ -56,13 +57,14 @@ function pickEditorial(
 }
 
 export default async function HomePage() {
-  const [featured, newest, favorites, categories, categoryCounts, lang] = await Promise.all([
+  const [featured, newest, favorites, categories, categoryCounts, lang, user] = await Promise.all([
     getFeaturedRecipes(6),
     getNewestRecipes(10),
     getAdminFavoriteRecipes(),
     getAllCategories(),
     getCategoryRecipeCounts(),
     getLang(),
+    getCurrentUserFast(),
   ]);
 
   const { picks: editorialPicks, usedIds } = pickEditorial(favorites, featured, newest);
@@ -264,7 +266,7 @@ export default async function HomePage() {
           </div>
         )}
 
-        <WinePairing lang={lang} />
+        <WinePairing lang={lang} isLoggedIn={Boolean(user)} />
 
         <CookModeShowcase lang={lang} recipeSlug={editorialMain?.slug ?? newest[0]?.slug ?? null} />
 
