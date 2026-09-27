@@ -342,9 +342,15 @@ const DICT = {
     no: "Din handleliste, satt sammen fra oppskriftene dine.",
     en: "Your shopping list, put together from your recipes.",
   },
+  // 27.09.2026 (Henrik): "det må stå her" – pekte på selve intro-avsnittet
+  // øverst på siden (app/handleliste/page.tsx), IKKE bare del-knappen
+  // (shoppingPage.shareButton) lenger ned. Riktig sted uansett: dette
+  // avsnittet vises alltid, også når listen er tom og selve del-knappen
+  // (kun synlig når entries.length > 0, se ShoppingListView.tsx) derfor
+  // ikke er der ennå.
   "shoppingPage.description": {
-    no: "Lagres i denne nettleseren. Legg til flere ingredienser fra hvilken som helst oppskriftsside.",
-    en: "Saved in this browser. Add more ingredients from any recipe page.",
+    no: "Lagres i denne nettleseren. Legg til flere ingredienser fra hvilken som helst oppskriftsside. Kan også deles videre til Notater, meldinger eller andre apper.",
+    en: "Saved in this browser. Add more ingredients from any recipe page. Can also be shared to Notes, messages, or other apps.",
   },
   "shoppingPage.emptyTitle": { no: "Handlelisten din er tom", en: "Your shopping list is empty" },
   "shoppingPage.emptyDescription": {
