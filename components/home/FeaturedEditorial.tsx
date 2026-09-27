@@ -7,7 +7,7 @@ import {
   localizedDescription,
   localizedCategoryName,
 } from "@/lib/utils/format";
-import { ClockIcon, ChevronRightIcon } from "@/components/ui/icons";
+import { ClockIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
@@ -120,15 +120,18 @@ export function FeaturedEditorial({
             <h2 className="text-balance font-serif text-3xl leading-tight text-ink transition-colors group-hover:text-clay-dark sm:text-4xl">
               {localizedTitle(main, lang)}
             </h2>
+            {/* (27.09.2026) Henrik: "det er ikke nødvendig at det står 'se
+             * oppskrift', man skjønner at man kan trykke på den" – hele
+             * kortet (bilde + tittel + beskrivelse) er allerede én
+             * klikkbar <Link>, så CTA-teksten/pilen under beskrivelsen er
+             * fjernet. group-hover:text-clay-dark på selve tittelen (se
+             * <h2> over) gir fortsatt en tydelig hover-tilbakemelding om
+             * at kortet er klikkbart. */}
             {main.description && (
               <p className="mt-2.5 line-clamp-2 text-pretty text-sm text-ink-soft sm:text-base">
                 {localizedDescription(main, lang)}
               </p>
             )}
-            <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-clay group-hover:text-clay-dark">
-              {t(lang, "home.editorial.viewRecipe")}
-              <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </span>
           </div>
         </Link>
 
