@@ -136,7 +136,27 @@ export default async function RecipePage({
   const jsonLd = buildRecipeJsonLd(recipe, lang);
 
   return (
-    <article className="pb-24">
+    // pb-24 er DEFAULT – gir vanlig luft mellom siste innhold og footeren
+    // på en helt ordinær side. Når `recipe.showMealBuilder` er true ender
+    // siden derimot i MealBuilder.tsx sin fullbredde, mørke premiumflate
+    // (se filheaderen der) – DENNE skal selv fungere som sidens visuelle
+    // avslutning, ikke ha en ekstra, umotivert "svart bolk" av ren
+    // sidebakgrunn (bg-cream) liggende etter seg før footeren (Henrik,
+    // 30.09.2026: "fjern den svarte tomme delen under seksjonen. den
+    // trengs ikke"). Nøyaktig samme mønster/begrunnelse (og samme -mb-40/
+    // md:-mb-20-verdier) som app/page.tsx allerede bruker for forsiden av
+    // akkurat samme grunn – se den fyldige kommentaren der: to UAVHENGIGE
+    // kilder til luft foran footeren må kanselleres (Footer.tsx sin egen
+    // mt-20 – alltid – og <main> sin egen pb-20 md:pb-0 i app/layout.tsx,
+    // kun under md), pluss at DENNE siden i tillegg har sin egen pb-24
+    // over, som derfor droppes helt (pb-0) i dette tilfellet. Gjelder KUN
+    // når MealBuilder faktisk er sidens siste seksjon – andre
+    // oppskriftssider (recipe.showMealBuilder=false) beholder vanlig
+    // pb-24 urørt. (Den sjeldne recipe.source-teksten under kan i så fall
+    // ende opp tett inntil footeren – akseptert, den er uansett liten og
+    // diskret, og klart å foretrekke over en stor, tom svart bolk i det
+    // vanlige tilfellet.)
+    <article className={recipe.showMealBuilder ? "-mb-40 pb-0 md:-mb-20" : "pb-24"}>
       {/* eslint-disable-next-line react/no-danger */}
       <script
         type="application/ld+json"
