@@ -97,6 +97,16 @@ const TIME_BUDGET_OPTIONS: { key: TimeOptionKey; minutes: number | null }[] = [
  *    `generateMealPlan(..., { availableMinutes })`-kall som før, bare uten
  *    fritekst-parsingen (Number/Number.isFinite-sjekken er overflødig når
  *    verdien allerede er et kontrollert `number | null`).
+ * 3b. TO-KOLONNER VED GENERERING (30.09.2026, tilbakemelding: "menyen
+ *    kommer opp nedover på siden [...] jeg vil at menyen skal komme opp på
+ *    høyre side inne i seksjonen, slik at seksjonen ikke trenger å bli
+ *    større") – se `<section>`-JSX-en for detaljene. Kort fortalt: den
+ *    ytre wrapper-diven bytter fra vanlig blokk-flyt til `lg:grid
+ *    lg:grid-cols-[2fr_3fr]` når `hasPlan` er true, slik at den genererte
+ *    menyen dukker opp i en ny høyrekolonne VED SIDEN AV introen i stedet
+ *    for stablet under den – seksjonens høyde bestemmes da av den høyeste
+ *    av de to kolonnene, ikke summen av begge. Under lg (for smalt for to
+ *    kolonner) er stablingen uendret.
  * 4. GENERERT MENY – de store, kantede `CourseCard`-boksene er borte.
  *    `CourseRow` (ny, under) rendrer nå ALLE plasser (anker + de andre)
  *    likt: liten gull-rolle-label, retten i medium/stor serif, tynne
@@ -278,142 +288,166 @@ export function MealBuilder({
     // denne skal være fullbredde på alle skjermstørrelser).
     <section className="relative isolate left-1/2 -mx-[50vw] w-screen overflow-hidden bg-paper">
       <div className="relative mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-18 lg:px-8 lg:py-21 xl:max-w-[1280px]">
-        <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
-            {t(lang, "mealBuilder.eyebrow")}
-          </p>
-          <h2 className="mt-4 text-balance font-serif text-4xl text-ink sm:text-5xl">
-            {t(lang, "mealBuilder.heading")}
-          </h2>
-          <p className="mt-4 max-w-prose font-serif text-lg text-ink-soft sm:text-xl">
-            {t(lang, "mealBuilder.intro")}
-          </p>
-        </div>
-
-        {!hasPlan && (
-          <div className="mt-10 max-w-md">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
-              {t(lang, "mealBuilder.timeLabel")}
+        {/* TO-KOLONNERS FRA lg NÅR MENYEN ER GENERERT (30.09.2026,
+            tilbakemelding: "menyen kommer opp nedover på siden [...] jeg
+            vil at menyen skal komme opp på høyre side inne i seksjonen,
+            slik at seksjonen ikke trenger å bli større"). Før generering:
+            ÉN kolonne, akkurat som før (intro + tidsvalg + CTA, ingen
+            grid). Når `hasPlan` blir true bytter DENNE ytre div-en til
+            samme `lg:grid`-mønster som DIN MENY-splitten i MealView.tsx
+            (se filheaderen der) – introen (eyebrow/heading/ingress) blir
+            værende i venstrekolonnen ("Behold labelen [...] og headingen
+            øverst, slik at dette fortsatt visuelt er samme seksjon"), og
+            selve den genererte menyen vises i en ny høyrekolonne ved
+            siden av i stedet for å stables under. Kolonnene er `2fr_3fr`
+            (menyen får mer bredde enn den kompakte introen, motsatt
+            vektet av DIN MENY-splittens `7fr_3fr` der hovedinnholdet
+            ligger til venstre) – seksjonens totale høyde styres dermed av
+            den høyeste av de to kolonnene i stedet for av summen av begge
+            stablet på hverandre. Under lg er alt fortsatt uendret: ren
+            vertikal stabling, menyen kommer under introen som før (ikke
+            nok bredde til to kolonner på mobil/nettbrett). */}
+        <div className={clsx(hasPlan && "lg:grid lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-12")}>
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+              {t(lang, "mealBuilder.eyebrow")}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {TIME_BUDGET_OPTIONS.map((option) => {
-                const active = selectedMinutes === option.minutes;
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    onClick={() => setSelectedMinutes(option.minutes)}
-                    aria-pressed={active}
-                    className={clsx(
-                      "rounded-full border px-4 py-1.5 text-xs font-medium transition-colors",
-                      active
-                        ? "border-clay bg-clay text-cream"
-                        : "border-ink-faint/30 text-ink-soft hover:border-clay hover:text-clay-dark",
-                    )}
-                  >
-                    {t(lang, `mealBuilder.timeOption.${option.key}`)}
-                  </button>
-                );
-              })}
-            </div>
+            <h2 className="mt-4 text-balance font-serif text-4xl text-ink sm:text-5xl">
+              {t(lang, "mealBuilder.heading")}
+            </h2>
+            <p className="mt-4 max-w-prose font-serif text-lg text-ink-soft sm:text-xl">
+              {t(lang, "mealBuilder.intro")}
+            </p>
 
-            <button
-              type="button"
-              onClick={handleBuild}
-              disabled={loading}
-              className="mt-8 rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
-            >
-              {loading ? t(lang, "mealBuilder.loading") : t(lang, "mealBuilder.button")}
-            </button>
+            {!hasPlan && (
+              <div className="mt-10 max-w-md">
+                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
+                  {t(lang, "mealBuilder.timeLabel")}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {TIME_BUDGET_OPTIONS.map((option) => {
+                    const active = selectedMinutes === option.minutes;
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={() => setSelectedMinutes(option.minutes)}
+                        aria-pressed={active}
+                        className={clsx(
+                          "rounded-full border px-4 py-1.5 text-xs font-medium transition-colors",
+                          active
+                            ? "border-clay bg-clay text-cream"
+                            : "border-ink-faint/30 text-ink-soft hover:border-clay hover:text-clay-dark",
+                        )}
+                      >
+                        {t(lang, `mealBuilder.timeOption.${option.key}`)}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleBuild}
+                  disabled={loading}
+                  className="mt-8 rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
+                >
+                  {loading ? t(lang, "mealBuilder.loading") : t(lang, "mealBuilder.button")}
+                </button>
+              </div>
+            )}
+
+            {error && <p className="mt-4 text-sm text-clay-dark">{error}</p>}
           </div>
-        )}
 
-        {error && <p className="mt-4 text-sm text-clay-dark">{error}</p>}
+          {hasPlan && (
+            // Samme hårfine skillelinje-mønster (mobil border-t / desktop
+            // border-l) som handlingskolonnen i MealView.tsx sin DIN
+            // MENY-splitt, se filheaderen der.
+            <div className="mt-10 border-t border-ink/10 pt-8 lg:mt-0 lg:border-t-0 lg:border-l lg:border-ink/10 lg:pl-10 lg:pt-0">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+                  {t(lang, "mealPage.menuEyebrow")}
+                </p>
+                {/* Usynlig til fokus (ingen kant/bakgrunn i hviletilstand) – samme
+                    teknikk som tittelfeltet i MealView.tsx, se filheaderen over. */}
+                <input
+                  type="text"
+                  value={menuTitle}
+                  onChange={(e) => setMenuTitle(e.target.value)}
+                  // text-base på mobil (unngår iOS-innzooming ved fokus).
+                  className="mt-2 block w-full rounded-lg border border-transparent bg-transparent font-serif text-3xl leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl"
+                />
+              </div>
 
-        {hasPlan && (
-          <div className="mt-12 max-w-2xl">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
-                {t(lang, "mealPage.menuEyebrow")}
-              </p>
-              {/* Usynlig til fokus (ingen kant/bakgrunn i hviletilstand) – samme
-                  teknikk som tittelfeltet i MealView.tsx, se filheaderen over. */}
-              <input
-                type="text"
-                value={menuTitle}
-                onChange={(e) => setMenuTitle(e.target.value)}
-                // text-base på mobil (unngår iOS-innzooming ved fokus).
-                className="mt-2 block w-full rounded-lg border border-transparent bg-transparent font-serif text-3xl leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl"
-              />
-            </div>
+              <div className="mt-6 divide-y divide-ink/10">
+                {displayRoles.map((role) => {
+                  if (role === anchorRole) {
+                    return (
+                      <CourseRow
+                        key={role}
+                        role={role}
+                        title={recipe.title}
+                        isAnchor
+                        servings={anchorServings}
+                        onServingsChange={setAnchorServings}
+                        lang={lang}
+                      />
+                    );
+                  }
 
-            <div className="mt-6 divide-y divide-ink/10">
-              {displayRoles.map((role) => {
-                if (role === anchorRole) {
+                  const working = courses.find((c) => c.course.role === role);
+                  if (!working) return null;
+                  const { course, regenerating } = working;
+                  const title = course.source === "existing" ? course.recipe.title : course.title;
                   return (
                     <CourseRow
                       key={role}
                       role={role}
-                      title={recipe.title}
-                      isAnchor
-                      servings={anchorServings}
-                      onServingsChange={setAnchorServings}
+                      title={title}
+                      source={course.source}
+                      description={course.source === "suggested" ? course.description : undefined}
+                      note={course.note}
+                      servings={working.servings}
+                      onServingsChange={(servings) => setCourseServings(role, servings)}
+                      regenerating={regenerating}
+                      onRegenerate={() => handleRegenerate(role)}
+                      onRemove={() => removeCourse(role)}
                       lang={lang}
                     />
                   );
-                }
+                })}
+              </div>
 
-                const working = courses.find((c) => c.course.role === role);
-                if (!working) return null;
-                const { course, regenerating } = working;
-                const title = course.source === "existing" ? course.recipe.title : course.title;
-                return (
-                  <CourseRow
-                    key={role}
-                    role={role}
-                    title={title}
-                    source={course.source}
-                    description={course.source === "suggested" ? course.description : undefined}
-                    note={course.note}
-                    servings={working.servings}
-                    onServingsChange={(servings) => setCourseServings(role, servings)}
-                    regenerating={regenerating}
-                    onRegenerate={() => handleRegenerate(role)}
-                    onRemove={() => removeCourse(role)}
-                    lang={lang}
-                  />
-                );
-              })}
-            </div>
-
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
-              >
-                {saving ? t(lang, "mealBuilder.saving") : t(lang, "mealBuilder.save")}
-              </button>
-              {saved && (
-                <Link
-                  href={`/meny/${mealId}`}
-                  className="text-sm font-medium text-clay transition-colors hover:text-clay-dark"
+              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
                 >
-                  {t(lang, "mealBuilder.viewSaved")}
-                </Link>
-              )}
-              <button
-                type="button"
-                onClick={handleReset}
-                disabled={saving}
-                className="text-xs font-medium text-ink-faint/70 underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {t(lang, "mealBuilder.reset")}
-              </button>
+                  {saving ? t(lang, "mealBuilder.saving") : t(lang, "mealBuilder.save")}
+                </button>
+                {saved && (
+                  <Link
+                    href={`/meny/${mealId}`}
+                    className="text-sm font-medium text-clay transition-colors hover:text-clay-dark"
+                  >
+                    {t(lang, "mealBuilder.viewSaved")}
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  disabled={saving}
+                  className="text-xs font-medium text-ink-faint/70 underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {t(lang, "mealBuilder.reset")}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </section>
   );
