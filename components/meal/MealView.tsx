@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
 import {
@@ -195,6 +195,25 @@ import { t, type Lang } from "@/lib/i18n";
  *    lenger sentrert et stykke nedenfor). "Legg i handlelisten" ligger
  *    fortsatt sentrert under hele raden, som den diskré sekundærhandlingen
  *    den er. Under `lg` er rekkefølgen uendret (stables som før).
+ *
+ * TITTEL-WRAP 27.09.2026 (7. runde – Henrik testet i selve appen, ikke i
+ * en print-forhåndsvisning som jeg først antok feilaktig: "hva snakker du
+ * om? jeg bruker appen på macen. det er ingen forskjell! [...] du kan også
+ * gjøre det mulig at tittelen går over to linjer, da må den ikke være så
+ * bred"). Roten til problemet var IKKE bredden i seg selv, men at tittelen
+ * lå i en `<input type="text">` – et HTML-element som strukturelt ALDRI
+ * kan brekke linje, uansett hvor bred kolonnen rundt den er (kun bli
+ * bredere eller klippe/scrolle internt). Byttet derfor til en auto-
+ * voksende `<textarea rows={1}>` (høyden justeres i en `useEffect`/
+ * `onInput` ut fra `scrollHeight`, Enter fanges opp og gir ikke linjeskift
+ * – kun naturlig automatisk wrap når teksten ikke får plass, ingen manuell
+ * `\n` lagres i dataene) – nå kan en lang tittel brekke over to (eller
+ * flere) linjer akkurat som et vanlig avsnitt. Siden tittelen nå kan
+ * wrappe i stedet for å kreve stadig mer bredde, er DIN MENY/PLANLEGG
+ * KVELDEN-kolonnene samtidig dempet noe ned igjen, fra forrige rundes
+ * `max-w-5xl` til `max-w-4xl` – fortsatt tydelig bredere enn opprinnelige
+ * `max-w-3xl`, men ikke så ekstremt at det ble unaturlig for
+ * retteliste/tidslinje-radene.
  */
 export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: boolean; lang: Lang }) {
   const [cookModeOpen, setCookModeOpen] = useState(false);
@@ -214,6 +233,18 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
     setDesiredReadyAt,
     setWine,
   } = useMealSession(mealId, "");
+
+  // Auto-voksende tittelfelt (se TITTEL-WRAP-avsnittet i filheaderen over) –
+  // justerer høyden ut fra scrollHeight hver gang tittelen endres, enten fra
+  // direkte skriving (onInput på selve <textarea>-en under) eller fra en
+  // asynkront hydrert session.title ved førstegangslasting av siden.
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [session.title]);
 
   if (!indexHydrated || !sessionHydrated) {
     return <div className="h-40 animate-pulse rounded-card bg-cream-dark/60" />;
@@ -260,7 +291,7 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
   return (
     <>
     {/* ============ SEGMENT 1: DIN MENY (mørk, standard sidebunn) ============ */}
-    <div className="mx-auto max-w-5xl space-y-10 px-4 pt-10 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
+    <div className="mx-auto max-w-4xl space-y-10 px-4 pt-10 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         {anchorSlot ? (
           <Link
@@ -320,11 +351,23 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
           {t(lang, "mealPage.menuEyebrow")}
         </p>
-        <input
-          type="text"
+        <textarea
+          ref={titleRef}
+          rows={1}
           value={session.title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-lg border border-transparent bg-transparent font-serif text-3xl text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl md:text-5xl"
+          onKeyDown={(e) => {
+            // Tittelen er logisk sett fortsatt én sammenhengende streng
+            // (ingen manuelle linjeskift lagret) – Enter skal ikke sette
+            // inn "\n", kun automatisk visuell wrap skal brekke linjen.
+            if (e.key === "Enter") e.preventDefault();
+          }}
+          onInput={(e) => {
+            const el = e.currentTarget;
+            el.style.height = "auto";
+            el.style.height = `${el.scrollHeight}px`;
+          }}
+          className="block w-full resize-none overflow-hidden rounded-lg border border-transparent bg-transparent font-serif text-3xl leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl md:text-5xl"
         />
 
         {descriptionEditing ? (
@@ -486,24 +529,26 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         vist i utskriftsoppsummeringen lenger ned. */}
     {slots.length > 0 && (
       <section className="bg-ink py-16 sm:py-20 print:hidden">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
-            {t(lang, "eveningExperience.planButton")}
-          </p>
-          <p className="mt-2 font-serif text-2xl text-cream sm:text-3xl">{t(lang, "mealPage.planSubtitle")}</p>
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="lg:flex lg:items-end lg:justify-between lg:gap-12">
+            <div className="lg:max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+                {t(lang, "eveningExperience.planButton")}
+              </p>
+              <p className="mt-2 font-serif text-2xl text-cream sm:text-3xl">{t(lang, "mealPage.planSubtitle")}</p>
 
-          <div className="mt-8 space-y-8">
-            <div id="meal-timeline">
-              <MealTimelineSection
-                slots={slots}
-                readyAt={session.desiredReadyAt ?? ""}
-                onReadyAtChange={setDesiredReadyAt}
-                lang={lang}
-              />
+              <div className="mt-8" id="meal-timeline">
+                <MealTimelineSection
+                  slots={slots}
+                  readyAt={session.desiredReadyAt ?? ""}
+                  onReadyAtChange={setDesiredReadyAt}
+                  lang={lang}
+                />
+              </div>
             </div>
 
             {hasExistingDish && (
-              <div className="text-center">
+              <div className="mt-8 shrink-0 text-center lg:mt-0">
                 <button
                   type="button"
                   onClick={() => setCookModeOpen(true)}
@@ -514,10 +559,10 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
                 </button>
               </div>
             )}
+          </div>
 
-            <div id="meal-shopping-list">
-              <MealShoppingListSection slots={slots} lang={lang} />
-            </div>
+          <div className="mt-8 text-center lg:mt-10" id="meal-shopping-list">
+            <MealShoppingListSection slots={slots} lang={lang} />
           </div>
         </div>
       </section>
