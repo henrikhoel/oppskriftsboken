@@ -293,6 +293,10 @@ const DICT = {
   // her og ikke i hovednavigasjonen, rett under introteksten på /oppskrifter,
   // siden det er der folk uansett blar i retter. Peker til /meny/ny.
   "recipesPage.buildMealLink": { no: "Bygg en meny selv", en: "Build a menu yourself" },
+  // Peker til /mine-menyer (27.09.2026, ønsket av Henrik: "en knapp til
+  // lagrede menyer må også være ved siden av 'bygg en meny selv'") – samme
+  // plassering/stil som buildMealLink over, kun i tillegg.
+  "recipesPage.savedMealsLink": { no: "Dine lagrede menyer", en: "Your saved menus" },
 
   "favoritesPage.title": { no: "Favoritter", en: "Favorites" },
   "favoritesPage.metaDescription": {
@@ -969,6 +973,34 @@ const DICT = {
   },
   "mealPage.suggestedDescriptionLabel": { no: "Om forslaget", en: "About the suggestion" },
   "mealPage.createFromSuggestion": { no: "Opprett som oppskrift", en: "Create as recipe" },
+
+  // Oversikten over alle lagrede menyer – /mine-menyer,
+  // components/meal/SavedMealsList.tsx (27.09.2026, ønsket av Henrik: "da
+  // må den legge seg et eget sted for lagrede menyer"). Leser
+  // useMealSessionIndex() (samme "mealIds"-register som allerede fantes,
+  // se filheaderen der – bygget for akkurat dette, men aldri koblet inn i
+  // noe UI før nå), rent lokalt/localStorage, ingen database. Fanger
+  // BEGGE menybyggerne (den AI-baserte MealBuilder.tsx OG den manuelle
+  // ManualMealBuilder.tsx) – begge kaller addToIndex ved lagring.
+  "savedMealsPage.metaTitle": { no: "Dine menyer", en: "Your menus" },
+  "savedMealsPage.heading": { no: "Dine menyer", en: "Your menus" },
+  "savedMealsPage.intro": {
+    no: "Menyene du har satt sammen, samlet på ett sted.",
+    en: "The menus you've put together, all in one place.",
+  },
+  "savedMealsPage.empty": {
+    no: "Du har ikke lagret noen menyer ennå.",
+    en: "You haven't saved any menus yet.",
+  },
+  // Vises for en meny der ALLE rettene er fjernet igjen (fortsatt en ekte,
+  // lagret meny – se "Finnes ikke"-resonnementet i MealView.tsx sin
+  // filheader for hvorfor tom ≠ ikke-lagret), ikke et feiltilfelle.
+  "savedMealsPage.noDishes": { no: "Ingen retter lagt til ennå", en: "No dishes added yet" },
+  // Fjerner KUN fra indeksen (useMealSessionIndex().removeFromIndex) – ikke
+  // en bekreftelsesdialog, samme direkte "fjern"-mønster som
+  // mealBuilder.remove/manualMeal.removeRoleButton andre steder i
+  // menybyggeren.
+  "savedMealsPage.removeButton": { no: "Fjern menyen", en: "Remove menu" },
 
   // Menynivå-vin (Fase 5 – Experience, 5.6) – se
   // components/meal/MealWineSection.tsx og getMealWineRecommendation i
