@@ -21,6 +21,12 @@ import { t, type Lang } from "@/lib/i18n";
  * rounded-card/border-boks eller egen h3-overskrift/beskrivelse-avsnitt
  * lenger, kun selve knappen (heading/description sier ikke noe knappteksten
  * "Legg hele menyen i handlelisten" ikke allerede sier).
+ *
+ * (27.09.2026, redesign av /meny/[id]) Knappen er nå full bredde (samme
+ * bredde som "Start kokemodus for hele menyen" rett over i MealView.tsx)
+ * for å lese som en tydelig SEKUNDÆR handling i "Planlegg kvelden"-
+ * kapittelet, i stedet for en liten, inline pille – fortsatt lys/outline,
+ * ikke gull, så kokemodus forblir den ene primære CTA-en.
  */
 export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot[]; lang: Lang }) {
   const { addFromRecipe } = useShoppingList();
@@ -73,7 +79,7 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
           type="button"
           onClick={handleAdd}
           disabled={loading}
-          className="rounded-full border border-line-strong bg-paper px-4 py-2 text-xs font-medium text-ink-soft transition-colors hover:bg-cream-dark disabled:cursor-not-allowed"
+          className="flex w-full items-center justify-center rounded-full border border-line-strong bg-paper py-3 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark disabled:cursor-not-allowed"
         >
           {loading ? t(lang, "mealShopping.loading") : t(lang, "mealShopping.button")}
         </button>

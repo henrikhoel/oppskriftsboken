@@ -951,6 +951,25 @@ const DICT = {
 
   // Den lagrede menysiden – app/meny/[id]/page.tsx.
   "mealPage.metaTitle": { no: "Din meny", en: "Your menu" },
+  // "DIN MENY"-eyebrowen øverst på siden (27.09.2026-redesignet, se
+  // MealView.tsx sin filheader) – samme tekst som metaTitle over, men en
+  // egen nøkkel siden de to brukes til helt ulike ting (browser-tittel vs.
+  // synlig eyebrow) og ikke nødvendigvis skal endres sammen senere.
+  "mealPage.menuEyebrow": { no: "Din meny", en: "Your menu" },
+  // Undertittel under "PLANLEGG KVELDEN"-eyebrowen (27.09.2026-redesignet).
+  "mealPage.planSubtitle": {
+    no: "Få alt klart til riktig tid.",
+    en: "Get everything ready at the right time.",
+  },
+  // Diskret lenke i stedet for et permanent synlig, tomt beskrivelsesfelt
+  // (27.09.2026-redesignet, se descriptionPlaceholder under for selve
+  // feltets placeholder når det er åpent for redigering).
+  "mealPage.addDescription": { no: "+ Legg til beskrivelse", en: "+ Add a description" },
+  // Åpner porsjoner/"fjern fra menyen" per rett (27.09.2026-redesignet) –
+  // egen nøkkel fremfor å gjenbruke recipeDetail.editButton, siden den er
+  // knyttet til en helt annen handling (admin sin "rediger oppskrift"-
+  // lenke). eveningExperience.whyHide ("Skjul") gjenbrukes for å lukke.
+  "mealPage.editDish": { no: "Rediger", en: "Edit" },
   "mealPage.notFoundHeading": { no: "Fant ikke menyen", en: "Menu not found" },
   "mealPage.notFoundBody": {
     no: "Denne menyen finnes ikke på denne enheten. Menyer lagres kun lokalt i nettleseren de ble laget i.",

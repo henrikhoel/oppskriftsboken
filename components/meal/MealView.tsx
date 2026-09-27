@@ -47,44 +47,59 @@ import { t, type Lang } from "@/lib/i18n";
  * en "Fjern menyen"-lenke (samme handling/tekst som fjern-knappen på
  * /mine-menyer selv).
  *
- * VISUELL FINPUSS 31.08.2026 (2. runde – "gjør siden mer elegant,
- * redaksjonell og kuratert, mindre som en administrasjonsside"). Samme data
- * og funksjonalitet som før, ny visuell struktur i tre lesbare "kapitler"
- * uten egne bokser rundt hvert av dem:
+ * REDESIGNET 27.09.2026 (3. runde – Henrik ga Claude en detaljert
+ * designbrief, utarbeidet sammen med ChatGPT ut fra skjermbilder av denne
+ * siden: "gir siden mer rotete og administrativ [...] Vi skal beholde
+ * funksjonaliteten, men redesigne presentasjonen slik at følelsen blir:
+ * 'Her er kvelden din.'"). Dropper den faste `lg:grid-cols-2`
+ * MENY/PLANLEGG-KVELDEN-kolonne-layouten fra forrige runde (31.08.2026, se
+ * historikken) til fordel for en vertikal, redaksjonell "kapittel"-struktur
+ * – hvert kapittel er en egen gull-uppercase-eyebrow etterfulgt av
+ * innholdet, atskilt med `border-t border-line pt-12`, samme mønster som
+ * "GJØR DET TIL EN KVELD"-overgangen allerede brukte:
  *
- * 1. MENYTITTEL OG INTRO – stor serif-tittel (uendret), pluss en ny, valgfri
- *    ÉN-SETNINGS `session.description` rett under, visuelt sekundær (dempet,
- *    kursiv). Feltet er brukerskrevet (samme redigeringsmønster som
- *    tittelen/notatene – IKKE AI-generert, se `description` i
- *    lib/kitchen-intelligence/types.ts for hvorfor), usynlig/plassholder når
- *    tomt, så en gammel meny uten tekst ikke får et rart tomrom.
- * 2. MENYEN + PLANLEGG KVELDEN – samme to-kolonners grid som før
- *    (`lg:grid-cols-2`), men hver kolonne har nå en liten redaksjonell
- *    eyebrow ("MENYEN" / "PLANLEGG KVELDEN", gjenbruker eksisterende
- *    eveningExperience.menuHeading/planButton-nøkler) i stedet for å bare
- *    starte rett på kontrollene. Retten-navnet er gjort tydeligere/større
- *    (font-serif text-lg/xl, opp fra text-base), og "Finnes i
- *    oppskriftsboken" er tonet ned fra en fylt Badge-pille til ren, dempet
- *    tekst UNDER tittelen – nyttig metadata, ikke en konkurrerende
- *    fargeflate (se egen kommentar ved bruken under; components/ui/Badge.tsx
- *    selv er bevisst IKKE endret, siden den er delt med andre steder i
- *    appen). Notatene er flyttet inn som siste element i høyre kolonne
- *    (hører naturlig sammen med planleggingen av kvelden, uten å bli et eget
- *    stort visuelt fokus) – dette gir også riktig mobil-rekkefølge helt
- *    gratis (retter → planlegg kvelden → notater), siden et ett-kolonne
- *    grid følger DOM-rekkefølgen.
- * 3. GJØR DET TIL EN KVELD – den tidligere store, innrammede
- *    "Gjør det til en kveld"-boksen (og før det, en modal-knapp) er fjernet
- *    helt. Brukeren er allerede inne i denne opplevelsen når menyen er
- *    lagret, så funksjonen trenger ikke presenteres på nytt som en egen
- *    CTA-boks. I stedet er dette nå en ren redaksjonell kapittelovergang –
- *    en liten gul uppercase-eyebrow (gjenbruker eveningExperience.
- *    entryHeading) etterfulgt av en større serif-undertittel (gjenbruker
- *    eveningExperience.entryDescription, ALDRI hardkodet) – og selve
- *    EveningExperience.tsx-innholdet (vin/bord/stemning/musikk) følger
- *    DIREKTE under, som vanlig sideinnhold. Se EveningExperience.tsx sin
- *    egen filheader for hvordan den komponenten selv ble bygget om fra en
- *    fullskjerm-modal til inline kapittelinnhold samme dag.
+ * 1. DIN MENY – eyebrow (mealPage.menuEyebrow) + den store tittelen
+ *    (uendret). Beskrivelsen er ikke lenger et permanent synlig
+ *    placeholder-felt: har menyen en beskrivelse vises den som ren,
+ *    klikkbar tekst (klikk for å redigere); er den tom vises kun en
+ *    diskret "+ Legg til beskrivelse"-lenke (mealPage.addDescription) som
+ *    åpner feltet. Egen lokal `descriptionEditing`-state, IKKE lagret noe
+ *    sted – kun UI-tilstand, selve teksten går fortsatt rett i
+ *    session.description via samme setDescription som før.
+ * 2. SELVE MENYEN – course-label er nå en liten gull-eyebrow (samme
+ *    fargeformel som resten av gull-eyebrowene i denne filen, IKKE lenger
+ *    ink-faint), rettenavnet er større (text-xl/2xl, opp fra text-lg/xl).
+ *    "Finnes i oppskriftsboken"-teksten for eksisterende retter er fjernet
+ *    helt (ren metadata uten funksjon – lenken til selve oppskriften sier
+ *    allerede det samme). Porsjoner + "Fjern fra menyen" ligger nå bak en
+ *    liten "Rediger"-lenke per rett (ny lokal `expandedSlotIds`-Set,
+ *    IKKE lagret), i tråd med brief-ens prioritet
+ *    course > rettnavn > redigeringskontroller. "Nytt forslag"-merket,
+ *    forslagsbeskrivelsen og admin sin "Opprett som oppskrift"-lenke er
+ *    UENDRET og fortsatt alltid synlige – reell informasjon, ikke
+ *    administrativt grensesnitt.
+ * 3. PLANLEGG KVELDEN – egen eyebrow + ny undertittel
+ *    (mealPage.planSubtitle), samler spisetid/tidslinje, kokemodus-knappen
+ *    (fortsatt DEN ene tydelige CTA-en) og "Legg i handlelisten" (nå full
+ *    bredde i MealShoppingListSection.tsx, se filheaderen der – fortsatt
+ *    tydelig sekundær, ikke gull) samt notatene. Alt vertikalt i én kolonne
+ *    (ikke lenger en egen høyrekolonne ved siden av menyen).
+ * 4. VINEN DIN – flyttet UT av "Planlegg kvelden"-kolonnen og opp som sitt
+ *    eget kapittel, med chapter-eyebrowen hentet fra samme
+ *    mealWineInput.heading-nøkkel MealWineInput.tsx selv brukte til å vise
+ *    en intern overskrift – den interne overskriften/border-t-en er derfor
+ *    fjernet fra MealWineInput.tsx selv (se filheaderen der), for å unngå
+ *    en duplisert "Vinen din"-tekst rett over hverandre.
+ * 5. GJØR DET TIL EN KVELD – URØRT, verken visuelt eller funksjonelt (brief-
+ *    ens eksplisitte grense). Samme kode som før, kun flyttet til å følge
+ *    rett etter det nye "Vinen din"-kapittelet i stedet for rett etter
+ *    2-kolonne-gridet.
+ *
+ * Ingen ny funksjonalitet i denne runden – kun presentasjon/informasjons-
+ * arkitektur. Alle eksisterende handlinger (tittel/beskrivelse/notater,
+ * porsjoner, fjern rett, spisetid/tidslinje, kokemodus, handleliste, vin,
+ * lagre/fjern menyen, print/PDF, tilbake-navigasjon) er uendret i hvordan
+ * de fungerer, kun i hvor fremtredende de vises.
  *
  * ANLEDNING fjernet helt fra denne siden i en tidligere runde (samme dato) –
  * `session.occasion` kan fortsatt stå igjen på eldre, allerede lagrede
@@ -104,10 +119,15 @@ import { t, type Lang } from "@/lib/i18n";
  * EveningExperience.tsx sitt (nå fjernede) modal-hode – siden den
  * komponenten ikke lenger har noe eget "hode", er utskrifts-lenken flyttet
  * hit, som en liten, tilbaketrukket tekstlenke ved siden av
- * "Tilbake til …"-lenken øverst på siden.
+ * "Tilbake til …"-lenken øverst på siden. Uendret av denne runden.
  */
 export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: boolean; lang: Lang }) {
   const [cookModeOpen, setCookModeOpen] = useState(false);
+  const [descriptionEditing, setDescriptionEditing] = useState(false);
+  // Hvilke retter som har "Rediger"-raden (porsjoner/fjern) åpen akkurat
+  // nå – se REDESIGNET-avsnittet i filheaderen over. Ren UI-state, ikke
+  // lagret noe sted; tom ved hver friske sidevisning.
+  const [expandedSlotIds, setExpandedSlotIds] = useState<Set<string>>(new Set());
   const { mealIds, hydrated: indexHydrated, addToIndex, removeFromIndex } = useMealSessionIndex();
   const {
     session,
@@ -154,6 +174,15 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
   // eksplisitt lagret dit".
   const saved = mealIds.includes(mealId);
 
+  function toggleExpanded(slotId: string) {
+    setExpandedSlotIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(slotId)) next.delete(slotId);
+      else next.add(slotId);
+      return next;
+    });
+  }
+
   return (
     <>
     <div className="space-y-10 print:hidden">
@@ -177,25 +206,46 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         </button>
       </div>
 
+      {/* 1. DIN MENY – tittel er hovedpersonen, beskrivelsen er diskret
+          (se REDESIGNET-avsnittet i filheaderen over). */}
       <div className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+          {t(lang, "mealPage.menuEyebrow")}
+        </p>
         <input
           type="text"
           value={session.title}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full rounded-lg border border-transparent bg-transparent font-serif text-3xl text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl md:text-5xl"
         />
-        {/* Redaksjonell ett-setnings-intro (31.08.2026) – brukerskrevet, se
-            `description` i lib/kitchen-intelligence/types.ts. Bevisst kursiv
-            og dempet (text-ink-faint) slik at tittelen fortsatt eier
-            oppmerksomheten; placeholder vises kun i selve redigeringen (tomt
-            felt utenfor fokus er visuelt umerkelig, ikke et hull i siden). */}
-        <input
-          type="text"
-          value={session.description ?? ""}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder={t(lang, "mealPage.descriptionPlaceholder")}
-          className="w-full rounded-lg border border-transparent bg-transparent font-serif text-base italic text-ink-faint transition-colors placeholder:not-italic focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-lg"
-        />
+
+        {descriptionEditing ? (
+          <input
+            type="text"
+            value={session.description ?? ""}
+            onChange={(e) => setDescription(e.target.value)}
+            onBlur={() => setDescriptionEditing(false)}
+            placeholder={t(lang, "mealPage.descriptionPlaceholder")}
+            autoFocus
+            className="w-full rounded-lg border border-transparent bg-transparent font-serif text-base italic text-ink-faint transition-colors placeholder:not-italic focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-lg"
+          />
+        ) : session.description ? (
+          <button
+            type="button"
+            onClick={() => setDescriptionEditing(true)}
+            className="block w-full rounded-lg text-left font-serif text-base italic text-ink-faint transition-colors hover:text-ink-soft sm:text-lg"
+          >
+            {session.description}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setDescriptionEditing(true)}
+            className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+          >
+            {t(lang, "mealPage.addDescription")}
+          </button>
+        )}
       </div>
 
       {/* Eksplisitt "Lagre menyen" (27.09.2026, se OMLAGT-avsnittet i
@@ -227,48 +277,39 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
       {slots.length === 0 ? (
         <p className="text-sm text-ink-faint">{t(lang, "mealPage.emptyState")}</p>
       ) : (
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
-          {/* MENYEN – ren, boks-fri liste. Rettene er allerede redigerbare/
-              fjernbare herfra, så en egen rounded-card/border-boks per rett
-              ga ingen ekstra info, bare vekt (fjernet i en tidligere runde). */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-faint">
-              {t(lang, "eveningExperience.menuHeading")}
-            </p>
-            <div className="mt-4 divide-y divide-line">
-              {slots.map((slot) => (
+        <>
+          {/* 2. SELVE MENYEN – presentert som et rolig restaurantmeny-kort,
+              ingen kort/bokser rundt hver rett, kun skillelinjer. */}
+          <div className="divide-y divide-line">
+            {slots.map((slot) => {
+              const expanded = expandedSlotIds.has(slot.id);
+              return (
                 <div key={slot.id} className="flex flex-col gap-1.5 py-6 first:pt-0 last:pb-0">
-                  <span className="text-sm font-semibold uppercase tracking-wide text-ink-faint">
+                  <span className="text-xs font-semibold uppercase tracking-[0.25em] text-clay">
                     {t(lang, `mealBuilder.role.${slot.role}`)}
                   </span>
 
                   {slot.source === "existing" ? (
                     <Link
                       href={`/oppskrifter/${slot.slug}`}
-                      className="font-serif text-lg text-ink hover:text-clay-dark sm:text-xl"
+                      className="font-serif text-xl text-ink hover:text-clay-dark sm:text-2xl"
                     >
                       {slot.title}
                     </Link>
                   ) : (
-                    <p className="font-serif text-lg text-ink sm:text-xl">{slot.title}</p>
+                    <p className="font-serif text-xl text-ink sm:text-2xl">{slot.title}</p>
                   )}
 
-                  {/* "Finnes i oppskriftsboken"/"Nytt forslag" – tonet ned fra
-                      en fylt Badge-pille (components/ui/Badge.tsx, bevisst
-                      IKKE endret siden den er delt med andre sider) til ren
-                      tekst her: nyttig metadata, skal ikke konkurrere
-                      visuelt med selve retten. */}
-                  <span
-                    className={
-                      slot.source === "existing"
-                        ? "text-[11px] text-ink-faint"
-                        : "text-[11px] font-medium text-mustard-dark"
-                    }
-                  >
-                    {slot.source === "existing"
-                      ? t(lang, "mealBuilder.existingBadge")
-                      : t(lang, "mealBuilder.suggestedBadge")}
-                  </span>
+                  {/* "Nytt forslag"-merket og forslagsbeskrivelsen er reell
+                      informasjon (skiller et AI-forslag fra en ekte
+                      oppskrift) – UENDRET, alltid synlig, i motsetning til
+                      "Finnes i oppskriftsboken" for eksisterende retter
+                      (fjernet helt, se filheaderen over). */}
+                  {slot.source === "suggested" && (
+                    <span className="text-[11px] font-medium text-mustard-dark">
+                      {t(lang, "mealBuilder.suggestedBadge")}
+                    </span>
+                  )}
 
                   {slot.source === "suggested" && slot.description && (
                     <div>
@@ -300,50 +341,62 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
                     </Link>
                   )}
 
-                  <div className="mt-1 flex flex-wrap items-center gap-4">
-                    <label className="flex items-center gap-2 text-xs text-ink-faint">
-                      {t(lang, "mealBuilder.servingsLabel")}
-                      <input
-                        type="number"
-                        min={1}
-                        max={50}
-                        value={slot.servings}
-                        onChange={(e) => {
-                          const next = Number(e.target.value);
-                          if (Number.isFinite(next) && next >= 1) setServings(slot.id, Math.round(next));
-                        }}
-                        // text-base på mobil (unngår iOS-innzooming ved fokus).
-                        className="w-16 rounded-lg border border-line bg-cream px-2 py-1 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
-                      />
-                    </label>
+                  {/* Porsjoner + "Fjern fra menyen" bak en "Rediger"-lenke
+                      (se REDESIGNET-avsnittet i filheaderen over) – course
+                      og rettnavn skal eie oppmerksomheten, ikke
+                      redigeringskontrollene. */}
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(slot.id)}
+                    className="mt-0.5 self-start text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+                  >
+                    {expanded ? t(lang, "eveningExperience.whyHide") : t(lang, "mealPage.editDish")}
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => remove(slot.id)}
-                      className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
-                    >
-                      {t(lang, "mealBuilder.remove")}
-                    </button>
-                  </div>
+                  {expanded && (
+                    <div className="mt-1 flex flex-wrap items-center gap-4">
+                      <label className="flex items-center gap-2 text-xs text-ink-faint">
+                        {t(lang, "mealBuilder.servingsLabel")}
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={slot.servings}
+                          onChange={(e) => {
+                            const next = Number(e.target.value);
+                            if (Number.isFinite(next) && next >= 1) setServings(slot.id, Math.round(next));
+                          }}
+                          // text-base på mobil (unngår iOS-innzooming ved fokus).
+                          className="w-16 rounded-lg border border-line bg-cream px-2 py-1 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => remove(slot.id)}
+                        className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+                      >
+                        {t(lang, "mealBuilder.remove")}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
-          {/* PLANLEGG KVELDEN – ønsket spisetidspunkt, tidslinje, kokemodus
-              og handleliste samlet som én logisk planleggingsseksjon, pluss
-              notatene helt nederst (hører naturlig sammen med planleggingen,
-              uten å bli et eget stort visuelt fokus – og gir riktig
-              mobil-rekkefølge gratis siden ett-kolonne-gridet følger
-              DOM-rekkefølgen: retter → planlegg kvelden → notater). Ingen
-              stor omsluttende boks – kun spacing, typografi og de tre
-              knappenes egen tre-nivå-hierarki (kokemodus > handleliste >
-              tidslinje). */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-faint">
+          {/* 3. PLANLEGG KVELDEN – egen kapittel, vertikal, ikke lenger en
+              egen kolonne ved siden av menyen. Kokemodus er fortsatt DEN
+              ene tydelige CTA-en; handlelisten er tydelig sekundær (se
+              MealShoppingListSection.tsx); notatene tonet ned nederst. */}
+          <div className="border-t border-line pt-12">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
               {t(lang, "eveningExperience.planButton")}
             </p>
-            <div className="mt-4 space-y-6">
+            <p className="mt-2 font-serif text-xl text-ink-soft sm:text-2xl">
+              {t(lang, "mealPage.planSubtitle")}
+            </p>
+            <div className="mt-6 space-y-6">
               <div id="meal-timeline">
                 <MealTimelineSection
                   slots={slots}
@@ -381,15 +434,22 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
                   className="mt-1.5 w-full rounded-lg border border-line bg-cream px-3 py-2 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
                 />
               </div>
+            </div>
+          </div>
 
-              {/* "Vinen din" (10.09.2026) – samme visuelle nivå som notatene
-                  rett over (egen border-t-inndeling inni MealWineInput.tsx
-                  selv), IKKE inne i EveningExperience.tsx (se
-                  MealWineInput.tsx sin filheader for hvorfor). */}
+          {/* 4. VINEN DIN – eget kapittel (flyttet ut av "Planlegg
+              kvelden"-kolonnen, se REDESIGNET-avsnittet i filheaderen over).
+              MealWineInput.tsx sin egen interne overskrift/border-t er
+              fjernet, siden chapter-eyebrowen under nå eier den. */}
+          <div className="border-t border-line pt-12">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+              {t(lang, "mealWineInput.heading")}
+            </p>
+            <div className="mt-4">
               <MealWineInput wine={session.wine} onChange={setWine} lang={lang} />
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* GJØR DET TIL EN KVELD – kapittelovergang, ikke en boks/CTA (fjernet
@@ -398,7 +458,9 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
           serif-undertittel, begge gjenbrukt fra eksisterende
           eveningExperience.*-nøkler (aldri hardkodet). Selve innholdet
           (vin/bord/stemning/musikk) følger direkte under, som vanlig
-          sideinnhold – se EveningExperience.tsx. */}
+          sideinnhold – se EveningExperience.tsx. UENDRET av 27.09.2026-
+          redesignet (se filheaderen over) – kun flyttet til å følge etter
+          "Vinen din" i stedet for etter 2-kolonne-gridet. */}
       {slots.length > 0 && (
         <div className="border-t border-line pt-12">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
@@ -419,7 +481,8 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
      * Trigger-knappen bor nå øverst på selve siden (se over) i stedet for
      * inni EveningExperience.tsx – denne print-only-blokken ligger fortsatt
      * her, uendret, siden CSS sin `print:`-variant virker uavhengig av HVOR
-     * i DOM-treet knappen som trigget den befinner seg. */}
+     * i DOM-treet knappen som trigget den befinner seg. UENDRET av
+     * 27.09.2026-redesignet. */}
     <div className="hidden print:mx-auto print:block print:max-w-xl print:px-4 print:py-16 print:text-center">
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-ink-faint">{siteConfig.name}</p>
 

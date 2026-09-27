@@ -24,6 +24,14 @@ import { t, type Lang } from "@/lib/i18n";
  *
  * "Kontrollert" av kalleren (MealView.tsx) – ren `wine`/`onChange`-prop,
  * ingen egen useMealSession-tilkobling her.
+ *
+ * (27.09.2026, redesign av /meny/[id] – se MealView.tsx sin filheader)
+ * "Vinen din" ble flyttet fra en nederste rad i "Planlegg kvelden"-kolonnen
+ * til sitt eget kapittel på siden. Den interne
+ * "Vinen din"-overskriften/border-t-en som tidligere sto her er derfor
+ * FJERNET – MealView.tsx sin egen chapter-eyebrow (gjenbruker samme
+ * mealWineInput.heading-nøkkel) eier nå den jobben, så komponenten viser
+ * kun selve innholdet.
  */
 export function MealWineInput({
   wine,
@@ -89,11 +97,8 @@ export function MealWineInput({
 
   if (wine && !editing) {
     return (
-      <div className="border-t border-line pt-6">
-        <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-          {t(lang, "mealWineInput.heading")}
-        </p>
-        <p className="mt-1.5 font-serif text-base text-ink">{t(lang, "mealWineInput.current", { name: wine.name })}</p>
+      <div>
+        <p className="font-serif text-base text-ink">{t(lang, "mealWineInput.current", { name: wine.name })}</p>
         <div className="mt-2 flex gap-4">
           <button type="button" onClick={startEditing} className="text-xs font-medium text-clay hover:text-clay-dark">
             {t(lang, "mealWineInput.change")}
@@ -111,11 +116,8 @@ export function MealWineInput({
   }
 
   return (
-    <div className="border-t border-line pt-6">
-      <label className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-        {t(lang, "mealWineInput.heading")}
-      </label>
-      <p className="mt-1 text-xs text-ink-faint">{t(lang, "mealWineInput.description")}</p>
+    <div>
+      <p className="text-xs text-ink-faint">{t(lang, "mealWineInput.description")}</p>
 
       <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-2 sm:flex-row">
         <input
