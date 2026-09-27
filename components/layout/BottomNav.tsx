@@ -43,7 +43,19 @@ export function BottomNav({ lang }: { lang: Lang }) {
       aria-label={t(lang, "nav.mainNavMobile")}
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <ul className="grid grid-cols-5">
+      {/* px-3 på selve rutenettet (IKKE på <nav>, som fortsatt skal ha
+       * bakgrunn/border helt ut til kantene) – uten denne satt den ytterste
+       * kolonnens tekst ("Hjem" til venstre, "I sesong" til høyre) helt
+       * inntil skjermkanten, midt i den avrundede hjørne-sonen nederst på
+       * en ekte iPhone. env(safe-area-inset-bottom) over dekker kun
+       * hjem-indikatoren (avstand fra BUNNEN), ikke selve hjørne-
+       * avrundingen (avstand fra SIDEN nær bunnen) – det finnes ingen egen
+       * CSS-variabel for hjørneradiusen, så en fast px-verdi er det
+       * pragmatiske svaret (samme løsning som er vanlig i native apper).
+       * Henrik, 27.09.2026, med skjermbilde: "telefonen er rund i kantene
+       * og kutter derfor ganske mye av den linja. feks så kutter den
+       * omtrent litt av 'g'en i 'I sesong'." */}
+      <ul className="grid grid-cols-5 px-3">
         {NAV_ITEMS.map(({ href, labelKey, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
