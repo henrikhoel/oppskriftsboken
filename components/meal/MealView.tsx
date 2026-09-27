@@ -170,6 +170,31 @@ import { t, type Lang } from "@/lib/i18n";
  *
  * Fortsatt ingen ny funksjonalitet i denne runden heller – samme prinsipp
  * som 3. runde (kun presentasjon/informasjonsarkitektur).
+ *
+ * BREDDE-RETTING 27.09.2026 (6. runde – Henrik, med to skjermbilder av den
+ * levende siden: "det ser ut som du har lagd en sperre sånn at tekst ikke
+ * kan gå ut på sidene på siden, hvorfor det? du må fjerne sperren, da kan
+ * også 'start kokemodus' ligge til høyre i 'Planlegg kvelden' boksen, og
+ * ikke litt nede til høyre, og tittelen får plassen den trenger"). To ting
+ * rettet:
+ *
+ * 1. Den store tittel-`<input>`en i DIN MENY var (siden 3. runde) fanget i
+ *    en `max-w-3xl` (768px) kolonne – på en bred skjerm ble resten av
+ *    vinduet stående tomt mens selve tittelen (som ALDRI bryter linje, en
+ *    `<input>` kan strukturelt ikke wrappe som et avsnitt) ble klippet/
+ *    scrollet inni det trange feltet i stedet for å få bruke plassen som
+ *    faktisk fantes. DIN MENY-segmentets wrapper er derfor utvidet fra
+ *    `max-w-3xl` til `max-w-5xl` – selve tittel-inputen er allerede
+ *    `w-full`, så den strekker seg automatisk med den bredere kolonnen.
+ *    Retteliste-innholdet under (course/rettnavn/rediger-rad) er fortsatt
+ *    lesbart i denne bredden – det er enkeltlinjer, ikke løpende brødtekst.
+ * 2. PLANLEGG KVELDEN fikk samme `max-w-5xl`-utvidelse, OG selve innholdet
+ *    er lagt om fra én sentrert kolonne til en to-kolonners rad fra `lg`
+ *    og oppover: venstre kolonne = eyebrow/undertittel/spisetid-tidslinje,
+ *    høyre kolonne = "Start kokemodus"-knappen (rett ved siden av, ikke
+ *    lenger sentrert et stykke nedenfor). "Legg i handlelisten" ligger
+ *    fortsatt sentrert under hele raden, som den diskré sekundærhandlingen
+ *    den er. Under `lg` er rekkefølgen uendret (stables som før).
  */
 export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: boolean; lang: Lang }) {
   const [cookModeOpen, setCookModeOpen] = useState(false);
@@ -235,7 +260,7 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
   return (
     <>
     {/* ============ SEGMENT 1: DIN MENY (mørk, standard sidebunn) ============ */}
-    <div className="mx-auto max-w-3xl space-y-10 px-4 pt-10 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
+    <div className="mx-auto max-w-5xl space-y-10 px-4 pt-10 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         {anchorSlot ? (
           <Link
