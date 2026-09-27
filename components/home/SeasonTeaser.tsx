@@ -16,15 +16,25 @@ import { t, type Lang } from "@/lib/i18n";
  * app/page.tsx sin egen kommentar der) er derfor UENDRET, kun selve
  * seksjonens eget uttrykk er bygget om.
  *
- * Gjenbruker bevisst nøyaktig samme seksjons-"skall" som WinePairing.tsx
- * (relative isolate overflow-hidden bg-cream-dark py-16 sm:py-20 +
- * bakgrunnsbilde satt via vanlig CSS background-image, ikke next/image,
+ * Gjenbruker bevisst samme seksjons-"skall" som WinePairing.tsx
+ * (bakgrunnsbilde satt via vanlig CSS background-image, ikke next/image,
  * med samme kraftige bg-cream-dark/80-overlegg) – se filheaderen der for
  * hvorfor: faller elegant tilbake til den rene bg-cream-dark-fargen uten
  * "broken image"-ikon om public/images/season.jpg skulle mangle, og
  * teksten beholder samme lesbarhet uansett hvor lyst/mørkt bildet selv er.
  * Bildet (rå grønnsaker på en mørk benk) er valgt av Henrik spesifikt til
  * denne seksjonen.
+ *
+ * py-verdien var opprinnelig identisk med WinePairing (py-16 sm:py-20),
+ * men justert opp til py-20 sm:py-28 (samme som ClosingQuoteSection)
+ * 27.09.2026 – Henrik, etter å ha sett den ved siden av de nyere
+ * bilde-seksjonene: "nå syns jeg sesongdelen er hakket for smal, den er
+ * smalere enn resten". WinePairing selv er UENDRET (py-16 sm:py-20) –
+ * den var det opprinnelige referansepunktet ("samme plass og oppsett som
+ * mat & vin"), men de to seksjonene som kom til SENERE
+ * (ClosingQuoteSection, MoodModeSection) endte opp romsligere, og denne
+ * skulle helst matche helhetsinntrykket av flertallet, ikke den ene
+ * opprinnelige referansen.
  *
  * Innholdet selv er fortsatt EKTE, live data (ikke statisk mock-tekst som
  * CookModeShowcase) – henter sin egen minimale sesongdata direkte her, se
@@ -45,7 +55,7 @@ export async function SeasonTeaser({ lang }: { lang: Lang }) {
   const inSeason = resolveInSeasonIngredients(seasons, now).slice(0, 6);
 
   return (
-    <section className="relative isolate overflow-hidden bg-cream-dark py-16 sm:py-20">
+    <section className="relative isolate overflow-hidden bg-cream-dark py-20 sm:py-28">
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: "url(/images/season.jpg)" }}

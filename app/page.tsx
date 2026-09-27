@@ -264,15 +264,18 @@ export default async function HomePage() {
 
         {/* "I sesong nå" (spesifikasjon punkt 6) – bygget om 27.09.2026 fra
             et smalt, sentrert lenke-kort til en full-bredde seksjon med
-            samme plass/oppsett som WinePairing over (Henrik: "'I sesong nå'
-            fortjener samme plass og oppsett som 'mat & vin' ... jeg vil at
-            seksjonen forblir der den er på siden"). Selve POSISJONEN her
-            (mellom CookModeShowcase og CategoryShowcase, der
-            AtmosphereSection tidligere lå) er derfor bevisst UENDRET – kun
-            seksjonens eget uttrykk er bygget om, se SeasonTeaser.tsx sin
-            egen filheader. Ingen ekstra wrapper-div/padding her lenger –
-            SeasonTeaser er nå en selvstendig, full-bredde <section>,
-            akkurat som <WinePairing /> og <CookModeShowcase /> over/under. */}
+            samme OPPSETT (bakgrunnsbilde + overlegg + sentrert tekst) som
+            WinePairing over (Henrik: "'I sesong nå' fortjener samme plass
+            og oppsett som 'mat & vin' ... jeg vil at seksjonen forblir der
+            den er på siden"). Selve høyden/py-verdien er siden justert opp
+            forbi WinePairing sin egen (se SeasonTeaser.tsx sin filheader
+            for hvorfor), men grunnoppsettet er fortsatt det samme.
+            POSISJONEN her (mellom CookModeShowcase og CategoryShowcase,
+            der AtmosphereSection tidligere lå) er bevisst UENDRET – kun
+            seksjonens eget uttrykk er bygget om. Ingen ekstra
+            wrapper-div/padding her lenger – SeasonTeaser er nå en
+            selvstendig, full-bredde <section>, akkurat som <WinePairing />
+            og <CookModeShowcase /> over/under. */}
         <SeasonTeaser lang={lang} />
 
         <div className="py-16 sm:py-20">
