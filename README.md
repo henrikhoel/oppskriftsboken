@@ -155,6 +155,23 @@ I tillegg må `SITE_ACCESS_SECRET` (se 3.4) være satt – denne signerer "huske
 
 `/admin` (inkl. innloggingssiden) er unntatt fellespassordet – admin har sin egen, separate Supabase-innlogging (se 3.6), og nås direkte via "Admin"-lenken nederst på siden.
 
+### 3.8 Brukerkontoer for besøkende (favoritter, handleliste m.m.)
+
+(27.09.2026) Vanlige besøkende kan opprette konto (e-post + passord, via "Logg inn"-ikonet i toppmenyen) – i første omgang selve innloggings-grunnmuren; favoritter/handleliste/"I kjøleskapet"/"Bygg din egen meny" kobles til kontoen i egne, senere steg (se prosjektnotatet "Plan: brukerkonto"). To ting må settes opp manuelt i Supabase-dashbordet for at dette skal virke, i tillegg til selve migrasjonen:
+
+1. **Kjør migrasjonen** [`supabase/migrations/0021_user_accounts.sql`](supabase/migrations/0021_user_accounts.sql) på samme måte som i 3.2 (SQL Editor, eller `supabase db push`). Oppretter `favorites`- og `shopping_list_items`-tabellene med RLS.
+
+2. **Rediger to e-postmaler** under **Authentication → Email Templates**. Supabase sine STANDARDMALER bruker `{{ .ConfirmationURL }}`, som peker til en eldre flyt (token i URL-fragmentet, kun lesbart i nettleseren) – denne appen bruker i stedet den anbefalte server-side-flyten (se `app/auth/confirm/route.ts`), som krever `token_hash`/`type` som vanlige spørrestrenger. Bytt lenken i disse to malene til:
+
+   - **Confirm signup**: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/`
+   - **Reset Password**: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/tilbakestill-passord`
+
+   (Behold resten av malteksten som den er – kun selve lenke-URL-en trenger å endres.)
+
+3. **Legg til redirect-URL-er** under **Authentication → URL Configuration → Redirect URLs**: `<din-side>/auth/confirm` (bytt ut `<din-side>` med enten `http://localhost:3000` lokalt eller din faktiske `NEXT_PUBLIC_SITE_URL`). Supabase avviser stille en `emailRedirectTo`/`redirectTo` som ikke står i denne listen.
+
+Uten steg 2 og 3 vil registrering og "glemt passord" fortsatt fungere teknisk (kontoen/tilbakestillingen opprettes), men lenken i selve e-posten vil ikke føre brukeren dit den skal.
+
 ## 4. Kjøre lokalt
 
 ```bash

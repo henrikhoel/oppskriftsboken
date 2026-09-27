@@ -284,6 +284,18 @@ export function LogOutIcon(props: IconProps) {
   );
 }
 
+// (27.09.2026) Lagt til for "Logg inn / min konto"-inngangen i Header.tsx –
+// se filheaderen der. Enkel hode+skuldre-silhuett, samme strekvekt/stil
+// som resten av ikonene i denne filen.
+export function UserIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20c1.4-3.6 4.4-5.5 7.5-5.5s6.1 1.9 7.5 5.5" />
+    </svg>
+  );
+}
+
 export function ImageIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>

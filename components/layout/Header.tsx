@@ -7,6 +7,7 @@ import { HeaderSearchSlot } from "@/components/layout/HeaderSearchSlot";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { AppDownloadIconButton } from "@/components/layout/AppDownloadIconButton";
 import { ShoppingListBadgeCount } from "@/components/shopping/ShoppingListBadgeCount";
+import { AccountLogOutButton } from "@/components/auth/AccountLogOutButton";
 import {
   BookIcon,
   CameraIcon,
@@ -15,6 +16,7 @@ import {
   LeafIcon,
   SearchIcon,
   ShoppingBagIcon,
+  UserIcon,
 } from "@/components/ui/icons";
 
 /* Admin-lenken i toppmenyen er fjernet etter ønske – den finnes fortsatt
@@ -32,7 +34,16 @@ import {
    sendes til andre besøkende (ikke bare skjult med CSS).
 
    (27.09.2026) Fellespassord-innlogging (hasSiteAccess/"Logg ut") er
-   fjernet igjen – se filheaderen i proxy.ts for hele bildet. */
+   fjernet igjen – se filheaderen i proxy.ts for hele bildet.
+
+   (27.09.2026) Ny "Logg inn"/konto-inngang for VANLIGE besøkende (ikke
+   admin) – se lib/actions/account.ts. Favoritter, handleliste,
+   "I kjøleskapet" og "Bygg din egen meny" er i ferd med å bli
+   kontoeksklusive (se prosjektnotatet "Plan: brukerkonto"), så dette må nå
+   være en tydelig, alltid synlig inngang – ikke bare en liten ekstra-
+   detalj. `user` (allerede hentet under for isAdmin) avgjør om det vises
+   et innloggings- eller utloggings-ikon; ingen egen "min konto"-side ennå
+   (kommer senere), kun av/på. */
 export async function Header() {
   const lang = await getLang();
   // getCurrentUserFast (ikke getCurrentUser) – Header rendres på HVER eneste
@@ -148,6 +159,20 @@ export async function Header() {
               className="flex h-10 w-10 items-center justify-center rounded-full text-lg font-medium leading-none text-clay transition-colors hover:bg-cream-dark hover:text-clay-dark"
             >
               +
+            </Link>
+          )}
+          {user ? (
+            <AccountLogOutButton
+              lang={lang}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
+            />
+          ) : (
+            <Link
+              href="/logg-inn"
+              aria-label={t(lang, "nav.login")}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
+            >
+              <UserIcon className="h-5 w-5" />
             </Link>
           )}
           <LanguageSwitcher lang={lang} className="ml-1" />

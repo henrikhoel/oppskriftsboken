@@ -27,12 +27,84 @@ const DICT = {
   // (/hva-kan-jeg-lage), kun den synlige teksten er ny.
   "nav.pantry": { no: "I kjøleskapet", en: "In the fridge" },
   "nav.language": { no: "Språk", en: "Language" },
-  // (26.09.2026) Logger ut av FELLESPASSORDET for hele nettstedet (se
-  // proxy.ts/app/logg-ut/route.ts) – IKKE det samme som admin sin egen
-  // SignOutButton.tsx (som logger ut av en Supabase-konto). Synlig for
-  // alle, ikke bare admin – Henrik ønsket den godt synlig ved siden av
-  // NO/EN-bryteren i toppmenyen, se Header.tsx.
+  // Opprinnelig for fellespassordet for hele nettstedet (fjernet
+  // 27.09.2026, se filheaderen i proxy.ts) – gjenbrukt samme dag til
+  // AccountLogOutButton.tsx (logger ut av en vanlig brukerkonto, se
+  // lib/actions/account.ts sin signOutAccount). IKKE det samme som admin
+  // sin egen SignOutButton.tsx/lib/actions/auth.ts sin signOut.
   "nav.logOut": { no: "Logg ut", en: "Log out" },
+  "nav.login": { no: "Logg inn", en: "Log in" },
+
+  // ─────────────────────────── Brukerkonto (27.09.2026) ──────────────────
+  // Registrering/innlogging/utlogging/glemt passord for VANLIGE besøkende –
+  // se lib/actions/account.ts sin filheader for hele bakgrunnen. Egen
+  // nøkkelfamilie fra admin sin "Logg inn på admin"-side (som har sin
+  // tekst hardkodet direkte i app/admin/login/page.tsx, ikke i ordboken).
+  "account.emailLabel": { no: "E-post", en: "Email" },
+  "account.passwordLabel": { no: "Passord", en: "Password" },
+  "account.confirmPasswordLabel": { no: "Bekreft passord", en: "Confirm password" },
+  "account.newPasswordLabel": { no: "Nytt passord", en: "New password" },
+
+  "account.loginTitle": { no: "Logg inn", en: "Log in" },
+  "account.loginButton": { no: "Logg inn", en: "Log in" },
+  "account.loginPending": { no: "Logger inn …", en: "Logging in …" },
+  "account.noAccountYet": { no: "Har du ikke konto?", en: "Don't have an account?" },
+  "account.signUpLink": { no: "Opprett konto", en: "Create an account" },
+  "account.forgotPasswordLink": { no: "Glemt passordet?", en: "Forgot your password?" },
+
+  "account.signUpTitle": { no: "Opprett konto", en: "Create an account" },
+  // Vises øverst på registreringssiden – forklarer HVORFOR man i det hele
+  // tatt trenger konto, siden dette (i motsetning til f.eks. en nettbutikk)
+  // ikke er opplagt ut fra kontekst alene.
+  "account.signUpIntro": {
+    no: "Favoritter, handleliste, «I kjøleskapet» og «Bygg din egen meny» er forbeholdt de med konto. Resten av siden kan du bruke fritt uten å opprette en.",
+    en: "Favorites, the shopping list, “In the fridge” and “Build your own menu” are reserved for account holders. The rest of the site is free to use without one.",
+  },
+  "account.signUpButton": { no: "Opprett konto", en: "Create account" },
+  "account.signUpPending": { no: "Oppretter konto …", en: "Creating account …" },
+  "account.alreadyHaveAccount": { no: "Har du allerede konto?", en: "Already have an account?" },
+  "account.loginLink": { no: "Logg inn", en: "Log in" },
+  "account.passwordMinLengthHint": {
+    no: "Minst 8 tegn.",
+    en: "At least 8 characters.",
+  },
+  "account.checkYourEmailTitle": { no: "Sjekk e-posten din", en: "Check your email" },
+
+  "account.forgotPasswordTitle": { no: "Glemt passordet?", en: "Forgot your password?" },
+  "account.forgotPasswordIntro": {
+    no: "Skriv inn e-postadressen din, så sender vi deg en lenke for å tilbakestille passordet.",
+    en: "Enter your email address and we'll send you a link to reset your password.",
+  },
+  "account.forgotPasswordButton": { no: "Send tilbakestillingslenke", en: "Send reset link" },
+  "account.forgotPasswordPending": { no: "Sender …", en: "Sending …" },
+  // Query-parameteren `?feil=utlopt` fra app/auth/confirm/route.ts (lenken
+  // i e-posten var ugyldig/brukt/utløpt) – IKKE et feltvalideringsfeil fra
+  // selve skjemaet her (det håndteres av requestPasswordReset sin egen
+  // `error`-state som vanlig).
+  "account.resetLinkExpiredError": {
+    no: "Lenken var ugyldig eller hadde gått ut. Be om en ny under.",
+    en: "The link was invalid or had expired. Request a new one below.",
+  },
+  "account.backToLogin": { no: "Tilbake til innlogging", en: "Back to log in" },
+
+  "account.resetPasswordTitle": { no: "Velg nytt passord", en: "Choose a new password" },
+  "account.resetPasswordButton": { no: "Oppdater passord", en: "Update password" },
+  "account.resetPasswordPending": { no: "Oppdaterer …", en: "Updating …" },
+  // Vises i stedet for selve skjemaet når siden besøkes uten en gyldig
+  // "recovery"-sesjon (lenken i e-posten var ugyldig/utløpt/allerede brukt,
+  // eller siden ble bokmerket/besøkt direkte) – se app/tilbakestill-passord/page.tsx.
+  "account.resetPasswordInvalidTitle": { no: "Lenken er ugyldig eller utløpt", en: "The link is invalid or expired" },
+  "account.resetPasswordInvalidDescription": {
+    no: "Be om en ny tilbakestillingslenke, så kan du velge nytt passord.",
+    en: "Request a new reset link, then you can choose a new password.",
+  },
+
+  "account.demoModeTitle": { no: "Kontoer er utilgjengelig i demo-modus", en: "Accounts are unavailable in demo mode" },
+  "account.demoModeDescription": {
+    no: "Koble til et Supabase-prosjekt i .env.local for å kunne opprette konto. Se README.md.",
+    en: "Connect a Supabase project in .env.local to enable accounts. See README.md.",
+  },
+  "account.backToHome": { no: "Tilbake til forsiden", en: "Back to the homepage" },
 
   // --- "Legg til på hjemskjerm": nå et lite ikon i headeren (26.09.2026,
   // se filheaderen i AppDownloadIconButton.tsx), tidligere en egen
