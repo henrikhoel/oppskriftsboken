@@ -527,9 +527,17 @@ export function EveningExperience({
            * i #191917 blandet med bildets egne mørke piksler leser som grått
            * nettopp fordi #191917 ER en gråtone sammenlignet med #0b0b0a.
            * Byttet derfor selve fargen til `bg-cream` (samme fargeverdi som
-           * resten av siden sin bunn), fortsatt på `/95` – nå blander
-           * overlegget seg med SAMME nesten-sorte tone som omgivelsene i
-           * stedet for en synlig lysere/gråere flate.
+           * resten av siden sin bunn), på `/95` – nå blander overlegget seg
+           * med SAMME nesten-sorte tone som omgivelsene i stedet for en
+           * synlig lysere/gråere flate.
+           *
+           * (29.09.2026, 13. runde – Henrik byttet samtidig selve bildet til
+           * et annet, bredere bord-med-stearinlys-motiv, og ba om at
+           * overlegget skrus NED en del igjen: "bytt til dette bildet, og
+           * skru ned overlayen en del") – `/95` → `/78`. Bildet er nå igjen
+           * tydeligere synlig (samme balanse som den opprinnelige `/72`,
+           * bare med riktig `bg-cream`-farge fra forrige runde i stedet for
+           * den grålige `bg-cream-dark`).
            * PÅ BORDET sin tidligere `bg-cream-dark`-flate (se filheaderen
            * lenger ned) er derfor fjernet – gjennomsiktig, som de to andre,
            * slik at bildet skinner gjennom overalt. VED SERVERING og
@@ -544,7 +552,7 @@ export function EveningExperience({
               style={{ backgroundImage: "url(/images/evening-table.jpg)" }}
               aria-hidden="true"
             />
-            <div className="absolute inset-0 bg-cream/95" aria-hidden="true" />
+            <div className="absolute inset-0 bg-cream/78" aria-hidden="true" />
 
             <div className="relative">
           <Reveal>
