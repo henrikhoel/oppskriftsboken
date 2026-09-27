@@ -621,7 +621,11 @@ function CourseRow({
         {t(lang, `mealBuilder.role.${role}`)}
       </span>
 
-      <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+      {/* gap-x-[18px] (30.09.2026, "'bytt rett' ligger litt klemt inntil
+          retten [...] ørlite mer avstand, kanskje 16-20px, men fortsatt på
+          samme linje") – var gap-x-3 (12px), midt i det ønskede
+          16-20px-spennet. Fortsatt samme linje/flex-rad, kun luften økt. */}
+      <div className="mt-0.5 flex flex-wrap items-baseline gap-x-[18px] gap-y-0.5">
         <p className={clsx("font-serif text-sm leading-snug text-ink transition-opacity sm:text-base", regenerating && "opacity-50")}>
           {title}
         </p>
