@@ -342,6 +342,20 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
               {t(lang, "mealPage.saveButton")}
             </button>
           )}
+
+          {/* "Legg i handlelisten" flyttet hit fra "Planlegg kvelden"
+              (29.09.2026, Henrik: "'legg hele menyen i handlelisten' passer
+              ikke her. den kan ligge oppe sammen med 'lagre menyen'") – se
+              MealShoppingListSection.tsx sin filheader for omfargingen som
+              fulgte med flyttingen (tilbake til den mørke ink-familien,
+              samme som "Skriv ut"/"Lagre menyen" rett over, siden dette nå
+              er DIN MENY sin mørke topplinje igjen, ikke lenger den lyse
+              "Planlegg kvelden"-seksjonen). */}
+          {slots.length > 0 && (
+            <div id="meal-shopping-list">
+              <MealShoppingListSection slots={slots} lang={lang} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -522,15 +536,31 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         som components/home/CookModeShowcase.tsx bruker på forsiden (se
         filheaderen over for hele begrunnelsen). Kokemodus er fortsatt DEN
         ene tydelige, men nå bevisst KOMPAKTE CTA-en (ikke lenger full
-        bredde); handlelisten er en diskré tekstlenke, tydelig sekundær.
-        Notat-inputen er fortsatt fjernet (28.09.2026, se tidligere
+        bredde). Notat-inputen er fortsatt fjernet (28.09.2026, se tidligere
         OPPFØLGING-avsnitt i filheaderen) – kun feltet i datamodellen
         (MealSession.notes) og setNotes (useMealSession.ts) lever videre,
-        vist i utskriftsoppsummeringen lenger ned. */}
+        vist i utskriftsoppsummeringen lenger ned.
+
+        (29.09.2026, 8. runde – Henrik: "'legg hele menyen i handlelisten'
+        passer ikke her. den kan ligge oppe sammen med 'lagre menyen'") –
+        MealShoppingListSection er flyttet UT herfra og opp i DIN MENY sin
+        topplinje (se over), rett ved siden av "Lagre menyen". Igjen (samme
+        Henrik-melding): "nå må vi bare midtstille 'planlegg kvelden' og
+        start kokemodus. sånn at de ligger midt på boksen og har like mye
+        luft under som over" – seksjonen er derfor gjort om til en
+        `flex`-boks med en `min-h-*` (i stedet for kun symmetrisk `py-*`,
+        som bare garanterer luft rundt YTTERKANTEN av innholdet, ikke at
+        selve innholdet sitter midt i boksen når boksen er høyere enn
+        innholdet trenger) – `justify-center` fordeler da overskytende
+        høyde likt over og under innholdet uansett faktisk innholdshøyde
+        (f.eks. om "Vis tidslinje" utvides). Selve raden (undertittel/
+        tidslinje til venstre, kokemodus-knappen til høyre) er samtidig
+        byttet fra `items-end` til `items-center`, slik at knappen sentreres
+        på tvers av raden i stedet for å bunnstilles mot venstrekolonnen. */}
     {slots.length > 0 && (
-      <section className="bg-ink py-16 sm:py-20 print:hidden">
+      <section className="flex min-h-[26rem] flex-col justify-center bg-ink py-16 sm:min-h-[30rem] sm:py-20 print:hidden">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <div className="lg:flex lg:items-end lg:justify-between lg:gap-12">
+          <div className="lg:flex lg:items-center lg:justify-between lg:gap-12">
             <div className="lg:max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
                 {t(lang, "eveningExperience.planButton")}
@@ -559,10 +589,6 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
                 </button>
               </div>
             )}
-          </div>
-
-          <div className="mt-8 text-center lg:mt-10" id="meal-shopping-list">
-            <MealShoppingListSection slots={slots} lang={lang} />
           </div>
         </div>
       </section>

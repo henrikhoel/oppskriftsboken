@@ -37,10 +37,20 @@ import { t, type Lang } from "@/lib/i18n";
  * diskré, understrekede tekst-lenke-stil som "Vis tidslinje" i
  * MealTimelineSection.tsx bruker – ren typografisk hierarki (primær CTA vs.
  * sekundær tekstlenke) i stedet for to konkurrerende knappe-bokser.
- * Fargene under er samtidig byttet fra den mørke standardpaletten til
- * "cream"-familien (mørk tekst), samme begrunnelse som i
- * MealTimelineSection.tsx sin filheader – denne komponenten har heller
- * ingen andre importører enn MealView.tsx.
+ *
+ * FLYTTET TILBAKE 29.09.2026 (8. runde – Henrik: "'legg hele menyen i
+ * handlelisten' passer ikke her. den kan ligge oppe sammen med 'lagre
+ * menyen'") – monteres nå i DIN MENY sin mørke topplinje (se MealView.tsx),
+ * rett ved siden av "Skriv ut"/"Lagre menyen", IKKE lenger i den lyse
+ * "Planlegg kvelden"-seksjonen. Fargene under er derfor byttet TILBAKE fra
+ * "cream"-familien (mørk tekst, riktig på lys bunn) til "ink"-familien (lys
+ * tekst, riktig på mørk bunn) – samme fargeformel som søsken-lenkene
+ * "Skriv ut"/"Lagre menyen" bruker (`text-ink-faint` +
+ * `decoration-line-strong`). Ytre wrapper byttet fra `text-center` til
+ * `text-right` (og "ferdig"-raden fra `justify-center` til `justify-end`),
+ * siden denne nå sitter i en høyrestilt (`items-end`) kolonne øverst på
+ * siden i stedet for alene, sentrert, i sin egen brede seksjon. Denne
+ * komponenten har fortsatt ingen andre importører enn MealView.tsx.
  */
 export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot[]; lang: Lang }) {
   const { addFromRecipe } = useShoppingList();
@@ -52,7 +62,7 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
   const suggestedCount = slots.length - existingSlots.length;
 
   if (existingSlots.length === 0) {
-    return <p className="text-xs text-cream/55">{t(lang, "mealShopping.noExisting")}</p>;
+    return <p className="text-xs text-ink-faint">{t(lang, "mealShopping.noExisting")}</p>;
   }
 
   async function handleAdd() {
@@ -87,18 +97,18 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
   }
 
   return (
-    <div className="text-center">
+    <div className="text-right">
       {!result ? (
         <button
           type="button"
           onClick={handleAdd}
           disabled={loading}
-          className="text-xs font-medium text-cream/70 underline decoration-cream/30 underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? t(lang, "mealShopping.loading") : t(lang, "mealShopping.button")}
         </button>
       ) : (
-        <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
           <span className="text-olive-dark">{t(lang, "mealShopping.done")}</span>
           <Link href="/handleliste" className="font-medium text-clay hover:text-clay-dark">
             {t(lang, "mealShopping.viewList")} →
@@ -109,7 +119,7 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
       {error && <p className="mt-2 text-xs text-clay-dark">{error}</p>}
 
       {suggestedCount > 0 && (
-        <p className="mt-1.5 text-[11px] italic text-cream/55">
+        <p className="mt-1.5 text-[11px] italic text-ink-faint">
           {t(lang, "mealShopping.skippedSuggested", { count: suggestedCount })}
         </p>
       )}
