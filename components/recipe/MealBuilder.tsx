@@ -328,7 +328,34 @@ export function MealBuilder({
     // Se filheaderen over for hele redesign-resonnementet (29.09.2026).
     // Full-bleed-teknikk identisk med RecipeHero.tsx (kun uten xl:-prefiks –
     // denne skal være fullbredde på alle skjermstørrelser).
+    //
+    // BAKGRUNNSBILDE lagt til 30.09.2026 ("jeg vil ha dette bildet på
+    // seksjonen" – mørkt, stemningsfullt middagsbord med stearinlys og
+    // vinglass, uskarpt kjøkken i bakgrunnen). Seksjonen var bevisst
+    // forberedt for nettopp dette siden den første redesignrunden ("La
+    // seksjonen ha nok luft til at vi senere kan legge inn et mørkt
+    // atmosfærisk bakgrunnsbilde [...] men IKKE legg inn noe nytt bilde
+    // nå") – samme etablerte teknikk som DIN MENY-segmentet i
+    // MealView.tsx og EveningExperience.tsx sin "GJØR DET TIL EN
+    // KVELD"-inngang allerede bruker: et absolutt posisjonert
+    // bakgrunnsbilde + et flatt `bg-cream/86`-overlegg oppå (samme
+    // opasitet som de andre stedene, etter flere runders finjustering
+    // der), med selve innholdet eksplisitt `relative` (allerede tilfellet
+    // for div-en under) for å stable riktig oppå de to absolutte lagene.
+    // `public/images/recipe-evening.jpg` (egen fil, IKKE samme som
+    // EveningExperience.tsx sin `evening-table.jpg` – det er et allerede
+    // eksisterende, delt bakgrunnsbilde for I GLASSET/PÅ BORDET/STEMNING+
+    // MUSIKK på menysiden, og skal ikke endres av denne oppgaven), resizet
+    // til 2400px bredde og komprimert til ~130KB, samme størrelsesnivå
+    // som de andre bakgrunnsbildene.
     <section className="relative isolate left-1/2 -mx-[50vw] w-screen overflow-hidden bg-paper">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url(/images/recipe-evening.jpg)" }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-cream/86" aria-hidden="true" />
+
       <div className="relative mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-18 lg:px-8 lg:py-21 xl:max-w-[1280px]">
         {/* TO-KOLONNERS FRA lg NÅR MENYEN ER GENERERT (30.09.2026,
             tilbakemelding: "menyen kommer opp nedover på siden [...] jeg
