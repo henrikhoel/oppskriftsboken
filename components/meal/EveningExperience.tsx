@@ -538,6 +538,10 @@ export function EveningExperience({
            * tydeligere synlig (samme balanse som den opprinnelige `/72`,
            * bare med riktig `bg-cream`-farge fra forrige runde i stedet for
            * den grålige `bg-cream-dark`).
+           *
+           * (29.09.2026, 14. runde – Henrik: "uff, vi må ha den litt opp
+           * igjen") – `/78` var for lyst/synlig igjen; skrudd opp til `/86`,
+           * et sted midt mellom `/78` og `/94`.
            * PÅ BORDET sin tidligere `bg-cream-dark`-flate (se filheaderen
            * lenger ned) er derfor fjernet – gjennomsiktig, som de to andre,
            * slik at bildet skinner gjennom overalt. VED SERVERING og
@@ -552,7 +556,7 @@ export function EveningExperience({
               style={{ backgroundImage: "url(/images/evening-table.jpg)" }}
               aria-hidden="true"
             />
-            <div className="absolute inset-0 bg-cream/78" aria-hidden="true" />
+            <div className="absolute inset-0 bg-cream/86" aria-hidden="true" />
 
             <div className="relative">
           <Reveal>
