@@ -516,10 +516,20 @@ export function EveningExperience({
            * (29.09.2026, 11. runde – Henrik, etter å ha sett det live:
            * "kan du prøve å legge en veldig mørk overlay? sånn at det
            * nesten blir helt mørk? nå ble det litt for mye synlig bilde")
-           * – skrudd opp fra `/72` til `/94`. Bildet er nå såpass tonet ned
-           * at det leses som en anelse dybde/tekstur bak teksten (fortsatt
-           * synlig stearinlys-glød i mørket) fremfor et tydelig fotografi
-           * ved siden av innholdet.
+           * – skrudd opp fra `/72` til `/94`.
+           *
+           * (29.09.2026, 12. runde – Henrik: "ja, men det ser jo ikke SVART
+           * ut?? det er jo grått") – roten til problemet var FARGEN, ikke
+           * kun styrken: `bg-cream-dark` er #191917, en lysere, litt varm
+           * gråtone – IKKE sidens egentlige nesten-svarte bunnfarge
+           * (`bg-cream`, #0b0b0a, se app/globals.css sin filheader for
+           * hvorfor "cream" er den mørke fargefamilien). Et sterkt overlegg
+           * i #191917 blandet med bildets egne mørke piksler leser som grått
+           * nettopp fordi #191917 ER en gråtone sammenlignet med #0b0b0a.
+           * Byttet derfor selve fargen til `bg-cream` (samme fargeverdi som
+           * resten av siden sin bunn), fortsatt på `/95` – nå blander
+           * overlegget seg med SAMME nesten-sorte tone som omgivelsene i
+           * stedet for en synlig lysere/gråere flate.
            * PÅ BORDET sin tidligere `bg-cream-dark`-flate (se filheaderen
            * lenger ned) er derfor fjernet – gjennomsiktig, som de to andre,
            * slik at bildet skinner gjennom overalt. VED SERVERING og
@@ -534,7 +544,7 @@ export function EveningExperience({
               style={{ backgroundImage: "url(/images/evening-table.jpg)" }}
               aria-hidden="true"
             />
-            <div className="absolute inset-0 bg-cream-dark/94" aria-hidden="true" />
+            <div className="absolute inset-0 bg-cream/95" aria-hidden="true" />
 
             <div className="relative">
           <Reveal>
