@@ -99,6 +99,50 @@ import { t, type DictKey, type Lang } from "@/lib/i18n";
  *
  * Selve AI-kurateringen/ordforklaringene/"Se hvorfor"-mekanikken under er
  * FORTSATT URØRT av denne runden.
+ *
+ * REDESIGNET 28.09.2026 (5. runde – Henrik, etter å ha sett 4. runde satt
+ * live: "Problemet med dagens versjon er at den fortsatt føles som en lang
+ * tekstside. Nesten alle delene bruker samme mønster: liten gull-label →
+ * tekst → «Se hvorfor» → mye luft → neste del [...] Målet: «Gjør det til en
+ * kveld» skal føles som et lite kuratert magasinoppslag for akkurat denne
+ * middagen – ikke som en liste med AI-anbefalinger"). 4. runde rettet
+ * MAKRO-seksjoneringen (mørk/lys/mørk på HELE /meny/[id]); denne runden
+ * redesigner kun INNHOLDET/layouten INNI dette ene mørke segmentet – DIN
+ * MENY og PLANLEGG KVELDEN (MealView.tsx) er URØRT. Brief-ens eksplisitte
+ * prinsipp: hvert kapittel skal ha en BEVISST ULIK komposisjon (ikke samme
+ * mønster gjentatt fire ganger), fortsatt uten cards/bokser/illustrasjoner:
+ *
+ * 1. I GLASSET – nå en 2-kolonne redaksjonell komposisjon på desktop
+ *    (`lg:grid lg:grid-cols-[1.3fr_1fr]`) i stedet for én smal kolonne:
+ *    venstre = AI-ens vinanbefaling (uendret innhold), høyre = "Vinen din"
+ *    (MealWineInput) under en egen, mindre "HAR DU ALLEREDE EN VIN?"-etikett
+ *    (ny nøkkel `mealWineInput.ownWineHeading` – tydeligere invitasjon enn
+ *    den nøytrale "Vinen din"-etiketten som stod her i 4. runde), fortsatt
+ *    en bevisst SEKUNDÆR funksjon (mindre visuell vekt enn venstre kolonne),
+ *    ikke et eget skjema/kort. Stables vertikalt på mobil (`grid-cols-1`).
+ * 2. PÅ BORDET – fra en linje med "·"-atskilte ord TIL et responsivt rutenett
+ *    (`sm:grid-cols-2 lg:grid-cols-3`) der hvert element får sin egen luft i
+ *    stedet for å flyte i én setning – fortsatt ren typografi, ingen bokser.
+ * 3. STEMNING + MUSIKK – fra to stablede blokker TIL en bevisst ASYMMETRISK
+ *    2-kolonne-komposisjon på desktop (`lg:grid-cols-[1.6fr_1fr]`): STEMNING
+ *    får mest plass og en større, tyngre serif-stemme (den emosjonelle
+ *    hovedteksten), MUSIKK er forskjøvet ned (`lg:mt-16`) og markert mindre
+ *    – visuelt underordnet, som brief-en ba om.
+ * 4. VED SERVERING – fra samme oppsett som de tre over TIL en tydelig
+ *    AVSLUTTENDE komposisjon: sentrert, smalere kolonne, større
+ *    italic-serif "siste ord"-følelse, egen litt mørkere bunntone
+ *    (`bg-cream`, sidens egen mørkeste/"grunn"-tone – et bevisst symbolsk
+ *    "tilbake til roen" for kveldens siste beskjed fra CONVITE).
+ * 5. Svært subtile bakgrunnstone-variasjoner mellom kapitlene (i stedet for
+ *    én ensartet flate gjennom hele segmentet) – I GLASSET arver den ytre
+ *    `bg-paper`-fargen (MealView.tsx) uendret, PÅ BORDET får en anelse
+ *    lysere `bg-cream-dark`, STEMNING+MUSIKK tilbake til gjennomsiktig
+ *    (samme `bg-paper` som ytre segment), VED SERVERING den mørkeste tonen
+ *    (`bg-cream`, se punkt 4). Ingen av dem er et "card" – hver flate er
+ *    full bredde, kun typografien/max-w-xl-kolonnen holder innholdet smalt.
+ *
+ * Selve AI-kurateringen (getEveningCuration/getVinmonopoletWineSuggestion),
+ * ordforklaringene og "Se hvorfor"-mekanikken er FORTSATT urørt.
  */
 
 function escapeRegExp(value: string): string {
@@ -349,139 +393,163 @@ export function EveningExperience({
 
       {!loadingCuration && curation && (
         <>
-          {/* KAPITTEL - I GLASSET. Egen "scene": stor serif-overskrift
-           * (curation.wine.label – kort, dynamisk, ALDRI hardkodet "Pinot
+          {/* KAPITTEL - I GLASSET. Den mest fremtredende anbefalingen i
+           * segmentet (brief 29.09.2026 [5. runde]) – IKKE lenger én smal
+           * tekstkolonne, men en 2-kolonne redaksjonell komposisjon på
+           * desktop: venstre = AI-ens vinanbefaling (stor serif-overskrift,
+           * curation.wine.label – kort, dynamisk, ALDRI hardkodet "Pinot
            * Grigio", se filheaderen i kitchen-intelligence.ts – med
            * style-teksten som fallback for eldre cache-rader uten label),
-           * en liten stikkord-linje, så selve noten. "Se hvorfor"/"Finn en
-           * konkret vin" som to rolige linjer, ikke en knapperad.
+           * en liten stikkord-linje, så selve noten, "Se hvorfor"/"Finn en
+           * konkret vin" som to rolige linjer. Høyre = "Vinen din"
+           * (MealWineInput) – bevisst SEKUNDÆR (smalere kolonne, mindre
+           * etikett-vekt enn Eyebrow), ikke et eget skjema/kort. Stables
+           * vertikalt på mobil (`grid-cols-1`, høyre under venstre).
            *
-           * (28.09.2026) Kapittelet er IKKE lenger gatet bak
-           * `curation.wine` alene – "Vinen din" (MealWineInput, se under)
-           * skal alltid være tilgjengelig uavhengig av om AI-ens egen
-           * vinstil-anbefaling faktisk kom med denne gangen, samme garanti
-           * som da den var sitt eget kapittel på MealView.tsx. AI-delen
+           * Kapittelet er IKKE gatet bak `curation.wine` alene – "Vinen
+           * din" skal alltid være tilgjengelig uavhengig av om AI-ens egen
+           * vinstil-anbefaling faktisk kom med denne gangen. AI-delen
            * (label/tags/note/"Se hvorfor"/"Finn en konkret vin") vises
            * fortsatt kun `curation.wine &&`. */}
           <Reveal>
             <section className="border-t border-ink/10 px-5 py-10 sm:px-10 sm:py-14">
-              <div className="mx-auto max-w-xl">
+              {/* max-w-2xl (bredere enn de øvrige kapitlenes max-w-xl, se
+                  under) – gir 2-kolonne-oppsettet nødvendig bredde på
+                  desktop uten et for stort brudd i venstrekant mot
+                  kapitlene rett under; en bevisst, moderat asymmetri
+                  (magasin-oppslag varierer også spaltebredde per feature),
+                  ikke en inkonsekvens. */}
+              <div className="mx-auto max-w-2xl">
                 <Eyebrow>{t(lang, "eveningExperience.wineHeading")}</Eyebrow>
 
-                {curation.wine && (
-                  <>
-                    <p className="mt-6 text-balance font-serif text-2xl text-ink sm:text-3xl">
-                      {curation.wine.label || curation.wine.style}
-                    </p>
-                    {curation.wine.tags && curation.wine.tags.length > 0 && (
-                      <p className="mt-2.5 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-ink-faint">
-                        {curation.wine.tags.join(" · ")}
-                      </p>
-                    )}
-                    {curation.wine.note && (
-                      <GlossaryText
-                        text={curation.wine.note}
-                        glossary={curation.glossary}
-                        className="mt-4 max-w-md font-sans text-sm leading-relaxed text-ink-soft"
-                      />
-                    )}
-
-                    <div className="mt-4 flex flex-col items-start gap-2">
-                      <WhyToggle why={curation.wine.why} lang={lang} />
-                      {!vinResult && (
-                        <button
-                          type="button"
-                          onClick={handleFindWine}
-                          disabled={vinLoading}
-                          className="font-sans text-xs font-medium text-clay hover:text-clay-dark disabled:cursor-not-allowed disabled:text-ink-faint"
-                        >
-                          {vinLoading ? t(lang, "wine.vinmonopoletLoading") : t(lang, "eveningExperience.findWineButton")}
-                        </button>
-                      )}
-                    </div>
-                    {vinError && <p className="mt-2 font-sans text-xs text-clay-dark">{vinError}</p>}
-
-                    {vinResult && (
-                      <div className="mt-6 border-t border-ink/10 pt-5">
-                        <div className="flex gap-4">
-                          {!vinImageFailed && (
-                            // eslint-disable-next-line @next/next/no-img-element -- ekte, eksternt Vinmonopolet-bilde, se MealWineSection.tsx sin identiske begrunnelse
-                            <img
-                              src={vinResult.imageUrl}
-                              alt={vinResult.productName}
-                              onError={() => setVinImageFailed(true)}
-                              className="h-24 w-24 shrink-0 rounded-lg border border-ink/10 bg-cream object-contain"
-                            />
-                          )}
-                          <div className="min-w-0">
-                            <div className="flex items-baseline justify-between gap-2">
-                              <p className="font-serif text-base text-ink">{vinResult.productName}</p>
-                              {vinResult.priceNok !== null && (
-                                <p className="shrink-0 font-sans text-xs font-medium text-ink-soft">
-                                  {t(lang, "wine.priceLabel")}: {vinResult.priceNok} kr
-                                </p>
-                              )}
-                            </div>
-                            <p className="mt-1 font-sans text-xs leading-relaxed text-ink-soft">{vinResult.reasoning}</p>
-                          </div>
-                        </div>
-                        <a
-                          href={vinResult.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-4 inline-block font-sans text-xs font-medium text-clay hover:text-clay-dark"
-                        >
-                          {t(lang, "wine.viewProduct")} →
-                        </a>
-                        <p className="mt-3 max-w-md font-sans text-[0.7rem] leading-relaxed text-ink-faint">
-                          {t(lang, "wine.vinmonopoletDisclaimer")}
+                <div className="mt-6 lg:grid lg:grid-cols-[1.3fr_1fr] lg:gap-12">
+                  {/* Venstre: AI-ens egen vinstil-anbefaling. */}
+                  <div>
+                    {curation.wine ? (
+                      <>
+                        <p className="text-balance font-serif text-2xl text-ink sm:text-3xl">
+                          {curation.wine.label || curation.wine.style}
                         </p>
-                      </div>
-                    )}
-                  </>
-                )}
+                        {curation.wine.tags && curation.wine.tags.length > 0 && (
+                          <p className="mt-2.5 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-ink-faint">
+                            {curation.wine.tags.join(" · ")}
+                          </p>
+                        )}
+                        {curation.wine.note && (
+                          <GlossaryText
+                            text={curation.wine.note}
+                            glossary={curation.glossary}
+                            className="mt-4 max-w-md font-sans text-sm leading-relaxed text-ink-soft"
+                          />
+                        )}
 
-                {/* "VINEN DIN" (28.09.2026) – flyttet hit fra sitt eget
-                 * kapittel på MealView.tsx, se filheaderen over. Liten,
-                 * tilbaketrukket sans-serif-etikett (IKKE samme vekt som
-                 * Eyebrow over – dette er en underdel av I GLASSET, ikke et
-                 * nytt kapittel) etterfulgt av selve MealWineInput.tsx,
-                 * uendret komponent/funksjonalitet. */}
-                <div className={curation.wine ? "mt-10 border-t border-ink/10 pt-8" : "mt-6"}>
-                  <p className="font-sans text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-ink-faint">
-                    {t(lang, "mealWineInput.heading")}
-                  </p>
-                  <div className="mt-3">
-                    <MealWineInput wine={wine} onChange={onWineChange} lang={lang} />
+                        <div className="mt-4 flex flex-col items-start gap-2">
+                          <WhyToggle why={curation.wine.why} lang={lang} />
+                          {!vinResult && (
+                            <button
+                              type="button"
+                              onClick={handleFindWine}
+                              disabled={vinLoading}
+                              className="font-sans text-xs font-medium text-clay hover:text-clay-dark disabled:cursor-not-allowed disabled:text-ink-faint"
+                            >
+                              {vinLoading
+                                ? t(lang, "wine.vinmonopoletLoading")
+                                : t(lang, "eveningExperience.findWineButton")}
+                            </button>
+                          )}
+                        </div>
+                        {vinError && <p className="mt-2 font-sans text-xs text-clay-dark">{vinError}</p>}
+
+                        {vinResult && (
+                          <div className="mt-6 border-t border-ink/10 pt-5">
+                            <div className="flex gap-4">
+                              {!vinImageFailed && (
+                                // eslint-disable-next-line @next/next/no-img-element -- ekte, eksternt Vinmonopolet-bilde, se MealWineSection.tsx sin identiske begrunnelse
+                                <img
+                                  src={vinResult.imageUrl}
+                                  alt={vinResult.productName}
+                                  onError={() => setVinImageFailed(true)}
+                                  className="h-24 w-24 shrink-0 rounded-lg border border-ink/10 bg-cream object-contain"
+                                />
+                              )}
+                              <div className="min-w-0">
+                                <div className="flex items-baseline justify-between gap-2">
+                                  <p className="font-serif text-base text-ink">{vinResult.productName}</p>
+                                  {vinResult.priceNok !== null && (
+                                    <p className="shrink-0 font-sans text-xs font-medium text-ink-soft">
+                                      {t(lang, "wine.priceLabel")}: {vinResult.priceNok} kr
+                                    </p>
+                                  )}
+                                </div>
+                                <p className="mt-1 font-sans text-xs leading-relaxed text-ink-soft">
+                                  {vinResult.reasoning}
+                                </p>
+                              </div>
+                            </div>
+                            <a
+                              href={vinResult.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-4 inline-block font-sans text-xs font-medium text-clay hover:text-clay-dark"
+                            >
+                              {t(lang, "wine.viewProduct")} →
+                            </a>
+                            <p className="mt-3 max-w-md font-sans text-[0.7rem] leading-relaxed text-ink-faint">
+                              {t(lang, "wine.vinmonopoletDisclaimer")}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="h-px" aria-hidden="true" />
+                    )}
+                  </div>
+
+                  {/* Høyre: "Vinen din" (MealWineInput) – flyttet hit fra
+                   * sitt eget kapittel på MealView.tsx i 4. runde, nå gitt
+                   * en tydeligere, mer invitterende etikett (ny nøkkel
+                   * mealWineInput.ownWineHeading i stedet for det nøytrale
+                   * mealWineInput.heading) – bevisst mindre vekt enn
+                   * Eyebrow-en over, dette er en sekundær funksjon, ikke et
+                   * nytt kapittel. Egen border-t KUN på mobil/nettbrett
+                   * (der kolonnene stables) – på desktop skiller selve
+                   * grid-gapet de to kolonnene i stedet. */}
+                  <div className="mt-10 border-t border-ink/10 pt-8 lg:mt-0 lg:border-t-0 lg:border-l lg:border-ink/10 lg:pl-10 lg:pt-0">
+                    <p className="font-sans text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-ink-faint">
+                      {t(lang, "mealWineInput.ownWineHeading")}
+                    </p>
+                    <div className="mt-3">
+                      <MealWineInput wine={wine} onChange={onWineChange} lang={lang} />
+                    </div>
                   </div>
                 </div>
               </div>
             </section>
           </Reveal>
 
-          {/* KAPITTEL - PÅ BORDET. Kuratert restaurantnote: horisontal
-           * "·"-atskilt liste på desktop, vertikal stabel på mobil. Egen
-           * "Se detaljer →"-ordlyd (i stedet for gjentatt "Hvorfor?" under
-           * hvert element) via showKey/hideKey på WhyToggle. */}
+          {/* KAPITTEL - PÅ BORDET (redesignet 5. runde, 28.09.2026 – Henrik:
+           * "Denne delen trenger mest opprydding. Dagens løse tekst/prikker
+           * skal bort"). Fra én "·"-atskilt linje TIL et responsivt
+           * rutenett (`sm:grid-cols-2 lg:grid-cols-3`) – hvert element får
+           * sin egen luft/spalte i stedet for å flyte i samme setning,
+           * fortsatt ren typografi (ingen cards/bokser/rammer). "Se
+           * detaljer" er fortsatt bevisst lite/sekundært under hvert
+           * element. Antall elementer varierer med AI-svaret (typisk 2–5)
+           * – rutenettet folder naturlig, ingen fast tre-kolonne-antakelse.
+           * Stables i én kolonne på mobil. */}
           {curation.tableAccompaniments.length > 0 && (
             <Reveal>
-              <section className="border-t border-ink/10 px-5 py-10 sm:px-10 sm:py-14">
+              <section className="border-t border-ink/10 bg-cream-dark px-5 py-10 sm:px-10 sm:py-14">
                 <div className="mx-auto max-w-xl">
                   <Eyebrow>{t(lang, "eveningExperience.tableHeading")}</Eyebrow>
-                  <ul className="mt-6 flex flex-col divide-y divide-ink/10 sm:flex-row sm:flex-wrap sm:divide-y-0">
+                  <ul className="mt-6 grid grid-cols-1 gap-x-10 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
                     {curation.tableAccompaniments.map((item, i) => (
-                      <li
-                        key={i}
-                        className={clsx(
-                          "py-3 sm:py-0",
-                          i > 0 && "sm:before:mx-4 sm:before:text-ink-faint sm:before:content-['·']",
-                        )}
-                      >
+                      <li key={i}>
                         <GlossaryText
                           text={item}
                           glossary={curation.glossary}
                           as="span"
-                          className="font-serif text-base text-ink sm:text-lg"
+                          className="font-serif text-lg leading-snug text-ink"
                         />
                         <WhyToggle
                           why={curation.tableAccompanimentsWhy?.[item]}
@@ -497,43 +565,47 @@ export function EveningExperience({
             </Reveal>
           )}
 
-          {/* KAPITTEL - STEMNING + MUSIKK. EN sammenhengende "scene" (punkt 6:
-           * "musikk skal integreres visuelt med stemning") – markerer
-           * stemningsskiftet punkt 5 ber om ved at STEMNING og MUSIKK deler
-           * ett kapittel, ikke ved en egen bakgrunnsflate. Kun den faktiske
-           * musikk-RETNINGEN vises (curation.musicDirection, en kort
-           * sjanger/søkefrase) – INGEN falsk sang-tittel, spilleliste eller
-           * ▶-avspillingsknapp, se filheaderen i kitchen-intelligence.ts for
-           * hvorfor (5.11: aldri late som en Spotify-integrasjon finnes).
-           *
-           * (28.09.2026) Den tidligere egne `bg-cream-dark/50`-tonede
-           * bånd-bakgrunnen (+ `border-y` i stedet for `border-t`) er
-           * fjernet – Henrik: "fjern den store, litt tilfeldige mørke
-           * boksen". Kapittelet er nå visuelt likestilt med de andre
-           * (samme `border-t border-ink/10`, ingen egen flate), se
-           * filheaderen øverst i filen for hele begrunnelsen. */}
+          {/* KAPITTEL - STEMNING + MUSIKK (redesignet 5. runde, 28.09.2026 –
+           * Henrik: "Disse to skal oppleves som én samlet del: atmosfæren
+           * rundt middagen [...] STEMNING skal få mest plass og være den
+           * emosjonelle hovedteksten [...] MUSIKK ligger ved siden av eller
+           * forskjøvet [...] sekundær til stemningen"). Fra to stablede
+           * blokker i én kolonne TIL en bevisst ASYMMETRISK 2-kolonne-
+           * komposisjon på desktop (`lg:grid-cols-[1.6fr_1fr]`): STEMNING
+           * får mest bredde og en større serif-stemme (den emosjonelle
+           * hovedteksten), MUSIKK er visuelt underordnet OG forskjøvet ned
+           * (`lg:mt-16`) i sin egen, smalere kolonne – ikke likestilt med
+           * STEMNING slik de to var i forrige runde. Stables normalt på
+           * mobil/nettbrett. Kun den faktiske musikk-RETNINGEN vises
+           * (curation.musicDirection, en kort sjanger/søkefrase) – INGEN
+           * falsk sang-tittel, spilleliste eller ▶-avspillingsknapp, se
+           * filheaderen i kitchen-intelligence.ts for hvorfor (5.11: aldri
+           * late som en Spotify-integrasjon finnes). Ingen egen
+           * bakgrunnsflate her (gjennomsiktig, samme `bg-paper` som ytre
+           * segment i MealView.tsx) – se filheaderen øverst for hele
+           * bakgrunnstone-rytmen mellom kapitlene. */}
           {(curation.mood || curation.musicDirection) && (
             <Reveal>
               <section className="border-t border-ink/10 px-5 py-10 sm:px-10 sm:py-14">
-                <div className="mx-auto max-w-xl">
+                <div className="mx-auto max-w-2xl lg:grid lg:grid-cols-[1.6fr_1fr] lg:items-start lg:gap-14">
                   {curation.mood && (
                     <div>
                       <Eyebrow>{t(lang, "eveningExperience.moodHeading")}</Eyebrow>
                       <GlossaryText
                         text={curation.mood}
                         glossary={curation.glossary}
-                        className="mt-5 text-balance font-serif text-2xl leading-snug text-ink sm:text-3xl"
+                        className="mt-5 text-balance font-serif text-3xl leading-snug text-ink sm:text-4xl"
                       />
                       <WhyToggle why={curation.moodWhy} lang={lang} />
                     </div>
                   )}
                   {curation.musicDirection && (
-                    <div className={curation.mood ? "mt-12" : ""}>
+                    <div className={curation.mood ? "mt-12 lg:mt-16" : ""}>
                       <Eyebrow>{t(lang, "eveningExperience.musicHeading")}</Eyebrow>
                       <GlossaryText
                         text={curation.musicDirection}
                         glossary={curation.glossary}
-                        className="mt-5 font-serif text-xl text-ink sm:text-2xl"
+                        className="mt-5 font-serif text-lg text-ink-soft"
                       />
                       <WhyToggle why={curation.musicDirectionWhy} lang={lang} />
                     </div>
@@ -543,21 +615,32 @@ export function EveningExperience({
             </Reveal>
           )}
 
-          {/* KAPITTEL - VED SERVERING. Nesten en håndskrevet kjøkkensjef-
-           * note: kursivert serif, ingen kort/boks, kun typografi og
-           * whitespace. Vises KUN når AI-en faktisk fant et genuint
-           * relevant råd (curation.servingTip er null ellers). */}
+          {/* KAPITTEL - VED SERVERING (redesignet 5. runde, 28.09.2026 –
+           * Henrik: "Dette skal føles som kveldens siste beskjed fra
+           * CONVITE. Ikke presenter den som enda en vanlig seksjon
+           * identisk med resten. Lag en tydelig avsluttende editorial
+           * note"). Fra samme venstrestilte oppsett som de andre TIL en
+           * bevisst AVSLUTTENDE komposisjon: sentrert, smalere kolonne
+           * (`max-w-sm`, ikke `max-w-xl`), større italic-serif "siste
+           * ord"-følelse, og en egen, litt mørkere bunntone (`bg-cream` –
+           * sidens egen mørkeste/"grunn"-tone, se filheaderen øverst i
+           * filen) i stedet for å arve samme flate som kapitlene over.
+           * Vises KUN når AI-en faktisk fant et genuint relevant råd
+           * (curation.servingTip er null ellers). "Se hvorfor" ligger
+           * fortsatt diskret under, sentrert. */}
           {curation.servingTip && (
             <Reveal>
-              <section className="border-t border-ink/10 px-5 py-10 sm:px-10 sm:py-14">
-                <div className="mx-auto max-w-xl">
+              <section className="border-t border-ink/10 bg-cream px-5 py-14 text-center sm:px-10 sm:py-20">
+                <div className="mx-auto max-w-sm">
                   <Eyebrow>{t(lang, "eveningExperience.servingHeading")}</Eyebrow>
                   <GlossaryText
                     text={curation.servingTip}
                     glossary={curation.glossary}
-                    className="mt-5 max-w-md font-serif text-lg italic leading-relaxed text-ink sm:text-xl"
+                    className="mt-6 font-serif text-xl italic leading-relaxed text-ink sm:text-2xl"
                   />
-                  <WhyToggle why={curation.servingTipWhy} lang={lang} />
+                  <div className="mt-3 flex justify-center">
+                    <WhyToggle why={curation.servingTipWhy} lang={lang} />
+                  </div>
                 </div>
               </section>
             </Reveal>
@@ -576,9 +659,15 @@ export function EveningExperience({
        * (28.09.2026) Luften rundt linjen er strammet inn
        * (`py-16 sm:py-24` → `py-10 sm:py-14`, se filheaderen øverst i
        * filen) – Henrik: linjen kan godt stå igjen, men uten det store
-       * tomrommet som var rundt den. */}
+       * tomrommet som var rundt den.
+       *
+       * (28.09.2026, 5. runde) `bg-cream` lagt til – samme mørkeste
+       * bunntone som VED SERVERING-kapittelet rett over (se filheaderen
+       * øverst), slik at denne aller siste linjen fortsatt leser som del av
+       * SAMME rolige avslutning, uansett om VED SERVERING selv rendret
+       * (curation.servingTip kan være null). */}
       <Reveal>
-        <div className="border-t border-ink/10 px-5 py-10 text-center sm:px-10 sm:py-14">
+        <div className="border-t border-ink/10 bg-cream px-5 py-10 text-center sm:px-10 sm:py-14">
           {session.desiredReadyAt && (
             <p className="font-sans text-xs font-semibold uppercase tracking-[0.3em] text-ink-faint">
               {session.desiredReadyAt}

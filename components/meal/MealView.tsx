@@ -502,21 +502,28 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         Egen full-bredde `bg-paper`-seksjon (en anelse lysere enn sidens
         `bg-cream`-bunn – nok til å lese som et eget rom, strukturert slik
         at et fullbredde bakgrunnsbilde kan legges til her senere, IKKE lagt
-        til nå). Kapittel-inngangen (eyebrow + undertittel + beskrivelse) og
-        EveningExperience.tsx deler samme `max-w-xl`-kolonnebredde for
-        konsekvent venstrekant. "Vinen din" er IKKE lenger et eget kapittel
-        her – flyttet inn i EveningExperience.tsx sitt "I GLASSET"-kapittel,
-        se filheaderen der. */}
+        til nå). "Vinen din" er IKKE lenger et eget kapittel her – flyttet
+        inn i EveningExperience.tsx sitt "I GLASSET"-kapittel, se
+        filheaderen der.
+
+        (28.09.2026, 5. runde – Henrik: "gi inngangen mer tyngde som
+        starten på et nytt kapittel") – kapittel-inngangen under er nå en
+        egen, SENTRERT "tittelside"-komposisjon (større undertittel, en
+        tynn gull-strek som markerer kapittelskiftet, romsligere pt/pb) i
+        stedet for den venstrestilte, kompakte inngangen fra 4. runde – et
+        tydeligere brudd før selve EveningExperience.tsx-kapitlene (som
+        beholder sin egen, venstrestilte redaksjonelle stil). */}
     {slots.length > 0 && (
       <section className="bg-paper print:hidden">
-        <div className="mx-auto max-w-xl px-5 pt-16 sm:px-10 sm:pt-24">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+        <div className="mx-auto max-w-2xl px-5 pb-8 pt-20 text-center sm:px-10 sm:pb-10 sm:pt-28">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-clay">
             {t(lang, "eveningExperience.entryHeading")}
           </p>
-          <p className="mt-3 text-balance font-serif text-3xl text-ink sm:text-4xl">
+          <p className="mt-5 text-balance font-serif text-4xl text-ink sm:text-5xl">
             {t(lang, "eveningExperience.entrySubtitle")}
           </p>
-          <p className="mt-3 max-w-md font-serif text-lg text-ink-soft sm:text-xl">
+          <div className="mx-auto mt-6 h-px w-16 bg-clay/60" />
+          <p className="mx-auto mt-6 max-w-md font-serif text-lg text-ink-soft sm:text-xl">
             {t(lang, "eveningExperience.entryDescription")}
           </p>
         </div>

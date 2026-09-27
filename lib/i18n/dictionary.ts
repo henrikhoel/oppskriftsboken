@@ -938,6 +938,13 @@ const DICT = {
   // wine.retakePhoto direkte (samme foto-mønster som BeverageMatchChecker)
   // i stedet for å duplisere dem her.
   "mealWineInput.heading": { no: "Vinen din", en: "Your wine" },
+  // (28.09.2026, 5. runde redesign av "Gjør det til en kveld") Ny, mer
+  // invitterende etikett brukt SPESIFIKT der MealWineInput vises i
+  // EveningExperience.tsx sitt "I GLASSET"-kapittel (høyre kolonne, ved
+  // siden av AI-ens egen vinanbefaling) – se filheaderen der. Erstatter
+  // IKKE "mealWineInput.heading" over, som fortsatt brukes i print-
+  // oppsummeringen i MealView.tsx.
+  "mealWineInput.ownWineHeading": { no: "Har du allerede en vin?", en: "Already have a wine?" },
   "mealWineInput.description": {
     no: "Skriv inn eller ta bilde av en vin du allerede har, så legger vi den til planen.",
     en: "Type in or photograph a wine you already have, and we'll add it to the plan.",
