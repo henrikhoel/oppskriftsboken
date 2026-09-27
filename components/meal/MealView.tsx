@@ -394,7 +394,31 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
       </div>
     )}
 
-    <div className="mx-auto max-w-4xl space-y-10 px-4 pt-6 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
+    {/* (29.09.2026, 26. runde – Henrik, med bilde av en mørk, stemningsfull
+        restaurant med stearinlys og glass: "på denne menydelen vil jeg ha
+        dette bildet") – DIN MENY-segmentet har fått samme bakgrunnsbilde-
+        teknikk som resten av kveldsopplevelsen allerede bruker (se f.eks.
+        "GJØR DET TIL EN KVELD"-inngangen lenger ned i denne filen, og
+        EveningExperience.tsx sin filheader for opprinnelsen): en
+        `relative isolate overflow-hidden`-wrapper med et absolutt
+        bakgrunnsbilde (`public/images/dining-room.jpg`, resizet/komprimert
+        lokalt til ~110KB, samme størrelsesnivå som de andre bakgrunns-
+        bildene) og et flatt `bg-cream/86`-overlegg oppå (samme opasitet
+        som er landet på for de andre bildene etter flere runders
+        finjustering) – selve innholdet (tilbake-lenken er UTENFOR denne
+        wrapperen, uendret) er derfor eksplisitt `relative` for å stable
+        riktig oppå de absolutt posisjonerte laget. Ingen fade-gradient
+        lagt til ennå – kun selve bildet + samme overlegg som resten,
+        akkurat det som ble bedt om denne runden. */}
+    <section className="relative isolate overflow-hidden bg-paper">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url(/images/dining-room.jpg)" }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-cream/86" aria-hidden="true" />
+
+    <div className="relative mx-auto max-w-4xl space-y-10 px-4 pt-6 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
       {/* (29.09.2026, 23. runde – Henrik: "Dette redesignet gikk i feil
           retning [...] Jeg vil ha en mer raffinert komposisjon, ikke større
           typografi [...] Det viktigste nye grepet skal være layouten: Lag
@@ -690,6 +714,7 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         </div>
       </div>
     </div>
+    </section>
 
     {/* ============ SEGMENT 2: PLANLEGG KVELDEN (lys kremflate, fullbredde) ============
         Egen full-bredde LYS seksjon (`bg-ink`) – samme "scene"-brudd-teknikk
