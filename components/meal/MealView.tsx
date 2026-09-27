@@ -14,7 +14,6 @@ import { MealTimelineSection } from "@/components/meal/MealTimelineSection";
 import { MealWineInput } from "@/components/meal/MealWineInput";
 import { EveningExperience } from "@/components/meal/EveningExperience";
 import { MultiCookMode } from "@/components/meal/MultiCookMode";
-import { Button } from "@/components/ui/Button";
 import { CheckIcon, PlayIcon } from "@/components/ui/icons";
 import { siteConfig } from "@/lib/config";
 import { t, type Lang } from "@/lib/i18n";
@@ -41,11 +40,11 @@ import { t, type Lang } from "@/lib/i18n";
  * enhver bygget meny kan vises og redigeres her uansett (se
  * mealSessionExists over), men står IKKE i `useMealSessionIndex()` sitt
  * register (og dukker dermed ikke opp på /mine-menyer, SavedMealsList.tsx)
- * før den besøkende trykker den nye "Lagre menyen"-knappen under
- * tittelen/beskrivelsen. `saved` (utledet av `mealIds.includes(mealId)`)
- * styrer om knappen viser "Lagre menyen" eller en "Lagret"-bekreftelse med
- * en "Fjern menyen"-lenke (samme handling/tekst som fjern-knappen på
- * /mine-menyer selv).
+ * før den besøkende trykker "Lagre menyen"-lenken (plassering endret
+ * 28.09.2026, se REDESIGNET-avsnittet under). `saved` (utledet av
+ * `mealIds.includes(mealId)`) styrer om lenken viser "Lagre menyen" eller
+ * en "Lagret"-bekreftelse med en "Fjern menyen"-lenke (samme
+ * handling/tekst som fjern-knappen på /mine-menyer selv).
  *
  * REDESIGNET 27.09.2026 (3. runde – Henrik ga Claude en detaljert
  * designbrief, utarbeidet sammen med ChatGPT ut fra skjermbilder av denne
@@ -197,13 +196,46 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         ) : (
           <span />
         )}
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
-        >
-          {t(lang, "mealPrint.button")}
-        </button>
+
+        {/* Skriv ut/PDF + Lagre menyen samlet i én liten, tilbaketrukket
+            kolonne øverst til høyre (28.09.2026, Henrik: "knappen for å
+            lagre menyen må være mindre og ikke midt i der, den kan godt
+            være under 'lagre som pdf' knappen") – flyttet hit fra en egen,
+            stor gull-knapp midt i "DIN MENY"-kapittelet (se OMLAGT-
+            avsnittet i filheaderen over for selve lagre/fjern-logikken,
+            som er uendret). Samme diskrete tekst-lenke-stil som
+            utskriftsknappen over, IKKE lenger components/ui/Button.tsx sin
+            fylte primary-variant. */}
+        <div className="flex flex-col items-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+          >
+            {t(lang, "mealPrint.button")}
+          </button>
+          {saved ? (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-ink-faint">
+              <CheckIcon className="h-3.5 w-3.5 text-clay-dark" />
+              {t(lang, "mealPage.savedLabel")}
+              <button
+                type="button"
+                onClick={() => removeFromIndex(mealId)}
+                className="text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+              >
+                {t(lang, "savedMealsPage.removeButton")}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => addToIndex(mealId)}
+              className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+            >
+              {t(lang, "mealPage.saveButton")}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 1. DIN MENY – tittel er hovedpersonen, beskrivelsen er diskret
@@ -245,32 +277,6 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
           >
             {t(lang, "mealPage.addDescription")}
           </button>
-        )}
-      </div>
-
-      {/* Eksplisitt "Lagre menyen" (27.09.2026, se OMLAGT-avsnittet i
-          filheaderen over) – plassert rett under tittel/beskrivelse, FØR
-          selve menyinnholdet, siden dette er det første reelle valget en
-          besøkende tar etter å ha kommet hit. */}
-      <div className="flex flex-wrap items-center gap-3">
-        {saved ? (
-          <>
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint">
-              <CheckIcon className="h-3.5 w-3.5 text-clay-dark" />
-              {t(lang, "mealPage.savedLabel")}
-            </span>
-            <button
-              type="button"
-              onClick={() => removeFromIndex(mealId)}
-              className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
-            >
-              {t(lang, "savedMealsPage.removeButton")}
-            </button>
-          </>
-        ) : (
-          <Button onClick={() => addToIndex(mealId)} variant="primary" size="sm">
-            {t(lang, "mealPage.saveButton")}
-          </Button>
         )}
       </div>
 
