@@ -364,7 +364,12 @@ const DICT = {
   // (iPhone) er ett av valgene som dukker opp der, sammen med f.eks. Keep,
   // meldinger e.l. på Android. Ingen egen "lagre i Notater"-integrasjon
   // finnes (eller kan finnes fra en nettside) – se ShoppingListView.tsx.
-  "shoppingPage.shareButton": { no: "Del handleliste", en: "Share shopping list" },
+  // Selve knappeteksten nevner "Notater" eksplisitt (27.09.2026, Henrik) –
+  // knappen het tidligere bare "Del handleliste", som ikke ga noen
+  // antydning om AT den faktisk kan sendes rett videre til f.eks. Notater.
+  // Trygt å love dette i selve teksten siden knappen (se shareSupported i
+  // ShoppingListView.tsx) uansett kun vises der Web Share faktisk finnes.
+  "shoppingPage.shareButton": { no: "Del til Notater m.m.", en: "Share to Notes, etc." },
   "shoppingPage.shareError": {
     no: "Fikk ikke delt listen. Prøv igjen, eller bruk «Skriv ut / lagre som PDF» i stedet.",
     en: "Couldn't share the list. Try again, or use \"Print / save as PDF\" instead.",
