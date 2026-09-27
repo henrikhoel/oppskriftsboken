@@ -63,7 +63,7 @@ export function CookMode({
   cookingTimeline,
   headerExtra,
 }: CookModeProps) {
-  const { state, toggleIngredient, toggleStep, setCurrentStepIndex } = useCookModeState(recipeId);
+  const { state, toggleIngredient, setCurrentStepIndex } = useCookModeState(recipeId);
   const {
     isSupported: wakeLockSupported,
     isInsecureContext: wakeLockInsecureContext,
@@ -191,12 +191,16 @@ export function CookMode({
     lang,
     onCommand: (command) => {
       // Bruker en fersk lukking pr. render (via ref inne i hooken) – trygt
-      // å referere currentIndex/steps.length/currentStep/toggleStep direkte
-      // her uten stale-closure-fare.
+      // å referere currentIndex/steps.length/currentStep direkte her uten
+      // stale-closure-fare. "markDone" er bevisst IKKE håndtert her lenger
+      // (fjernet 27.09.2026 sammen med selve avkrysningsboksen, se
+      // kommentaren over stegteksten lenger ned) – kommandoen finnes
+      // fortsatt i useVoiceCommands sitt delte vokabular fordi
+      // MultiCookMode.tsx bruker den til noe annet (å hake av en oppgave i
+      // et flerretters måltid), men her blir den nå bare ignorert.
       if (command === "next") goNext();
       else if (command === "previous") goPrev();
       else if (command === "repeat") speakCurrentStep();
-      else if (command === "markDone" && currentStep) toggleStep(currentStep.id);
     },
   });
 
@@ -457,16 +461,6 @@ export function CookMode({
           </p>
         </div>
 
-        <label className="mx-auto flex w-full max-w-2xl cursor-pointer items-center justify-center gap-3 rounded-full border border-ink/20 px-5 py-3 text-sm text-ink/85 transition-colors hover:bg-ink/5">
-          <input
-            type="checkbox"
-            checked={state.checkedSteps.includes(currentStep.id)}
-            onChange={() => toggleStep(currentStep.id)}
-            className="h-5 w-5 shrink-0 accent-clay"
-          />
-          {t(lang, "cookMode.markDone")}
-        </label>
-
         {suggestedDurationMs != null && (
           <button
             type="button"
@@ -635,7 +629,6 @@ export function CookMode({
             <ul className="flex-1 overflow-y-auto px-3 py-3">
               {steps.map((step, i) => {
                 const active = i === currentIndex;
-                const checked = state.checkedSteps.includes(step.id);
                 return (
                   <li key={step.id}>
                     <button
@@ -652,20 +645,15 @@ export function CookMode({
                       <span
                         className={clsx(
                           "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
-                          checked
-                            ? "bg-olive text-cream"
-                            : active
-                              ? "bg-clay text-cream"
-                              : "border border-ink/25 text-ink/70",
+                          active ? "bg-clay text-cream" : "border border-ink/25 text-ink/70",
                         )}
                       >
-                        {checked ? <CheckIcon className="h-3.5 w-3.5" /> : i + 1}
+                        {i + 1}
                       </span>
                       <span
                         className={clsx(
                           "text-sm leading-snug",
-                          checked && "text-ink-faint line-through",
-                          active && !checked && "font-medium text-ink",
+                          active && "font-medium text-ink",
                         )}
                       >
                         {step.text}
