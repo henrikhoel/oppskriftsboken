@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/Button";
-import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/icons";
+import { ChevronLeftIcon, ChevronRightIcon, ClockIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
@@ -10,6 +10,15 @@ import { t, type Lang } from "@/lib/i18n";
  * påfunnet design. Innholdet i mockupen er statisk illustrasjonstekst
  * (home.cookMode.mock*), ikke live data – ekte Cook Mode åpnes fra en
  * faktisk oppskrift, se lenken under.
+ *
+ * "Sett timer"-linjen (27.09.2026, ønsket av Henrik: "vi trenger ikke få
+ * med alt det som er i tillegg for det kan bli rotete visuelt her, men jeg
+ * tenker vi burde få med 'sett timer' funksjonen vi har nå") er BEVISST den
+ * ENESTE nye biten lagt til her, ikke en full gjengivelse av alt CookMode
+ * faktisk har (tidtaker-oversikt/talestyring/wake lock osv.) – gjenbruker
+ * cookMode.startTimerForStep direkte (samme tekst som den ekte knappen i
+ * CookMode.tsx) med et statisk 4-tall som matcher mockStepText sitt
+ * "3-4 minutter".
  */
 export function CookModeShowcase({ lang, recipeSlug }: { lang: Lang; recipeSlug: string | null }) {
   return (
@@ -60,6 +69,10 @@ export function CookModeShowcase({ lang, recipeSlug }: { lang: Lang; recipeSlug:
                   <div className="flex items-center justify-center gap-2 rounded-full border border-ink/20 px-3 py-2 text-[0.7rem] text-ink/85">
                     <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[0.25rem] border border-ink/40" />
                     {t(lang, "home.cookMode.mockMarkDone")}
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 text-[0.7rem] font-medium text-clay">
+                    <ClockIcon className="h-3.5 w-3.5" />
+                    {t(lang, "cookMode.startTimerForStep", { minutes: 4 })}
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex flex-1 items-center justify-center rounded-full border border-ink/20 py-2.5 text-ink/50">
