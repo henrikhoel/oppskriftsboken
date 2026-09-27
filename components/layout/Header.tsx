@@ -82,31 +82,42 @@ export async function Header() {
 
         <HeaderSearchSlot lang={lang} />
 
+        {/* (27.09.2026) Henrik: "'I kjøleskapet' og 'i sesong' får ikke
+            plass når søkefeltet er på samme linjen, og I'en havner litt
+            rart over" – klassisk flexbox-fallgruve: disse tekst-lenkene
+            hadde ingen `whitespace-nowrap`, og som flex-søsken av
+            HeaderSearchSlot sin `flex-1`-boks (som konkurrerer om samme
+            rad) kunne de krympes smalere enn tekstens egen bredde og
+            brytes akkurat ved mellomrommet – "I" endte da alene på egen
+            linje over "kjøleskapet"/"sesong". `whitespace-nowrap` lagt til
+            på alle disse (samme fem lenkene) – nå er det søkefeltet
+            (allerede `flex-1`/`min-w-0` via SearchBar) som krymper når
+            plassen blir trang, ikke navigasjonsteksten som brekker. */}
         <nav aria-label={t(lang, "nav.mainNav")} className="ml-auto flex items-center gap-1 sm:gap-2">
           <Link
             href="/oppskrifter"
-            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
+            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <BookIcon className="h-4 w-4" />
             {t(lang, "nav.recipes")}
           </Link>
           <Link
             href="/hva-kan-jeg-lage"
-            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
+            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <CameraIcon className="h-4 w-4" />
             {t(lang, "nav.pantry")}
           </Link>
           <Link
             href="/hvordan-gjor-jeg-det"
-            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
+            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <HelpCircleIcon className="h-4 w-4" />
             {t(lang, "nav.guidesShort")}
           </Link>
           <Link
             href="/favoritter"
-            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
+            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <HeartIcon className="h-4 w-4" />
             {t(lang, "nav.favorites")}
@@ -119,7 +130,7 @@ export async function Header() {
               (SeasonTeaser) på alle skjermstørrelser i tillegg. */}
           <Link
             href="/sesong"
-            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink lg:flex"
+            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink lg:flex"
           >
             <LeafIcon className="h-4 w-4" />
             {t(lang, "nav.season")}
