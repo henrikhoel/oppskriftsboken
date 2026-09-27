@@ -780,13 +780,16 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
           bruker, og kan derfor ikke lenger stå som siste barn i den div-en.
           RecipeQuestionSection/Smaksprofil+Næring/DrinkPairingSection over
           er HELT uendret, kun denne siste delen er flyttet og
-          omstrukturert. mt-16/sm:mt-20 gjenskaper samme luft ned til
-          seksjonen som før (matcher divide-y-blokkens egen mt-16/sm:mt-20
-          over), min-høyde/vertikal sentrering droppet – seksjonen har nå
-          sin egen faste, generøse py-16/20/24 (se MealBuilder.tsx) i
-          stedet, uavhengig av hvor kort/lang resten av siden er. */}
+          omstrukturert. min-høyde/vertikal sentrering droppet – seksjonen
+          har nå sin egen faste, generøse py-14/18/21 (se MealBuilder.tsx)
+          i stedet, uavhengig av hvor kort/lang resten av siden er.
+          mt-16/sm:mt-20 → mt-8/sm:mt-10 (30.09.2026, etter at seksjonen
+          fikk bakgrunnsbilde: "flytt seksjonen litt lenger opp, det er
+          litt for mye tomt svart område over" – luften ned til seksjonen
+          var ren sidebakgrunn uten noe i seg, og ble mer synlig/unødvendig
+          nå som seksjonen under selv har et bilde å vise frem). */}
       {recipe.showMealBuilder && (
-        <div className="mt-16 sm:mt-20">
+        <div className="mt-8 sm:mt-10">
           <MealBuilder
             recipe={{
               id: recipe.id,
