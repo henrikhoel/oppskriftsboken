@@ -26,6 +26,14 @@ import { t, type Lang } from "@/lib/i18n";
  * Sitatet/attribusjonen er bevisst alltid på fransk (matcher "CONVITE"-
  * navnet); kun den lille oversettelseslinjen bytter språk med resten av
  * siden.
+ *
+ * KRYMPET (27.09.2026 – Henrik, med skjermbilde av mobilvisningen: "jeg
+ * syns teksten her er alt for stor") – selve sitatet var text-xl/2xl/3xl
+ * og attribusjonslinjen text-sm; begge ett hakk ned (text-lg/xl/2xl og
+ * text-xs) på alle brekkpunkt – seksjonen er helt ny (lagt til tidligere i
+ * dag) og har ingen tidligere godkjent desktop-visning å bevare uendret,
+ * så justeringen gjelder hele skalaen, ikke bare mobil. Den vesle
+ * uppercase-oversettelseslinjen (allerede `text-[10px]`) er urørt.
  */
 export function ClosingQuoteSection({ lang }: { lang: Lang }) {
   return (
@@ -38,10 +46,10 @@ export function ClosingQuoteSection({ lang }: { lang: Lang }) {
       <div className="absolute inset-0 bg-cream-dark/80" aria-hidden="true" />
 
       <div className="relative mx-auto max-w-2xl px-4 text-center sm:px-6 lg:px-8">
-        <p className="text-balance font-serif text-xl italic leading-snug text-ink sm:text-2xl lg:text-3xl">
+        <p className="text-balance font-serif text-lg italic leading-snug text-ink sm:text-xl lg:text-2xl">
           «Dis-moi ce que tu manges, je te dirai ce que tu es.»
         </p>
-        <p className="mt-4 text-sm tracking-wide text-clay-dark">Jean Anthelme Brillat-Savarin, 1825</p>
+        <p className="mt-4 text-xs tracking-wide text-clay-dark">Jean Anthelme Brillat-Savarin, 1825</p>
         <p className="mt-2 text-[10px] uppercase tracking-[0.15em] text-ink-faint">
           {t(lang, "home.editorial.closingQuoteTranslation")}
         </p>
