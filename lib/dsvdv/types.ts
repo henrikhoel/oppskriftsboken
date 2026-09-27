@@ -39,6 +39,8 @@ export interface JobbmatRecipe {
   slug: string;
   navn: string;
   kortBeskrivelse: string;
+  /** Valgfritt – uten bilde vises samme "bilde kommer"-tilstand som RecipeCard.tsx bruker for vanlige oppskrifter uten hovedbilde. */
+  bildeUrl?: string;
   /** Total tid i minutter, inkl. eventuell tilberedning på jobb. */
   totalMinutter: number;
   /** Hvilket utstyr retten kan lages med – kan være flere (f.eks. både mikro og airfryer). */
