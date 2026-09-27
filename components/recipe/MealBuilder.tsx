@@ -17,7 +17,7 @@ import { t, type Lang } from "@/lib/i18n";
 interface WorkingCourse {
   course: MealPlanCourse;
   servings: number;
-  /** true mens "Foreslå en annen" pågår for AKKURAT denne plassen – lar
+  /** true mens "Bytt rett" pågår for AKKURAT denne plassen – lar
    * resten av menyen forbli interaktiv mens én rad venter. */
   regenerating: boolean;
 }
@@ -109,25 +109,27 @@ const TIME_BUDGET_OPTIONS: { key: TimeOptionKey; minutes: number | null }[] = [
  *    kolonner) er stablingen uendret.
  * 4. GENERERT MENY – de store, kantede `CourseCard`-boksene er borte.
  *    `CourseRow` (ny, under) rendrer nå ALLE plasser (anker + de andre)
- *    likt: liten gull-rolle-label, retten i medium/stor serif, tynne
+ *    likt: liten gull-rolle-label + retten i medium serif, tynne
  *    `divide-y divide-ink/10`-skillelinjer mellom radene (samme hårfine
  *    token som DIN MENY-listen i MealView.tsx – bevisst samme visuelle
- *    språk, se filheaderen der). "Finnes i oppskriftsboken"/"Nytt forslag"
- *    er nå diskré småtekst i stedet for `Badge`-piller (samme prinsipp som
- *    "Nytt forslag" i MealView.tsx sin retteliste); ankerretten
- *    ("Retten du startet med") er en tilsvarende liten gulltekst i stedet
- *    for en stor `Badge tone="clay"`-pille. Porsjonsvelgeren er en liten
- *    understreket inline-tall (ingen boks), "Foreslå en annen"/"Fjern fra
- *    menyen" er nå diskré, understrekede tekstlenker (samme stil som
- *    Rediger-lenken i MealView.tsx) i stedet for kantede knapper.
- *    Menynavnet er en `<input>` som er usynlig (gjennomsiktig, ingen kant)
+ *    språk, se filheaderen der). VIDERE KRAFTIG FORENKLET 30.09.2026
+ *    (tilbakemelding: "fortsatt for mye informasjon [...] mye renere og
+ *    mer som et elegant menykort enn et redigeringspanel", med en eksakt
+ *    ønsket sluttilstand) – se filheaderen på selve `CourseRow` under for
+ *    hele lista over hva som ble fjernet (statustekster, beskrivelse/
+ *    notat, per-rett porsjonsfelt, "Fjern fra menyen"). Det som er igjen
+ *    per rett er kun rolle-label, rettenavn, og "Bytt rett" der det er
+ *    mulig. Porsjoner er nå ÉN felles kontroll ("2 personer") rett under
+ *    menynavnet (se `setAllServings`), ikke lenger per rett. Menynavnet
+ *    er fortsatt en `<input>` som er usynlig (gjennomsiktig, ingen kant)
  *    helt til den får fokus – samme "diskret til man faktisk trenger den"-
  *    teknikk som tittelfeltet i MealView.tsx.
  * 5. CTA-RAD – "Gå videre" (`mealBuilder.save`, tekst uendret) er en tydelig
  *    gullfylt rund knapp (samme `bg-clay`/`text-cream`-formel som
- *    kokemodus-knappen i MealView.tsx). "Nullstill og begynn på nytt"
- *    (`mealBuilder.reset`, tekst uendret) er nå en mye roligere, liten
- *    tekstlenke ved siden av i stedet for jevnbyrdig med primærknappen.
+ *    kokemodus-knappen i MealView.tsx). Sekundærhandlingen er forkortet
+ *    30.09.2026 fra "Nullstill og begynn på nytt" til bare "Begynn på
+ *    nytt" (`mealBuilder.reset`) – fortsatt en mye roligere, liten
+ *    tekstlenke ved siden av, ikke jevnbyrdig med primærknappen.
  *
  * `Badge`/`Button`-komponentene er ikke lenger brukt her (erstattet av
  * skreddersydde elementer som matcher resten av denne rundens redesign) –
@@ -193,10 +195,6 @@ export function MealBuilder({
     }
   }
 
-  function removeCourse(role: MealCourseRole) {
-    setCourses((prev) => prev.filter((c) => c.course.role !== role));
-  }
-
   /** Nullstiller HELE det genererte forslaget og går tilbake til
    * start-knappen – for når brukeren vil begynne helt på nytt fremfor å
    * fjerne/regenerere kort for kort. Rører IKKE en allerede LAGRET meny (se
@@ -212,8 +210,19 @@ export function MealBuilder({
     setSaved(false);
   }
 
-  function setCourseServings(role: MealCourseRole, servings: number) {
-    setCourses((prev) => prev.map((c) => (c.course.role === role ? { ...c, servings } : c)));
+  /** Én FELLES porsjonskontroll for hele menyen (30.09.2026, tilbakemelding:
+   * "fjern porsjonsvelger fra hver enkelt rett. legg i stedet én felles
+   * porsjonsvelger rett under menynavnet [...] som styrer porsjoner for
+   * hele menyen og kobles til eksisterende porsjonslogikk") – erstatter
+   * den tidligere per-rett `setCourseServings(role, servings)`. Setter
+   * `anchorServings` OG alle `courses[].servings` til samme verdi i ett
+   * kall, i stedet for å la hver rett ha sin egen uavhengige verdi. Selve
+   * lagre-/handlelistelogikken (se handleSave/MealShoppingListSection) er
+   * uendret – den leser fortsatt `servings` per rett, disse verdiene er
+   * nå bare alltid like siden dette er eneste stedet de endres fra. */
+  function setAllServings(next: number) {
+    setAnchorServings(next);
+    setCourses((prev) => prev.map((c) => ({ ...c, servings: next })));
   }
 
   async function handleRegenerate(role: MealCourseRole) {
@@ -365,28 +374,27 @@ export function MealBuilder({
             // border-l) som handlingskolonnen i MealView.tsx sin DIN
             // MENY-splitt, se filheaderen der.
             //
-            // KOMPRIMERT 30.09.2026 (presisering av tilbakemeldingen om
-            // to-kolonner over: "jeg mente at menyen skal komme opp på
-            // høyre side OG at seksjonen IKKE skal bli større. Det vil si
-            // at teksten på menyen må være liten") – to-kolonne-grepet
-            // alene løste ikke problemet, siden denne høyrekolonnens EGEN
-            // innhold (stort menynavn + store retter + romslige
-            // rad-paddinger) fortsatt var høyere enn venstrekolonnens
-            // intro, og seksjonen vokste dermed uansett. Løsningen er
-            // derfor å gjøre selve teksten/spacingen her tydelig mindre
-            // (se de reduserte størrelsene under og i CourseRow), slik at
-            // denne kolonnens naturlige høyde normalt holder seg innenfor
-            // venstrekolonnens – DIN MENY-eyebrowen er uendret liten,
-            // resten er skalert ned.
+            // KOMPRIMERT VIDERE 30.09.2026 (ny presisering: "Dette er mye
+            // bedre komposisjonsmessig, men den genererte menyen inneholder
+            // fortsatt for mye informasjon og gjør seksjonen unødvendig
+            // høy [...] mye renere og mer som et elegant menykort enn et
+            // redigeringspanel") – utover ren tekststørrelse (forrige
+            // runde) er selve INNHOLDET i høyrekolonnen nå kuttet ned til
+            // et minimum: ingen statustekster (Retten du startet med/
+            // Finnes i oppskriftsboken/Nytt forslag – "Nytt forslag"
+            // brukes fortsatt av MealView.tsx sin retteliste, kun IKKE
+            // lenger her), ingen
+            // beskrivelse/notat under rettene, og porsjonsvelgeren er
+            // flyttet fra é per rett til ÉN felles kontroll rett under
+            // menynavnet (se setAllServings over). Se CourseRow lenger
+            // ned for den tilsvarende komprimerte raden.
             <div className="mt-10 border-t border-ink/10 pt-8 lg:mt-0 lg:border-t-0 lg:border-l lg:border-ink/10 lg:pl-10 lg:pt-0">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
                   {t(lang, "mealPage.menuEyebrow")}
                 </p>
                 {/* Usynlig til fokus (ingen kant/bakgrunn i hviletilstand) – samme
-                    teknikk som tittelfeltet i MealView.tsx, se filheaderen over.
-                    Vesentlig mindre enn før (var text-3xl/text-4xl) – se
-                    kommentaren over. */}
+                    teknikk som tittelfeltet i MealView.tsx, se filheaderen over. */}
                 <input
                   type="text"
                   value={menuTitle}
@@ -394,22 +402,31 @@ export function MealBuilder({
                   // text-base på mobil (unngår iOS-innzooming ved fokus).
                   className="mt-1.5 block w-full rounded-lg border border-transparent bg-transparent font-serif text-xl leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-2xl"
                 />
+                {/* Felles porsjonskontroll ("2 personer") – se
+                    setAllServings over for hele resonnementet. Samme
+                    diskrete understreks-inputstil som den tidligere
+                    per-rett-varianten hadde, nå kun ett sted. */}
+                <div className="mt-1.5 flex items-center gap-1.5 text-sm text-ink-soft">
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={anchorServings}
+                    onChange={(e) => {
+                      const next = Number(e.target.value);
+                      if (Number.isFinite(next) && next >= 1) setAllServings(Math.round(next));
+                    }}
+                    // text-base på mobil (unngår iOS-innzooming ved fokus).
+                    className="w-8 border-b border-ink-faint/30 bg-transparent px-0.5 py-0.5 text-center text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
+                  />
+                  <span>{t(lang, "mealBuilder.servingsUnit")}</span>
+                </div>
               </div>
 
-              <div className="mt-4 divide-y divide-ink/10">
+              <div className="mt-3 divide-y divide-ink/10">
                 {displayRoles.map((role) => {
                   if (role === anchorRole) {
-                    return (
-                      <CourseRow
-                        key={role}
-                        role={role}
-                        title={recipe.title}
-                        isAnchor
-                        servings={anchorServings}
-                        onServingsChange={setAnchorServings}
-                        lang={lang}
-                      />
-                    );
+                    return <CourseRow key={role} role={role} title={recipe.title} lang={lang} />;
                   }
 
                   const working = courses.find((c) => c.course.role === role);
@@ -421,21 +438,15 @@ export function MealBuilder({
                       key={role}
                       role={role}
                       title={title}
-                      source={course.source}
-                      description={course.source === "suggested" ? course.description : undefined}
-                      note={course.note}
-                      servings={working.servings}
-                      onServingsChange={(servings) => setCourseServings(role, servings)}
                       regenerating={regenerating}
                       onRegenerate={() => handleRegenerate(role)}
-                      onRemove={() => removeCourse(role)}
                       lang={lang}
                     />
                   );
                 })}
               </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2.5">
+              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2.5">
                 <button
                   type="button"
                   onClick={handleSave}
@@ -469,114 +480,59 @@ export function MealBuilder({
   );
 }
 
-/** Én rad i den genererte menyen – erstatter de tidligere kantede,
- * bakgrunnsfylte `CourseCard`-boksene (se filheaderen i MealBuilder over)
- * med en rolig, redaksjonell rad: liten gull-rolle-label, retten i serif,
- * status/anker som diskré småtekst, porsjoner som en liten understreket
- * inline-verdi, og "Foreslå en annen"/"Fjern fra menyen" som diskré
- * tekstlenker. `onRegenerate`/`onRemove` er `undefined` for ankerretten
- * (den kan verken byttes ut eller fjernes – samme regel som før). */
+/** Én rad i den genererte menyen. KRAFTIG FORENKLET 30.09.2026
+ * (tilbakemelding: "fortsatt for mye informasjon [...] mye renere og mer
+ * som et elegant menykort enn et redigeringspanel", med en eksakt
+ * ønsket sluttilstand oppgitt av Henrik) – viser nå KUN rolle-label +
+ * rettens navn, pluss "Bytt rett" der det faktisk er mulig å bytte (dvs.
+ * kun når `onRegenerate` er gitt – ankerretten, som ikke kan byttes,
+ * kaller ganske enkelt uten den propen). Fjernet i denne runden,
+ * sammenlignet med forrige versjon: alle statustekster (Retten du
+ * startet med / Finnes i oppskriftsboken / Nytt forslag – selve
+ * dictionary-nøklene lever videre, kun IKKE lenger brukt her, se
+ * MealView.tsx/ManualMealBuilder.tsx for deres fortsatte bruk),
+ * beskrivelse/notat under retten, og selve porsjonsfeltet (flyttet til
+ * ÉN felles kontroll for hele menyen, se setAllServings i MealBuilder
+ * over). "Fjern fra menyen" er også fjernet fra denne permanente
+ * visningen (samme tilbakemelding) – selve fjern-funksjonaliteten er
+ * derfor tatt helt ut herfra; git-historikken har den forrige
+ * implementasjonen om den trengs igjen i en annen form senere. */
 function CourseRow({
   role,
   title,
-  isAnchor = false,
-  source,
-  description,
-  note,
-  servings,
-  onServingsChange,
   regenerating = false,
   onRegenerate,
-  onRemove,
   lang,
 }: {
   role: MealCourseRole;
   title: string;
-  isAnchor?: boolean;
-  source?: "existing" | "suggested";
-  description?: string;
-  note?: string | null;
-  servings: number;
-  onServingsChange: (servings: number) => void;
   regenerating?: boolean;
   onRegenerate?: () => void;
-  onRemove?: () => void;
   lang: Lang;
 }) {
   return (
-    // Radhøyden er bevisst komprimert (30.09.2026, se kommentaren ved
-    // høyrekolonnens åpning over) – var py-5/text-xl/sm:text-2xl,
-    // nå py-3/text-base/sm:text-lg – slik at tre-fire slike rader
-    // normalt ikke gjør høyrekolonnen høyere enn venstrekolonnens intro.
-    <div className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
-          {t(lang, `mealBuilder.role.${role}`)}
-        </span>
-        {isAnchor && (
-          <span className="text-[11px] font-medium text-clay">{t(lang, "mealBuilder.anchorBadge")}</span>
-        )}
-        {!isAnchor && source === "suggested" && (
-          // NB: bevisst text-mustard (ikke text-mustard-dark) – sistnevnte
-          // er ikke definert som fargetoken i app/globals.css (kun
-          // --color-mustard/--color-mustard-light finnes), og ville derfor
-          // rendret som en tom/no-op Tailwind-klasse (samme mønster brukt i
-          // MealView.tsx sin tilsvarende "Nytt forslag"-tekst er trolig en
-          // eksisterende, ubetjent glipp der – ikke gjentatt her).
-          <span className="text-[11px] font-medium text-mustard">{t(lang, "mealBuilder.suggestedBadge")}</span>
-        )}
-        {!isAnchor && source === "existing" && (
-          <span className="text-[11px] font-medium text-ink-faint">{t(lang, "mealBuilder.existingBadge")}</span>
-        )}
-      </div>
+    // Enda tettere enn forrige runde (var py-3) – radene inneholder nå
+    // typisk kun to-tre linjer totalt (rolle-label, rettenavn, evt. "Bytt
+    // rett"), så py-2.5 er fortsatt luftig nok uten unødig høyde.
+    <div className="flex flex-col gap-1 py-2.5 first:pt-0 last:pb-0">
+      <span className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
+        {t(lang, `mealBuilder.role.${role}`)}
+      </span>
 
       <p className={clsx("font-serif text-base leading-snug text-ink transition-opacity sm:text-lg", regenerating && "opacity-50")}>
         {title}
       </p>
 
-      {description && <p className="max-w-prose text-xs leading-relaxed text-ink-faint">{description}</p>}
-      {note && <p className="max-w-prose text-xs italic leading-relaxed text-ink-faint">{note}</p>}
-
-      <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1.5">
-        <label className="flex items-center gap-2 text-xs text-ink-faint">
-          {t(lang, "mealBuilder.servingsLabel")}
-          <input
-            type="number"
-            min={1}
-            max={50}
-            value={servings}
-            onChange={(e) => {
-              const next = Number(e.target.value);
-              if (Number.isFinite(next) && next >= 1) onServingsChange(Math.round(next));
-            }}
-            // text-base på mobil (unngår iOS-innzooming ved fokus). Kun en
-            // understrek (ingen full boks/kant) – "porsjonsvelgeren skal
-            // integreres diskret på hver relevant rett" (Henrik, 29.09.2026).
-            className="w-10 border-b border-ink-faint/30 bg-transparent px-0.5 py-0.5 text-center text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
-          />
-        </label>
-
-        {onRegenerate && (
-          <button
-            type="button"
-            onClick={onRegenerate}
-            disabled={regenerating}
-            className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {regenerating ? t(lang, "mealBuilder.regenerating") : t(lang, "mealBuilder.regenerate")}
-          </button>
-        )}
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            disabled={regenerating}
-            className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {t(lang, "mealBuilder.remove")}
-          </button>
-        )}
-      </div>
+      {onRegenerate && (
+        <button
+          type="button"
+          onClick={onRegenerate}
+          disabled={regenerating}
+          className="mt-0.5 self-start text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {regenerating ? t(lang, "mealBuilder.regenerating") : t(lang, "mealBuilder.regenerate")}
+        </button>
+      )}
     </div>
   );
 }

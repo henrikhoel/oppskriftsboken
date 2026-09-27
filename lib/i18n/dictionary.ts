@@ -893,17 +893,39 @@ const DICT = {
     no: "Klarte ikke å bygge menyen akkurat nå. Prøv igjen.",
     en: "Couldn't build the menu right now. Please try again.",
   },
+  // anchorBadge/existingBadge/suggestedBadge er ORPHANED i MealBuilder.tsx
+  // selv siden 30.09.2026 (tilbakemelding: "mye renere og mer som et
+  // elegant menykort enn et redigeringspanel" – CourseRow der viser ikke
+  // lenger noen statustekster i det hele tatt). suggestedBadge brukes
+  // fortsatt av MealView.tsx ("Nytt forslag" i retterlisten der), og
+  // anchorBadge/existingBadge er ikke i bruk noe annet sted – alle tre er
+  // bevisst IKKE slettet (etablert konvensjon i denne filen).
   "mealBuilder.anchorBadge": { no: "Retten du startet med", en: "The dish you started with" },
   "mealBuilder.existingBadge": { no: "Finnes i oppskriftsboken", en: "Already in your cookbook" },
   "mealBuilder.suggestedBadge": { no: "Nytt forslag", en: "New suggestion" },
-  "mealBuilder.regenerate": { no: "Foreslå en annen", en: "Suggest another" },
+  // Tekst endret 30.09.2026 (samme brief) fra "Foreslå en annen"/"Suggest
+  // another" til en kortere handling – kun brukt i MealBuilder.tsx, trygt
+  // å endre i selve verdien (ikke orphane en ny nøkkel) siden samme
+  // knapp/samme funksjon (handleRegenerate) bare har fått kortere tekst.
+  "mealBuilder.regenerate": { no: "Bytt rett", en: "Change dish" },
   "mealBuilder.regenerating": { no: "Finner et alternativ …", en: "Finding an alternative …" },
+  // mealBuilder.remove/.removed er ORPHANED i MealBuilder.tsx selv siden
+  // 30.09.2026 (samme brief – "fjern «fjern fra menyen» fra den permanente
+  // visningen", se CourseRow-filheaderen i MealBuilder.tsx). Fortsatt i
+  // aktiv bruk i MealView.tsx og ManualMealBuilder.tsx – IKKE endre denne
+  // teksten, kun MealBuilder.tsx sin egen bruk av nøkkelen er fjernet.
   "mealBuilder.remove": { no: "Fjern fra menyen", en: "Remove from menu" },
   "mealBuilder.removed": {
     no: "Fjernet fra menyen.",
     en: "Removed from the menu.",
   },
   "mealBuilder.servingsLabel": { no: "Porsjoner", en: "Servings" },
+  // Ny 30.09.2026 – enheten i MealBuilder.tsx sin nye FELLES
+  // porsjonskontroll ("2 personer", se setAllServings der), som erstatter
+  // den tidligere per-rett servingsLabel-varianten ("Porsjoner: X") i
+  // akkurat denne komponenten. servingsLabel over er fortsatt i bruk i
+  // MealView.tsx og uendret der.
+  "mealBuilder.servingsUnit": { no: "personer", en: "people" },
   "mealBuilder.titleLabel": { no: "Menynavn", en: "Menu name" },
   // Endret fra "Lagre menyen" til "Gå videre" 26.08.2026 (ønsket av Henrik –
   // "lagre meny høres litt rart ut" for en knapp som faktisk navigerer videre
@@ -917,7 +939,10 @@ const DICT = {
     en: "Couldn't save the menu on this device.",
   },
   "mealBuilder.viewSaved": { no: "Se den lagrede menyen", en: "View the saved menu" },
-  "mealBuilder.reset": { no: "Nullstill og begynn på nytt", en: "Reset and start over" },
+  // Forkortet 30.09.2026 (fra "Nullstill og begynn på nytt"/"Reset and
+  // start over") – samme knapp/handling (handleReset), bare kortere tekst
+  // som del av opprydningen av den genererte menyvisningen.
+  "mealBuilder.reset": { no: "Begynn på nytt", en: "Start over" },
 
   // Manuell menybygger (10.09.2026) – components/meal/ManualMealBuilder.tsx,
   // app/meny/ny/page.tsx. Egen inngang der brukeren velger ALLE rettene selv
