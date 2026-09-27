@@ -23,9 +23,9 @@ const MOOD_ICONS = {
 
 /**
  * "Hva passer humøret ditt?" (Fase 4 – Smak) – forsideseksjon, samme
- * redaksjonelle stil som WinePairing over. Fem faste
- * stemninger (se lib/kitchen-intelligence/moods.ts sin filheader for
- * hvorfor de er faste, ikke fritekst).
+ * redaksjonelle stil som WinePairing/SeasonTeaser/ClosingQuoteSection over.
+ * Fem faste stemninger (se lib/kitchen-intelligence/moods.ts sin filheader
+ * for hvorfor de er faste, ikke fritekst).
  *
  * OMLAGT 26.09.2026 (Henrik: "jeg tror kanskje dette bør være noe jeg
  * velger selv inne på hver rett... da blir det ikke ai generert") – kaller
@@ -37,18 +37,26 @@ const MOOD_ICONS = {
  * først når fram.
  *
  * Redesignet 26.08.2026 (tilbakemelding: føltes for lite/lett å scrolle
- * forbi, mindre luft over enn under teksten). Nå et tydelig, luftig bånd
- * – prøvde en stund et svakt bakgrunnsbilde her (public/images/mood-
- * section.jpg via ParallaxBackdrop, samme teknikk den daværende
- * AtmosphereSection brukte for sitt eget bilde), men Henrik tok det
- * tilbake samme dag ("tror det blir bedre med svart") –
- * ren mørk bakgrunn (samme bg-cream som resten av siden) igjen. Bildet og
- * ParallaxBackdrop-bruken ligger fortsatt urørt i hhv. public/images/ og
- * components/home/ hvis det skulle bli aktuelt igjen senere. py-verdien
- * er bevisst symmetrisk (samme verdi over og under), og page.tsx sin
- * påfølgende seksjon fikk sin egen toppmargin fjernet slik at luften ned
- * til "Ukens utvalg" faktisk matcher luften opp mot heroen, i stedet for
- * å dobles opp.
+ * forbi, mindre luft over enn under teksten). Nå et tydelig, luftig bånd,
+ * py-verdien bevisst symmetrisk (samme verdi over og under), og page.tsx
+ * sin påfølgende seksjon fikk sin egen toppmargin fjernet slik at luften
+ * ned til "Ukens utvalg" faktisk matcher luften opp mot heroen, i stedet
+ * for å dobles opp.
+ *
+ * Bakgrunnsbilde LAGT TIL PÅ NYTT 27.09.2026 (Henrik: "neste nå er å legge
+ * inn bakgrunnsbilde bak 'hva passer humøret ditt' delen") – et tidligere
+ * forsøk (public/images/mood-section.jpg via ParallaxBackdrop) ble reversert
+ * samme dag den kom, 26.08.2026 ("tror det blir bedre med svart"). Denne
+ * gangen brukes IKKE ParallaxBackdrop (den ligger fortsatt urørt i reserve,
+ * se dens egen filheader), men samme enkle CSS-background-image-teknikk som
+ * WinePairing/SeasonTeaser/ClosingQuoteSection (samme kraftige
+ * bg-cream-dark/80-overlegg) – nytt bilde, samme filnavn (public/images/
+ * mood-section.jpg er overskrevet). Overlegget dekker HELE seksjonen,
+ * inkludert det utvidbare resultat-rutenettet under stemningsknappene: den
+ * mørke overlegg-fargen (#191917 @ 80%) er så nær identisk med sidens egen
+ * bg-cream (#0b0b0a) at oppskriftskortene (som allerede er designet for å
+ * sitte på en mørk bakgrunn) ser like riktige ut her som andre steder på
+ * siden, uansett hvor mange rader resultatet vokser til.
  */
 export function MoodModeSection({ lang }: { lang: Lang }) {
   const [activeMood, setActiveMood] = useState<MoodId | null>(null);
@@ -84,8 +92,15 @@ export function MoodModeSection({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div className="py-28 sm:py-36 lg:py-40">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section className="relative isolate overflow-hidden bg-cream-dark py-28 sm:py-36 lg:py-40">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url(/images/mood-section.jpg)" }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-cream-dark/80" aria-hidden="true" />
+
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-xl text-center">
           <h2 className="font-serif text-4xl text-ink sm:text-5xl">{t(lang, "moodMode.heading")}</h2>
           <p className="mt-3 text-base text-ink-soft">{t(lang, "moodMode.intro")}</p>
@@ -126,6 +141,6 @@ export function MoodModeSection({ lang }: { lang: Lang }) {
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }
