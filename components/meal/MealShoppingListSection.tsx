@@ -22,11 +22,25 @@ import { t, type Lang } from "@/lib/i18n";
  * lenger, kun selve knappen (heading/description sier ikke noe knappteksten
  * "Legg hele menyen i handlelisten" ikke allerede sier).
  *
- * (27.09.2026, redesign av /meny/[id]) Knappen er nå full bredde (samme
- * bredde som "Start kokemodus for hele menyen" rett over i MealView.tsx)
- * for å lese som en tydelig SEKUNDÆR handling i "Planlegg kvelden"-
- * kapittelet, i stedet for en liten, inline pille – fortsatt lys/outline,
- * ikke gull, så kokemodus forblir den ene primære CTA-en.
+ * (27.09.2026, redesign av /meny/[id]) Knappen var en periode full bredde
+ * (samme bredde som "Start kokemodus for hele menyen" rett over i
+ * MealView.tsx) for å lese som en tydelig SEKUNDÆR handling i "Planlegg
+ * kvelden"-kapittelet.
+ *
+ * OMGJORT 28.09.2026 – "Planlegg kvelden" er nå sin egen lyse
+ * (`bg-ink`) fullbredde-seksjon, og kokemodus-knappen er ikke lenger full
+ * bredde, men en kompakt, sentrert, "elegant" CTA (se filheaderen i
+ * MealView.tsx for hele tre-segment-redesignet: Henrik ønsket eksplisitt at
+ * kokemodus-knappen ikke skulle være "absurd bred"). En full-bredde outline-
+ * knapp her ville da konkurrert visuelt med den nye, mindre primærknappen i
+ * stedet for å lese som tydelig sekundær til den. Byttet derfor til samme
+ * diskré, understrekede tekst-lenke-stil som "Vis tidslinje" i
+ * MealTimelineSection.tsx bruker – ren typografisk hierarki (primær CTA vs.
+ * sekundær tekstlenke) i stedet for to konkurrerende knappe-bokser.
+ * Fargene under er samtidig byttet fra den mørke standardpaletten til
+ * "cream"-familien (mørk tekst), samme begrunnelse som i
+ * MealTimelineSection.tsx sin filheader – denne komponenten har heller
+ * ingen andre importører enn MealView.tsx.
  */
 export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot[]; lang: Lang }) {
   const { addFromRecipe } = useShoppingList();
@@ -38,7 +52,7 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
   const suggestedCount = slots.length - existingSlots.length;
 
   if (existingSlots.length === 0) {
-    return <p className="text-xs text-ink-faint">{t(lang, "mealShopping.noExisting")}</p>;
+    return <p className="text-xs text-cream/55">{t(lang, "mealShopping.noExisting")}</p>;
   }
 
   async function handleAdd() {
@@ -73,18 +87,18 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
   }
 
   return (
-    <div>
+    <div className="text-center">
       {!result ? (
         <button
           type="button"
           onClick={handleAdd}
           disabled={loading}
-          className="flex w-full items-center justify-center rounded-full border border-line-strong bg-paper py-3 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark disabled:cursor-not-allowed"
+          className="text-xs font-medium text-cream/70 underline decoration-cream/30 underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? t(lang, "mealShopping.loading") : t(lang, "mealShopping.button")}
         </button>
       ) : (
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
           <span className="text-olive-dark">{t(lang, "mealShopping.done")}</span>
           <Link href="/handleliste" className="font-medium text-clay hover:text-clay-dark">
             {t(lang, "mealShopping.viewList")} →
@@ -95,7 +109,7 @@ export function MealShoppingListSection({ slots, lang }: { slots: MealCourseSlot
       {error && <p className="mt-2 text-xs text-clay-dark">{error}</p>}
 
       {suggestedCount > 0 && (
-        <p className="mt-1.5 text-[11px] italic text-ink-faint">
+        <p className="mt-1.5 text-[11px] italic text-cream/55">
           {t(lang, "mealShopping.skippedSuggested", { count: suggestedCount })}
         </p>
       )}

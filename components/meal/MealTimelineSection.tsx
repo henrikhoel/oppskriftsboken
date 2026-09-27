@@ -31,6 +31,19 @@ import { t, type Lang } from "@/lib/i18n";
  * og "Start kokemodus") – ren understreket tekst, ikke en fylt knapp, og
  * uten ikon. Selve tidslinje-RESULTATET (når man faktisk trykker) er
  * uendret.
+ *
+ * OMFARGET 28.09.2026 – "Planlegg kvelden"-kapittelet er nå sin egen
+ * fullbredde LYSE seksjon (`bg-ink`, se filheaderen i MealView.tsx for det
+ * store tre-segment-redesignet), i motsetning til resten av siden som er
+ * mørk. Denne komponenten monteres KUN der (bekreftet: ingen andre
+ * importører), så fargeklassene under er bevisst byttet fra den mørke
+ * standardpaletten (text-ink/border-line, lys tekst på mørk bunn) til
+ * "cream"-familien (text-cream/border-cream, MØRK tekst – se
+ * app/globals.css sin filheader for hvorfor "cream" er den mørke tonen og
+ * "ink" den lyse) – samme opasitets-mønster (f.eks. text-cream/70,
+ * text-cream/55) som components/home/CookModeShowcase.tsx allerede bruker
+ * på sin tilsvarende lyse `bg-ink`-seksjon på forsiden. Gull (text-clay/
+ * text-clay-dark) er uendret – leser fint på begge bunnfarger.
  */
 export function MealTimelineSection({
   slots,
@@ -50,7 +63,7 @@ export function MealTimelineSection({
   const existingSlots = slots.filter((s): s is ExistingMealCourseSlot => s.source === "existing");
 
   if (existingSlots.length === 0) {
-    return <p className="text-xs text-ink-faint">{t(lang, "mealTimeline.noExisting")}</p>;
+    return <p className="text-xs text-cream/55">{t(lang, "mealTimeline.noExisting")}</p>;
   }
 
   async function handleCompute() {
@@ -95,20 +108,20 @@ export function MealTimelineSection({
 
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">{t(lang, "mealTimeline.readyLabel")}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-cream/55">{t(lang, "mealTimeline.readyLabel")}</p>
       <div className="mt-1.5 flex flex-wrap items-center gap-4">
         <input
           type="time"
           value={readyAt}
           onChange={(e) => onReadyAtChange(e.target.value)}
           // text-base på mobil (unngår iOS-innzooming ved fokus).
-          className="rounded-lg border border-line bg-cream px-2.5 py-1.5 text-base text-ink sm:text-sm"
+          className="rounded-lg border border-cream/25 bg-ink px-2.5 py-1.5 text-base text-cream focus:border-clay focus:outline-none sm:text-sm"
         />
         <button
           type="button"
           onClick={handleCompute}
           disabled={loading}
-          className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="text-xs font-medium text-cream/70 underline decoration-cream/30 underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? t(lang, "mealTimeline.loading") : t(lang, "mealTimeline.button")}
         </button>
@@ -117,28 +130,28 @@ export function MealTimelineSection({
       {error && <p className="mt-2 text-xs text-clay-dark">{error}</p>}
 
       {timeline && (
-        <div className="mt-3 space-y-2 border-t border-line pt-3">
+        <div className="mt-3 space-y-2 border-t border-cream/15 pt-3">
           <ul className="space-y-2">
             {timeline.dishes.map((dish) => {
               const startClock = dish.timeline.prepStartClockTime ?? dish.timeline.steps[0]?.startClockTime ?? null;
               return (
                 <li key={dish.slotId} className="flex items-center justify-between gap-3 text-sm">
                   <div className="min-w-0">
-                    <span className="mr-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                    <span className="mr-1.5 text-xs font-semibold uppercase tracking-wide text-cream/55">
                       {t(lang, `mealBuilder.role.${dish.role}`)}
                     </span>
-                    <span className="text-ink">{dish.title}</span>
-                    <span className="ml-1.5 text-xs text-ink-faint">
+                    <span className="text-cream">{dish.title}</span>
+                    <span className="ml-1.5 text-xs text-cream/55">
                       ({t(lang, "mealTimeline.totalMinutes", { minutes: dish.timeline.totalMinutes })})
                     </span>
                   </div>
-                  <span className="shrink-0 font-serif text-base text-ink">{startClock}</span>
+                  <span className="shrink-0 font-serif text-base text-cream">{startClock}</span>
                 </li>
               );
             })}
           </ul>
-          <div className="flex items-center justify-between border-t border-line pt-2 text-sm font-medium">
-            <span className="text-ink">{t(lang, "mealTimeline.readyAtLabel")}</span>
+          <div className="flex items-center justify-between border-t border-cream/15 pt-2 text-sm font-medium">
+            <span className="text-cream">{t(lang, "mealTimeline.readyAtLabel")}</span>
             <span className="font-serif text-lg text-clay-dark">{timeline.readyAt}</span>
           </div>
         </div>

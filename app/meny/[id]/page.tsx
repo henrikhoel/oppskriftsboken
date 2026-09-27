@@ -16,6 +16,16 @@ export async function generateMetadata(): Promise<Metadata> {
  * siden er derfor bevisst en tynn server-wrapper som kun henter `lang` og
  * route-param-en, selve innholdet (og "finnes ikke"-sjekken) skjer
  * klientside i MealView.tsx.
+ *
+ * (28.09.2026) Den tidligere faste `max-w-3xl`-wrapperen rundt HELE siden er
+ * fjernet for den innloggede visningen – MealView.tsx er nå bygget som tre
+ * fullbredde makro-segmenter (DIN MENY mørk / PLANLEGG KVELDEN lys kremflate
+ * / GJØR DET TIL EN KVELD eget mørkt univers, se filheaderen der), samme
+ * teknikk som forsiden (app/page.tsx) allerede bruker: INGEN felles
+ * maks-bredde-container her lenger, hvert segment eier sin egen bakgrunn og
+ * sin egen indre `mx-auto max-w-3xl`-kolonne. LockedPanel-visningen (ikke
+ * innlogget) er fortsatt bare én enkel, sentrert melding – den beholder sin
+ * egen smale wrapper uendret.
  */
 export default async function MealPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,17 +39,17 @@ export default async function MealPage({ params }: { params: Promise<{ id: strin
   // kontoeksklusiv – se favoritter/page.tsx for samme resonnement. Gjelder
   // også visning av en allerede bygget meny her, ikke bare selve
   // byggingen i app/meny/ny/page.tsx.
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-      {user ? (
-        <MealView mealId={id} isAdmin={Boolean(user?.isAdmin)} lang={lang} />
-      ) : (
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
         <LockedPanel
           message={t(lang, "featureLocked.mealMessage")}
           ctaLabel={t(lang, "featureLocked.cta")}
           nextPath={`/meny/${id}`}
         />
-      )}
-    </div>
-  );
+      </div>
+    );
+  }
+
+  return <MealView mealId={id} isAdmin={Boolean(user?.isAdmin)} lang={lang} />;
 }

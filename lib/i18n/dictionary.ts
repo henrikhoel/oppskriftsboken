@@ -1152,6 +1152,11 @@ const DICT = {
   // filene finnes fortsatt på disk, bare ikke montert fra MealView.tsx
   // lenger, se filheaderen der).
   "eveningExperience.entryHeading": { no: "Gjør det til en kveld", en: "Make it an evening" },
+  // (28.09.2026) Ny, kort undertittel rett under entryHeading – del av den
+  // store tre-segment-redesignet av /meny/[id] (DIN MENY mørk / PLANLEGG
+  // KVELDEN lys kremflate / GJØR DET TIL EN KVELD eget mørkt univers), se
+  // filheaderne i MealView.tsx og EveningExperience.tsx.
+  "eveningExperience.entrySubtitle": { no: "Alt rundt bordet.", en: "Everything around the table." },
   "eveningExperience.entryDescription": {
     no: "Vin, bord, stemning og musikk, kuratert rundt akkurat denne menyen.",
     en: "Wine, table, mood and music, curated around this exact menu.",

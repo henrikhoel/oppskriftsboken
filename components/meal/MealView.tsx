@@ -11,7 +11,6 @@ import {
 } from "@/lib/kitchen-intelligence";
 import { MealShoppingListSection } from "@/components/meal/MealShoppingListSection";
 import { MealTimelineSection } from "@/components/meal/MealTimelineSection";
-import { MealWineInput } from "@/components/meal/MealWineInput";
 import { EveningExperience } from "@/components/meal/EveningExperience";
 import { MultiCookMode } from "@/components/meal/MultiCookMode";
 import { CheckIcon, PlayIcon } from "@/components/ui/icons";
@@ -119,6 +118,58 @@ import { t, type Lang } from "@/lib/i18n";
  * komponenten ikke lenger har noe eget "hode", er utskrifts-lenken flyttet
  * hit, som en liten, tilbaketrukket tekstlenke ved siden av
  * "Tilbake til …"-lenken øverst på siden. Uendret av denne runden.
+ *
+ * REDESIGNET 28.09.2026 (4. runde – ny, større designbrief fra Henrik:
+ * "Jeg vil nå redesigne hele siden «Din meny» + «Gjør det til en kveld»
+ * slik at den får samme tydelige seksjonering og visuelle rytme som
+ * forsiden til CONVITE"). Fra ÉN sammenhengende, mørk `max-w-3xl`-kolonne
+ * (3. runde, se REDESIGNET-avsnittet over) TIL tre klare, fullbredde
+ * makro-segmenter, samme "scene"-teknikk som forsiden (app/page.tsx)
+ * allerede bruker (egen `<section>` per segment, hvert med sin egen
+ * bakgrunn og sin egen indre `mx-auto max-w-*`-kolonne – se f.eks.
+ * components/home/CookModeShowcase.tsx/MoodModeSection.tsx). Den tidligere
+ * felles `max-w-3xl`-wrapperen som lå i app/meny/[id]/page.tsx er derfor
+ * fjernet derfra for den innloggede visningen – hvert segment her eier nå
+ * sin egen bredde/padding:
+ *
+ * 1. DIN MENY (mørk, standard sidebunn) – uendret innhold (topplinje,
+ *    tittel/beskrivelse, retter), kun flyttet inn i sin egen
+ *    `mx-auto max-w-3xl`-wrapper i STEDET for å arve den fra page.tsx, med
+ *    en tydelig avsluttende pb (`pb-16 sm:pb-20`, samme mønster som
+ *    FeaturedEditorial-wrapperen på forsiden) – selve fargeskiftet til
+ *    segment 2 rett under ER den tydelige visuelle avslutningen (samme
+ *    prinsipp som forsidens seksjoner, ingen ekstra dekorativ linje lagt
+ *    til).
+ * 2. PLANLEGG KVELDEN – NÅ en egen, full-bredde LYS seksjon (`bg-ink`,
+ *    samme lyse token CookModeShowcase.tsx bruker for sin "lyse seksjon som
+ *    bevisst bryter med den ellers mørke siden") – tidligere et mørkt
+ *    kapittel i samme kolonne som resten. Kokemodus-knappen er ikke lenger
+ *    full bredde ("absurd bred") – nå en kompakt, sentrert pille (samme
+ *    gull-fylte `bg-clay text-cream`-stil, bare `inline-flex` i stedet for
+ *    `w-full`). "Legg i handlelisten" er nå en diskré tekstlenke (samme
+ *    behandling som "Vis tidslinje"), tydelig sekundær til kokemodus-
+ *    knappen. MealTimelineSection.tsx/MealShoppingListSection.tsx er
+ *    omfarget for denne lyse bunnen i egne commits – se deres filheadere.
+ * 3. VINEN DIN – IKKE lenger sitt eget kapittel her. Flyttet inn i
+ *    EveningExperience.tsx sitt "I GLASSET"-kapittel (se filheaderen der)
+ *    – "vin brukeren allerede har" hører naturlig sammen med AI-ens egen
+ *    vin-anbefaling for menyen, i stedet for å stå isolert i "Planlegg
+ *    kvelden". `setWine` sendes nå ned som `onWineChange`-prop til
+ *    EveningExperience i stedet for å brukes direkte her.
+ * 4. GJØR DET TIL EN KVELD – nå sitt eget mørke "univers": en egen
+ *    full-bredde `bg-paper`-seksjon (en anelse lysere enn sidens
+ *    `bg-cream`-bunn, nok til å lese som et eget rom, samme prinsipp som
+ *    brief-en ba om – "strukturert slik at et fullbredde bakgrunnsbilde kan
+ *    legges til senere", IKKE noe bilde lagt til nå) som rommer BÅDE
+ *    kapittel-inngangen (eyebrow + ny undertittel "Alt rundt bordet." +
+ *    beskrivelseslinjen, uendret tekstinnhold, kun flyttet hit fra den
+ *    smale `max-w-3xl`-kolonnen) OG selve EveningExperience.tsx – begge nå
+ *    i samme `max-w-xl`-kolonnebredde som EveningExperience sine egne
+ *    kapitler allerede brukte, for konsekvent venstrekant gjennom hele
+ *    segmentet.
+ *
+ * Fortsatt ingen ny funksjonalitet i denne runden heller – samme prinsipp
+ * som 3. runde (kun presentasjon/informasjonsarkitektur).
  */
 export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: boolean; lang: Lang }) {
   const [cookModeOpen, setCookModeOpen] = useState(false);
@@ -183,7 +234,8 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
 
   return (
     <>
-    <div className="space-y-10 print:hidden">
+    {/* ============ SEGMENT 1: DIN MENY (mørk, standard sidebunn) ============ */}
+    <div className="mx-auto max-w-3xl space-y-10 px-4 pt-10 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         {anchorSlot ? (
           <Link
@@ -284,7 +336,10 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
       ) : (
         <>
           {/* 2. SELVE MENYEN – presentert som et rolig restaurantmeny-kort,
-              ingen kort/bokser rundt hver rett, kun skillelinjer. */}
+              ingen kort/bokser rundt hver rett, kun skillelinjer. Siste
+              kapittel i DETTE (mørke) segmentet – "Planlegg kvelden" og
+              "Gjør det til en kveld" er nå egne, fullbredde segmenter under,
+              se filheaderen over. */}
           <div className="divide-y divide-line">
             {slots.map((slot) => {
               const expanded = expandedSlotIds.has(slot.id);
@@ -390,90 +445,85 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
             })}
           </div>
 
-          {/* 3. PLANLEGG KVELDEN – egen kapittel, vertikal, ikke lenger en
-              egen kolonne ved siden av menyen. Kokemodus er fortsatt DEN
-              ene tydelige CTA-en; handlelisten er tydelig sekundær (se
-              MealShoppingListSection.tsx). Notat-inputen er fjernet fra
-              denne siden (28.09.2026, Henrik: "fjerne notatfeltet også" –
-              rett etter at "Lagre menyen" ble flyttet, se OPPFØLGING-
-              avsnittet i filheaderen over). Et allerede lagret
-              session.notes fra FØR denne fjerningen vises fortsatt i
-              utskriftsoppsummeringen lenger ned på siden (uendret) – kun
-              selve INPUT-feltet for å skrive nye/endre eksisterende
-              notater er borte, ikke feltet i datamodellen
-              (MealSession.notes i lib/kitchen-intelligence/types.ts) eller
-              setNotes-funksjonen (useMealSession.ts). */}
-          <div className="border-t border-line pt-12">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
-              {t(lang, "eveningExperience.planButton")}
-            </p>
-            <p className="mt-2 font-serif text-xl text-ink-soft sm:text-2xl">
-              {t(lang, "mealPage.planSubtitle")}
-            </p>
-            <div className="mt-6 space-y-6">
-              <div id="meal-timeline">
-                <MealTimelineSection
-                  slots={slots}
-                  readyAt={session.desiredReadyAt ?? ""}
-                  onReadyAtChange={setDesiredReadyAt}
-                  lang={lang}
-                />
-              </div>
+        </>
+      )}
+    </div>
 
-              {hasExistingDish && (
+    {/* ============ SEGMENT 2: PLANLEGG KVELDEN (lys kremflate, fullbredde) ============
+        Egen full-bredde LYS seksjon (`bg-ink`) – samme "scene"-brudd-teknikk
+        som components/home/CookModeShowcase.tsx bruker på forsiden (se
+        filheaderen over for hele begrunnelsen). Kokemodus er fortsatt DEN
+        ene tydelige, men nå bevisst KOMPAKTE CTA-en (ikke lenger full
+        bredde); handlelisten er en diskré tekstlenke, tydelig sekundær.
+        Notat-inputen er fortsatt fjernet (28.09.2026, se tidligere
+        OPPFØLGING-avsnitt i filheaderen) – kun feltet i datamodellen
+        (MealSession.notes) og setNotes (useMealSession.ts) lever videre,
+        vist i utskriftsoppsummeringen lenger ned. */}
+    {slots.length > 0 && (
+      <section className="bg-ink py-16 sm:py-20 print:hidden">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+            {t(lang, "eveningExperience.planButton")}
+          </p>
+          <p className="mt-2 font-serif text-2xl text-cream sm:text-3xl">{t(lang, "mealPage.planSubtitle")}</p>
+
+          <div className="mt-8 space-y-8">
+            <div id="meal-timeline">
+              <MealTimelineSection
+                slots={slots}
+                readyAt={session.desiredReadyAt ?? ""}
+                onReadyAtChange={setDesiredReadyAt}
+                lang={lang}
+              />
+            </div>
+
+            {hasExistingDish && (
+              <div className="text-center">
                 <button
                   type="button"
                   onClick={() => setCookModeOpen(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-clay py-3.5 text-base font-medium text-cream transition-colors hover:bg-clay-dark sm:text-lg"
+                  className="inline-flex items-center gap-2 rounded-full bg-clay px-8 py-3.5 text-base font-medium text-cream transition-colors hover:bg-clay-dark sm:px-10 sm:text-lg"
                 >
                   <PlayIcon className="h-4 w-4" />
                   {t(lang, "mealCookMode.button")}
                 </button>
-              )}
-
-              <div id="meal-shopping-list">
-                <MealShoppingListSection slots={slots} lang={lang} />
               </div>
+            )}
+
+            <div id="meal-shopping-list">
+              <MealShoppingListSection slots={slots} lang={lang} />
             </div>
           </div>
+        </div>
+      </section>
+    )}
 
-          {/* 4. VINEN DIN – eget kapittel (flyttet ut av "Planlegg
-              kvelden"-kolonnen, se REDESIGNET-avsnittet i filheaderen over).
-              MealWineInput.tsx sin egen interne overskrift/border-t er
-              fjernet, siden chapter-eyebrowen under nå eier den. */}
-          <div className="border-t border-line pt-12">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
-              {t(lang, "mealWineInput.heading")}
-            </p>
-            <div className="mt-4">
-              <MealWineInput wine={session.wine} onChange={setWine} lang={lang} />
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* GJØR DET TIL EN KVELD – kapittelovergang, ikke en boks/CTA (fjernet
-          31.08.2026, se filheaderen over: brukeren er allerede inne i denne
-          opplevelsen). Kun en liten gull-eyebrow pluss en større
-          serif-undertittel, begge gjenbrukt fra eksisterende
-          eveningExperience.*-nøkler (aldri hardkodet). Selve innholdet
-          (vin/bord/stemning/musikk) følger direkte under, som vanlig
-          sideinnhold – se EveningExperience.tsx. UENDRET av 27.09.2026-
-          redesignet (se filheaderen over) – kun flyttet til å følge etter
-          "Vinen din" i stedet for etter 2-kolonne-gridet. */}
-      {slots.length > 0 && (
-        <div className="border-t border-line pt-12">
+    {/* ============ SEGMENT 3: GJØR DET TIL EN KVELD (eget mørkt univers, fullbredde) ============
+        Egen full-bredde `bg-paper`-seksjon (en anelse lysere enn sidens
+        `bg-cream`-bunn – nok til å lese som et eget rom, strukturert slik
+        at et fullbredde bakgrunnsbilde kan legges til her senere, IKKE lagt
+        til nå). Kapittel-inngangen (eyebrow + undertittel + beskrivelse) og
+        EveningExperience.tsx deler samme `max-w-xl`-kolonnebredde for
+        konsekvent venstrekant. "Vinen din" er IKKE lenger et eget kapittel
+        her – flyttet inn i EveningExperience.tsx sitt "I GLASSET"-kapittel,
+        se filheaderen der. */}
+    {slots.length > 0 && (
+      <section className="bg-paper print:hidden">
+        <div className="mx-auto max-w-xl px-5 pt-16 sm:px-10 sm:pt-24">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
             {t(lang, "eveningExperience.entryHeading")}
           </p>
-          <p className="mt-2 max-w-md font-serif text-xl text-ink-soft sm:text-2xl">
+          <p className="mt-3 text-balance font-serif text-3xl text-ink sm:text-4xl">
+            {t(lang, "eveningExperience.entrySubtitle")}
+          </p>
+          <p className="mt-3 max-w-md font-serif text-lg text-ink-soft sm:text-xl">
             {t(lang, "eveningExperience.entryDescription")}
           </p>
         </div>
-      )}
-    </div>
 
-    {slots.length > 0 && <EveningExperience session={session} lang={lang} />}
+        <EveningExperience session={session} wine={session.wine} onWineChange={setWine} lang={lang} />
+      </section>
+    )}
 
     {/* Utskriftsvennlig oppsummering – skjult på skjerm, vist KUN ved
      * utskrift (Tailwind sin `print:`-variant, se filheaderen over for
