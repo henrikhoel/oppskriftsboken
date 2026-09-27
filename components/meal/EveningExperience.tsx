@@ -275,10 +275,15 @@ function WhyReveal({
             setOpen((o) => !o);
           }
         }}
-        className={clsx(
-          "cursor-pointer underline decoration-dotted decoration-ink-faint underline-offset-4 transition-colors hover:decoration-clay",
-          className,
-        )}
+        // (29.09.2026, 20. runde – Henrik: "fjern den striplede linjen som
+        // viser at de forskjellige tingene er klikkbare for info også. det
+        // ser så uryddig ut. det får være et easteregg man legger merke
+        // til") – `underline decoration-dotted …`/`hover:decoration-clay`
+        // fjernet helt, ingen erstattende visuell hint satt inn i stedet.
+        // Fortsatt faktisk klikkbar (`cursor-pointer`, `role="button"`,
+        // tastatur-håndtering uendret over) – bare uten et synlig "trykk
+        // her"-signal.
+        className={clsx("cursor-pointer", className)}
       >
         {children}
       </div>
@@ -346,7 +351,10 @@ function GlossaryText({
                 });
               }}
               aria-expanded={isOpen}
-              className="underline decoration-dotted decoration-ink-faint underline-offset-4 transition-colors hover:decoration-clay"
+              // (29.09.2026, 20. runde) Samme fjerning som WhyReveal over –
+              // se filheaderen der. Ordforklaringene er fortsatt klikkbare,
+              // bare uten den striplede understreken som markerte dem.
+              className="cursor-pointer"
             >
               {part}
             </button>
