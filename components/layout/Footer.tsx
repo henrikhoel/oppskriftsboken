@@ -5,6 +5,11 @@ import { t, type Lang } from "@/lib/i18n";
 
 export function Footer({ lang }: { lang: Lang }) {
   return (
+    // mt-20 (5rem) – forsiden (app/page.tsx) kansellerer nøyaktig denne
+    // med sin egen -mb-20 på siden sin ytterste div, siden den (og kun den)
+    // alltid slutter med et fullbredde bakgrunnsbilde helt ut til kantene
+    // (ClosingQuoteSection) og IKKE skal ha noen bar, svart avstand foran
+    // footeren. Endres denne verdien, må -mb-20 i app/page.tsx endres likt.
     <footer className="mt-20 border-t border-line bg-cream-dark/60 pb-24 md:pb-0">
       {/* "Til toppen"-pil – motstykket til "bla nedover"-pilen i heroen
           (app/page.tsx sin ScrollDownHint.tsx). Egen liten "use client"-fil

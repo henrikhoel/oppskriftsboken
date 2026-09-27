@@ -79,7 +79,20 @@ export default async function HomePage() {
   const newestForGrid = newest.filter((r) => !usedIds.has(r.id)).slice(0, 5);
 
   return (
-    <div>
+    // -mb-20 kansellerer nøyaktig Footer.tsx sin egen mt-20 (samme 5rem) –
+    // siden ClosingQuoteSection nå ALLTID er siste element på forsiden og
+    // selv har et fullbredde bakgrunnsbilde helt ut til kantene, ble Footer
+    // sin faste topp-margin tidligere en synlig, bar svart "bolk" mellom
+    // bildet og footeren (Henrik, 27.09.2026: "denne delen kan godt gå helt
+    // ned til kanten så man ikke får en liten svart bolk der"). <main> og
+    // Footer-wrapperen i app/layout.tsx er begge flex-barn i en
+    // flex-col-body, så marginer kollapser IKKE av seg selv der – denne
+    // negative marginen er derfor nødvendig, ikke bare kosmetisk overflødig.
+    // Kun aktuelt fordi forsiden (og KUN forsiden) slutter med et
+    // fullbredde-bilde; andre sider skal beholde Footer sin vanlige mt-20
+    // urørt. Juster denne verdien i takt med Footer.tsx sin mt-20 om den
+    // noen gang endres.
+    <div className="-mb-20">
       {/* ================= HERO ================= */}
       {/* Heroens høyde = 100svh MINUS den faktisk MÅLTE høyden på headeren
           og (på mobil) den faste bunnmenyen – se ChromeHeightVars.tsx, som
