@@ -409,10 +409,21 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         wrapperen, uendret) er derfor eksplisitt `relative` for å stable
         riktig oppå de absolutt posisjonerte laget. Ingen fade-gradient
         lagt til ennå – kun selve bildet + samme overlegg som resten,
-        akkurat det som ble bedt om denne runden. */}
+        akkurat det som ble bedt om denne runden.
+
+        JUSTERT POSISJON (27.09.2026, 27. runde – Henrik, med skjermbilde av
+        mobilvisningen: "bildet må flyttes litt her så man ser noe av
+        motivet som er skjult nede til høyre") – selve motivet (bordet,
+        stolen, vinglasset, stearinlysene) sitter i den HØYRE tredjedelen av
+        `dining-room.jpg`, mens `bg-center` beskjærer akkurat den
+        billedbredden bort på en smal, høy mobilskjerm (bg-cover skalerer
+        etter høyden og sentrerer horisontalt, så kun en smal midtstripe av
+        et bredt liggende bilde blir igjen). Byttet fra `bg-center` til
+        `bg-[76%_68%]` – flytter fokuspunktet mot der motivet faktisk er,
+        i stedet for midt i det mørkeste, tommeste partiet av bildet. */}
     <section className="relative isolate overflow-hidden bg-paper">
       <div
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0 bg-cover bg-[76%_68%]"
         style={{ backgroundImage: "url(/images/dining-room.jpg)" }}
         aria-hidden="true"
       />
