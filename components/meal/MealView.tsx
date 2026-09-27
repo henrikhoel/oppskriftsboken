@@ -133,7 +133,6 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
     hydrated: sessionHydrated,
     setTitle,
     setDescription,
-    setNotes,
     remove,
     setServings,
     setDesiredReadyAt,
@@ -394,7 +393,16 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
           {/* 3. PLANLEGG KVELDEN – egen kapittel, vertikal, ikke lenger en
               egen kolonne ved siden av menyen. Kokemodus er fortsatt DEN
               ene tydelige CTA-en; handlelisten er tydelig sekundær (se
-              MealShoppingListSection.tsx); notatene tonet ned nederst. */}
+              MealShoppingListSection.tsx). Notat-inputen er fjernet fra
+              denne siden (28.09.2026, Henrik: "fjerne notatfeltet også" –
+              rett etter at "Lagre menyen" ble flyttet, se OPPFØLGING-
+              avsnittet i filheaderen over). Et allerede lagret
+              session.notes fra FØR denne fjerningen vises fortsatt i
+              utskriftsoppsummeringen lenger ned på siden (uendret) – kun
+              selve INPUT-feltet for å skrive nye/endre eksisterende
+              notater er borte, ikke feltet i datamodellen
+              (MealSession.notes i lib/kitchen-intelligence/types.ts) eller
+              setNotes-funksjonen (useMealSession.ts). */}
           <div className="border-t border-line pt-12">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
               {t(lang, "eveningExperience.planButton")}
@@ -425,20 +433,6 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
 
               <div id="meal-shopping-list">
                 <MealShoppingListSection slots={slots} lang={lang} />
-              </div>
-
-              <div className="border-t border-line pt-6">
-                <label className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-                  {t(lang, "mealPage.notesLabel")}
-                </label>
-                <textarea
-                  value={session.notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={t(lang, "mealPage.notesPlaceholder")}
-                  rows={2}
-                  // text-base på mobil (unngår iOS-innzooming ved fokus).
-                  className="mt-1.5 w-full rounded-lg border border-line bg-cream px-3 py-2 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
-                />
               </div>
             </div>
           </div>
