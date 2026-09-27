@@ -593,10 +593,31 @@ export function EveningExperience({
            * og gjennomsiktig i midten – gir en myk overgang til svart der
            * segmentet møter kapittel-inngangen over (som nå har sitt eget
            * bilde, se MealView.tsx) og VED SERVERING under (som har sin
-           * egne flate `bg-cream`), i stedet for en brå bildekant. */}
+           * egne flate `bg-cream`), i stedet for en brå bildekant.
+           *
+           * UTSKARPET (27.09.2026, 22. runde – Henrik, med skjermbilde av
+           * "HAR DU ALLEREDE EN VIN?"/"PÅ BORDET": "plasseringen av bildet
+           * gjør at det blir litt mye støy akkurat på dette området, enten
+           * så må bildet flyttes til en roligere del, eller så må bilde
+           * være uskarpt") – vurderte å justere `bg-center`/posisjon i
+           * stedet, men bildet er ÉN delt bakgrunnsflate bak tre kapitler
+           * med uavhengig, innholdsstyrt høyde (vinanbefaling, antall
+           * PÅ BORDET-elementer, om STEMNING/MUSIKK finnes) – en
+           * reposisjonering ville bare flyttet det samme støyende partiet
+           * (glass/karaffel) til et annet kapittel i stedet for å fjerne
+           * det, og ville dessuten kunne lande annerledes avhengig av
+           * innholdsmengden. Valgte derfor det andre alternativet Henrik
+           * tilbød: selve bildet er nå uskarpt (`blur-md`, ~12px) – roer
+           * ned skarpe glass-/karaffel-konturer overalt i det delte
+           * segmentet, uavhengig av hvor de havner, uten å endre
+           * beskjæring/komposisjon eller de finjusterte overlay-verdiene
+           * over. `scale-110` lagt til samtidig, en vanlig følgesvenn til
+           * blur på et `bg-cover`-lag – forstørrer bildet litt utover egne
+           * kanter slik at blur-radiusen ikke kan avdekke en gjennomsiktig
+           * stripe i ytterkant av det (allerede overskalerte) dekkbildet. */}
           <div className="relative isolate overflow-hidden">
             <div
-              className="absolute inset-0 bg-cover bg-center"
+              className="absolute inset-0 scale-110 bg-cover bg-center blur-md"
               style={{ backgroundImage: "url(/images/evening-table.jpg)" }}
               aria-hidden="true"
             />
