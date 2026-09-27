@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { flushSync } from "react-dom";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import {
@@ -11,17 +12,31 @@ import {
 } from "@/lib/actions/kitchen-intelligence";
 import { generateMealId, useMealSession } from "@/lib/hooks/useMealSession";
 import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { t, type Lang } from "@/lib/i18n";
 
 interface WorkingCourse {
   course: MealPlanCourse;
   servings: number;
   /** true mens "Foreslå en annen" pågår for AKKURAT denne plassen – lar
-   * resten av menyen forbli interaktiv mens ett kort venter. */
+   * resten av menyen forbli interaktiv mens én rad venter. */
   regenerating: boolean;
 }
+
+/** De fire tidsbudsjett-valgene i "Hvor mye tid har du?"-kontrollen (29.09.2026-
+ * redesignet, se filheaderen under). `minutes: null` = "Ingen grense" (samme
+ * som å la feltet stå tomt i den gamle fritekst-inputen – ingen constraint
+ * sendes til AI-en). "2+ timer" har ikke ett presist minuttall å sende inn
+ * (det er per definisjon åpent oppover) – 150 min er valgt som et fornuftig,
+ * konkret tall å gi AI-en et "det er god tid, en langsommere rett er helt
+ * fint her"-hint, uten at det leses som en hard 2-timersgrense. */
+type TimeOptionKey = "none" | "60" | "90" | "120plus";
+
+const TIME_BUDGET_OPTIONS: { key: TimeOptionKey; minutes: number | null }[] = [
+  { key: "none", minutes: null },
+  { key: "60", minutes: 60 },
+  { key: "90", minutes: 90 },
+  { key: "120plus", minutes: 150 },
+];
 
 /**
  * MENYBYGGEREN (Fase 5 – Experience). Knapp-trigget (samme mønster som
@@ -29,10 +44,80 @@ interface WorkingCourse {
  * den lastes automatisk. Se generateMealPlan i
  * lib/actions/kitchen-intelligence.ts for selve AI-logikken, og
  * lib/kitchen-intelligence/meal-session.ts for hva som skjer med et
- * akseptert forslag når "Lagre menyen" trykkes – IKKE en utvidelse av
+ * akseptert forslag når "Gå videre" trykkes – IKKE en utvidelse av
  * MenuSuggestions (den lever videre uendret ved siden av denne), men en
  * egen, rikere funksjon: rolle-inndelt, redigerbar per plass, og kan
  * inkludere retter som ikke finnes i katalogen ennå.
+ *
+ * REDESIGNET 29.09.2026 – stor designbrief fra Henrik: "Jeg vil redesigne
+ * hele 'Gjør det til en kveld'-området nederst på oppskriftssiden [...] Det
+ * skal bli en egen, tydelig premiumseksjon på linje med de andre store
+ * seksjonene vi nå har redesignet på CONVITE [...] Dette skal føles som en
+ * kuratert del av matopplevelsen, ikke som et konfigurasjonsskjema." Ren
+ * presentasjon/interaksjon – all funksjonalitet (hvordan menyen genereres,
+ * hvilke retter som velges, porsjoner, navigasjon videre, lagring) er
+ * UENDRET, kun hvordan den vises:
+ *
+ * 1. FULLBREDDE PREMIUMFLATE – selve `<section>`-en (se JSX under) bryter nå
+ *    ut av oppskriftssidens vanlige `max-w-5xl`/`xl:max-w-[1280px]`-
+ *    container med samme full-bleed-triks (`relative left-1/2 -mx-[50vw]
+ *    w-screen`) som RecipeHero.tsx allerede bruker for sitt bilde (se
+ *    filheaderen der) – men UTEN `xl:`-prefikset, siden denne skal være
+ *    fullbredde på ALLE skjermstørrelser, ikke bare fra 1280px. En egen
+ *    indre `mx-auto max-w-5xl ... xl:max-w-[1280px]`-kolonne (nøyaktig
+ *    samme bredde-/padding-verdier som app/oppskrifter/[slug]/page.tsx sin
+ *    ytre wrapper) gjenoppretter samme venstrekant/innholdsbredde som
+ *    resten av siden – "innenfor samme content-grid og venstrekant som
+ *    resten av nettsiden", ikke en tilfeldig annen bredde. `relative
+ *    isolate overflow-hidden bg-paper` på selve `<section>`-en (samme
+ *    teknikk som EveningExperience.tsx/MealView.tsx sine bakgrunnsbilde-
+ *    seksjoner) gjør at et fullbredde bakgrunnsbilde + mørke overlays/
+ *    gradienter kan legges til SENERE som to ekstra `absolute inset-0`-lag
+ *    helt uten strukturelle endringer – bevisst IKKE lagt til ennå (Henrik:
+ *    "IKKE legg inn noe nytt bilde nå"). Generøs `py-16 sm:py-20 lg:py-24`
+ *    gir seksjonen den "gode høyden" som er bedt om.
+ * 2. VENSTREJUSTERT EDITORIAL INTRO (ikke lenger sentrert) – liten gull-
+ *    eyebrow (`mealBuilder.eyebrow`, uendret tekst "Gjør det til en kveld"),
+ *    stor serif-heading (`mealBuilder.heading`, tekst endret til "Bygg en
+ *    kveld rundt retten." – se dictionary.ts) og en kort ingress
+ *    (`mealBuilder.intro`, tekst endret til å nevne forrett/hovedrett/
+ *    dessert konkret). Denne intro-blokken er ALLTID synlig, både før og
+ *    etter generering ("Behold labelen [...] og headingen øverst, slik at
+ *    dette fortsatt visuelt er samme seksjon").
+ * 3. TIDSBUDSJETT – det gamle tekniske "Jeg har (minutter, valgfritt)
+ *    f.eks. 6"-tallfeltet er fjernet. Erstattet med `TIME_BUDGET_OPTIONS`
+ *    over: en liten pille-rad (Ingen grense/60 min/90 min/2+ timer) under
+ *    en egen `mealBuilder.timeLabel`-eyebrow ("Hvor mye tid har du?").
+ *    `availableMinutesInput` (fritekst-state) er derfor byttet ut med
+ *    `selectedMinutes: number | null` – kobles til nøyaktig samme
+ *    `generateMealPlan(..., { availableMinutes })`-kall som før, bare uten
+ *    fritekst-parsingen (Number/Number.isFinite-sjekken er overflødig når
+ *    verdien allerede er et kontrollert `number | null`).
+ * 4. GENERERT MENY – de store, kantede `CourseCard`-boksene er borte.
+ *    `CourseRow` (ny, under) rendrer nå ALLE plasser (anker + de andre)
+ *    likt: liten gull-rolle-label, retten i medium/stor serif, tynne
+ *    `divide-y divide-ink/10`-skillelinjer mellom radene (samme hårfine
+ *    token som DIN MENY-listen i MealView.tsx – bevisst samme visuelle
+ *    språk, se filheaderen der). "Finnes i oppskriftsboken"/"Nytt forslag"
+ *    er nå diskré småtekst i stedet for `Badge`-piller (samme prinsipp som
+ *    "Nytt forslag" i MealView.tsx sin retteliste); ankerretten
+ *    ("Retten du startet med") er en tilsvarende liten gulltekst i stedet
+ *    for en stor `Badge tone="clay"`-pille. Porsjonsvelgeren er en liten
+ *    understreket inline-tall (ingen boks), "Foreslå en annen"/"Fjern fra
+ *    menyen" er nå diskré, understrekede tekstlenker (samme stil som
+ *    Rediger-lenken i MealView.tsx) i stedet for kantede knapper.
+ *    Menynavnet er en `<input>` som er usynlig (gjennomsiktig, ingen kant)
+ *    helt til den får fokus – samme "diskret til man faktisk trenger den"-
+ *    teknikk som tittelfeltet i MealView.tsx.
+ * 5. CTA-RAD – "Gå videre" (`mealBuilder.save`, tekst uendret) er en tydelig
+ *    gullfylt rund knapp (samme `bg-clay`/`text-cream`-formel som
+ *    kokemodus-knappen i MealView.tsx). "Nullstill og begynn på nytt"
+ *    (`mealBuilder.reset`, tekst uendret) er nå en mye roligere, liten
+ *    tekstlenke ved siden av i stedet for jevnbyrdig med primærknappen.
+ *
+ * `Badge`/`Button`-komponentene er ikke lenger brukt her (erstattet av
+ * skreddersydde elementer som matcher resten av denne rundens redesign) –
+ * importene er derfor fjernet.
  */
 export function MealBuilder({
   recipe,
@@ -66,7 +151,10 @@ export function MealBuilder({
   // faktisk la merke til, og ga da mest et falskt inntrykk av kontroll).
   // TILGJENGELIG TID (5.13) er beholdt – rent tidsbudsjett er en konkret,
   // forståelig begrensning på en helt annen måte enn en stemningsetikett.
-  const [availableMinutesInput, setAvailableMinutesInput] = useState("");
+  // Byttet fra fritekst-state til en kontrollert `number | null` (29.09.2026,
+  // se filheaderen over) – `null` er "Ingen grense", samme default som det
+  // gamle tomme feltet hadde.
+  const [selectedMinutes, setSelectedMinutes] = useState<number | null>(null);
 
   const hasPlan = anchorRole !== null;
 
@@ -74,12 +162,11 @@ export function MealBuilder({
     setLoading(true);
     setError(null);
     try {
-      const availableMinutes = availableMinutesInput.trim() ? Number(availableMinutesInput) : null;
       const plan = await generateMealPlan(
         recipe.id,
         { title: recipe.title, description: recipe.description, categoryName: recipe.category?.name ?? null },
         lang,
-        { availableMinutes: Number.isFinite(availableMinutes) ? availableMinutes : null },
+        { availableMinutes: selectedMinutes },
       );
       setAnchorRole(plan.anchorRole);
       setMenuTitle(plan.menuTitle);
@@ -182,232 +269,256 @@ export function MealBuilder({
     : [];
 
   return (
-    // Boks-stylingen (rounded-card/border/bg) fjernet 31.08.2026
-    // (designforbedring punkt 9/10) – seksjonen er nå ett rolig avsnitt i
-    // den delte "sekundær info"-flaten i RecipeInteractive.tsx, med en
-    // liten "GJØR DET TIL EN KVELD"-eyebrow som gir en tydelig CONVITE-
-    // identitet uten å røre selve anledning/tid/bygg-meny-logikken under.
-    //
-    // Flyttet HELT NEDERST og gitt tydelig større overskrift/plass
-    // 31.08.2026 ("gjør det til en kveld bør komme nederst og fortjener
-    // større overskrift og plass") – dette er nå sidens avslutning, ikke
-    // bare enda et element i rekken av sekundærseksjoner.
-    //
-    // "Gjør det til en kveld" (den gule eyebrowen) er selve
-    // hovedoverskriften nå – gjort tydelig STØRRE enn "Bygg en meny rundt
-    // denne retten" (som nå er en mindre underoverskrift under), per
-    // ønske. HELE seksjonen er midtstilt (utvidet 31.08.2026 fra kun
-    // header-blokken til også byggeskjemaet under, "resten må også være
-    // på midten") – en bevisst avvikende, "avslutning på oppslaget"-
-    // følelse i stedet for venstrestilt som resten av seksjonene. Selve
-    // kort-innholdet i det ferdige menyforslaget (CourseCard under) er
-    // IKKE tekst-midtstilt – rolle/tittel/beskrivelse i et enkelt kort
-    // leses bedre venstrestilt, kun selve kort-RADEN/knappene er
-    // sentrert på siden.
-    <div className="flex flex-col items-center text-center">
-      <div>
-        <p className="font-serif text-4xl text-clay sm:text-5xl">{t(lang, "mealBuilder.eyebrow")}</p>
-        <h3 className="mt-2 font-serif text-base text-ink-soft sm:text-lg">{t(lang, "mealBuilder.heading")}</h3>
-        <p className="mx-auto mt-2 max-w-prose text-sm text-ink-faint sm:text-base">{t(lang, "mealBuilder.intro")}</p>
-      </div>
-
-      {/* mt-8/space-y-5 (var mt-4/space-y-3) – mer luft mellom ingressen og
-          det som følger, ønsket 31.08.2026. Anledning-velgeren som sto her
-          er fjernet samme dato ("for den har ingen effekt") – kun
-          tilgjengelig-tid-input og selve bygg-knappen står igjen. */}
-      {!hasPlan && (
-        <div className="mt-8 flex w-full flex-col items-center space-y-5">
-          <label className="flex items-center gap-2 text-xs text-ink-faint">
-            {t(lang, "mealBuilder.availableMinutesLabel")}
-            <input
-              type="number"
-              min={10}
-              max={480}
-              placeholder={t(lang, "mealBuilder.availableMinutesPlaceholder")}
-              value={availableMinutesInput}
-              onChange={(e) => setAvailableMinutesInput(e.target.value)}
-              // text-base på mobil (unngår iOS-innzooming ved fokus).
-              className="w-20 rounded-lg border border-line bg-cream px-2 py-1 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
-            />
-          </label>
-
-          <button
-            type="button"
-            onClick={handleBuild}
-            disabled={loading}
-            className="rounded-xl bg-clay px-4 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
-          >
-            {loading ? t(lang, "mealBuilder.loading") : t(lang, "mealBuilder.button")}
-          </button>
+    // Se filheaderen over for hele redesign-resonnementet (29.09.2026).
+    // Full-bleed-teknikk identisk med RecipeHero.tsx (kun uten xl:-prefiks –
+    // denne skal være fullbredde på alle skjermstørrelser).
+    <section className="relative isolate left-1/2 -mx-[50vw] w-screen overflow-hidden bg-paper">
+      <div className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24 xl:max-w-[1280px]">
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+            {t(lang, "mealBuilder.eyebrow")}
+          </p>
+          <h2 className="mt-4 text-balance font-serif text-4xl text-ink sm:text-5xl">
+            {t(lang, "mealBuilder.heading")}
+          </h2>
+          <p className="mt-4 max-w-prose font-serif text-lg text-ink-soft sm:text-xl">
+            {t(lang, "mealBuilder.intro")}
+          </p>
         </div>
-      )}
 
-      {error && <p className="mt-3 text-sm text-clay-dark">{error}</p>}
-
-      {hasPlan && (
-        <div className="mt-5 w-full space-y-5 text-left">
-          <div className="mx-auto max-w-sm">
-            <label className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-              {t(lang, "mealBuilder.titleLabel")}
-            </label>
-            <input
-              type="text"
-              value={menuTitle}
-              onChange={(e) => setMenuTitle(e.target.value)}
-              // text-base på mobil (unngår iOS-innzooming ved fokus).
-              className="mt-1 w-full rounded-lg border border-line bg-cream px-3 py-2 text-center text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {displayRoles.map((role) => {
-              if (role === anchorRole) {
+        {!hasPlan && (
+          <div className="mt-10 max-w-md">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
+              {t(lang, "mealBuilder.timeLabel")}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {TIME_BUDGET_OPTIONS.map((option) => {
+                const active = selectedMinutes === option.minutes;
                 return (
-                  <div key={role} className="flex flex-col gap-2 rounded-xl border border-line bg-cream p-4">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-clay-dark">
-                        {t(lang, `mealBuilder.role.${role}`)}
-                      </span>
-                      <Badge tone="clay">{t(lang, "mealBuilder.anchorBadge")}</Badge>
-                    </div>
-                    <p className="font-serif text-base text-ink">{recipe.title}</p>
-                    <ServingsInput
-                      value={anchorServings}
-                      onChange={setAnchorServings}
-                      lang={lang}
-                    />
-                  </div>
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setSelectedMinutes(option.minutes)}
+                    aria-pressed={active}
+                    className={clsx(
+                      "rounded-full border px-4 py-1.5 text-xs font-medium transition-colors",
+                      active
+                        ? "border-clay bg-clay text-cream"
+                        : "border-ink-faint/30 text-ink-soft hover:border-clay hover:text-clay-dark",
+                    )}
+                  >
+                    {t(lang, `mealBuilder.timeOption.${option.key}`)}
+                  </button>
                 );
-              }
+              })}
+            </div>
 
-              const working = courses.find((c) => c.course.role === role);
-              if (!working) return null;
-              return (
-                <CourseCard
-                  key={role}
-                  role={role}
-                  working={working}
-                  lang={lang}
-                  onRemove={() => removeCourse(role)}
-                  onRegenerate={() => handleRegenerate(role)}
-                  onServingsChange={(servings) => setCourseServings(role, servings)}
-                />
-              );
-            })}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-            <Button onClick={handleSave} disabled={saving} variant="primary" size="sm">
-              {saving ? t(lang, "mealBuilder.saving") : t(lang, "mealBuilder.save")}
-            </Button>
-            {saved && (
-              <Button href={`/meny/${mealId}`} variant="outline" size="sm">
-                {t(lang, "mealBuilder.viewSaved")}
-              </Button>
-            )}
             <button
               type="button"
-              onClick={handleReset}
-              disabled={saving}
-              className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={handleBuild}
+              disabled={loading}
+              className="mt-8 rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
             >
-              {t(lang, "mealBuilder.reset")}
+              {loading ? t(lang, "mealBuilder.loading") : t(lang, "mealBuilder.button")}
             </button>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+
+        {error && <p className="mt-4 text-sm text-clay-dark">{error}</p>}
+
+        {hasPlan && (
+          <div className="mt-12 max-w-2xl">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+                {t(lang, "mealPage.menuEyebrow")}
+              </p>
+              {/* Usynlig til fokus (ingen kant/bakgrunn i hviletilstand) – samme
+                  teknikk som tittelfeltet i MealView.tsx, se filheaderen over. */}
+              <input
+                type="text"
+                value={menuTitle}
+                onChange={(e) => setMenuTitle(e.target.value)}
+                // text-base på mobil (unngår iOS-innzooming ved fokus).
+                className="mt-2 block w-full rounded-lg border border-transparent bg-transparent font-serif text-3xl leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl"
+              />
+            </div>
+
+            <div className="mt-6 divide-y divide-ink/10">
+              {displayRoles.map((role) => {
+                if (role === anchorRole) {
+                  return (
+                    <CourseRow
+                      key={role}
+                      role={role}
+                      title={recipe.title}
+                      isAnchor
+                      servings={anchorServings}
+                      onServingsChange={setAnchorServings}
+                      lang={lang}
+                    />
+                  );
+                }
+
+                const working = courses.find((c) => c.course.role === role);
+                if (!working) return null;
+                const { course, regenerating } = working;
+                const title = course.source === "existing" ? course.recipe.title : course.title;
+                return (
+                  <CourseRow
+                    key={role}
+                    role={role}
+                    title={title}
+                    source={course.source}
+                    description={course.source === "suggested" ? course.description : undefined}
+                    note={course.note}
+                    servings={working.servings}
+                    onServingsChange={(servings) => setCourseServings(role, servings)}
+                    regenerating={regenerating}
+                    onRegenerate={() => handleRegenerate(role)}
+                    onRemove={() => removeCourse(role)}
+                    lang={lang}
+                  />
+                );
+              })}
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
+              >
+                {saving ? t(lang, "mealBuilder.saving") : t(lang, "mealBuilder.save")}
+              </button>
+              {saved && (
+                <Link
+                  href={`/meny/${mealId}`}
+                  className="text-sm font-medium text-clay transition-colors hover:text-clay-dark"
+                >
+                  {t(lang, "mealBuilder.viewSaved")}
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={saving}
+                className="text-xs font-medium text-ink-faint/70 underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {t(lang, "mealBuilder.reset")}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
-function CourseCard({
+/** Én rad i den genererte menyen – erstatter de tidligere kantede,
+ * bakgrunnsfylte `CourseCard`-boksene (se filheaderen i MealBuilder over)
+ * med en rolig, redaksjonell rad: liten gull-rolle-label, retten i serif,
+ * status/anker som diskré småtekst, porsjoner som en liten understreket
+ * inline-verdi, og "Foreslå en annen"/"Fjern fra menyen" som diskré
+ * tekstlenker. `onRegenerate`/`onRemove` er `undefined` for ankerretten
+ * (den kan verken byttes ut eller fjernes – samme regel som før). */
+function CourseRow({
   role,
-  working,
-  lang,
-  onRemove,
-  onRegenerate,
+  title,
+  isAnchor = false,
+  source,
+  description,
+  note,
+  servings,
   onServingsChange,
+  regenerating = false,
+  onRegenerate,
+  onRemove,
+  lang,
 }: {
   role: MealCourseRole;
-  working: WorkingCourse;
-  lang: Lang;
-  onRemove: () => void;
-  onRegenerate: () => void;
+  title: string;
+  isAnchor?: boolean;
+  source?: "existing" | "suggested";
+  description?: string;
+  note?: string | null;
+  servings: number;
   onServingsChange: (servings: number) => void;
+  regenerating?: boolean;
+  onRegenerate?: () => void;
+  onRemove?: () => void;
+  lang: Lang;
 }) {
-  const { course, regenerating } = working;
-  const title = course.source === "existing" ? course.recipe.title : course.title;
-
   return (
-    <div
-      className={clsx(
-        "flex flex-col gap-2 rounded-xl border border-line bg-cream p-4 transition-opacity",
-        regenerating && "opacity-60",
-      )}
-    >
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+    <div className="flex flex-col gap-1.5 py-5 first:pt-0 last:pb-0">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
           {t(lang, `mealBuilder.role.${role}`)}
         </span>
-        <Badge tone={course.source === "existing" ? "olive" : "mustard"}>
-          {course.source === "existing" ? t(lang, "mealBuilder.existingBadge") : t(lang, "mealBuilder.suggestedBadge")}
-        </Badge>
+        {isAnchor && (
+          <span className="text-[11px] font-medium text-clay">{t(lang, "mealBuilder.anchorBadge")}</span>
+        )}
+        {!isAnchor && source === "suggested" && (
+          // NB: bevisst text-mustard (ikke text-mustard-dark) – sistnevnte
+          // er ikke definert som fargetoken i app/globals.css (kun
+          // --color-mustard/--color-mustard-light finnes), og ville derfor
+          // rendret som en tom/no-op Tailwind-klasse (samme mønster brukt i
+          // MealView.tsx sin tilsvarende "Nytt forslag"-tekst er trolig en
+          // eksisterende, ubetjent glipp der – ikke gjentatt her).
+          <span className="text-[11px] font-medium text-mustard">{t(lang, "mealBuilder.suggestedBadge")}</span>
+        )}
+        {!isAnchor && source === "existing" && (
+          <span className="text-[11px] font-medium text-ink-faint">{t(lang, "mealBuilder.existingBadge")}</span>
+        )}
       </div>
 
-      <p className="font-serif text-base text-ink">{title}</p>
-      {course.source === "suggested" && course.description && (
-        <p className="text-xs leading-relaxed text-ink-faint">{course.description}</p>
-      )}
-      {course.note && <p className="text-xs italic leading-relaxed text-ink-faint">{course.note}</p>}
+      <p className={clsx("font-serif text-xl text-ink transition-opacity sm:text-2xl", regenerating && "opacity-50")}>
+        {title}
+      </p>
 
-      <ServingsInput value={working.servings} onChange={onServingsChange} lang={lang} />
+      {description && <p className="max-w-prose text-xs leading-relaxed text-ink-faint">{description}</p>}
+      {note && <p className="max-w-prose text-xs italic leading-relaxed text-ink-faint">{note}</p>}
 
-      <div className="mt-1 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onRegenerate}
-          disabled={regenerating}
-          className="rounded-lg border border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-cream-dark disabled:cursor-not-allowed"
-        >
-          {regenerating ? t(lang, "mealBuilder.regenerating") : t(lang, "mealBuilder.regenerate")}
-        </button>
-        <button
-          type="button"
-          onClick={onRemove}
-          disabled={regenerating}
-          className="rounded-lg border border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-cream-dark disabled:cursor-not-allowed"
-        >
-          {t(lang, "mealBuilder.remove")}
-        </button>
+      <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+        <label className="flex items-center gap-2 text-xs text-ink-faint">
+          {t(lang, "mealBuilder.servingsLabel")}
+          <input
+            type="number"
+            min={1}
+            max={50}
+            value={servings}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              if (Number.isFinite(next) && next >= 1) onServingsChange(Math.round(next));
+            }}
+            // text-base på mobil (unngår iOS-innzooming ved fokus). Kun en
+            // understrek (ingen full boks/kant) – "porsjonsvelgeren skal
+            // integreres diskret på hver relevant rett" (Henrik, 29.09.2026).
+            className="w-10 border-b border-ink-faint/30 bg-transparent px-0.5 py-0.5 text-center text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
+          />
+        </label>
+
+        {onRegenerate && (
+          <button
+            type="button"
+            onClick={onRegenerate}
+            disabled={regenerating}
+            className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {regenerating ? t(lang, "mealBuilder.regenerating") : t(lang, "mealBuilder.regenerate")}
+          </button>
+        )}
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            disabled={regenerating}
+            className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {t(lang, "mealBuilder.remove")}
+          </button>
+        )}
       </div>
     </div>
-  );
-}
-
-function ServingsInput({
-  value,
-  onChange,
-  lang,
-}: {
-  value: number;
-  onChange: (value: number) => void;
-  lang: Lang;
-}) {
-  return (
-    <label className="flex items-center gap-2 text-xs text-ink-faint">
-      {t(lang, "mealBuilder.servingsLabel")}
-      <input
-        type="number"
-        min={1}
-        max={50}
-        value={value}
-        onChange={(e) => {
-          const next = Number(e.target.value);
-          if (Number.isFinite(next) && next >= 1) onChange(Math.round(next));
-        }}
-        // text-base på mobil (unngår iOS-innzooming ved fokus).
-        className="w-16 rounded-lg border border-line bg-cream px-2 py-1 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
-      />
-    </label>
   );
 }

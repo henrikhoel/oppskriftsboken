@@ -768,36 +768,38 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
           </div>
         )}
 
-        {/* Nederst, med vilje – "Gjør det til en kveld" er avslutningen på
-            siden, ikke bare enda et element i rekken. Selve
-            størrelsen/overskriften er gjort tydelig større i
-            MealBuilder.tsx. <body> er `flex min-h-screen flex-col` med
-            <main> som `flex-1` (se app/layout.tsx) – på kortere oppskrifter
-            blir det derfor et tomrom under denne siste seksjonen og ned til
-            footeren. Justering 31.08.2026 ("plasseres lenger ned sånn at
-            den midtstilles vertikalt mellom 'passer denne' og bunnen av
-            siden"): i stedet for fast py-14/16 får seksjonen en egen
-            min-høyde og sentreres med flex INNI det båndet, slik at den
-            flyter midt i det gjenværende tomrommet i stedet for å ligge
-            klistret rett under forrige seksjon. Ingen fast høyde på selve
-            siden totalt – kun denne siste seksjonens eget bånd er høyt
-            nok til at sentreringen faktisk er synlig. */}
-        {recipe.showMealBuilder && (
-          <div className="flex min-h-[45vh] flex-col items-center justify-center py-14 sm:min-h-[55vh] sm:py-16">
-            <MealBuilder
-              recipe={{
-                id: recipe.id,
-                slug: recipe.slug,
-                title: displayTitle,
-                description: displayDescription,
-                servings,
-                category: recipe.category ? { name: recipe.category.name } : null,
-              }}
-              lang={lang}
-            />
-          </div>
-        )}
       </div>
+
+      {/* "Gjør det til en kveld" (MealBuilder) – FLYTTET UT av divide-y
+          "sekundær info"-blokken over 29.09.2026 (se filheaderen i
+          MealBuilder.tsx for hele redesign-resonnementet). Seksjonen er nå
+          sin egen fullbredde premiumflate (bryter selv ut til
+          viewportbredde, se der) på linje med de andre store, redesignede
+          CONVITE-seksjonene – den skal IKKE arve den flate
+          divide-y/border-line-skillelinjestilen resten av "sekundær info"
+          bruker, og kan derfor ikke lenger stå som siste barn i den div-en.
+          RecipeQuestionSection/Smaksprofil+Næring/DrinkPairingSection over
+          er HELT uendret, kun denne siste delen er flyttet og
+          omstrukturert. mt-16/sm:mt-20 gjenskaper samme luft ned til
+          seksjonen som før (matcher divide-y-blokkens egen mt-16/sm:mt-20
+          over), min-høyde/vertikal sentrering droppet – seksjonen har nå
+          sin egen faste, generøse py-16/20/24 (se MealBuilder.tsx) i
+          stedet, uavhengig av hvor kort/lang resten av siden er. */}
+      {recipe.showMealBuilder && (
+        <div className="mt-16 sm:mt-20">
+          <MealBuilder
+            recipe={{
+              id: recipe.id,
+              slug: recipe.slug,
+              title: displayTitle,
+              description: displayDescription,
+              servings,
+              category: recipe.category ? { name: recipe.category.name } : null,
+            }}
+            lang={lang}
+          />
+        </div>
+      )}
 
       {cookModeOpen && (
         <CookMode

@@ -848,25 +848,45 @@ const DICT = {
   // under) bruker – bevisst samme tone/språk begge steder, selv om dette
   // er to ulike funksjoner på to ulike sider.
   "mealBuilder.eyebrow": { no: "Gjør det til en kveld", en: "Make it an evening" },
-  "mealBuilder.heading": { no: "Bygg en meny rundt denne retten", en: "Build a menu around this dish" },
-  // Forkortet 31.08.2026 ("blir for mye tekst") – droppet forklaringen om
-  // hvor rettene i menyen kommer fra (fra oppskriftsboken vs. nyforeslått,
-  // se CourseCard/badge-merkingen i MealBuilder.tsx, som allerede viser
-  // akkurat dette per rett når menyen er bygget). Deretter justert på nytt
-  // 31.08.2026 for i stedet å nevne HELE kveldsopplevelsen "Gå videre"
-  // faktisk fører til (menyen her → /meny/[id], som allerede setter sammen
-  // vinstil, tilbehør, stemning og musikk – se EveningExperience.tsx/
-  // getEveningCuration) – fortsatt kort, men mer presist om hva denne
-  // funksjonen faktisk legger opp til.
+  // Tekst endret 29.09.2026 (stor redesign-brief, se filheaderen i
+  // MealBuilder.tsx) – tidligere "Bygg en meny rundt denne retten"/"Build a
+  // menu around this dish". Ny tekst er bevisst mer editorial ("kveld", ikke
+  // "meny") – matcher at overskriften nå står sammen med eyebrowen
+  // "Gjør det til en kveld" som starten på et eget kapittel på siden, ikke
+  // en beskrivelse av selve skjemaet under.
+  "mealBuilder.heading": { no: "Bygg en kveld rundt retten.", en: "Build an evening around the dish." },
+  // Tekst endret 29.09.2026 (samme brief) – nevner nå konkret forrett/
+  // hovedrett/dessert (tidligere: "Vi legger opp til alt fra mat og drikke
+  // til stemning og musikk."/"We plan everything from food and drink to
+  // mood and music."). Den bredere kveldsopplevelsen (vinstil, stemning,
+  // musikk – se EveningExperience.tsx) er fortsatt det "Gå videre" fører
+  // til, men er ikke lenger nevnt her – denne ingressen beskriver nå kun
+  // det selve MealBuilder-seksjonen faktisk gjør (setter sammen menyen).
   "mealBuilder.intro": {
-    no: "Vi legger opp til alt fra mat og drikke til stemning og musikk.",
-    en: "We plan everything from food and drink to mood and music.",
+    no: "Vi setter sammen forrett, hovedrett og dessert – og bygger resten av kvelden rundt menyen.",
+    en: "We put together a starter, main course and dessert – and build the rest of the evening around the menu.",
   },
   // Anledning (5.12) / tilgjengelig tid (5.13) – valgfrie hint FØR selve
   // genereringen, se MealBuilder.tsx.
   "mealBuilder.occasionLabel": { no: "Anledning (valgfritt)", en: "Occasion (optional)" },
+  // availableMinutesLabel/-Placeholder er ORPHANED 29.09.2026 – det gamle
+  // fritekstfeltet ("Jeg har (minutter, valgfritt) f.eks. 60") er erstattet
+  // av en pille-velger (mealBuilder.timeLabel + mealBuilder.timeOption.*
+  // under). Nøklene er bevisst IKKE slettet (etablert konvensjon i denne
+  // filen – se øvrige "vestigial"/orphaned nøkler), i tilfelle de trengs
+  // igjen, men brukes ikke lenger i MealBuilder.tsx.
   "mealBuilder.availableMinutesLabel": { no: "Jeg har (minutter, valgfritt)", en: "I have (minutes, optional)" },
   "mealBuilder.availableMinutesPlaceholder": { no: "f.eks. 60", en: "e.g. 60" },
+  // Ny pille-velger for tidsbudsjett (29.09.2026, erstatter fritekstfeltet
+  // over). "Ingen grense" = availableMinutes: null (samme default/effekt
+  // som å la det gamle feltet stå tomt). "2+ timer" sendes som 150 min til
+  // generateMealPlan – se TIME_BUDGET_OPTIONS-kommentaren i
+  // MealBuilder.tsx for resonnementet bak akkurat det tallet.
+  "mealBuilder.timeLabel": { no: "Hvor mye tid har du?", en: "How much time do you have?" },
+  "mealBuilder.timeOption.none": { no: "Ingen grense", en: "No limit" },
+  "mealBuilder.timeOption.60": { no: "60 min", en: "60 min" },
+  "mealBuilder.timeOption.90": { no: "90 min", en: "90 min" },
+  "mealBuilder.timeOption.120plus": { no: "2+ timer", en: "2+ hours" },
   "mealBuilder.button": { no: "Bygg en meny", en: "Build a menu" },
   "mealBuilder.loading": { no: "Setter sammen menyen …", en: "Putting the menu together …" },
   "mealBuilder.error": {
