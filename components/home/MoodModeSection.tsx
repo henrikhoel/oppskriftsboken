@@ -99,8 +99,19 @@ export function MoodModeSection({ lang }: { lang: Lang }) {
 
   return (
     <section className="relative isolate overflow-hidden bg-cream-dark py-28 sm:py-36 lg:py-40">
+      {/* To ulike utsnitt av SAMME bilde, ikke to filer – bg-cover sentrert
+       * (md:bg-center) klipper på en bred stående mobilskjerm bort nesten alt
+       * unntatt en smal, stort sett tom midtstripe av bordet (motivet – to
+       * kuverter med stearinlys – sitter i venstre/høyre tredjedel av det
+       * opprinnelige breddeformatbildet, se filheaderen over). "left center"
+       * under md flytter utsnittet til venstre slik at telefonvisningen
+       * fanger opp de høye stearinlysene og kuverten i stedet for det tomme
+       * bordet, samme prinsipp som hero.jpg/hero-mobile.jpg (der det derimot
+       * trengtes to HELT separate bilder – her holder det med to
+       * bg-position-verdier siden selve komposisjonen har et brukbart utsnitt
+       * på begge sider av bildet). */}
       <div
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0 bg-cover [background-position:left_center] md:bg-center"
         style={{ backgroundImage: "url(/images/mood-section.jpg)" }}
         aria-hidden="true"
       />

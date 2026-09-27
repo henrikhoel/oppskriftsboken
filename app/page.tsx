@@ -79,20 +79,33 @@ export default async function HomePage() {
   const newestForGrid = newest.filter((r) => !usedIds.has(r.id)).slice(0, 5);
 
   return (
-    // -mb-20 kansellerer nøyaktig Footer.tsx sin egen mt-20 (samme 5rem) –
-    // siden ClosingQuoteSection nå ALLTID er siste element på forsiden og
-    // selv har et fullbredde bakgrunnsbilde helt ut til kantene, ble Footer
-    // sin faste topp-margin tidligere en synlig, bar svart "bolk" mellom
-    // bildet og footeren (Henrik, 27.09.2026: "denne delen kan godt gå helt
-    // ned til kanten så man ikke får en liten svart bolk der"). <main> og
-    // Footer-wrapperen i app/layout.tsx er begge flex-barn i en
-    // flex-col-body, så marginer kollapser IKKE av seg selv der – denne
-    // negative marginen er derfor nødvendig, ikke bare kosmetisk overflødig.
-    // Kun aktuelt fordi forsiden (og KUN forsiden) slutter med et
-    // fullbredde-bilde; andre sider skal beholde Footer sin vanlige mt-20
-    // urørt. Juster denne verdien i takt med Footer.tsx sin mt-20 om den
-    // noen gang endres.
-    <div className="-mb-20">
+    // -mb-20 md:-mb-20 (dvs. -mb-40 under md, -mb-20 fra og med md) –
+    // kansellerer den "svarte bolken" mellom ClosingQuoteSection sitt
+    // fullbredde bakgrunnsbilde og footeren (Henrik, 27.09.2026: "denne
+    // delen kan godt gå helt ned til kanten så man ikke får en liten svart
+    // bolk der"). To UAVHENGIGE kilder til den samme luften, som derfor
+    // begge må kanselleres, og de gjelder på ulike skjermbredder:
+    //   1) Footer.tsx sin egen mt-20 (5rem) – gjelder ALLTID (ingen
+    //      responsiv variant der).
+    //   2) <main> sin egen pb-20 md:pb-0 i app/layout.tsx (reservert plass
+    //      for den faste bunnmenyen på mobil) – gjelder KUN under md.
+    // Første forsøk (kun -mb-20) fjernet bolken på desktop, men Henrik
+    // fant fortsatt en igjen på telefon ("det er fortsatt en svart bolk
+    // nederst på siden på telefon") – nettopp fordi -mb-20 alene bare
+    // kansellerte kilde (1), ikke (2). -mb-40 under md kansellerer BEGGE
+    // (5rem + 5rem), mens -mb-20 fra og med md fortsatt bare trenger å
+    // kansellere (1), siden <main> sin egen padding er 0 der uansett.
+    // <main>/Footer-wrapperen i app/layout.tsx er flex-barn i en
+    // flex-col-body (marginer kollapser IKKE av seg selv der), og en
+    // negativ margin PÅ ET BARN inni <main> "spiser" av <main> sin EGEN
+    // padding-bottom på nøyaktig samme måte som den kansellerer en
+    // etterfølgende SØSKEN sin margin-top – det er derfor dette fungerer
+    // for begge kildene samtidig, ikke bare kilde (1). Kun aktuelt fordi
+    // forsiden (og KUN forsiden) slutter med et fullbredde-bilde; andre
+    // sider skal beholde <main> og Footer sin vanlige padding/margin
+    // urørt. Juster disse verdiene i takt om Footer.tsx sin mt-20 eller
+    // <main> sin pb-20 i app/layout.tsx noen gang endres.
+    <div className="-mb-40 md:-mb-20">
       {/* ================= HERO ================= */}
       {/* Heroens høyde = 100svh MINUS den faktisk MÅLTE høyden på headeren
           og (på mobil) den faste bunnmenyen – se ChromeHeightVars.tsx, som
