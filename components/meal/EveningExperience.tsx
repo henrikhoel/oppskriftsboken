@@ -607,17 +607,31 @@ export function EveningExperience({
            * (glass/karaffel) til et annet kapittel i stedet for å fjerne
            * det, og ville dessuten kunne lande annerledes avhengig av
            * innholdsmengden. Valgte derfor det andre alternativet Henrik
-           * tilbød: selve bildet er nå uskarpt (`blur-md`, ~12px) – roer
-           * ned skarpe glass-/karaffel-konturer overalt i det delte
-           * segmentet, uavhengig av hvor de havner, uten å endre
-           * beskjæring/komposisjon eller de finjusterte overlay-verdiene
-           * over. `scale-110` lagt til samtidig, en vanlig følgesvenn til
-           * blur på et `bg-cover`-lag – forstørrer bildet litt utover egne
-           * kanter slik at blur-radiusen ikke kan avdekke en gjennomsiktig
-           * stripe i ytterkant av det (allerede overskalerte) dekkbildet. */}
+           * tilbød: selve bildet er nå uskarpt – roer ned skarpe glass-/
+           * karaffel-konturer overalt i det delte segmentet, uavhengig av
+           * hvor de havner, uten å endre beskjæring/komposisjon eller de
+           * finjusterte overlay-verdiene over. `scale-105` lagt til
+           * samtidig, en vanlig følgesvenn til blur på et `bg-cover`-lag –
+           * forstørrer bildet litt utover egne kanter slik at blur-
+           * radiusen ikke kan avdekke en gjennomsiktig stripe i ytterkant
+           * av det (allerede overskalerte) dekkbildet.
+           *
+           * JUSTERT (27.09.2026, 23. runde – Henrik: "nå ble bildet så
+           * uskarpt at det nesten ble svart") – `blur-md` (~12px) var for
+           * mye: bildet er i utgangspunktet mørkt med kun noen få lyse
+           * stearinlys-punkter, og en kraftig blur sprer/tynner ut nettopp
+           * de lyse punktene utover det mørke rundt i stedet for å bevare
+           * dem, slik at hele flaten leser som nesten ensfarget svart når
+           * `bg-cream/86`-overlegget legger seg oppå. Skrudd ned til
+           * `blur-sm` (~4px) – nok til å ta brodden av skarpe glass-/
+           * karaffel-konturer, men mildt nok til at stearinlys-gløden og
+           * bildets egen lys/mørke-struktur fortsatt er synlig gjennom
+           * overlegget. `scale-110` → `scale-105` samtidig, siden en
+           * mindre blur-radius trenger mindre overskalering for å unngå
+           * kant-avsløring. */}
           <div className="relative isolate overflow-hidden">
             <div
-              className="absolute inset-0 scale-110 bg-cover bg-center blur-md"
+              className="absolute inset-0 scale-105 bg-cover bg-center blur-sm"
               style={{ backgroundImage: "url(/images/evening-table.jpg)" }}
               aria-hidden="true"
             />
