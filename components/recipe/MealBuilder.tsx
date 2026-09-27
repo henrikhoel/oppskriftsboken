@@ -400,13 +400,15 @@ export function MealBuilder({
                   value={menuTitle}
                   onChange={(e) => setMenuTitle(e.target.value)}
                   // text-base på mobil (unngår iOS-innzooming ved fokus).
-                  className="mt-1.5 block w-full rounded-lg border border-transparent bg-transparent font-serif text-xl leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-2xl"
+                  // Ytterligere ned fra text-xl/text-2xl (30.09.2026, "teksten
+                  // kan være enda litt mindre").
+                  className="mt-1 block w-full rounded-lg border border-transparent bg-transparent font-serif text-lg leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-xl"
                 />
                 {/* Felles porsjonskontroll ("2 personer") – se
                     setAllServings over for hele resonnementet. Samme
                     diskrete understreks-inputstil som den tidligere
                     per-rett-varianten hadde, nå kun ett sted. */}
-                <div className="mt-1.5 flex items-center gap-1.5 text-sm text-ink-soft">
+                <div className="mt-1 flex items-center gap-1.5 text-xs text-ink-soft">
                   <input
                     type="number"
                     min={1}
@@ -417,13 +419,13 @@ export function MealBuilder({
                       if (Number.isFinite(next) && next >= 1) setAllServings(Math.round(next));
                     }}
                     // text-base på mobil (unngår iOS-innzooming ved fokus).
-                    className="w-8 border-b border-ink-faint/30 bg-transparent px-0.5 py-0.5 text-center text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
+                    className="w-7 border-b border-ink-faint/30 bg-transparent px-0.5 py-0.5 text-center text-base text-ink focus:border-clay focus:outline-none sm:text-xs"
                   />
                   <span>{t(lang, "mealBuilder.servingsUnit")}</span>
                 </div>
               </div>
 
-              <div className="mt-3 divide-y divide-ink/10">
+              <div className="mt-2.5 divide-y divide-ink/10">
                 {displayRoles.map((role) => {
                   if (role === anchorRole) {
                     return <CourseRow key={role} role={role} title={recipe.title} lang={lang} />;
@@ -446,7 +448,7 @@ export function MealBuilder({
                 })}
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2.5">
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2.5">
                 <button
                   type="button"
                   onClick={handleSave}
@@ -496,7 +498,15 @@ export function MealBuilder({
  * over). "Fjern fra menyen" er også fjernet fra denne permanente
  * visningen (samme tilbakemelding) – selve fjern-funksjonaliteten er
  * derfor tatt helt ut herfra; git-historikken har den forrige
- * implementasjonen om den trengs igjen i en annen form senere. */
+ * implementasjonen om den trengs igjen i en annen form senere.
+ *
+ * PRESISERT 30.09.2026 (skjermbilde + tilbakemelding: "den går fortsatt
+ * litt ned. men 'bytt rett' kan stå bak retten, ikke under. og teksten
+ * kan være enda litt mindre") – "Bytt rett" står nå PÅ SAMME LINJE som
+ * rettenavnet (`items-baseline`-rad), ikke som en egen linje under, og
+ * rettenavnet er skalert enda ett hakk ned (var text-base/sm:text-lg).
+ * Sammen med den tettere py-2 gir dette hver rad færre "linjer" totalt,
+ * som er det som faktisk driver høyrekolonnens høyde ned. */
 function CourseRow({
   role,
   title,
@@ -511,28 +521,27 @@ function CourseRow({
   lang: Lang;
 }) {
   return (
-    // Enda tettere enn forrige runde (var py-3) – radene inneholder nå
-    // typisk kun to-tre linjer totalt (rolle-label, rettenavn, evt. "Bytt
-    // rett"), så py-2.5 er fortsatt luftig nok uten unødig høyde.
-    <div className="flex flex-col gap-1 py-2.5 first:pt-0 last:pb-0">
-      <span className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
+    <div className="py-2 first:pt-0 last:pb-0">
+      <span className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-clay">
         {t(lang, `mealBuilder.role.${role}`)}
       </span>
 
-      <p className={clsx("font-serif text-base leading-snug text-ink transition-opacity sm:text-lg", regenerating && "opacity-50")}>
-        {title}
-      </p>
+      <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+        <p className={clsx("font-serif text-sm leading-snug text-ink transition-opacity sm:text-base", regenerating && "opacity-50")}>
+          {title}
+        </p>
 
-      {onRegenerate && (
-        <button
-          type="button"
-          onClick={onRegenerate}
-          disabled={regenerating}
-          className="mt-0.5 self-start text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {regenerating ? t(lang, "mealBuilder.regenerating") : t(lang, "mealBuilder.regenerate")}
-        </button>
-      )}
+        {onRegenerate && (
+          <button
+            type="button"
+            onClick={onRegenerate}
+            disabled={regenerating}
+            className="shrink-0 text-[11px] font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {regenerating ? t(lang, "mealBuilder.regenerating") : t(lang, "mealBuilder.regenerate")}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
