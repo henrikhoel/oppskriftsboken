@@ -738,7 +738,15 @@ export function EveningExperience({
           {curation.tableAccompaniments.length > 0 && (
             <Reveal>
               <section className="px-5 py-10 sm:px-10 sm:py-14">
-                <div className="mx-auto max-w-2xl">
+                {/* (29.09.2026, 18. runde – Henrik: "to horisontale slike
+                 * tynne streker over og under 'på bordet' seksjonen. den
+                 * trenger ikke gå over hele bredden til seksjonen") – samme
+                 * hårfine `border-ink/10` som den loddrette streken i I
+                 * GLASSET (se lenger ned/opp), men her satt på selve
+                 * innholdskolonnen (`max-w-2xl`) i stedet for på
+                 * `<section>` – dermed stopper linjene der teksten stopper,
+                 * ikke tvers over hele det bildedrevne segmentet. */}
+                <div className="mx-auto max-w-2xl border-t border-b border-ink/10 py-8">
                   <Eyebrow>{t(lang, "eveningExperience.tableHeading")}</Eyebrow>
                   <ul className="mt-6 grid grid-cols-1 gap-x-10 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
                     {curation.tableAccompaniments.map((item, i) => (
@@ -794,7 +802,15 @@ export function EveningExperience({
                     </div>
                   )}
                   {curation.musicDirection && (
-                    <div className={curation.mood ? "mt-12 lg:mt-16" : ""}>
+                    // (29.09.2026, 18. runde – Henrik: "den tynne vertikale
+                    // streken mellom 'i glasset' og 'har du allerede en
+                    // vin', jeg vil ha den mellom 'stemning' og 'musikK'
+                    // også") – samme `lg:border-l lg:border-ink/10
+                    // lg:pl-10`-mønster som skillet i I GLASSET-kapittelet
+                    // over (kun på desktop, der de to står side ved side i
+                    // gridet – på mobil/nettbrett, der MUSIKK stables under
+                    // STEMNING, holder den eksisterende `mt-12`-luften alene).
+                    <div className={curation.mood ? "mt-12 lg:mt-16 lg:border-l lg:border-ink/10 lg:pl-10" : ""}>
                       <Eyebrow>{t(lang, "eveningExperience.musicHeading")}</Eyebrow>
                       <GlossaryText
                         text={curation.musicDirection}
