@@ -1001,6 +1001,13 @@ const DICT = {
   // Henrik: "på menysiden må man ha en mulighet til å gå tilbake til
   // oppskriften man kom fra") – se anchorSlot i MealView.tsx.
   "mealPage.backToRecipe": { no: "← Tilbake til {title}", en: "← Back to {title}" },
+  // (29.09.2026, 19. runde – Henrik, med skjermbilde fra mobil: "i stedet
+  // for hele navnet på retten kan det stå 'tilbake til oppskrift' feks")
+  // – på mobil tok hele retteNAVNET (feks "Tilbake til Lammecarré med
+  // potetgrateng, rødvinssjy & glasserte sjalottløk") ofte to linjer,
+  // sammen med at skriv ut/lagre/handleliste-kolonnen falt ned under og
+  // så rotete ut. Kort, fast tekst i stedet – ingen tittel-interpolering.
+  "mealPage.backToRecipeShort": { no: "← Tilbake til oppskrift", en: "← Back to recipe" },
   // Kort, redaksjonell setning om menyen som helhet, under selve tittelen
   // (visuelt finpuss 31.08.2026) – se `description` i
   // lib/kitchen-intelligence/types.ts for hvorfor dette er et fritekstfelt

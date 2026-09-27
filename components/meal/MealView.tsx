@@ -303,13 +303,27 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
     <>
     {/* ============ SEGMENT 1: DIN MENY (mørk, standard sidebunn) ============ */}
     <div className="mx-auto max-w-4xl space-y-10 px-4 pt-10 pb-16 sm:px-6 sm:pb-20 lg:px-8 print:hidden">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+      {/* (29.09.2026, 19. runde – Henrik, med skjermbilde fra mobil: "på
+          telefon ser det litt rotete ut øverst. lagre som pdf, lagre meny og
+          legg i handleliste kan stå på høyre side. og i stedet for hele
+          navnet på retten kan det stå 'tilbake til oppskrift' feks") – to
+          rettelser: 1) `flex-wrap` fjernet – tilbake-lenken og høyrekolonnen
+          (skriv ut/lagre/handleliste) skal alltid stå på SAMME rad, lenken
+          til venstre og kolonnen presset helt til høyre, aldri falle ned
+          under på egen rad slik den kunne på smale skjermer. `items-start`
+          (var `items-baseline`) siden høyrekolonnen nå kan være tre rader
+          høy. 2) Selve tilbake-teksten er korta fra hele rettenavnet
+          (`mealPage.backToRecipe`, "Tilbake til Lammecarré med
+          potetgrateng…" – ofte to linjer på mobil) til en kort, fast tekst
+          (`mealPage.backToRecipeShort`, "Tilbake til oppskrift") – se
+          filheaderen i dictionary.ts. */}
+      <div className="flex items-start justify-between gap-4">
         {anchorSlot ? (
           <Link
             href={`/oppskrifter/${anchorSlot.slug}?fromMealId=${mealId}`}
             className="text-sm font-medium text-ink-faint transition-colors hover:text-clay-dark"
           >
-            {t(lang, "mealPage.backToRecipe", { title: anchorSlot.title })}
+            {t(lang, "mealPage.backToRecipeShort")}
           </Link>
         ) : (
           <span />
