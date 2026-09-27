@@ -364,23 +364,39 @@ export function MealBuilder({
             // Samme hårfine skillelinje-mønster (mobil border-t / desktop
             // border-l) som handlingskolonnen i MealView.tsx sin DIN
             // MENY-splitt, se filheaderen der.
+            //
+            // KOMPRIMERT 30.09.2026 (presisering av tilbakemeldingen om
+            // to-kolonner over: "jeg mente at menyen skal komme opp på
+            // høyre side OG at seksjonen IKKE skal bli større. Det vil si
+            // at teksten på menyen må være liten") – to-kolonne-grepet
+            // alene løste ikke problemet, siden denne høyrekolonnens EGEN
+            // innhold (stort menynavn + store retter + romslige
+            // rad-paddinger) fortsatt var høyere enn venstrekolonnens
+            // intro, og seksjonen vokste dermed uansett. Løsningen er
+            // derfor å gjøre selve teksten/spacingen her tydelig mindre
+            // (se de reduserte størrelsene under og i CourseRow), slik at
+            // denne kolonnens naturlige høyde normalt holder seg innenfor
+            // venstrekolonnens – DIN MENY-eyebrowen er uendret liten,
+            // resten er skalert ned.
             <div className="mt-10 border-t border-ink/10 pt-8 lg:mt-0 lg:border-t-0 lg:border-l lg:border-ink/10 lg:pl-10 lg:pt-0">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
                   {t(lang, "mealPage.menuEyebrow")}
                 </p>
                 {/* Usynlig til fokus (ingen kant/bakgrunn i hviletilstand) – samme
-                    teknikk som tittelfeltet i MealView.tsx, se filheaderen over. */}
+                    teknikk som tittelfeltet i MealView.tsx, se filheaderen over.
+                    Vesentlig mindre enn før (var text-3xl/text-4xl) – se
+                    kommentaren over. */}
                 <input
                   type="text"
                   value={menuTitle}
                   onChange={(e) => setMenuTitle(e.target.value)}
                   // text-base på mobil (unngår iOS-innzooming ved fokus).
-                  className="mt-2 block w-full rounded-lg border border-transparent bg-transparent font-serif text-3xl leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-4xl"
+                  className="mt-1.5 block w-full rounded-lg border border-transparent bg-transparent font-serif text-xl leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-2xl"
                 />
               </div>
 
-              <div className="mt-6 divide-y divide-ink/10">
+              <div className="mt-4 divide-y divide-ink/10">
                 {displayRoles.map((role) => {
                   if (role === anchorRole) {
                     return (
@@ -419,12 +435,12 @@ export function MealBuilder({
                 })}
               </div>
 
-              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2.5">
                 <button
                   type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
+                  className="rounded-full bg-clay px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint"
                 >
                   {saving ? t(lang, "mealBuilder.saving") : t(lang, "mealBuilder.save")}
                 </button>
@@ -488,7 +504,11 @@ function CourseRow({
   lang: Lang;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 py-5 first:pt-0 last:pb-0">
+    // Radhøyden er bevisst komprimert (30.09.2026, se kommentaren ved
+    // høyrekolonnens åpning over) – var py-5/text-xl/sm:text-2xl,
+    // nå py-3/text-base/sm:text-lg – slik at tre-fire slike rader
+    // normalt ikke gjør høyrekolonnen høyere enn venstrekolonnens intro.
+    <div className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-clay">
           {t(lang, `mealBuilder.role.${role}`)}
@@ -510,7 +530,7 @@ function CourseRow({
         )}
       </div>
 
-      <p className={clsx("font-serif text-xl text-ink transition-opacity sm:text-2xl", regenerating && "opacity-50")}>
+      <p className={clsx("font-serif text-base leading-snug text-ink transition-opacity sm:text-lg", regenerating && "opacity-50")}>
         {title}
       </p>
 
