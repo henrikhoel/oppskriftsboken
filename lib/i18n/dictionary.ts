@@ -711,6 +711,13 @@ const DICT = {
   "recipeDetail.draft": { no: "Utkast", en: "Draft" },
   "recipeDetail.editButton": { no: "Rediger", en: "Edit" },
   "recipeDetail.allRecipesLink": { no: "Alle oppskrifter", en: "All recipes" },
+  // (29.09.2026) Henrik: "jeg savner noen 'tilbake' knapper på siden som tar
+  // deg tilbake ett hakk, rett dit du kom fra [...] kan man trykke på hver
+  // rett i menyen, om jeg gjør det så ønsker jeg en knapp som tar meg rett
+  // tilbake til menyen". Vises i STEDET for "Alle oppskrifter" øverst på en
+  // oppskriftsside, kun når siden ble åpnet fra en meny (?fromMealId=…, se
+  // MealView.tsx) – se app/oppskrifter/[slug]/page.tsx.
+  "recipeDetail.backToMealLink": { no: "Tilbake til menyen", en: "Back to the menu" },
   "recipeDetail.imagePending": { no: "Bilde kommer", en: "Image coming" },
   // (26.09.2026, gjenopplivet 27.09.2026 mot ny konto-innlogging i stedet
   // for det gamle fellespassordet) "Teaser"-visningen av en oppskrift for

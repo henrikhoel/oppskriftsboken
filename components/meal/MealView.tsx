@@ -214,6 +214,17 @@ import { t, type Lang } from "@/lib/i18n";
  * `max-w-5xl` til `max-w-4xl` – fortsatt tydelig bredere enn opprinnelige
  * `max-w-3xl`, men ikke så ekstremt at det ble unaturlig for
  * retteliste/tidslinje-radene.
+ *
+ * "TILBAKE"-LENKE 29.09.2026 (9. runde – Henrik: "jeg savner noen
+ * 'tilbake' knapper på siden som tar deg tilbake ett hakk, rett dit du kom
+ * fra. feks kan man trykke på hver rett i menyen, om jeg gjør det så
+ * ønsker jeg en knapp som tar meg rett tilbake til menyen uten at jeg
+ * kommer helt ut av det"). Begge lenkene herfra til en oppskrift (retten i
+ * "Tilbake til …"-lenken øverst OG hver rett i selve retteliste-kapittelet
+ * under) sender nå med `?fromMealId=<mealId>` – se
+ * app/oppskrifter/[slug]/page.tsx, som viser en "Tilbake til menyen"-lenke
+ * (i stedet for den generelle "Alle oppskrifter") øverst på oppskriftssiden
+ * når den parameteren finnes, rett tilbake til DENNE menyen.
  */
 export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: boolean; lang: Lang }) {
   const [cookModeOpen, setCookModeOpen] = useState(false);
@@ -295,7 +306,7 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         {anchorSlot ? (
           <Link
-            href={`/oppskrifter/${anchorSlot.slug}`}
+            href={`/oppskrifter/${anchorSlot.slug}?fromMealId=${mealId}`}
             className="text-sm font-medium text-ink-faint transition-colors hover:text-clay-dark"
           >
             {t(lang, "mealPage.backToRecipe", { title: anchorSlot.title })}
@@ -433,7 +444,7 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
 
                   {slot.source === "existing" ? (
                     <Link
-                      href={`/oppskrifter/${slot.slug}`}
+                      href={`/oppskrifter/${slot.slug}?fromMealId=${mealId}`}
                       className="font-serif text-xl text-ink hover:text-clay-dark sm:text-2xl"
                     >
                       {slot.title}

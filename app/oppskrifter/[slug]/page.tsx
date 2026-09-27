@@ -68,13 +68,34 @@ export async function generateMetadata({
 
 export default async function RecipePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { slug } = await params;
+  const { fromMealId } = await searchParams;
   const [recipe, user, lang] = await Promise.all([getRecipeBySlug(slug), getCurrentUserFast(), getLang()]);
 
   if (!recipe) notFound();
+
+  // (29.09.2026) "Tilbake"-lenke ETT HAKK, rett dit du kom fra (Henrik:
+  // "jeg savner noen 'tilbake' knapper på siden som tar deg tilbake ett
+  // hakk, rett dit du kom fra. feks kan man trykke på hver rett i menyen,
+  // om jeg gjør det så ønsker jeg en knapp som tar meg rett tilbake til
+  // menyen uten at jeg kommer helt ut av det") – MealView.tsx legger nå ved
+  // ?fromMealId=<mealId> på enhver lenke fra en meny til en oppskrift.
+  // Finnes den, erstatter "Tilbake til menyen" (rett til DEN spesifikke
+  // menyen) den generelle "Alle oppskrifter"-lenken øverst; uten
+  // fromMealId (vanlig besøk via /oppskrifter) er oppførselen uendret.
+  // MealSession lever kun i besøkendes egen nettleser (localStorage, se
+  // filheaderen i MealView.tsx) – denne siden er fortsatt en server-
+  // komponent og trenger ikke lese selve menyen, kun bygge riktig lenke.
+  const backHref = typeof fromMealId === "string" && fromMealId.trim() ? `/meny/${fromMealId}` : "/oppskrifter";
+  const backLabel = t(
+    lang,
+    typeof fromMealId === "string" && fromMealId.trim() ? "recipeDetail.backToMealLink" : "recipeDetail.allRecipesLink",
+  );
 
   // (27.09.2026) Henrik: "man skal kunne trykke inn på alt på siden, men at
   // funksjonene er låst ... oppskrifter, jeg kan trykke inn på en
@@ -89,11 +110,11 @@ export default async function RecipePage({
       <article className="pb-24">
         <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8 xl:max-w-[1280px]">
           <Link
-            href="/oppskrifter"
+            href={backHref}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
           >
             <ChevronLeftIcon className="h-4 w-4" />
-            {t(lang, "recipeDetail.allRecipesLink")}
+            {backLabel}
           </Link>
 
           <div className="mt-6 sm:mt-8">
@@ -139,11 +160,11 @@ export default async function RecipePage({
           bare selve kolonnene/panelene – ikke brødteksten – blir bredere. */}
       <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8 xl:max-w-[1280px]">
         <Link
-          href="/oppskrifter"
+          href={backHref}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
         >
           <ChevronLeftIcon className="h-4 w-4" />
-          {t(lang, "recipeDetail.allRecipesLink")}
+          {backLabel}
         </Link>
 
         <div className="mt-6 sm:mt-8">

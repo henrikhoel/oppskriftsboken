@@ -441,6 +441,17 @@ export function EveningExperience({
     })();
   }
 
+  // (29.09.2026, 8. runde) Filtrerer bort glossary-termer som er identiske
+  // med en av rettene i menyen selv (f.eks. "Lammecarré") – Henrik: "det
+  // trenger heller ikke være en strek under lammecarre hvor man får vite
+  // hva det er, det regner jeg med folk vet når de velger det i en meny".
+  // Brukeren har allerede valgt denne retten fra menyen – en ordforklaring
+  // for selve rettnavnet er overflødig på en måte et faktisk fagord (f.eks.
+  // "fleur de sel") ikke er. Brukes i STEDET for curation.glossary overalt
+  // under (samme AI-data, kun rettnavn-treff luket bort).
+  const dishTitles = new Set(courses.map((c) => c.title.trim().toLowerCase()));
+  const glossary = curation?.glossary?.filter((g) => !dishTitles.has(g.term.trim().toLowerCase()));
+
   return (
     <div className="print:hidden">
       {loadingCuration && (
@@ -507,7 +518,7 @@ export function EveningExperience({
                         {curation.wine.note && (
                           <GlossaryText
                             text={curation.wine.note}
-                            glossary={curation.glossary}
+                            glossary={glossary}
                             className="mt-4 max-w-md font-sans text-sm leading-relaxed text-ink-soft"
                           />
                         )}
@@ -618,7 +629,7 @@ export function EveningExperience({
                         <WhyReveal why={curation.tableAccompanimentsWhy?.[item]} lang={lang}>
                           <GlossaryText
                             text={item}
-                            glossary={curation.glossary}
+                            glossary={glossary}
                             as="span"
                             className="font-serif text-lg leading-snug text-ink"
                           />
@@ -659,7 +670,7 @@ export function EveningExperience({
                       <Eyebrow>{t(lang, "eveningExperience.moodHeading")}</Eyebrow>
                       <GlossaryText
                         text={curation.mood}
-                        glossary={curation.glossary}
+                        glossary={glossary}
                         as="p"
                         className="mt-5 text-balance font-serif text-3xl leading-snug text-ink sm:text-4xl"
                       />
@@ -670,7 +681,7 @@ export function EveningExperience({
                       <Eyebrow>{t(lang, "eveningExperience.musicHeading")}</Eyebrow>
                       <GlossaryText
                         text={curation.musicDirection}
-                        glossary={curation.glossary}
+                        glossary={glossary}
                         as="p"
                         className="mt-5 font-serif text-lg text-ink-soft"
                       />
@@ -704,7 +715,7 @@ export function EveningExperience({
                   <Eyebrow>{t(lang, "eveningExperience.servingHeading")}</Eyebrow>
                   <GlossaryText
                     text={curation.servingTip}
-                    glossary={curation.glossary}
+                    glossary={glossary}
                     as="p"
                     className="mt-6 font-serif text-xl italic leading-relaxed text-ink sm:text-2xl"
                   />
@@ -732,9 +743,15 @@ export function EveningExperience({
        * bunntone som VED SERVERING-kapittelet rett over (se filheaderen
        * øverst), slik at denne aller siste linjen fortsatt leser som del av
        * SAMME rolige avslutning, uansett om VED SERVERING selv rendret
-       * (curation.servingTip kan være null). */}
+       * (curation.servingTip kan være null).
+       *
+       * (29.09.2026, 8. runde) `border-t` fjernet (Henrik: "den nederste
+       * streken som skiller 'ved servering' og 'cook well' teksten, kan
+       * fjernes") – samme `bg-cream`-bunntone som VED SERVERING rett over
+       * er nok til å lese som én sammenhengende avslutning; en egen
+       * skillelinje mellom dem var overflødig. */}
       <Reveal>
-        <div className="border-t border-ink/10 bg-cream px-5 py-10 text-center sm:px-10 sm:py-14">
+        <div className="bg-cream px-5 py-10 text-center sm:px-10 sm:py-14">
           {session.desiredReadyAt && (
             <p className="font-sans text-xs font-semibold uppercase tracking-[0.3em] text-ink-faint">
               {session.desiredReadyAt}
