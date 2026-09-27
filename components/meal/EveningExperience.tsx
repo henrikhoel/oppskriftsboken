@@ -495,6 +495,40 @@ export function EveningExperience({
            * vinstil-anbefaling faktisk kom med denne gangen. AI-delen
            * (label/tags/note/"Se hvorfor"/"Finn en konkret vin") vises
            * fortsatt kun `curation.wine &&`. */}
+          {/* DELT BAKGRUNNSBILDE 29.09.2026 (10. runde – Henrik sendte et
+           * mørkt, stemningsfullt bord-med-stearinlys-bilde: "prøv å sette
+           * dette bildet over 3 seksjoner: I glasset - på bordet -
+           * stemning") – I GLASSET/PÅ BORDET/STEMNING+MUSIKK deler nå ETT
+           * bakgrunnsbilde (public/images/evening-table.jpg) i stedet for
+           * hver sin flate bakgrunnsfarge (bg-paper/bg-cream-dark/bg-paper),
+           * som om det er ETT sammenhengende "rom" man beveger seg gjennom i
+           * stedet for tre atskilte flater. Samme enkle CSS-background-
+           * image-teknikk som MoodModeSection.tsx/WinePairing.tsx bruker på
+           * forsiden (absolutt bakgrunnsdiv + absolutt mørkt overlegg +
+           * `relative`-innholdswrapper oppå, se filheaderen der for hvorfor
+           * innholdswrapperen MÅ være eksplisitt positionert for å legge seg
+           * over de absolutte lagene). `bg-cream-dark/72`-overlegget (samme
+           * mørke familie som resten av siden) sikrer god lesbarhet for
+           * text-ink – bildet er allerede svært mørkt i seg selv (kun
+           * stearinlys-glød sentralt), så overlegget lar noe av varmen/
+           * gløden skinne gjennom i stedet for å flate det helt ut.
+           * PÅ BORDET sin tidligere `bg-cream-dark`-flate (se filheaderen
+           * lenger ned) er derfor fjernet – gjennomsiktig, som de to andre,
+           * slik at bildet skinner gjennom overalt. VED SERVERING og
+           * avslutningslinjen ("Cook well…") er UTENFOR denne wrapperen,
+           * fortsatt sin egen rolige, bildeløse `bg-cream`-avslutning (se
+           * deres egne filheadere) – bevisst kontrast: bildet hører til
+           * selve "gjør det til en kveld"-oppbyggingen, ikke til
+           * avslutningen. */}
+          <div className="relative isolate overflow-hidden">
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: "url(/images/evening-table.jpg)" }}
+              aria-hidden="true"
+            />
+            <div className="absolute inset-0 bg-cream-dark/72" aria-hidden="true" />
+
+            <div className="relative">
           <Reveal>
             <section className="border-t border-ink/10 px-5 py-10 sm:px-10 sm:py-14">
               {/* max-w-2xl (bredere enn de øvrige kapitlenes max-w-xl, se
@@ -631,7 +665,7 @@ export function EveningExperience({
            * hvert element. */}
           {curation.tableAccompaniments.length > 0 && (
             <Reveal>
-              <section className="border-t border-ink/10 bg-cream-dark px-5 py-10 sm:px-10 sm:py-14">
+              <section className="border-t border-ink/10 px-5 py-10 sm:px-10 sm:py-14">
                 <div className="mx-auto max-w-xl">
                   <Eyebrow>{t(lang, "eveningExperience.tableHeading")}</Eyebrow>
                   <ul className="mt-6 grid grid-cols-1 gap-x-10 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
@@ -702,6 +736,8 @@ export function EveningExperience({
               </section>
             </Reveal>
           )}
+            </div>
+          </div>
 
           {/* KAPITTEL - VED SERVERING (redesignet 5. runde, 28.09.2026 –
            * Henrik: "Dette skal føles som kveldens siste beskjed fra
