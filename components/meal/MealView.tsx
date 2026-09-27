@@ -507,23 +507,35 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         filheaderen der.
 
         (28.09.2026, 5. runde – Henrik: "gi inngangen mer tyngde som
-        starten på et nytt kapittel") – kapittel-inngangen under er nå en
+        starten på et nytt kapittel") – kapittel-inngangen under er en
         egen, SENTRERT "tittelside"-komposisjon (større undertittel, en
         tynn gull-strek som markerer kapittelskiftet, romsligere pt/pb) i
         stedet for den venstrestilte, kompakte inngangen fra 4. runde – et
         tydeligere brudd før selve EveningExperience.tsx-kapitlene (som
-        beholder sin egen, venstrestilte redaksjonelle stil). */}
+        beholder sin egen, venstrestilte redaksjonelle stil).
+
+        (28.09.2026, samme runde – Henrik, rett etter: "jeg vil at ...
+        skal få enda mer plass") – enda mer rom rundt inngangen: mer
+        luft over/under (pt/pb økt), undertittelen er enda større
+        (5xl/6xl, opp fra 4xl/5xl), gullstreken og beskrivelsen har fått
+        tilsvarende mer luft og en anelse større tekst.
+
+        (28.09.2026, samme runde – Henrik, rett etter igjen: "like mye
+        luft under 'akkurat denne menyen' som over 'gjør det til en
+        kveld'") – pb er nå satt LIK pt (begge `pt-24 sm:pt-36`) i stedet
+        for den mindre pb-16/pb-24 den hadde et øyeblikk – luften er nå
+        symmetrisk over eyebrowen og under beskrivelsen. */}
     {slots.length > 0 && (
       <section className="bg-paper print:hidden">
-        <div className="mx-auto max-w-2xl px-5 pb-8 pt-20 text-center sm:px-10 sm:pb-10 sm:pt-28">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-clay">
+        <div className="mx-auto max-w-2xl px-5 pb-24 pt-24 text-center sm:px-10 sm:pb-36 sm:pt-36">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-clay sm:text-sm">
             {t(lang, "eveningExperience.entryHeading")}
           </p>
-          <p className="mt-5 text-balance font-serif text-4xl text-ink sm:text-5xl">
+          <p className="mt-6 text-balance font-serif text-5xl text-ink sm:text-6xl">
             {t(lang, "eveningExperience.entrySubtitle")}
           </p>
-          <div className="mx-auto mt-6 h-px w-16 bg-clay/60" />
-          <p className="mx-auto mt-6 max-w-md font-serif text-lg text-ink-soft sm:text-xl">
+          <div className="mx-auto mt-8 h-px w-20 bg-clay/60" />
+          <p className="mx-auto mt-8 max-w-lg font-serif text-xl text-ink-soft sm:text-2xl">
             {t(lang, "eveningExperience.entryDescription")}
           </p>
         </div>
