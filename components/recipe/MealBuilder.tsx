@@ -9,7 +9,7 @@ import {
   regenerateMealPlanCourse,
   type MealPlanCourse,
 } from "@/lib/actions/kitchen-intelligence";
-import { generateMealId, useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
+import { generateMealId, useMealSession } from "@/lib/hooks/useMealSession";
 import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -51,7 +51,6 @@ export function MealBuilder({
   const router = useRouter();
   const [mealId] = useState(() => generateMealId());
   const { addExisting, addSuggested, setTitle, setAnchorRecipeId } = useMealSession(mealId, recipe.title);
-  const { addToIndex } = useMealSessionIndex();
 
   const [anchorRole, setAnchorRole] = useState<MealCourseRole | null>(null);
   const [menuTitle, setMenuTitle] = useState("");
@@ -138,22 +137,27 @@ export function MealBuilder({
       // etter bruker-tilbakemelding: "bygg en meny"-lagring fungerte ikke på
       // mobil – landet på "Fant ikke menyen" rett etter lagring). Uten dette
       // batcher React 18/19 automatisk de mange separate setState-kallene
-      // under (setTitle/setAnchorRecipeId/addExisting × N/addToIndex)
-      // sammen med router.push() sin egen navigasjons-
-      // tilstandsoppdatering – ALLE kalt synkront i samme hendelse, uten et
-      // eneste "await" innimellom. React garanterer IKKE at de tidligere
-      // batchede oppdateringene (og dermed useLocalStorage sine
-      // localStorage.setItem-kall, som skjer INNI selve state-updateren) er
-      // flushet/skrevet FØR router.push() sin egen batch behandles – MealView
-      // på den nye siden kan da rekke å montere og lese localStorage (via sin
-      // EGEN, ferske useMealSessionIndex()) FØR "meals:index"-oppføringen
-      // faktisk er skrevet, og viser da "ikke funnet" selv om lagringen
-      // egentlig lyktes et lite øyeblikk senere. Så vidt merkbart/tidsfølsomt
-      // at det trolig varierte med enhetens ytelse (derav mobil ↔ desktop).
-      // flushSync tvinger React til å committe HELE denne batchen synkront
-      // FØR funksjonen går videre til router.push() – dermed er ALT allerede
-      // skrevet til localStorage før selve navigasjonen starter, uansett
-      // enhet/ytelse.
+      // under (setTitle/setAnchorRecipeId/addExisting × N) sammen med
+      // router.push() sin egen navigasjons-tilstandsoppdatering – ALLE kalt
+      // synkront i samme hendelse, uten et eneste "await" innimellom. React
+      // garanterer IKKE at de tidligere batchede oppdateringene (og dermed
+      // useLocalStorage sine localStorage.setItem-kall, som skjer INNI
+      // selve state-updateren) er flushet/skrevet FØR router.push() sin
+      // egen batch behandles – MealView på den nye siden kan da rekke å
+      // montere og lese localStorage FØR selve menyinnholdet faktisk er
+      // skrevet, og viser da "ikke funnet" (mealSessionExists sjekker
+      // session.updatedAt, som touch() kun setter når disse kallene faktisk
+      // committer – se filheaderen i meal-session.ts) selv om lagringen
+      // egentlig lyktes et lite øyeblikk senere. Så vidt merkbart/
+      // tidsfølsomt at det trolig varierte med enhetens ytelse (derav
+      // mobil ↔ desktop). flushSync tvinger React til å committe HELE
+      // denne batchen synkront FØR funksjonen går videre til router.push()
+      // – dermed er ALT allerede skrevet til localStorage før selve
+      // navigasjonen starter, uansett enhet/ytelse. (27.09.2026: addToIndex
+      // fjernet herfra – "gå videre" lagrer IKKE lenger automatisk til
+      // Dine menyer, se useMealSessionIndex sin filheader – men samme
+      // race/samme fiks gjelder fortsatt for setTitle/addExisting/
+      // addSuggested, siden mealSessionExists nå er signalet MealView leser.)
       flushSync(() => {
         setTitle(menuTitle || recipe.title);
         setAnchorRecipeId(recipe.id);
@@ -165,7 +169,6 @@ export function MealBuilder({
             addSuggested(course.role, { title: course.title, description: course.description }, servings);
           }
         }
-        addToIndex(mealId);
       });
       setSaved(true);
       router.push(`/meny/${mealId}`);

@@ -44,6 +44,7 @@ export {
   inferCourseRoleFromCategory,
   markSuggestionConverted,
   MEAL_OCCASION_LABELS,
+  mealSessionExists,
   removeSlot,
   renameMeal,
   replaceSlotContent,

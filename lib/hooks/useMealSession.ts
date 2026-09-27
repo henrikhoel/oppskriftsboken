@@ -28,23 +28,34 @@ const INDEX_KEY = "oppskriftsboken:meals:index";
  * lib/admin-form-types.ts nå også bruker – se den filen for hvorfor en
  * fallback trengs i det hele tatt, ikke bare crypto.randomUUID() direkte).
  * Kalleren (f.eks. MealBuilder.tsx) genererer én id ved mount
- * (`useState(() => generateMealId())`), og bruker den til BÅDE
- * `useMealSession(id, …)` og `useMealSessionIndex().addToIndex(id)`. */
+ * (`useState(() => generateMealId())`), og bruker den til `useMealSession(id, …)`.
+ * IKKE lenger til `useMealSessionIndex().addToIndex(id)` samtidig (se
+ * filheaderen der for hvorfor – omlagt 27.09.2026). */
 export function generateMealId(): string {
   return generateId();
 }
 
 /**
- * Register over hvilke MealSession-id-er denne besøkende har fra før – i
- * motsetning til RecipeSession (nøkkelert på recipeId, alltid nåbar fra
- * oppskriftssiden) finnes det ingen naturlig "adresse" en MealSession kan
- * slås opp fra, så uten dette registeret ville menyer bli uoppdagelige for
+ * Register over hvilke MealSession-id-er denne besøkende har LAGRET til
+ * "Dine menyer" (`/mine-menyer`, SavedMealsList.tsx) – i motsetning til
+ * RecipeSession (nøkkelert på recipeId, alltid nåbar fra oppskriftssiden)
+ * finnes det ingen naturlig "adresse" en MealSession kan slås opp fra, så
+ * uten dette registeret ville lagrede menyer bli uoppdagelige for
  * besøkende etter at de forlot siden de ble laget på. Lagres separat fra
  * selve menyene (`oppskriftsboken:meals:index` → liste av id-er, nyeste
  * først), samme mønster som ellers: ren localStorage, ingen database.
  *
- * IKKE koblet inn i noe UI ennå – fundament for "Dine menyer"-oversikten som
- * bygges sammen med menybyggeren (5.1–5.4).
+ * OMLAGT 27.09.2026 (Henrik: "jeg vil ikke at alle menyer man går videre
+ * med skal lagres. det må være en knapp man trykker på for å velge å
+ * lagre"). FØR dette: `addToIndex` ble kalt AUTOMATISK inne i
+ * menybyggernes handleSave, samtidig som menyen ble fylt med retter – i
+ * praksis betydde det at "gå videre" OG "lagre til Dine menyer" var
+ * samme handling, uten noe reelt valg. NÅ: `addToIndex` kalles KUN fra
+ * den eksplisitte "Lagre menyen"-knappen på selve menysiden (MealView.tsx).
+ * En meny kan altså fint eksistere og vises på /meny/[id] (bygget, med
+ * ekte innhold – se mealSessionExists i meal-session.ts) UTEN å stå i
+ * dette registeret. `mealIds` her betyr med andre ord IKKE lenger "alle
+ * menyer som finnes", kun "de brukeren aktivt har valgt å lagre".
  */
 export function useMealSessionIndex() {
   const [mealIds, setMealIds, hydrated] = useLocalStorage<string[]>(INDEX_KEY, []);

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
 import {
   MEAL_OCCASION_LABELS,
+  mealSessionExists,
   sortSlotsByRole,
   type ExistingMealCourseSlot,
 } from "@/lib/kitchen-intelligence";
@@ -13,21 +14,38 @@ import { MealTimelineSection } from "@/components/meal/MealTimelineSection";
 import { MealWineInput } from "@/components/meal/MealWineInput";
 import { EveningExperience } from "@/components/meal/EveningExperience";
 import { MultiCookMode } from "@/components/meal/MultiCookMode";
-import { PlayIcon } from "@/components/ui/icons";
+import { Button } from "@/components/ui/Button";
+import { CheckIcon, PlayIcon } from "@/components/ui/icons";
 import { siteConfig } from "@/lib/config";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
- * Viser/redigerer én lagret MealSession – landingssiden en besøkende havner
- * på etter "Lagre menyen" i MealBuilder.tsx (se der for hvordan en meny
- * faktisk blir til). Rent klientside/localStorage, samme som resten av
- * Kitchen Intelligence-fundamentet – ingen database involvert.
+ * Viser/redigerer én bygget MealSession – landingssiden en besøkende havner
+ * på etter "Gå videre" i MealBuilder.tsx/ManualMealBuilder.tsx (se der for
+ * hvordan en meny faktisk blir til). Rent klientside/localStorage, samme
+ * som resten av Kitchen Intelligence-fundamentet – ingen database involvert.
  *
- * "Finnes ikke"-tilstanden sjekkes via useMealSessionIndex (IKKE bare "er
- * slots tom"), fordi en tom, men FAKTISK LAGRET meny (brukeren fjernet alle
+ * "Finnes ikke"-tilstanden sjekkes via mealSessionExists(session) (IKKE "er
+ * slots tom", og IKKE lenger useMealSessionIndex – se OMLAGT-avsnittet
+ * under), fordi en tom, men FAKTISK BYGGET meny (brukeren fjernet alle
  * forslagene) ellers ville sett identisk ut som en id som aldri fantes –
- * indeksen er den ene kilden som skiller "lagret, men tom" fra "aldri
- * lagret".
+ * `session.updatedAt` (satt av touch() i useMealSession.ts på enhver reell
+ * endring) er signalet som skiller "bygget, men tom" fra "aldri bygget".
+ *
+ * OMLAGT 27.09.2026 – "LAGRE MENYEN" ER NÅ EN EGEN, EKSPLISITT HANDLING.
+ * Henrik: "jeg vil ikke at alle menyer man går videre med skal lagres. det
+ * må være en knapp man trykker på for å velge å lagre." Før dette ble
+ * `useMealSessionIndex().addToIndex(mealId)` kalt AUTOMATISK inne i
+ * menybyggernes handleSave, samtidig som selve menyen ble bygget – "gå
+ * videre" OG "lagre til Dine menyer" var i praksis samme handling. Nå:
+ * enhver bygget meny kan vises og redigeres her uansett (se
+ * mealSessionExists over), men står IKKE i `useMealSessionIndex()` sitt
+ * register (og dukker dermed ikke opp på /mine-menyer, SavedMealsList.tsx)
+ * før den besøkende trykker den nye "Lagre menyen"-knappen under
+ * tittelen/beskrivelsen. `saved` (utledet av `mealIds.includes(mealId)`)
+ * styrer om knappen viser "Lagre menyen" eller en "Lagret"-bekreftelse med
+ * en "Fjern menyen"-lenke (samme handling/tekst som fjern-knappen på
+ * /mine-menyer selv).
  *
  * VISUELL FINPUSS 31.08.2026 (2. runde – "gjør siden mer elegant,
  * redaksjonell og kuratert, mindre som en administrasjonsside"). Samme data
@@ -90,7 +108,7 @@ import { t, type Lang } from "@/lib/i18n";
  */
 export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: boolean; lang: Lang }) {
   const [cookModeOpen, setCookModeOpen] = useState(false);
-  const { mealIds, hydrated: indexHydrated } = useMealSessionIndex();
+  const { mealIds, hydrated: indexHydrated, addToIndex, removeFromIndex } = useMealSessionIndex();
   const {
     session,
     hydrated: sessionHydrated,
@@ -107,7 +125,7 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
     return <div className="h-40 animate-pulse rounded-card bg-cream-dark/60" />;
   }
 
-  if (!mealIds.includes(mealId)) {
+  if (!mealSessionExists(session)) {
     return (
       <div className="rounded-card border border-line bg-cream-dark/60 p-6 text-center">
         <h1 className="font-serif text-xl text-ink">{t(lang, "mealPage.notFoundHeading")}</h1>
@@ -130,6 +148,11 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
         (s): s is ExistingMealCourseSlot => s.source === "existing" && s.recipeId === session.anchorRecipeId,
       ) ?? null)
     : null;
+
+  // Står menyen i "Dine menyer"-registeret? (se OMLAGT-avsnittet i
+  // filheaderen over) – IKKE "finnes menyen" lenger, kun "er den
+  // eksplisitt lagret dit".
+  const saved = mealIds.includes(mealId);
 
   return (
     <>
@@ -173,6 +196,32 @@ export function MealView({ mealId, isAdmin, lang }: { mealId: string; isAdmin: b
           placeholder={t(lang, "mealPage.descriptionPlaceholder")}
           className="w-full rounded-lg border border-transparent bg-transparent font-serif text-base italic text-ink-faint transition-colors placeholder:not-italic focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-lg"
         />
+      </div>
+
+      {/* Eksplisitt "Lagre menyen" (27.09.2026, se OMLAGT-avsnittet i
+          filheaderen over) – plassert rett under tittel/beskrivelse, FØR
+          selve menyinnholdet, siden dette er det første reelle valget en
+          besøkende tar etter å ha kommet hit. */}
+      <div className="flex flex-wrap items-center gap-3">
+        {saved ? (
+          <>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint">
+              <CheckIcon className="h-3.5 w-3.5 text-clay-dark" />
+              {t(lang, "mealPage.savedLabel")}
+            </span>
+            <button
+              type="button"
+              onClick={() => removeFromIndex(mealId)}
+              className="text-xs font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+            >
+              {t(lang, "savedMealsPage.removeButton")}
+            </button>
+          </>
+        ) : (
+          <Button onClick={() => addToIndex(mealId)} variant="primary" size="sm">
+            {t(lang, "mealPage.saveButton")}
+          </Button>
+        )}
       </div>
 
       {slots.length === 0 ? (

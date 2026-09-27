@@ -8,7 +8,7 @@ import {
   evaluateManualMeal,
   type ManualMealFitResult,
 } from "@/lib/actions/kitchen-intelligence";
-import { generateMealId, useMealSession, useMealSessionIndex } from "@/lib/hooks/useMealSession";
+import { generateMealId, useMealSession } from "@/lib/hooks/useMealSession";
 import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
 import { filterRecipes, type SearchableRecipe } from "@/lib/utils/search";
 import { localizedCategoryName, localizedTitle } from "@/lib/utils/format";
@@ -74,7 +74,6 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
   const router = useRouter();
   const [mealId] = useState(() => generateMealId());
   const { setTitle, addExisting } = useMealSession(mealId, "");
-  const { addToIndex } = useMealSessionIndex();
 
   const [selected, setSelected] = useState<Partial<Record<MealCourseRole, RecipeSummary>>>({});
   const [menuTitle, setMenuTitle] = useState("");
@@ -179,14 +178,15 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
     try {
       // Se MealBuilder.tsx sin handleSave for hvorfor flushSync er nødvendig
       // her – samme "mange setState-kall + router.push i samme hendelse,
-      // uten et eneste await imellom"-situasjon, samme fiks.
+      // uten et eneste await imellom"-situasjon, samme fiks. (27.09.2026:
+      // addToIndex fjernet herfra – "gå videre" lagrer IKKE lenger
+      // automatisk til Dine menyer, se useMealSessionIndex sin filheader.)
       flushSync(() => {
         setTitle(menuTitle || t(lang, "manualMeal.heading"));
         for (const role of filledRoles) {
           const recipe = selected[role]!;
           addExisting(role, { id: recipe.id, slug: recipe.slug, title: recipe.title }, recipe.servings);
         }
-        addToIndex(mealId);
       });
       setSaved(true);
       router.push(`/meny/${mealId}`);

@@ -953,6 +953,13 @@ const DICT = {
     en: "This menu doesn't exist on this device. Menus are only stored locally in the browser they were created in.",
   },
   "mealPage.emptyState": { no: "Denne menyen er tom.", en: "This menu is empty." },
+  // Eksplisitt "Lagre menyen"-knapp (27.09.2026, se OMLAGT-avsnittet i
+  // MealView.tsx sin filheader – Henrik: "det må være en knapp man
+  // trykker på for å velge å lagre"). savedMealsPage.removeButton
+  // gjenbrukes for "fjern"-lenken som vises etter lagring, IKKE en ny
+  // nøkkel her – samme handling/tekst som på /mine-menyer selv.
+  "mealPage.saveButton": { no: "Lagre menyen", en: "Save the menu" },
+  "mealPage.savedLabel": { no: "Lagret", en: "Saved" },
   // Lenke tilbake til oppskriften menyen ble bygget rundt (26.08.2026,
   // Henrik: "på menysiden må man ha en mulighet til å gå tilbake til
   // oppskriften man kom fra") – se anchorSlot i MealView.tsx.

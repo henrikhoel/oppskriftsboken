@@ -22,17 +22,20 @@ import { generateId } from "@/lib/utils/id";
  * et allerede AI-generert erstatningsforslag.
  */
 
+/** Unix-epoke (1970-01-01), brukt som "aldri rørt"-sentinel av
+ * createEmptyMealSession/mealSessionExists under – se mealSessionExists
+ * sin filheader for hvorfor dette ene tidsstempelet er den ENE kilden som
+ * skiller "en ekte, bygget meny" fra "en id som aldri har inneholdt noe". */
+const NEVER_TOUCHED_AT = new Date(0).toISOString();
+
 /** Ny, tom meny – utgangspunktet før menybyggeren har lagt til noen retter.
  * `anchorRecipeId` er null her; menybyggeren setter den når menyen faktisk
  * genereres rundt en oppskrift. `id` tas inn utenfra (ikke generert her) slik
  * at den alltid er identisk med localStorage-nøkkelen useMealSession lagrer
  * under – samme prinsipp som createEmptyRecipeSession tar imot recipe.id i
  * stedet for å finne på sitt eget. Kallere (menybygger-UI) genererer selv en
- * ny id med crypto.randomUUID() FØR denne kalles, slik at samme id kan
- * brukes til både `useMealSessionIndex().addToIndex(id)` og
- * `useMealSession(id)` med det samme. */
+ * ny id med crypto.randomUUID() FØR denne kalles. */
 export function createEmptyMealSession(id: string, title: string): MealSession {
-  const now = new Date(0).toISOString();
   return {
     id,
     anchorRecipeId: null,
@@ -43,9 +46,33 @@ export function createEmptyMealSession(id: string, title: string): MealSession {
     occasion: null,
     wine: null,
     notes: "",
-    createdAt: now,
-    updatedAt: now,
+    createdAt: NEVER_TOUCHED_AT,
+    updatedAt: NEVER_TOUCHED_AT,
   };
+}
+
+/**
+ * Har denne menyen FAKTISK blitt bygget (setTitle/addExisting/… kalt minst
+ * én gang – se `touch()` i useMealSession.ts), eller er dette bare den
+ * tomme utgangsverdien createEmptyMealSession over lager for en id som
+ * aldri har inneholdt noe (f.eks. en tilfeldig/feilskrevet URL)?
+ *
+ * OMLAGT 27.09.2026 – erstatter den tidligere "finnes den i
+ * useMealSessionIndex()"-sjekken i MealView.tsx. Bakgrunn: Henrik ba om at
+ * det å FULLFØRE en meny (trykke "Gå videre") ikke lenger automatisk skal
+ * legge den i "Dine menyer"-registeret ("jeg vil ikke at alle menyer man
+ * går videre med skal lagres. det må være en knapp man trykker på for å
+ * velge å lagre") – se den nye "Lagre menyen"-knappen i MealView.tsx.
+ * Registeret (useMealSessionIndex) betyr dermed nå UTELUKKENDE "eksplisitt
+ * lagret av brukeren", og kan ikke lenger brukes til å avgjøre om en meny i
+ * det hele tatt eksisterer – en meny kan fint være bygget og vist på
+ * /meny/[id] uten å stå i registeret. `updatedAt` derimot settes av
+ * touch() på ALLE reelle endringer (uansett om menyen noensinne blir lagt
+ * til registeret), så "har denne noensinne blitt rørt" er fortsatt et
+ * pålitelig, allerede eksisterende signal å bruke i stedet.
+ */
+export function mealSessionExists(session: MealSession): boolean {
+  return session.updatedAt !== NEVER_TOUCHED_AT;
 }
 
 /** Legger til en plass fylt av en oppskrift som finnes i katalogen fra før.
