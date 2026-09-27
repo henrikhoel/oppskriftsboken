@@ -482,7 +482,11 @@ export function MealBuilder({
                 })}
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2.5">
+              {/* mt-4 → mt-7 (30.09.2026, "'gå videre' og 'begynne på nytt'
+                  kan gjerne være litt lenger ned. den ligger litt for tett
+                  opp mot menyen nå") – litt mer luft ned til retterlisten
+                  over CTA-raden. */}
+              <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2.5">
                 <button
                   type="button"
                   onClick={handleSave}
