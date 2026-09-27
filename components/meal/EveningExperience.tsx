@@ -441,16 +441,27 @@ export function EveningExperience({
     })();
   }
 
-  // (29.09.2026, 8. runde) Filtrerer bort glossary-termer som er identiske
-  // med en av rettene i menyen selv (f.eks. "Lammecarré") – Henrik: "det
-  // trenger heller ikke være en strek under lammecarre hvor man får vite
-  // hva det er, det regner jeg med folk vet når de velger det i en meny".
-  // Brukeren har allerede valgt denne retten fra menyen – en ordforklaring
-  // for selve rettnavnet er overflødig på en måte et faktisk fagord (f.eks.
-  // "fleur de sel") ikke er. Brukes i STEDET for curation.glossary overalt
-  // under (samme AI-data, kun rettnavn-treff luket bort).
-  const dishTitles = new Set(courses.map((c) => c.title.trim().toLowerCase()));
-  const glossary = curation?.glossary?.filter((g) => !dishTitles.has(g.term.trim().toLowerCase()));
+  // (29.09.2026, 8. runde – RETTET 9. runde) Filtrerer bort glossary-termer
+  // som forekommer i en av rettene i menyen selv (f.eks. "Lammecarré") –
+  // Henrik: "det trenger heller ikke være en strek under lammecarre hvor
+  // man får vite hva det er, det regner jeg med folk vet når de velger det
+  // i en meny". Brukeren har allerede valgt denne retten fra menyen – en
+  // ordforklaring for selve rettnavnet er overflødig på en måte et faktisk
+  // fagord (f.eks. "fleur de sel") ikke er.
+  //
+  // RETTET (9. runde – Henrik, etter push: "det er fortsatt forklaring på
+  // lammecarre etter denne pushen") – forrige forsøk sammenlignet termen
+  // mot HELE rettittelen (f.eks. "Lammecarré med potetgrateng, rødvinssjy
+  // & glasert sjalottløk"), men selve glossary-termen fra AI-en er typisk
+  // kun kjerneordet ("Lammecarré" alene) – et EKSAKT likhets-sjekk traff
+  // derfor aldri. Sjekker nå i stedet om termen finnes SOM DELSTRENG i en
+  // av rettitlene (`title.includes(term)`), som faktisk fanger dette
+  // tilfellet. Brukes i STEDET for curation.glossary overalt under (samme
+  // AI-data, kun rettnavn-treff luket bort).
+  const dishTitles = courses.map((c) => c.title.trim().toLowerCase()).filter(Boolean);
+  const glossary = curation?.glossary?.filter(
+    (g) => !dishTitles.some((title) => title.includes(g.term.trim().toLowerCase())),
+  );
 
   return (
     <div className="print:hidden">
