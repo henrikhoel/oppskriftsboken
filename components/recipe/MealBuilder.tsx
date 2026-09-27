@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -172,6 +172,12 @@ export function MealBuilder({
   // gamle tomme feltet hadde.
   const [selectedMinutes, setSelectedMinutes] = useState<number | null>(null);
 
+  // Se useEffect-en nedenfor (rett før JSX-en returneres) for hele
+  // resonnementet bak disse to – låser seksjonens høyde til
+  // før-genereringstilstanden (30.09.2026).
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [lockedMinHeight, setLockedMinHeight] = useState<number | undefined>(undefined);
+
   const hasPlan = anchorRole !== null;
 
   async function handleBuild() {
@@ -291,6 +297,33 @@ export function MealBuilder({
     ? ALL_MEAL_COURSE_ROLES.filter((role) => role === anchorRole || courses.some((c) => c.course.role === role))
     : [];
 
+  // LÅSER SEKSJONENS HØYDE TIL FØR-GENERERING-TILSTANDEN (30.09.2026,
+  // tilbakemelding: "nå blir seksjonen MINDRE. lås seksjonen til å være i
+  // den størrelsen den er i før man genererer meny"). Etter forrige runde
+  // med kompriminering av høyrekolonnen (mindre tekst, felles
+  // porsjonskontroll) endte den genererte tilstanden opp KORTERE enn
+  // før-tilstanden (som i tillegg har tidsvalg-pillene + "Bygg en
+  // meny"-knappen, ganske høy i seg selv) – seksjonen krympet dermed
+  // synlig idet man genererte. Måler derfor `contentRef` sin faktiske,
+  // gjengitte høyde kontinuerlig SÅ LENGE `hasPlan` er false (inkl. ved
+  // vindusstørrelse-endringer, slik at verdien alltid er riktig for
+  // GJELDENDE skjermbredde), og fryser siste målte verdi som `minHeight`
+  // idet `hasPlan` blir true. `contentRef` sitter på nøyaktig samme div
+  // som får to-kolonne-grid-klassene under – den er derfor "hele
+  // seksjonens innhold" i begge tilstander, ikke bare én kolonne. Dette
+  // er en GULV-verdi (min-height), ikke et tak – en uvanlig lang
+  // menytittel/rettenavn kan fortsatt gjøre seksjonen høyere enn dette,
+  // akkurat som før.
+  useEffect(() => {
+    if (hasPlan) return;
+    function measure() {
+      if (contentRef.current) setLockedMinHeight(contentRef.current.offsetHeight);
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [hasPlan]);
+
   return (
     // Se filheaderen over for hele redesign-resonnementet (29.09.2026).
     // Full-bleed-teknikk identisk med RecipeHero.tsx (kun uten xl:-prefiks –
@@ -315,8 +348,17 @@ export function MealBuilder({
             den høyeste av de to kolonnene i stedet for av summen av begge
             stablet på hverandre. Under lg er alt fortsatt uendret: ren
             vertikal stabling, menyen kommer under introen som før (ikke
-            nok bredde til to kolonner på mobil/nettbrett). */}
-        <div className={clsx(hasPlan && "lg:grid lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-12")}>
+            nok bredde til to kolonner på mobil/nettbrett).
+
+            ref/style: se `useEffect` over handleBuild/return-setningen –
+            låser min-height til før-genereringstilstandens målte høyde
+            (30.09.2026, "lås seksjonen til å være i den størrelsen den er
+            i før man genererer meny"), som en GULV-verdi, ikke et tak. */}
+        <div
+          ref={contentRef}
+          style={hasPlan ? { minHeight: lockedMinHeight } : undefined}
+          className={clsx(hasPlan && "lg:grid lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-12")}
+        >
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
               {t(lang, "mealBuilder.eyebrow")}
@@ -390,39 +432,31 @@ export function MealBuilder({
             // ned for den tilsvarende komprimerte raden.
             <div className="mt-10 border-t border-ink/10 pt-8 lg:mt-0 lg:border-t-0 lg:border-l lg:border-ink/10 lg:pl-10 lg:pt-0">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
-                  {t(lang, "mealPage.menuEyebrow")}
-                </p>
+                {/* DIN MENY + porsjonskontroll på SAMME linje, porsjoner
+                    høyrejustert helt ute i kolonnekanten (30.09.2026,
+                    tilbakemelding: "flytt den felles porsjonsvelgeren bort
+                    fra området under menynavnet. Den bryter den
+                    redaksjonelle rytmen der [...] behandles som diskret
+                    metadata/kontroll for hele menyen, ikke som en egen rad
+                    i innholdet"). Se `MenuServingsControl` lenger ned for
+                    klikk-for-å-redigere-mønsteret. */}
+                <div className="flex items-baseline justify-between gap-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+                    {t(lang, "mealPage.menuEyebrow")}
+                  </p>
+                  <MenuServingsControl value={anchorServings} onChange={setAllServings} lang={lang} />
+                </div>
                 {/* Usynlig til fokus (ingen kant/bakgrunn i hviletilstand) – samme
-                    teknikk som tittelfeltet i MealView.tsx, se filheaderen over. */}
+                    teknikk som tittelfeltet i MealView.tsx, se filheaderen over.
+                    Etterfølges nå DIREKTE av retterlisten (FORRETT osv.) –
+                    ingen mellomliggende porsjonsrad lenger, se over. */}
                 <input
                   type="text"
                   value={menuTitle}
                   onChange={(e) => setMenuTitle(e.target.value)}
                   // text-base på mobil (unngår iOS-innzooming ved fokus).
-                  // Ytterligere ned fra text-xl/text-2xl (30.09.2026, "teksten
-                  // kan være enda litt mindre").
                   className="mt-1 block w-full rounded-lg border border-transparent bg-transparent font-serif text-lg leading-tight text-ink transition-colors focus:border-line focus:bg-cream-dark/40 focus:outline-none sm:text-xl"
                 />
-                {/* Felles porsjonskontroll ("2 personer") – se
-                    setAllServings over for hele resonnementet. Samme
-                    diskrete understreks-inputstil som den tidligere
-                    per-rett-varianten hadde, nå kun ett sted. */}
-                <div className="mt-1 flex items-center gap-1.5 text-xs text-ink-soft">
-                  <input
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={anchorServings}
-                    onChange={(e) => {
-                      const next = Number(e.target.value);
-                      if (Number.isFinite(next) && next >= 1) setAllServings(Math.round(next));
-                    }}
-                    // text-base på mobil (unngår iOS-innzooming ved fokus).
-                    className="w-7 border-b border-ink-faint/30 bg-transparent px-0.5 py-0.5 text-center text-base text-ink focus:border-clay focus:outline-none sm:text-xs"
-                  />
-                  <span>{t(lang, "mealBuilder.servingsUnit")}</span>
-                </div>
               </div>
 
               <div className="mt-2.5 divide-y divide-ink/10">
@@ -479,6 +513,67 @@ export function MealBuilder({
         </div>
       </div>
     </section>
+  );
+}
+
+/** Den felles porsjonskontrollen for hele menyen ("2 personer"), plassert
+ * på linje med DIN MENY-labelen (se over). Vises i HVILETILSTAND som ren,
+ * diskret tekst – ingen synlig kant/input – og bytter først til den
+ * faktiske redigerbare inputen ved klikk/tastaturaktivering (30.09.2026,
+ * tilbakemelding: "vis helst «2 personer» som en ren, diskret klikkbar
+ * tekst og la selve justeringskontrollen komme frem ved interaksjon,
+ * fremfor å vise et permanent input-felt/underline"). Går tilbake til
+ * tekstvisning ved blur eller Enter. Samme underliggende
+ * `onChange`/`setAllServings`-kobling som før – kun presentasjonen er ny. */
+function MenuServingsControl({
+  value,
+  onChange,
+  lang,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  lang: Lang;
+}) {
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  if (editing) {
+    return (
+      <div className="flex shrink-0 items-center gap-1.5 text-xs text-ink-soft">
+        <input
+          ref={inputRef}
+          type="number"
+          min={1}
+          max={50}
+          value={value}
+          onChange={(e) => {
+            const next = Number(e.target.value);
+            if (Number.isFinite(next) && next >= 1) onChange(Math.round(next));
+          }}
+          onBlur={() => setEditing(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") setEditing(false);
+          }}
+          // text-base på mobil (unngår iOS-innzooming ved fokus).
+          className="w-7 border-b border-ink-faint/30 bg-transparent px-0.5 py-0.5 text-center text-base text-ink focus:border-clay focus:outline-none sm:text-xs"
+        />
+        <span>{t(lang, "mealBuilder.servingsUnit")}</span>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className="shrink-0 text-xs text-ink-faint underline decoration-transparent underline-offset-4 transition-colors hover:text-ink-soft hover:decoration-line-strong"
+    >
+      {value} {t(lang, "mealBuilder.servingsUnit")}
+    </button>
   );
 }
 
