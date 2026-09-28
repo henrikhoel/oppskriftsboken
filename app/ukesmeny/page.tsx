@@ -12,21 +12,23 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * AUTOMATISK UKESMENY – nytt inngangspunkt (29.09.2026), se filheaderen i
- * components/meal/WeeklyMenuView.tsx for hele bakgrunnen og
- * sammenslåingslogikken. Tynn server-wrapper, samme mønster som
- * app/meny/ny/page.tsx og app/handleliste/page.tsx: henter hele katalogen
- * som SearchableRecipe[] (samme henting /oppskrifter allerede gjør) og
- * filtrerer bort oppskrifter merket "utelatt" i /admin/ukesmeny FØR
- * klientkomponenten ser dem – klienten skal aldri kunne trekke en
- * utelatt/upublisert oppskrift, uansett hva som ligger i localStorage fra
- * før.
+ * AUTOMATISK UKESMENY – EDITORIELT REDESIGN (30.09.2026, se filheaderen i
+ * WeeklyMenuView.tsx for hele bakgrunnen). Henrik: "Redesign /ukesmeny
+ * slik at siden føles langt mer som CONVITE: premium, editorial, rolig og
+ * stilren [...] Ikke endre headeren." – kun selve sidens EGET innhold er
+ * endret, hovednavigasjonen (Header.tsx) er urørt.
  *
- * Kontoeksklusiv, samme resonnement som /meny/ny og /handleliste
- * (favoritter/page.tsx) – dette er tenkt som selve kjernefunksjonen bak et
- * fremtidig betalt abonnement (se prosjektnotatet "plan-brukerkontoer.md"),
- * så den skal fra første stund kreve innlogging, selv før selve
- * betalingsmuren er bygget.
+ * Introteksten (tittel/tagline/kort avsnitt) ligger bevisst her på
+ * side-nivå, IKKE inne i WeeklyMenuView – den vises for ALLE besøkende
+ * (også ikke-innloggede, som ser LockedPanel under), som en liten
+ * smakebit/markedsføring av funksjonen, samme prinsipp som at
+ * RecipeTeaser viser bilde/tittel/beskrivelse for gjester før selve
+ * innholdet låses.
+ *
+ * Smal tekstkolonne (max-w-xl) for selve introen, men en bredere
+ * ytre ramme (max-w-5xl) for selve ukesmeny-spredningen under – bevisst
+ * editorial-magasin-teknikk (smal tekst, bred visuell del), fremfor å la
+ * hele siden dele samme smale bredde.
  */
 export default async function WeeklyMenuPage() {
   const [allRecipes, lang, user] = await Promise.all([
@@ -37,11 +39,14 @@ export default async function WeeklyMenuPage() {
   const eligible = allRecipes.filter((r) => !r.weeklyMenuExcluded);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="font-serif text-3xl text-ink sm:text-4xl">{t(lang, "weeklyMenu.title")}</h1>
-      <p className="mt-2 max-w-2xl text-ink-soft">{t(lang, "weeklyMenu.description")}</p>
+    <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <div className="max-w-xl">
+        <h1 className="font-serif text-4xl text-ink sm:text-5xl">{t(lang, "weeklyMenu.title")}</h1>
+        <p className="mt-3 font-serif text-lg text-clay-dark sm:text-xl">{t(lang, "weeklyMenu.tagline")}</p>
+        <p className="mt-4 text-ink-soft">{t(lang, "weeklyMenu.description")}</p>
+      </div>
 
-      <div className="mt-8">
+      <div className="mt-12">
         {user ? (
           <WeeklyMenuView recipes={eligible} lang={lang} />
         ) : (

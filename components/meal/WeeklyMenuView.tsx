@@ -1,53 +1,43 @@
 "use client";
 
 /**
- * AUTOMATISK UKESMENY (29.09.2026, utvidet 30.09.2026) – sentrert rundt
- * Henriks krav (se prosjektnotatet "plan-brukerkontoer.md"): fem
- * tilfeldige, UNIKE middager for mandag–fredag, trukket kun blant
- * publiserte oppskrifter som IKKE er merket "utelatt" i /admin/ukesmeny.
- * Ingen AI involvert – ren tilfeldig trekning uten tilbakelegging
- * (Fisher–Yates).
+ * AUTOMATISK UKESMENY – EDITORIELT REDESIGN (30.09.2026). Henrik: "Redesign
+ * /ukesmeny slik at siden føles langt mer som CONVITE: premium, editorial,
+ * rolig og stilren [...] Ukesmenyen skal IKKE genereres automatisk når
+ * brukeren åpner siden." Fullstendig omskriving av v1/v1.1
+ * (WeeklyMenuView.tsx), samme underliggende funksjonalitet:
  *
- * UTVIDET 30.09.2026 med to ting Henrik ba om rett etter v1:
- *
- * 1. "Bytt ut" PER DAG – Henrik: "jeg vil at man skal kunne bytte en rett
- *    om man vil det, ikke måtte generere ny uke, det er kjipt om man like
- *    4 av 5 retter." Bytter KUN den ene dagens rett (mot en tilfeldig
- *    kandidat fra samme pool som ikke allerede står i uken), resten av
- *    uken er urørt.
- * 2. "Velg stil for uken" – fem valg (Variert = standard/ingen filter,
- *    pluss fire admin-satte stiler fra weekly_menu_styles, se
- *    lib/kitchen-intelligence/weekly-menu-styles.ts). Bytter man stil,
- *    regenereres hele uken fra den nye, filtrerte poolen (en delvis
- *    beholdt uke på tvers av stiler ga ikke mening – stilen skal prege
- *    HELE uken).
- *
- * Uken (inkl. valgt stil) lagres i localStorage (samme mønster som
- * useShoppingList.ts) slik at den ikke bytter seg selv ut ved hver
- * sideoppdatering – kun ved en eksplisitt handling (bytt dag/generer ny
- * uke/velg stil), ELLER stille og automatisk hvis en tidligere valgt
- * oppskrift ikke lenger er gyldig for gjeldende stil (avpublisert,
- * slettet, utelatt, eller ikke lenger tagget med stilen).
- *
- * Handlelistedelen gjenbruker EKSAKT samme mønster som
- * MealShoppingListSection.tsx: getMealShoppingIngredients() for ferske
- * ingrediens-/porsjonsdata, og mergeIngredientsIntoList() (via
- * useShoppingList sin addFromRecipe) for selve sammenslåingen.
+ * - Siden åpner alltid TOM (ingen forhåndsvalgt stil, ingen generert uke,
+ *   ingen placeholder-kort) – "Lag ukesmenyen"-knappen er deaktivert til en
+ *   stil er valgt, og genererer FØRST uken når man trykker på den.
+ * - INGEN localStorage lenger for selve uken/stilen (v1/v1.1 lagret
+ *   { style, recipeIds } i nettleseren – det ga nettopp den utilsiktede
+ *   "automatisk gjenopptar forrige uke ved åpning"-oppførselen Henrik nå
+ *   eksplisitt IKKE vil ha, og var samtidig kilden til en krasj-bug fra en
+ *   eldre lagringsform, se git-historikken). Uken lever nå kun i React
+ *   state for varigheten av besøket – enklere, og fjerner hele den
+ *   feilklassen på én gang.
+ * - "Bytt ut" per dag og "Lag en ny uke" (regenerer innenfor valgt stil)
+ *   er uendret i sin logikk, kun i visuelt uttrykk.
+ * - Dagskortene er IKKE lenger RecipeCard (som viser kategori-badges,
+ *   stjerner, favoritt-hjerte, beskrivelse) – Henrik: "Denne siden trenger
+ *   først og fremst å kommunisere: DAG → RETT → TID." Egen, minimal
+ *   markering bygget direkte her i stedet: dag-label → bilde → oppskrift
+ *   (serif) → tid → bytt ut, ingen kort-boks/border/skygge rundt.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
-import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
 import { getMealShoppingIngredients } from "@/lib/actions/meal-shopping-list";
-import { RecipeCard } from "@/components/recipe/RecipeCard";
+import { formatMinutes, localizedTitle } from "@/lib/utils/format";
 import { ShoppingBagIcon, ClockIcon, LeafIcon, UsersIcon, SparklesIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/Button";
 import type { SearchableRecipe } from "@/lib/utils/search";
 import { WEEKLY_MENU_STYLE_DEFINITIONS, type WeeklyMenuStyleId } from "@/lib/kitchen-intelligence/weekly-menu-styles";
 import { t, type Lang, type DictKey } from "@/lib/i18n";
 
-const STORAGE_KEY = "oppskriftsboken:ukesmeny";
 const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const MIN_RECIPES = DAY_KEYS.length;
 
@@ -64,20 +54,15 @@ const STYLE_CHOICES: { id: WeeklyMenuChoice; labelKey: DictKey }[] = [
 ];
 
 // Samme ikonsett som components/admin/WeeklyMenuAdminPicker.tsx – "variert"
-// har bevisst ingen ikon (den er ikke en admin-satt kategori).
+// har bevisst ingen ikon (den er ikke en admin-satt kategori). Henrik:
+// "Behold gjerne små, diskrete ikoner på kategoriene" – uendret fra
+// v1.1, kun selve pille-stylingen er dempet i redesignet under.
 const STYLE_ICONS: Partial<Record<WeeklyMenuChoice, typeof ClockIcon>> = {
   sunt_enkelt: LeafIcon,
   rask: ClockIcon,
   familievennlig: UsersIcon,
   litt_ekstra: SparklesIcon,
 };
-
-interface StoredWeeklyMenu {
-  style: WeeklyMenuChoice;
-  recipeIds: string[];
-}
-
-const EMPTY_MENU: StoredWeeklyMenu = { style: VARIED_CHOICE, recipeIds: [] };
 
 function pickRandomWeek(pool: SearchableRecipe[], excludeIds: string[] = []): string[] {
   const candidates = pool.filter((r) => !excludeIds.includes(r.id));
@@ -90,58 +75,47 @@ function pickRandomWeek(pool: SearchableRecipe[], excludeIds: string[] = []): st
 }
 
 export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[]; lang: Lang }) {
-  const [menu, setMenu, hydrated] = useLocalStorage<StoredWeeklyMenu>(STORAGE_KEY, EMPTY_MENU);
+  const [style, setStyle] = useState<WeeklyMenuChoice | null>(null);
+  const [recipeIds, setRecipeIds] = useState<string[]>([]);
   const { addFromRecipe } = useShoppingList();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
-  // Forsvar mot GAMMEL v1-lagringsform (før 30.09.2026 lå kun en ren
-  // string[] med fem oppskrift-id-er under denne nøkkelen, ikke
-  // { style, recipeIds }) – en besøkende som testet v1 FØR denne
-  // utvidelsen har fortsatt den gamle formen liggende i nettleseren sin.
-  // Standardverdier på selve destruktureringen (ikke kun i
-  // useLocalStorage sin egen initialValue, som kun brukes FØR noe i det
-  // hele tatt er lagret) gjør at ".length" o.l. under aldri krasjer på et
-  // objekt som mangler feltene – under-effekten (storedIsValid === false,
-  // siden recipeIds.length da er 0) regenererer automatisk en gyldig uke
-  // med det samme, helt stille.
-  const { style = VARIED_CHOICE, recipeIds = [] } = menu ?? EMPTY_MENU;
-
-  const pool = useMemo(
-    () =>
-      style === VARIED_CHOICE
-        ? recipes
-        : recipes.filter((r) => (r.weeklyMenuStyles ?? []).includes(style)),
-    [recipes, style],
-  );
-
   const byId = useMemo(() => new Map(recipes.map((r) => [r.id, r])), [recipes]);
-  const poolIds = useMemo(() => new Set(pool.map((r) => r.id)), [pool]);
 
-  const hasEnoughRecipes = pool.length >= MIN_RECIPES;
-  const storedIsValid = recipeIds.length === MIN_RECIPES && recipeIds.every((id) => poolIds.has(id));
+  const pool = useMemo(() => {
+    if (style === null) return [];
+    return style === VARIED_CHOICE ? recipes : recipes.filter((r) => (r.weeklyMenuStyles ?? []).includes(style));
+  }, [recipes, style]);
 
-  // Regenerer stille hvis den lagrede uken er tom, ufullstendig, eller
-  // inneholder en oppskrift som ikke lenger er kvalifisert for GJELDENDE
-  // stil – se filheader.
-  useEffect(() => {
-    if (!hydrated || !hasEnoughRecipes || storedIsValid) return;
-    setMenu({ style, recipeIds: pickRandomWeek(pool) });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, hasEnoughRecipes, storedIsValid, style]);
+  const hasEnoughRecipes = style !== null && pool.length >= MIN_RECIPES;
+  const generated = recipeIds.length > 0;
 
   function handlePickStyle(next: WeeklyMenuChoice) {
     if (next === style) return;
     setAdded(false);
-    const nextPool =
-      next === VARIED_CHOICE ? recipes : recipes.filter((r) => (r.weeklyMenuStyles ?? []).includes(next));
-    setMenu({ style: next, recipeIds: pickRandomWeek(nextPool) });
+    setStyle(next);
+    const nextPool = next === VARIED_CHOICE ? recipes : recipes.filter((r) => (r.weeklyMenuStyles ?? []).includes(next));
+    // Kun regenerer AUTOMATISK ved stil-bytte hvis besøkende allerede har
+    // generert en uke denne økten (da forventer man at "bytt type" faktisk
+    // bytter ut det man ser). Har man IKKE trykket "Lag ukesmenyen" ennå,
+    // skal det fortsatt kreve et eksplisitt trykk – se filheaderen.
+    if (generated) {
+      setRecipeIds(nextPool.length >= MIN_RECIPES ? pickRandomWeek(nextPool) : []);
+    }
+  }
+
+  function handleGenerate() {
+    if (!hasEnoughRecipes) return;
+    setAdded(false);
+    setRecipeIds(pickRandomWeek(pool));
   }
 
   function handleRegenerate() {
+    if (!hasEnoughRecipes) return;
     setAdded(false);
-    setMenu({ style, recipeIds: pickRandomWeek(pool) });
+    setRecipeIds(pickRandomWeek(pool));
   }
 
   function handleSwapDay(index: number) {
@@ -151,7 +125,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
     const nextIds = [...recipeIds];
     nextIds[index] = replacement.id;
     setAdded(false);
-    setMenu({ style, recipeIds: nextIds });
+    setRecipeIds(nextIds);
   }
 
   async function handleAddToShoppingList() {
@@ -179,10 +153,8 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
 
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-        {t(lang, "weeklyMenu.styleHeading")}
-      </p>
-      <div className="mt-2.5 flex flex-wrap gap-2">
+      <p className="text-xs uppercase tracking-wide text-ink-faint">{t(lang, "weeklyMenu.styleHeading")}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
         {STYLE_CHOICES.map((choice) => {
           const Icon = STYLE_ICONS[choice.id];
           const active = choice.id === style;
@@ -193,95 +165,109 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
               onClick={() => handlePickStyle(choice.id)}
               aria-pressed={active}
               className={clsx(
-                "flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
                 active
-                  ? "border-clay bg-clay text-cream"
-                  : "border-line-strong bg-paper text-ink-soft hover:bg-cream-dark",
+                  ? "border-clay/50 bg-clay/10 text-clay-dark"
+                  : "border-line text-ink-soft hover:border-line-strong hover:text-ink",
               )}
             >
-              {Icon && <Icon className="h-4 w-4" />}
+              {Icon && <Icon className="h-3.5 w-3.5" />}
               {t(lang, choice.labelKey)}
             </button>
           );
         })}
       </div>
 
-      <div className="mt-8">
-        {!hasEnoughRecipes ? (
-          <p className="rounded-card border border-line bg-paper px-5 py-4 text-sm text-ink-soft">
-            {t(lang, "weeklyMenu.notEnoughRecipes", { count: MIN_RECIPES })}
-          </p>
-        ) : !hydrated || !storedIsValid ? (
-          <p className="text-sm text-ink-faint">…</p>
-        ) : (
-          <>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Button variant="secondary" onClick={handleRegenerate}>
-                {t(lang, "weeklyMenu.regenerate")}
-              </Button>
+      {/* TOM STARTTILSTAND – ingen retter, ingen tomme kort. Kun knappen
+          (deaktivert til en stil er valgt), eller en melding hvis den
+          valgte stilen rett og slett ikke har nok merkede oppskrifter ennå
+          (se /admin/ukesmeny). Negativ plass i stedet for placeholders. */}
+      {!generated && (
+        <div className="mt-8">
+          {style !== null && !hasEnoughRecipes ? (
+            <p className="max-w-md text-sm text-ink-soft">{t(lang, "weeklyMenu.notEnoughRecipes", { count: MIN_RECIPES })}</p>
+          ) : (
+            <Button variant="primary" disabled={!style} onClick={handleGenerate}>
+              {t(lang, "weeklyMenu.generate")} →
+            </Button>
+          )}
+        </div>
+      )}
 
-              <div>
-                {!added ? (
+      {generated && (
+        <>
+          <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3">
+            {!added ? (
+              <Button variant="primary" onClick={handleAddToShoppingList} disabled={loading}>
+                <ShoppingBagIcon className="h-4 w-4" />
+                {loading ? t(lang, "weeklyMenu.addLoading") : `${t(lang, "weeklyMenu.addButton")} →`}
+              </Button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-olive-dark">{t(lang, "weeklyMenu.addDone")}</span>
+                <Link href="/handleliste" className="font-medium text-clay hover:text-clay-dark">
+                  {t(lang, "weeklyMenu.viewList")} →
+                </Link>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleRegenerate}
+              className="text-sm font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+            >
+              {t(lang, "weeklyMenu.regenerate")}
+            </button>
+          </div>
+          {error && <p className="mt-2 text-xs text-clay-dark">{error}</p>}
+
+          <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-5 lg:gap-6">
+            {recipeIds.map((id, index) => {
+              const recipe = byId.get(id);
+              if (!recipe) return null;
+              const dayKey = DAY_KEYS[index];
+              const dayLabel = t(lang, `weeklyMenu.${dayKey}`);
+              const canSwap = pool.some((r) => !recipeIds.includes(r.id));
+              return (
+                <div key={`${dayKey}-${id}`} className={clsx(index > 0 && "lg:border-l lg:border-line lg:pl-6")}>
+                  <p className="text-xs uppercase tracking-wide text-ink-faint">{dayLabel}</p>
+
+                  {/* isLoggedIn/hjerte er bevisst droppet her – se
+                      filheaderen: dette skal kommunisere dag → rett → tid,
+                      ikke gjenta hele oppskriftskort-UI-et. */}
+                  <Link href={`/oppskrifter/${recipe.slug}`} className="group mt-3 block">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-cream-dark">
+                      {recipe.heroImageUrl && (
+                        <Image
+                          src={recipe.heroImageUrl}
+                          alt={recipe.heroImageAlt || localizedTitle(recipe, lang)}
+                          fill
+                          sizes="(min-width: 1024px) 20vw, (min-width: 640px) 45vw, 90vw"
+                          className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        />
+                      )}
+                    </div>
+                    <p className="mt-4 font-serif text-lg text-ink transition-colors group-hover:text-clay-dark sm:text-xl">
+                      {localizedTitle(recipe, lang)}
+                    </p>
+                    <p className="mt-1 text-xs text-ink-faint">{formatMinutes(recipe.totalTimeMinutes, lang)}</p>
+                  </Link>
+
                   <button
                     type="button"
-                    onClick={handleAddToShoppingList}
-                    disabled={loading}
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => handleSwapDay(index)}
+                    disabled={!canSwap}
+                    aria-label={t(lang, "weeklyMenu.swapAria", { day: dayLabel })}
+                    className="mt-2 text-xs text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <ShoppingBagIcon className="h-4 w-4" />
-                    {loading ? t(lang, "weeklyMenu.addLoading") : t(lang, "weeklyMenu.addButton")}
+                    {t(lang, "weeklyMenu.swap")}
                   </button>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="text-olive-dark">{t(lang, "weeklyMenu.addDone")}</span>
-                    <Link href="/handleliste" className="font-medium text-clay hover:text-clay-dark">
-                      {t(lang, "weeklyMenu.viewList")} →
-                    </Link>
-                  </div>
-                )}
-                {error && <p className="mt-1.5 text-xs text-clay-dark">{error}</p>}
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
-              {recipeIds.map((id, index) => {
-                const recipe = byId.get(id);
-                const dayKey = DAY_KEYS[index];
-                const dayLabel = t(lang, `weeklyMenu.${dayKey}`);
-                if (!recipe) return null;
-                // Kan man bytte ut akkurat DENNE dagen? Krever minst én
-                // kandidat i poolen som ikke allerede står i uken (ellers
-                // ville "bytt ut" enten gjort ingenting eller dupliserte en
-                // rett som allerede står en annen dag).
-                const canSwap = pool.some((r) => !recipeIds.includes(r.id));
-                return (
-                  <div key={`${dayKey}-${id}`}>
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">{dayLabel}</p>
-                      <button
-                        type="button"
-                        onClick={() => handleSwapDay(index)}
-                        disabled={!canSwap}
-                        aria-label={t(lang, "weeklyMenu.swapAria", { day: dayLabel })}
-                        className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {t(lang, "weeklyMenu.swap")}
-                      </button>
-                    </div>
-                    {/* isLoggedIn hardkodet true – denne komponenten rendres
-                        kun når bruker er innlogget, se gatingen i
-                        app/ukesmeny/page.tsx, samme prinsipp som
-                        isLoggedIn={Boolean(user)} på /oppskrifter. Så
-                        hjertet bruker kontobasert favoritt, ikke
-                        gjeste-varianten. */}
-                    <RecipeCard recipe={recipe} lang={lang} isLoggedIn />
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
