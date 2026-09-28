@@ -10,17 +10,22 @@ import {
 } from "@/lib/cook-mode-tutorial/demo-recipe";
 
 interface TutorialStep {
-  /** Verdien på data-cookmode-target i CookMode.tsx, eller null for de to
-   * "ramme"-stegene (intro/avslutning) uten noe spesifikt å peke på. */
-  target: string | null;
+  /** Verdien på data-cookmode-target i CookMode.tsx, ELLER en liste med
+   * FLERE slike verdier når ringen skal omslutte flere atskilte DOM-
+   * elementer samtidig – kun "footer"-steget bruker dette: ringen dekker
+   * da UNIONEN av alle oppgitte elementers rektangler (se measureUnion i
+   * useEffect-en under), IKKE et wrapper-element rundt dem (se hvorfor i
+   * measureUnion-kommentaren). null for de to "ramme"-stegene
+   * (intro/avslutning) uten noe spesifikt å peke på. */
+  target: string | string[] | null;
   shape: "circle" | "box";
   /** Luft mellom elementets egne kanter og selve ringen. Utelates for
    * standard-luft (6px for "circle", 10px for "box" – se render-koden
-   * under). "footer"-steget setter en mye trangere verdi (Henrik,
-   * 28.09.2026, etter at standard-luften ble brukt der ved en feil: "den
-   * går jo langt utenfor selve knappene. sirkelen skal gå helt inntil
-   * knappene!!") – ringen skal ligge tett inntil Forrige/Neste, ikke ha
-   * samme luftige avstand som en enkelt liten ikon-knapp får. */
+   * under). "footer"-steget bruker denne for å gi unionen av Forrige+
+   * Neste-knappene samme trange luft som en "circle"-ring (6px) i stedet
+   * for den løsere "box"-standarden (10px) – ringen skal ligge tett inntil
+   * selve knappene (Henrik, 28.09.2026: "DEN GULE SIRKELEN, skal følge
+   * kantene til selve knappene 'forrige' og 'neste'"). */
   ringPadding?: number;
   titleKey: DictKey;
   bodyKey: DictKey;
@@ -81,16 +86,21 @@ const STEPS: TutorialStep[] = [
     optional: true,
   },
   {
-    // Én ring rundt HELE footeren (begge knappene), akkurat som alle andre
-    // steg – etter flere runder med å prøve å behandle Forrige/Neste ulikt
-    // (som stadig endte opp asynkront på en eller annen måte, se historikk
-    // i git-loggen), landet Henrik på at én enkelt, delt ring rundt begge
-    // er enklest OG mest robust: det finnes bare ett element å synkronisere
-    // i det hele tatt. ringPadding trukket helt ned (se doc-kommentaren på
-    // ringPadding over) siden footeren er mye større enn de andre målene.
-    target: "footer",
+    // ÉN ring, men den omslutter UNIONEN av selve Forrige- og Neste-
+    // knappene (target er en LISTE, se measureUnion) – ikke <footer>-
+    // elementet de står i. Footeren har sin egen px-4 py-4-padding rundt
+    // knappene, så å måle DEN (som første forsøk på denne innstrammingen
+    // gjorde) ga en ring som fortsatt var tydelig større enn knappene selv,
+    // uansett hvor lav ringPadding ble satt – Henrik, 28.09.2026, etter
+    // det første forsøket: "DEN GULE SIRKELEN, skal følge kantene til
+    // selve knappene 'forrige' og 'neste' ikke være utenfor som den er nå!
+    // du klarte det jo når du lagde to sirkler". Fortsatt bare ÉTT
+    // DOM-element å synkronisere (målingen union'es til ett rect FØR ring-
+    // rendring, se update()) – ikke en tilbakevending til de to separate,
+    // usynkroniserte ringene fra tidligere i historikken.
+    target: ["footer-prev", "footer-next"],
     shape: "box",
-    ringPadding: 2,
+    ringPadding: 6,
     titleKey: "cookModeTutorial.navTitle",
     bodyKey: "cookModeTutorial.navBody",
     forcedRecipeStepId: COOK_MODE_TUTORIAL_MIDDLE_STEP_ID,
@@ -234,15 +244,30 @@ export function CookModeTutorialOverlay({
       return;
     }
 
-    function measure(targetName: string): SpotlightRect | null {
+    function measureOne(targetName: string): SpotlightRect | null {
       const el = document.querySelector(`[data-cookmode-target="${targetName}"]`);
       if (!el) return null;
       const r = el.getBoundingClientRect();
       return { top: r.top, left: r.left, width: r.width, height: r.height };
     }
 
+    /** For "footer"-steget (eneste stedet target er en LISTE, se
+     * TutorialStep.target-kommentaren): slår sammen flere elementers egne
+     * rektangler til ÉTT omsluttende rektangel. Måler dermed knappene
+     * SELV, ikke et wrapper-element med egen CSS-padding rundt dem (se
+     * hvorfor det var feil i kommentaren på footer-steget i STEPS over). */
+    function measureUnion(targetNames: string[]): SpotlightRect | null {
+      const rects = targetNames.map(measureOne).filter((r): r is SpotlightRect => r !== null);
+      if (rects.length === 0) return null;
+      const top = Math.min(...rects.map((r) => r.top));
+      const left = Math.min(...rects.map((r) => r.left));
+      const right = Math.max(...rects.map((r) => r.left + r.width));
+      const bottom = Math.max(...rects.map((r) => r.top + r.height));
+      return { top, left, width: right - left, height: bottom - top };
+    }
+
     function update() {
-      const primary = measure(step.target!);
+      const primary = Array.isArray(step.target) ? measureUnion(step.target) : measureOne(step.target!);
       if (!primary) {
         // Se `optional`-kommentaren over TutorialStep – finnes ikke
         // elementet (f.eks. talestyring i en nettleser uten støtte), hopp
@@ -319,9 +344,10 @@ export function CookModeTutorialOverlay({
 
       {/* Lag C – den skarpe gull-ringen rundt målet, helt uavhengig av
        * blur-laget over (den ligger OVENPÅ det, ikke bak). Alltid ÉN ring –
-       * "footer"-steget peker på hele footeren (begge knappene) som ETT
-       * mål, akkurat som alle andre steg, og glir dermed helt normalt
-       * (position-transisjonen under) fra forrige steg sitt mål til denne. */}
+       * "footer"-steget har to DOM-mål (Forrige+Neste), men de er union'et
+       * til ett rect i update() over FØR rings settes, så det er fortsatt
+       * bare ett element her som glir helt normalt (position-transisjonen
+       * under) fra forrige steg sitt mål til denne. */}
       {rings.map((ring, i) => {
         const pad = step.ringPadding ?? (ring.shape === "circle" ? 6 : 10);
         return (
