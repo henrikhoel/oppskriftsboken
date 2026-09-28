@@ -158,11 +158,21 @@
   }
 }
 
+/* VIKTIG: begge steg må ha NØYAKTIG samme ANTALL box-shadow-lag, i samme
+ * rekkefølge – ellers prøver nettleseren å glatte overgangen mellom lag på
+ * ulik POSISJON i listen i stedet for tilsvarende lag, og den enorme
+ * 9999px-bakgrunnsskyggen (lag 3) kan da ende opp med å "arve" fargen fra
+ * gløde-laget (lag 2) midt i pulsen – nøyaktig det som skjedde da
+ * gløde-laget først kun fantes i 50%-steget (så 0%/100% hadde 2 lag mot
+ * 50% sine 3): hele skjermen blinket gyllen i stedet for å holde seg mørk
+ * rundt ringen. Lag 2 er derfor til stede i ALLE steg, usynlig (0 utbredelse,
+ * 0 i alpha) i hvile-tilstanden og fullt synlig i midten av pulsen. */
 @keyframes cookmode-tutorial-pulse {
   0%,
   100% {
     box-shadow:
       0 0 0 2px var(--color-clay),
+      0 0 0 0 rgba(230, 195, 79, 0),
       0 0 0 9999px rgba(11, 11, 10, 0.72);
   }
   50% {

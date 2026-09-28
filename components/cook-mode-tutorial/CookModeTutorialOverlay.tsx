@@ -177,7 +177,11 @@ export function CookModeTutorialOverlay({
         aria-hidden="true"
         className={clsx(
           "pointer-events-none fixed z-[80] transition-[top,left,width,height] duration-300 ease-out",
-          rect ? "cookmode-tutorial-pulse" : "inset-0 bg-ink/70",
+          // NB: "cream" er det MØRKE tokenet og "ink" det LYSE i CONVITEs
+          // inverterte palett (se app/globals.css sin filheader) – bg-cream
+          // her, ikke bg-ink, er det som faktisk gir et mørkt nedtonings-lag
+          // for intro-/avslutningsstegene (uten mål å ringe inn).
+          rect ? "cookmode-tutorial-pulse" : "inset-0 bg-cream/70",
         )}
         style={
           rect
