@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CookMode } from "@/components/recipe/CookMode";
 import { CookModeTutorialOverlay } from "@/components/cook-mode-tutorial/CookModeTutorialOverlay";
@@ -20,10 +21,19 @@ import type { Lang } from "@/lib/i18n";
  * bevisst til FORSIDEN, ikke tilbake i historikken – man kom hit via en
  * dedikert lenke, ikke en vanlig oppskriftsside, så "tilbake" har ingen
  * annen naturlig destinasjon.
+ *
+ * `forcedStepId` (28.09.2026, redesign-runde 2) – løftet hit fra Overlay
+ * via `onForcedStepChange`, og sendt videre ned til den ekte CookMode. To
+ * av tutorial-stegene (selve stegteksten, og tidtaker-knappen) trenger et
+ * HELT BESTEMT ekte demo-steg synlig for at det de faktisk forklarer skal
+ * finnes i DOM-en – se doc-kommentaren på CookMode.tsx sin
+ * `forcedStepId`-prop og TutorialStep sin `forcedRecipeStepId` i
+ * CookModeTutorialOverlay.tsx for hele resonnementet.
  */
 export function CookModeTutorial({ lang }: { lang: Lang }) {
   const router = useRouter();
   const recipe = getCookModeTutorialRecipe(lang);
+  const [forcedStepId, setForcedStepId] = useState<string | null>(null);
 
   function goHome() {
     router.push("/");
@@ -42,8 +52,14 @@ export function CookModeTutorial({ lang }: { lang: Lang }) {
         steps={recipe.steps}
         onClose={goHome}
         lang={lang}
+        forcedStepId={forcedStepId}
       />
-      <CookModeTutorialOverlay lang={lang} onFinish={goHome} onExplore={exploreRecipes} />
+      <CookModeTutorialOverlay
+        lang={lang}
+        onFinish={goHome}
+        onExplore={exploreRecipes}
+        onForcedStepChange={setForcedStepId}
+      />
     </>
   );
 }

@@ -79,6 +79,33 @@ const CONTENT: Record<
  * uansett, den blir bare ikke cachet mellom besøk. */
 export const COOK_MODE_TUTORIAL_RECIPE_ID = "cook-mode-tutorial-demo";
 
+/**
+ * (28.09.2026, redesign-runde 2) Stabile id-er for de tre demo-stegene som
+ * CookModeTutorialOverlay.tsx tvinger CookMode.tsx til å vise mens bestemte
+ * tutorial-steg er aktive (se `forcedRecipeStepId` der og `forcedStepId`-
+ * proppen på CookMode.tsx) – bygget med samme formel som
+ * `steps.map((_, index) => \`tutorial-step-${index}\`)` under, slik at det
+ * finnes ETT sted å rette dersom rekkefølgen på `CONTENT[...].steps` noen
+ * gang endres, i stedet for hardkodede strenger spredt ut over
+ * tutorial-filene:
+ *
+ * - FØRSTE steg: brukes når selve den store stegteksten forklares (hvilket
+ *   steg det er spiller ingen rolle for DEN forklaringen, men et fast,
+ *   forutsigbart valg er bedre enn å arve en evt. rest-tilstand fra forrige
+ *   tutorial-kjøring).
+ * - MIDTERSTE steg: verken første eller siste steg i demo-oppskriften –
+ *   brukt når selve Forrige/Neste-knappene i bunnen forklares, slik at
+ *   BEGGE faktisk vises som normalt (Forrige er utgrået på steg 1, og
+ *   Neste blir en helt annen, oliven "Ferdig"-knapp på siste steg).
+ * - TIMER-steget: det ENE steget i demo-oppskriften hvis tekst inneholder
+ *   en tidsangivelse ("3-4 minutter"), og dermed er det eneste stedet den
+ *   ekte "sett timer for steget"-knappen faktisk vises (se
+ *   parseStepDurationMs i lib/kitchen-intelligence/timers.ts).
+ */
+export const COOK_MODE_TUTORIAL_FIRST_STEP_ID = "tutorial-step-0";
+export const COOK_MODE_TUTORIAL_MIDDLE_STEP_ID = "tutorial-step-1";
+export const COOK_MODE_TUTORIAL_TIMER_STEP_ID = "tutorial-step-2";
+
 export function getCookModeTutorialRecipe(lang: Lang): {
   id: string;
   title: string;

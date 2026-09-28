@@ -165,6 +165,17 @@
   .cookmode-tutorial-pulse {
     animation: cookmode-tutorial-pulse 1.8s ease-in-out infinite;
   }
+
+  /* (28.09.2026, redesign-runde 2) Stillestående motstykke til pulsen over
+   * – brukt av CookModeTutorialOverlay.tsx sitt "footer"-steg rundt
+   * Forrige-knappen, mens selve Neste-knappen fortsatt får
+   * .cookmode-tutorial-pulse. Henrik: fjern den lange, brede gull-streken
+   * som før lå rundt HELE navigasjonsområdet, og vis i stedet to mindre,
+   * ulikt behandlede ringer rundt de to faktiske knappene. Samme
+   * kant-tykkelse/farge som pulsens hviletilstand, bare uten animasjon. */
+  .cookmode-tutorial-ring-static {
+    box-shadow: 0 0 0 2px var(--color-clay);
+  }
 }
 
 @keyframes cookmode-tutorial-pulse {

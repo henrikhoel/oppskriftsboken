@@ -60,6 +60,22 @@ interface CookModeProps {
    * fila, som ellers allerede bærer timere/talestyring/wake lock for ÉN
    * oppskrift om gangen. */
   headerExtra?: ReactNode;
+  /**
+   * (28.09.2026, redesign-runde 2) Kun brukt av Cook Mode-tutorialen
+   * (CookModeTutorial.tsx) – når satt til en gyldig steg-id, TVINGES
+   * `currentIndex` under til akkurat det steget, uavhengig av hva som
+   * ligger i den persisterte state fra useCookModeState. Trengs fordi
+   * tutorial-overlayet fanger opp ALLE klikk mens den er åpen (se
+   * CookModeTutorialOverlay.tsx sitt klikk-lag), så brukeren kan aldri
+   * faktisk trykke seg til et bestemt steg selv mens et tutorial-steg som
+   * "her forklares selve stegteksten"/"her forklares tidtaker-knappen"
+   * trenger et HELT SPESIFIKT, ekte demo-steg synlig (se
+   * lib/cook-mode-tutorial/demo-recipe.ts sine
+   * COOK_MODE_TUTORIAL_*_STEP_ID-konstanter). `undefined`/`null` i all
+   * annen bruk (ekte oppskrifter bruker aldri denne proppen) – da er
+   * oppførselen helt uendret fra før.
+   */
+  forcedStepId?: string | null;
 }
 
 export function CookMode({
@@ -71,6 +87,7 @@ export function CookMode({
   lang,
   cookingTimeline,
   headerExtra,
+  forcedStepId,
 }: CookModeProps) {
   const { state, toggleIngredient, setCurrentStepIndex } = useCookModeState(recipeId);
   const {
@@ -98,7 +115,12 @@ export function CookMode({
     notifyNewlyExpired,
   } = useCookModeTimers(recipeId);
 
-  const currentIndex = Math.min(state.currentStepIndex, Math.max(steps.length - 1, 0));
+  // Se `forcedStepId` sin doc-kommentar over – finnes id-en blant de ekte
+  // stegene, styrer den currentIndex fullstendig (kun tutorialen setter
+  // denne); ellers uendret, persistert oppførsel.
+  const forcedIndex = forcedStepId ? steps.findIndex((s) => s.id === forcedStepId) : -1;
+  const currentIndex =
+    forcedIndex >= 0 ? forcedIndex : Math.min(state.currentStepIndex, Math.max(steps.length - 1, 0));
   const currentStep = steps[currentIndex];
   const progress = steps.length > 0 ? ((currentIndex + 1) / steps.length) * 100 : 0;
 
@@ -480,7 +502,10 @@ export function CookMode({
           )}
         </div>
 
-        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center py-8">
+        <div
+          className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center py-8"
+          data-cookmode-target="step-text"
+        >
           <p className="text-balance text-center font-serif text-2xl leading-snug sm:text-3xl md:text-4xl">
             {currentStep.text}
           </p>
@@ -491,6 +516,7 @@ export function CookMode({
             type="button"
             onClick={handleStartStepTimer}
             disabled={justStartedTimerForStep === currentStep.id}
+            data-cookmode-target="timer"
             className="mx-auto mt-3 flex items-center gap-2 text-sm font-medium text-clay transition-colors hover:text-clay-dark disabled:cursor-default disabled:text-olive"
           >
             {justStartedTimerForStep === currentStep.id ? (
@@ -516,6 +542,13 @@ export function CookMode({
           type="button"
           onClick={goPrev}
           disabled={currentIndex === 0}
+          // data-cookmode-target="footer-prev"/"footer-next" (28.09.2026,
+          // redesign-runde 2): i tillegg til det brede "footer"-krokene på
+          // selve <footer>-elementet under – lar CookModeTutorialOverlay.tsx
+          // sitt "footer"-steg tegne to SEPARATE, mindre gull-ringer (en
+          // stillestående rundt Forrige, en pulserende rundt Neste) i stedet
+          // for én lang ring rundt hele navigasjonsområdet.
+          data-cookmode-target="footer-prev"
           className="flex flex-1 items-center justify-center gap-2 rounded-full border border-ink/20 py-4 text-base font-medium text-ink disabled:opacity-30 sm:text-lg"
         >
           <ChevronLeftIcon className="h-5 w-5" />
@@ -525,6 +558,7 @@ export function CookMode({
           <button
             type="button"
             onClick={goNext}
+            data-cookmode-target="footer-next"
             className="flex flex-1 items-center justify-center gap-2 rounded-full bg-clay py-4 text-base font-medium text-cream sm:text-lg"
           >
             {t(lang, "cookMode.next")}

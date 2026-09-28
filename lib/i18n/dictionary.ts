@@ -546,6 +546,19 @@ const DICT = {
     en: "We'll show you how it works in under a minute.",
   },
   "cookModeTutorial.start": { no: "Start omvisningen", en: "Start the tour" },
+  // De to nye stegene fra redesign-runde 2 (28.09.2026) – selve den store
+  // stegteksten midt i Cook Mode, og den automatiske tidtaker-knappen som
+  // dukker opp når et steg har en tidsangivelse.
+  "cookModeTutorial.stepTextTitle": { no: "Ett steg av gangen", en: "One step at a time" },
+  "cookModeTutorial.stepTextBody": {
+    no: "Her ser du bare det du skal gjøre akkurat nå.",
+    en: "Here you only see what you need to do right now.",
+  },
+  "cookModeTutorial.timerAutoTitle": { no: "Tidtakeren er klar", en: "The timer is ready" },
+  "cookModeTutorial.timerAutoBody": {
+    no: "Når et steg krever tid, setter Cook Mode tiden for deg. Bare trykk for å starte.",
+    en: "When a step needs time, Cook Mode sets it for you. Just tap to start.",
+  },
   "cookModeTutorial.closeTitle": { no: "Ut når som helst", en: "Exit whenever you like" },
   "cookModeTutorial.closeBody": {
     no: "Denne knappen lukker Cook Mode og tar deg tilbake.",
