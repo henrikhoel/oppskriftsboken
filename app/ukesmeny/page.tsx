@@ -80,6 +80,16 @@ export default async function WeeklyMenuPage() {
           className="object-cover"
           style={{ objectPosition: "right top" }}
         />
+        {/* Nedtoning mot sidens egen bakgrunnsfarge nederst – uten denne
+            fikk billedboksen en synlig, hard kant der den faste høyden
+            over stopper (Henrik: "en gradient/fade som gjør kanten på
+            bildet litt mer naturlig"). --color-cream er selve fargen
+            resten av siden har (nesten sort), så overgangen blir
+            usynlig i stedet for en rett linje. */}
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(to bottom, transparent 45%, var(--color-cream) 100%)" }}
+        />
       </div>
 
       <div className="relative z-10 mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
