@@ -217,21 +217,29 @@ export function CookModeTutorialOverlay({
   // Alle pulserende highlights (.cookmode-tutorial-pulse OG
   // .cookmode-tutorial-button-glow, se app/globals.css) deler samme
   // syklus-lengde (1,8s). To elementer som begge kjører `animation: ...
-  // infinite` uten noen eksplisitt animation-delay starter derimot hver sin
-  // egen klokke fra ØYEBLIKKET DE MONTERES – to elementer montert selv få
-  // millisekunder fra hverandre (f.eks. Forrige og Neste sine ringer på
-  // "footer"-steget, se ringTargets) kan dermed ende opp helt ute av fase
-  // med hverandre, og hvor mye varierer tilfeldig fra besøk til besøk
-  // (Henrik, 28.09.2026: "litt random om dem blinker likt eller ikke").
-  // Løsning: fest ALLE pulserende highlights til samme, DELTE klokke – en
-  // negativ animation-delay utregnet fra `Date.now()` modulo syklus-
-  // lengden. Uansett NÅR et element faktisk monteres, hopper denne
-  // negative forsinkelsen animasjonen rett til riktig punkt i syklusen sett
-  // fra et globalt, absolutt klokkeslett – to elementer med denne samme
-  // utregningen er dermed ALLTID i fase med hverandre, selv om de aldri
-  // monteres i nøyaktig samme React-commit.
+  // infinite` uten noen eksplisitt animation-delay starter hver sin egen
+  // klokke fra ØYEBLIKKET DE MONTERES – to elementer montert selv få
+  // millisekunder fra hverandre (Forrige og Neste sine highlights på
+  // "footer"-steget, se ringTargets) kan dermed ende opp ute av fase.
+  //
+  // Første forsøk (28.09.2026) regnet ut en negativ animation-delay fra
+  // `Date.now()` PÅ NYTT i hver render – men siden komponenten her rerender
+  // ganske ofte (resize, settle-timeout, stegbytte), endret selve
+  // delay-VERDIEN seg for hver rerender, og en nettleser som får en NY
+  // animation-delay midt i en allerede kjørende animasjon hopper/forskyver
+  // seg fra DET øyeblikket, i stedet for å regne hele animasjonens
+  // starttidspunkt på nytt fra bunnen – dermed kunne de to elementene
+  // likevel gli fra hverandre over tid selv om de fikk "samme" formel
+  // (Henrik, 28.09.2026: "de har samme rytme, men ikke synkronisert").
+  //
+  // Fikset ved å låse denne verdien ÉN gang, ved første render av selve
+  // tutorial-overlayet (useState sin lazy initializer kjører kun én gang
+  // for komponentens levetid) – samme faste delay brukes deretter av ALLE
+  // pulserende highlights gjennom hele tutorialen, uansett hvor mange
+  // ganger de selv monteres/avmonteres idet man blar frem og tilbake
+  // mellom steg.
   const PULSE_CYCLE_MS = 1800;
-  const pulseDelayMs = -(Date.now() % PULSE_CYCLE_MS);
+  const [pulseDelayMs] = useState(() => -(Date.now() % PULSE_CYCLE_MS));
   // Eneste steget der boksen forlater sin faste, midtstilte plass – se
   // filheaderen over.
   const boxPosition: "center" | "bottom" = step.target === "step-text" ? "bottom" : "center";
