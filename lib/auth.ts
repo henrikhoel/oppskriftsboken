@@ -6,6 +6,15 @@ export interface CurrentUser {
   id: string;
   email: string | null;
   isAdmin: boolean;
+  /** (29.09.2026) profiles.cook_mode_tutorial_completed – true når brukeren
+   * har huket av "ikke vis denne veiledningen igjen" i Cook Mode-
+   * tutorialen (se dontShowAgain i CookModeTutorial.tsx/
+   * CookModeTutorialOverlay.tsx). Styrer om tutorialen dukker opp
+   * automatisk første gang man starter Cook Mode på en EKTE oppskrift
+   * (RecipeInteractive.tsx), og om "Utforsk Cook Mode"-siden (/cook-mode)
+   * viser selve tutorialen eller en "du har allerede fullført denne"-
+   * melding (CookModeTutorialEntry.tsx). */
+  cookModeTutorialCompleted: boolean;
 }
 
 /**
@@ -36,7 +45,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_admin")
+    .select("is_admin, cook_mode_tutorial_completed")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -44,6 +53,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     id: user.id,
     email: user.email ?? null,
     isAdmin: profile?.is_admin ?? false,
+    cookModeTutorialCompleted: profile?.cook_mode_tutorial_completed ?? false,
   };
 });
 
@@ -82,7 +92,7 @@ export const getCurrentUserFast = cache(async (): Promise<CurrentUser | null> =>
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_admin")
+    .select("is_admin, cook_mode_tutorial_completed")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -90,6 +100,7 @@ export const getCurrentUserFast = cache(async (): Promise<CurrentUser | null> =>
     id: user.id,
     email: user.email ?? null,
     isAdmin: profile?.is_admin ?? false,
+    cookModeTutorialCompleted: profile?.cook_mode_tutorial_completed ?? false,
   };
 });
 

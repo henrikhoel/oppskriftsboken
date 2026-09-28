@@ -600,6 +600,41 @@ const DICT = {
     en: "That's it – now you know Cook Mode. Find a real recipe to try it on.",
   },
   "cookModeTutorial.exploreRecipes": { no: "Utforsk oppskrifter", en: "Explore recipes" },
+  // (29.09.2026) "mode='recipe'"-varianten av outro-steget – vises når
+  // tutorialen dukker opp over en EKTE oppskrifts Cook Mode (første gang,
+  // se profiles.cook_mode_tutorial_completed) i stedet for demo-siden
+  // /cook-mode. Da gir "utforsk oppskrifter" ingen mening (man har jo
+  // allerede valgt én) – i stedet skal man rett i gang med den man valgte.
+  "cookModeTutorial.outroTitleRecipe": { no: "Du er klar til å lage mat!", en: "You're ready to cook!" },
+  "cookModeTutorial.outroBodyRecipe": {
+    no: "Sånn, nå kjenner du Cook Mode. La oss lage denne retten.",
+    en: "That's it – now you know Cook Mode. Let's make this dish.",
+  },
+  "cookModeTutorial.startCooking": { no: "Start matlaging", en: "Start cooking" },
+  // Avkrysningsboksen i "mode='recipe'" (Henrik, 29.09.2026: "kan det være
+  // nyttig at man kan huke av for at den ikke skal vises igjen, og at dette
+  // huskes på profilen") – se markCookModeTutorialCompleted i
+  // lib/actions/cook-mode-tutorial.ts.
+  "cookModeTutorial.dontShowAgain": {
+    no: "Ikke vis denne veiledningen igjen",
+    en: "Don't show this guide again",
+  },
+  // "Utforsk Cook Mode"-siden (/cook-mode) for en bruker som allerede har
+  // huket av "ikke vis igjen" på et ekte oppskrift-besøk – se
+  // CookModeTutorialEntry.tsx. "vis den på nytt" MÅ finnes (Henrik,
+  // 29.09.2026: "på 'utforsk cook mode' må man likevel ha muligheten til å
+  // se den igjen dersom man ønsker det") – avkrysningen styrer kun om
+  // tutorialen dukker opp AUTOMATISK ved ekte oppskrifter, ikke om man i
+  // det hele tatt får se den igjen.
+  "cookModeTutorial.alreadyCompletedTitle": {
+    no: "Du har allerede fullført denne veiledningen",
+    en: "You've already completed this guide",
+  },
+  "cookModeTutorial.alreadyCompletedBody": {
+    no: "Du valgte å ikke vise den igjen. Du kan utforske oppskrifter, eller se gjennomgangen på nytt om du vil friske opp minnet.",
+    en: "You chose not to see it again. You can explore recipes, or watch the walkthrough again for a refresher.",
+  },
+  "cookModeTutorial.watchAgain": { no: "Vis den på nytt", en: "Watch it again" },
   "cookModeTutorial.close": { no: "Lukk", en: "Close" },
   "cookModeTutorial.next": { no: "Neste", en: "Next" },
   "cookModeTutorial.previous": { no: "Forrige", en: "Previous" },

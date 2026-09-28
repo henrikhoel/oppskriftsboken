@@ -8,6 +8,7 @@ import { RecipeHero } from "@/components/recipe/RecipeHero";
 import { ServingsScaler } from "@/components/recipe/ServingsScaler";
 import { UnitSystemSwitcher } from "@/components/recipe/UnitSystemSwitcher";
 import { CookMode } from "@/components/recipe/CookMode";
+import { CookModeTutorial } from "@/components/cook-mode-tutorial/CookModeTutorial";
 import { CookingTimelinePanel } from "@/components/recipe/CookingTimelinePanel";
 import { TasteProfileDisplay } from "@/components/recipe/TasteProfileDisplay";
 import { NutritionPanel } from "@/components/recipe/NutritionPanel";
@@ -68,10 +69,39 @@ function withSyntheticIds(
   };
 }
 
-export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; isAdmin: boolean; lang: Lang }) {
+export function RecipeInteractive({
+  recipe,
+  isAdmin,
+  lang,
+  hasCompletedCookModeTutorial,
+}: {
+  recipe: Recipe;
+  isAdmin: boolean;
+  lang: Lang;
+  /** (29.09.2026) profiles.cook_mode_tutorial_completed for den innloggede
+   * brukeren – se filheaderen i CookModeTutorial.tsx. Styrer kun det
+   * INNLEDENDE valget av showTutorial under (lest én gang ved montering);
+   * selve profil-lagringen (når brukeren huker av "ikke vis igjen") skjer
+   * inne i CookModeTutorial selv. */
+  hasCompletedCookModeTutorial: boolean;
+}) {
   const [servings, setServings] = useState(recipe.servings);
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [cookModeOpen, setCookModeOpen] = useState(false);
+  // (29.09.2026, Henrik: "denne tutorialen også dukker opp første gang man
+  // går inn via en oppskrift ... etter man har huket av på den, vil man
+  // starte rett på laging av mat når man går inn via en oppskrift senere")
+  // – `cookModeOpen` styrer fortsatt BARE om Cook Mode i det hele tatt er
+  // åpent; `showTutorial` styrer i tillegg HVILKEN av de to (den guidede
+  // tutorial-varianten, med den samme oppdiktede demo-oppskriften som
+  // /cook-mode selv bruker, eller den ekte CookMode for DENNE oppskriften)
+  // som faktisk vises mens det er åpent. Lest KUN ved første montering (
+  // ikke synkronisert på nytt ved re-render) – med vilje, slik at et
+  // "Start matlaging"-klikk (som setter showTutorial til false via
+  // CookModeTutorial sin onStartCooking) ikke hopper tilbake til tutorial-
+  // varianten om brukeren lukker og åpner Cook Mode på nytt SENERE i
+  // samme sidevisning uten å ha huket av "ikke vis igjen".
+  const [showTutorial, setShowTutorial] = useState(!hasCompletedCookModeTutorial);
   const [justAdded, setJustAdded] = useState(false);
   // Løftet opp fra CookingTimelinePanel slik at samme beregnede tidspunkt
   // også kan vises inline under hvert steg i fremgangsmåten under, ikke
@@ -807,7 +837,21 @@ export function RecipeInteractive({ recipe, isAdmin, lang }: { recipe: Recipe; i
         </div>
       )}
 
-      {cookModeOpen && (
+      {cookModeOpen && showTutorial && (
+        <CookModeTutorial
+          lang={lang}
+          mode="recipe"
+          // Kun denne (helt separate) lukke-veien fra CookMode sin EGEN
+          // X/ESC skal faktisk lukke Cook Mode – se filheaderen i
+          // CookModeTutorial.tsx. Bevisst IKKE setShowTutorial(false) her:
+          // en bruker som lukker midt i tutorialen UTEN å ha huket av
+          // "ikke vis igjen" skal fortsatt se den på nytt neste gang de
+          // trykker "Start matlaging" i SAMME sidevisning.
+          onExitCookMode={() => setCookModeOpen(false)}
+          onStartCooking={() => setShowTutorial(false)}
+        />
+      )}
+      {cookModeOpen && !showTutorial && (
         <CookMode
           recipeId={recipe.id}
           title={displayTitle}

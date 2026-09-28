@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CookMode } from "@/components/recipe/CookMode";
 import { CookModeTutorialOverlay } from "@/components/cook-mode-tutorial/CookModeTutorialOverlay";
 import { getCookModeTutorialRecipe } from "@/lib/cook-mode-tutorial/demo-recipe";
+import { markCookModeTutorialCompleted } from "@/lib/actions/cook-mode-tutorial";
 import type { Lang } from "@/lib/i18n";
 
 /**
@@ -17,11 +18,6 @@ import type { Lang } from "@/lib/i18n";
  * (CookModeTutorialOverlay) lagt oppå som peker ut og forklarer knappene
  * étt om gangen.
  *
- * CookMode sin `onClose` (X-knappen øverst til venstre, ESC-tasten) går
- * bevisst til FORSIDEN, ikke tilbake i historikken – man kom hit via en
- * dedikert lenke, ikke en vanlig oppskriftsside, så "tilbake" har ingen
- * annen naturlig destinasjon.
- *
  * `forcedStepId` (28.09.2026, redesign-runde 2) – løftet hit fra Overlay
  * via `onForcedStepChange`, og sendt videre ned til den ekte CookMode. To
  * av tutorial-stegene (selve stegteksten, og tidtaker-knappen) trenger et
@@ -29,11 +25,55 @@ import type { Lang } from "@/lib/i18n";
  * finnes i DOM-en – se doc-kommentaren på CookMode.tsx sin
  * `forcedStepId`-prop og TutorialStep sin `forcedRecipeStepId` i
  * CookModeTutorialOverlay.tsx for hele resonnementet.
+ *
+ * `mode` (29.09.2026, Henrik: "denne tutorialen også dukker opp første gang
+ * man går inn via en oppskrift ... da må det naturligvis ikke stå 'utforsk
+ * oppskrifter' på slutten, men at man skal starte å lage mat") – SAMME
+ * komponent, samme oppdiktede demo-"oppskrift" under selve gjennomgangen
+ * (kun outro-steget sin tekst/knapp endres, se
+ * CookModeTutorialOverlay.tsx), men brukt to steder:
+ *
+ * - "demo" (default): /cook-mode ("Utforsk Cook Mode"-lenken). Både "Hopp
+ *   over" og selve CookMode sin X/ESC går til forsiden; siste steg sin
+ *   knapp går til /oppskrifter. Ingen avkrysning for "ikke vis igjen" – se
+ *   CookModeTutorialEntry.tsx for hvordan DENNE siden i stedet håndterer et
+ *   "du har allerede fullført tutorialen"-tilfelle.
+ * - "recipe": lagt oppå Cook Mode på en EKTE oppskrift, første gang en
+ *   innlogget bruker starter matlaging (se RecipeInteractive.tsx), inntil
+ *   de eventuelt huker av for "ikke vis igjen" (dontShowAgain under). To
+ *   ULIKE handlinger her, avhengig av HVOR man avslutter fra:
+ *     - "Hopp over" (synlig på ethvert steg) ELLER siste steg sin
+ *       "Start matlaging"-knapp → `onStartCooking`: dropper resten av
+ *       omvisningen, men fortsetter likevel RETT INN i ekte matlaging av
+ *       oppskriften man faktisk valgte – å hoppe over en OMVISNING skal jo
+ *       ikke bety å avbryte selve matlagingen.
+ *     - CookMode sin EGEN lukkeknapp (X/ESC, `data-cookmode-target="close"`)
+ *       → `onExitCookMode`: lukker Cook Mode HELT (tilbake til
+ *       oppskriftssiden) – dette er den eksplisitte "jeg vil ikke lage mat
+ *       akkurat nå"-handlingen, ikke en del av selve omvisningen.
+ *   Avkrysningen for "ikke vis igjen" lever her (ikke i Overlay) nettopp
+ *   fordi begge disse to avslutningsveiene må sjekke den, ikke bare
+ *   Overlay sine egne knapper – speiler forcedStepId-mønstret over
+ *   (state eid av denne komponenten, Overlay er "controlled" via en
+ *   onDontShowAgainChange-callback).
  */
-export function CookModeTutorial({ lang }: { lang: Lang }) {
+export function CookModeTutorial({
+  lang,
+  mode = "demo",
+  onExitCookMode,
+  onStartCooking,
+}: {
+  lang: Lang;
+  mode?: "demo" | "recipe";
+  /** Kun i bruk når mode="recipe" – se filheaderen over. */
+  onExitCookMode?: () => void;
+  /** Kun i bruk når mode="recipe" – se filheaderen over. */
+  onStartCooking?: () => void;
+}) {
   const router = useRouter();
   const recipe = getCookModeTutorialRecipe(lang);
   const [forcedStepId, setForcedStepId] = useState<string | null>(null);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   function goHome() {
     router.push("/");
@@ -43,6 +83,33 @@ export function CookModeTutorial({ lang }: { lang: Lang }) {
     router.push("/oppskrifter");
   }
 
+  async function persistDontShowAgainIfChecked() {
+    if (mode !== "recipe" || !dontShowAgain) return;
+    try {
+      await markCookModeTutorialCompleted();
+    } catch (error) {
+      // Stille feil, bevisst: brukeren skal uansett komme videre til
+      // matlagingen selv om selve LAGRINGEN av preferansen feiler – i
+      // verste fall dukker tutorialen opp igjen neste gang, ikke noe som
+      // bør blokkere at man kommer i gang med retten nå.
+      console.error("Kunne ikke lagre 'ikke vis Cook Mode-tutorialen igjen':", error);
+    }
+  }
+
+  async function handleStartCooking() {
+    await persistDontShowAgainIfChecked();
+    onStartCooking?.();
+  }
+
+  async function handleExitCookMode() {
+    await persistDontShowAgainIfChecked();
+    onExitCookMode?.();
+  }
+
+  const overlayFinish = mode === "recipe" ? handleStartCooking : goHome;
+  const overlayExplore = mode === "recipe" ? handleStartCooking : exploreRecipes;
+  const cookModeClose = mode === "recipe" ? handleExitCookMode : goHome;
+
   return (
     <>
       <CookMode
@@ -50,15 +117,18 @@ export function CookModeTutorial({ lang }: { lang: Lang }) {
         title={recipe.title}
         ingredientGroups={recipe.ingredientGroups}
         steps={recipe.steps}
-        onClose={goHome}
+        onClose={cookModeClose}
         lang={lang}
         forcedStepId={forcedStepId}
       />
       <CookModeTutorialOverlay
         lang={lang}
-        onFinish={goHome}
-        onExplore={exploreRecipes}
+        mode={mode}
+        onFinish={overlayFinish}
+        onExplore={overlayExplore}
         onForcedStepChange={setForcedStepId}
+        dontShowAgain={dontShowAgain}
+        onDontShowAgainChange={setDontShowAgain}
       />
     </>
   );

@@ -198,7 +198,15 @@ export default async function RecipePage({
         </Link>
 
         <div className="mt-6 sm:mt-8">
-          <RecipeInteractive recipe={recipe} isAdmin={Boolean(user?.isAdmin)} lang={lang} />
+          <RecipeInteractive
+            recipe={recipe}
+            isAdmin={Boolean(user?.isAdmin)}
+            lang={lang}
+            // (29.09.2026) `user` er alltid satt her (se gjesteveien over,
+            // som returnerer tidlig med RecipeTeaser) – Boolean() likevel
+            // for konsistens med isAdmin rett over.
+            hasCompletedCookModeTutorial={Boolean(user?.cookModeTutorialCompleted)}
+          />
         </div>
 
         {recipe.source && (

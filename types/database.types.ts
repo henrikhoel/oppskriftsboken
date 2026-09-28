@@ -28,18 +28,22 @@ export interface Database {
           id: string;
           email: string | null;
           is_admin: boolean;
+          // (29.09.2026) Speiler supabase/migrations/0023_cook_mode_tutorial_completed.sql.
+          cook_mode_tutorial_completed: boolean;
           created_at: string;
         };
         Insert: {
           id: string;
           email?: string | null;
           is_admin?: boolean;
+          cook_mode_tutorial_completed?: boolean;
           created_at?: string;
         };
         Update: {
           id?: string;
           email?: string | null;
           is_admin?: boolean;
+          cook_mode_tutorial_completed?: boolean;
           created_at?: string;
         };
         Relationships: [];

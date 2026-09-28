@@ -189,11 +189,19 @@ function spotlightClipPath(hole: { x: number; y: number; w: number; h: number; r
  */
 export function CookModeTutorialOverlay({
   lang,
+  mode,
   onFinish,
   onExplore,
   onForcedStepChange,
+  dontShowAgain,
+  onDontShowAgainChange,
 }: {
   lang: Lang;
+  /** Se CookModeTutorial.tsx sin filheader for hele resonnementet bak de to
+   * modusene. Styrer her kun: (1) outro-stegets tekst/knapp-etikett
+   * ("Utforsk oppskrifter" vs. "Start matlaging"), og (2) om
+   * "ikke vis igjen"-avkrysningen vises i det hele tatt (kun "recipe"). */
+  mode: "demo" | "recipe";
   onFinish: () => void;
   onExplore: () => void;
   /** Kalles hver gang gjeldende tutorial-steg endres, med steget sin
@@ -201,6 +209,14 @@ export function CookModeTutorialOverlay({
    * ekte Cook Mode-steg) – videreformidlet til CookMode via
    * CookModeTutorial.tsx sin `forcedStepId`-state. */
   onForcedStepChange: (stepId: string | null) => void;
+  /** "Ikke vis denne veiledningen igjen"-avkrysningen (kun mode="recipe") –
+   * EID av CookModeTutorial.tsx (samme "controlled"-mønster som
+   * forcedStepId over), siden BÅDE denne komponentens egne knapper OG
+   * CookMode sin helt separate lukkeknapp må kunne sjekke den siste
+   * verdien idet tutorialen avsluttes (se filheaderen i
+   * CookModeTutorial.tsx). */
+  dontShowAgain: boolean;
+  onDontShowAgainChange: (value: boolean) => void;
 }) {
   const [index, setIndex] = useState(0);
   const [maxVisited, setMaxVisited] = useState(0);
@@ -215,6 +231,10 @@ export function CookModeTutorialOverlay({
   const boxPosition: "center" | "bottom" = step.target === "step-text" ? "bottom" : "center";
   const isFirst = index === 0;
   const isLast = index === STEPS.length - 1;
+  // Outro-steget er den ANDRE av de to "framing"-stegene (isFraming, se
+  // over) – intro er isFirst, outro er isFraming && !isFirst siden det bare
+  // finnes to slike steg totalt (STEPS[0] og STEPS[STEPS.length - 1]).
+  const isOutro = isFraming && !isFirst;
 
   useEffect(() => {
     setMaxVisited((m) => Math.max(m, index));
@@ -406,7 +426,14 @@ export function CookModeTutorialOverlay({
               {t(lang, "home.cookMode.eyebrow")}
             </p>
             <p className="mt-3 text-balance font-serif text-2xl leading-snug text-ink sm:text-3xl">
-              {t(lang, step.titleKey)}
+              {/* (29.09.2026) Outro-steget sin titleKey er alltid
+               * "cookModeTutorial.navTitle"-etterfølgeren "outroTitle" via
+               * step.titleKey som vanlig – i "recipe"-modus vises i stedet
+               * den dedikerte "outroTitleRecipe" ("Du er klar til å lage
+               * mat!") istedenfor "Du er klar!" (se filheaderen i
+               * CookModeTutorial.tsx for hvorfor "utforsk oppskrifter" ikke
+               * gir mening når man allerede har valgt en oppskrift). */}
+              {t(lang, isOutro && mode === "recipe" ? "cookModeTutorial.outroTitleRecipe" : step.titleKey)}
             </p>
             {isFirst ? (
               <>
@@ -417,8 +444,19 @@ export function CookModeTutorialOverlay({
               </>
             ) : (
               <p className="mx-auto mt-3 max-w-sm text-pretty text-sm text-ink-soft sm:text-base">
-                {t(lang, step.bodyKey)}
+                {t(lang, isOutro && mode === "recipe" ? "cookModeTutorial.outroBodyRecipe" : step.bodyKey)}
               </p>
+            )}
+
+            {/* (29.09.2026) Vises på ALLE steg i "recipe"-modus, ikke bare
+             * outro – "Hopp over" (rett under) er jo også tilgjengelig på
+             * ethvert steg, så avkrysningen må være det også: ellers måtte
+             * man klikke seg gjennom hele omvisningen bare for å FÅ
+             * muligheten til å huke av, noe som ville gjort selve
+             * "Hopp over"-knappen nytteløs for noen som vil slippe unna
+             * tidlig OG samtidig slippe å se tutorialen igjen. */}
+            {mode === "recipe" && (
+              <DontShowAgainCheckbox lang={lang} checked={dontShowAgain} onChange={onDontShowAgainChange} />
             )}
 
             <div className="mt-7 flex items-center justify-center gap-5">
@@ -443,7 +481,7 @@ export function CookModeTutorialOverlay({
                   onClick={onExplore}
                   className="rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark"
                 >
-                  {t(lang, "cookModeTutorial.exploreRecipes")}
+                  {t(lang, mode === "recipe" ? "cookModeTutorial.startCooking" : "cookModeTutorial.exploreRecipes")}
                 </button>
               )}
             </div>
@@ -457,6 +495,10 @@ export function CookModeTutorialOverlay({
           <div className="pointer-events-auto rounded-2xl border border-clay/15 bg-cream p-[18px] text-center shadow-card-hover">
             <p className="font-serif text-base leading-snug text-ink">{t(lang, step.titleKey)}</p>
             <p className="mt-1.5 text-xs text-ink-soft">{t(lang, step.bodyKey)}</p>
+
+            {mode === "recipe" && (
+              <DontShowAgainCheckbox lang={lang} checked={dontShowAgain} onChange={onDontShowAgainChange} />
+            )}
 
             <div className="mt-4 flex items-center justify-between gap-3">
               <button
@@ -491,6 +533,35 @@ export function CookModeTutorialOverlay({
         )}
       </div>
     </div>
+  );
+}
+
+/** (29.09.2026) "Ikke vis denne veiledningen igjen" – kun i mode="recipe"
+ * (se CookModeTutorialOverlay-proppene over). Egen liten komponent siden
+ * den brukes identisk to steder (begge kortvariantene). Selve verdien
+ * lagres ikke her – rent kontrollert (checked/onChange), se
+ * CookModeTutorial.tsx sin dontShowAgain-state og
+ * persistDontShowAgainIfChecked for HVOR/NÅR den faktisk skrives til
+ * profilen. */
+function DontShowAgainCheckbox({
+  lang,
+  checked,
+  onChange,
+}: {
+  lang: Lang;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 text-xs text-ink-soft">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-3.5 w-3.5 rounded border-line-strong accent-clay"
+      />
+      {t(lang, "cookModeTutorial.dontShowAgain")}
+    </label>
   );
 }
 
