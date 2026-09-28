@@ -8,8 +8,15 @@ import { t, type Lang } from "@/lib/i18n";
  * (components/recipe/CookMode.tsx) – samme mørke bg-cream/text-ink-farger,
  * samme progressbar/steg-tekst/knapper – i stedet for et løsrevet
  * påfunnet design. Innholdet i mockupen er statisk illustrasjonstekst
- * (home.cookMode.mock*), ikke live data – ekte Cook Mode åpnes fra en
- * faktisk oppskrift, se lenken under.
+ * (home.cookMode.mock*), ikke live data.
+ *
+ * "Utforsk Cook Mode"-knappen pekte tidligere rett på en TILFELDIG, ekte
+ * oppskrift (`/oppskrifter/${recipeSlug}`) – Henrik, 28.09.2026: "man
+ * havner inne på en random oppskrift ... som kan være forvirrende". Peker
+ * nå i stedet på /cook-mode, en dedikert, guidet gjennomgang av selve
+ * Cook Mode-grensesnittet på en oppdiktet demo-rett (se
+ * components/cook-mode-tutorial/CookModeTutorial.tsx) – derfor trenger
+ * denne komponenten ikke lenger en `recipeSlug`-prop i det hele tatt.
  *
  * "Sett timer"-linjen (27.09.2026, ønsket av Henrik: "vi trenger ikke få
  * med alt det som er i tillegg for det kan bli rotete visuelt her, men jeg
@@ -25,7 +32,7 @@ import { t, type Lang } from "@/lib/i18n";
  * CookMode.tsx, se den filens historikk) – mockupen skal speile virkelig
  * UI, og etter fjerningen fantes ikke lenger raden den viste frem.
  */
-export function CookModeShowcase({ lang, recipeSlug }: { lang: Lang; recipeSlug: string | null }) {
+export function CookModeShowcase({ lang }: { lang: Lang }) {
   return (
     <section className="bg-ink py-16 sm:py-20">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
@@ -40,11 +47,9 @@ export function CookModeShowcase({ lang, recipeSlug }: { lang: Lang; recipeSlug:
             {t(lang, "home.cookMode.subtitle")}
           </p>
           <p className="mt-5 max-w-md text-pretty text-sm text-cream/55">{t(lang, "home.cookMode.note")}</p>
-          {recipeSlug && (
-            <Button href={`/oppskrifter/${recipeSlug}`} variant="secondary" size="md" className="mt-7">
-              {t(lang, "home.cookMode.cta")}
-            </Button>
-          )}
+          <Button href="/cook-mode" variant="secondary" size="md" className="mt-7">
+            {t(lang, "home.cookMode.cta")}
+          </Button>
         </div>
 
         <div className="order-1 flex justify-center lg:order-2">

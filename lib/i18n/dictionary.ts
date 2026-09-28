@@ -518,6 +518,66 @@ const DICT = {
   "rating.starAria": { no: "Gi {value} av 5 stjerner", en: "Rate {value} out of 5 stars" },
   "rating.error": { no: "Kunne ikke lagre vurderingen.", en: "Couldn't save the rating." },
 
+  // (28.09.2026) CookModeTutorialOverlay.tsx (components/cook-mode-tutorial/)
+  // – den guidede gjennomgangen man kommer inn i via "Utforsk Cook Mode" på
+  // forsiden (components/home/CookModeShowcase.tsx), fremfor å lande direkte
+  // på en tilfeldig, ekte oppskrift. Hvert par (Title/Body) hører til ETT
+  // steg i tutorialen, som peker ut og forklarer én reell knapp i den ekte
+  // CookMode.tsx (via data-cookmode-target-attributtene lagt til der samme
+  // dag) – aldri en egen, påstått "fake" forklaring uten noe å peke på.
+  "cookModeTutorial.introTitle": { no: "Dette er Cook Mode", en: "This is Cook Mode" },
+  "cookModeTutorial.introBody": {
+    no: "En kort gjennomgang av det du finner her – tar bare et halvt minutt.",
+    en: "A quick look at what's here – it only takes half a minute.",
+  },
+  "cookModeTutorial.closeTitle": { no: "Ut når som helst", en: "Exit whenever you like" },
+  "cookModeTutorial.closeBody": {
+    no: "Denne knappen lukker Cook Mode og tar deg tilbake.",
+    en: "This button closes Cook Mode and takes you back.",
+  },
+  "cookModeTutorial.progressTitle": { no: "Retten og fremdriften", en: "The dish and your progress" },
+  "cookModeTutorial.progressBody": {
+    no: "Her ser du hvilken rett du lager, og hvor langt du har kommet.",
+    en: "This shows which dish you're making, and how far you've come.",
+  },
+  "cookModeTutorial.ingredientsTitle": { no: "Ingredienslisten", en: "The ingredient list" },
+  "cookModeTutorial.ingredientsBody": {
+    no: "Se hele ingredienslisten uten å forlate steget du står i.",
+    en: "See the full ingredient list without leaving the step you're on.",
+  },
+  "cookModeTutorial.allStepsTitle": { no: "Alle steg", en: "All steps" },
+  "cookModeTutorial.allStepsBody": {
+    no: "Bla gjennom hele fremgangsmåten, og hopp rett til et bestemt steg.",
+    en: "Browse the whole method, and jump straight to a specific step.",
+  },
+  "cookModeTutorial.timersTitle": { no: "Tidtakere", en: "Timers" },
+  "cookModeTutorial.timersBody": {
+    no: "Start tidtakere for steg som trenger det, og følg dem herfra.",
+    en: "Start timers for steps that need them, and keep track of them here.",
+  },
+  "cookModeTutorial.voiceTitle": { no: "Talestyring", en: "Voice control" },
+  "cookModeTutorial.voiceBody": {
+    no: "Si «neste», «tilbake» eller «gjenta» – ingen grunn til å taste med sausete fingre.",
+    en: "Say \"next\", \"previous\" or \"repeat\" – no need to tap with messy fingers.",
+  },
+  "cookModeTutorial.navTitle": { no: "Bla gjennom stegene", en: "Move through the steps" },
+  "cookModeTutorial.navBody": {
+    no: "Bruk disse knappene, piltastene på tastaturet, eller stemmen din.",
+    en: "Use these buttons, the arrow keys, or your voice.",
+  },
+  "cookModeTutorial.outroTitle": { no: "Du er klar!", en: "You're all set!" },
+  "cookModeTutorial.outroBody": {
+    no: "Sånn, nå kjenner du Cook Mode. Finn en ekte oppskrift å prøve den på.",
+    en: "That's it – now you know Cook Mode. Find a real recipe to try it on.",
+  },
+  "cookModeTutorial.exploreRecipes": { no: "Utforsk oppskrifter", en: "Explore recipes" },
+  "cookModeTutorial.close": { no: "Lukk", en: "Close" },
+  "cookModeTutorial.next": { no: "Neste", en: "Next" },
+  "cookModeTutorial.previous": { no: "Forrige", en: "Previous" },
+  "cookModeTutorial.skip": { no: "Hopp over", en: "Skip" },
+  "cookModeTutorial.finish": { no: "Ferdig", en: "Done" },
+  "cookModeTutorial.pageTitle": { no: "Cook Mode", en: "Cook Mode" },
+
   "cookMode.ingredientsButton": { no: "Ingredienser", en: "Ingredients" },
   "cookMode.screenLockWarning": {
     no: "Skjermlås kan ikke holdes våken automatisk i denne nettleseren.",

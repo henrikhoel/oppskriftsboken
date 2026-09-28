@@ -268,7 +268,7 @@ export default async function HomePage() {
 
         <WinePairing lang={lang} isLoggedIn={Boolean(user)} />
 
-        <CookModeShowcase lang={lang} recipeSlug={editorialMain?.slug ?? newest[0]?.slug ?? null} />
+        <CookModeShowcase lang={lang} />
 
         {/* AtmosphereSection ("Tenn stearinlysene. Fyll glasset. Nyt.") stod
             tidligere her – fjernet 27.09.2026 på Henriks ønske ("fjern hele

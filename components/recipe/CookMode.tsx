@@ -314,11 +314,19 @@ export function CookMode({
           type="button"
           onClick={onClose}
           aria-label={t(lang, "cookMode.closeAria")}
+          // data-cookmode-target-* (28.09.2026): rene "kroker" for
+          // CookModeTutorialOverlay.tsx (components/cook-mode-tutorial/) til
+          // å finne og lyssette akkurat denne knappen med et
+          // getBoundingClientRect()-oppslag utenfra, uten at selve CookMode
+          // trenger å vite noe om at en veiledning finnes – ingen ny prop,
+          // ingen logikk-gren her, kun et stabilt data-attributt å peke på.
+          // Ufarlig i vanlig bruk (ingen CSS/atferd er knyttet til det).
+          data-cookmode-target="close"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink/80 transition-colors hover:bg-ink/10 hover:text-ink"
         >
           <XIcon className="h-5 w-5" />
         </button>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1" data-cookmode-target="progress">
           <p className="truncate font-serif text-base sm:text-lg">{title}</p>
           <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-ink/15">
             <div
@@ -330,6 +338,7 @@ export function CookMode({
         <button
           type="button"
           onClick={() => setShowIngredients(true)}
+          data-cookmode-target="ingredients"
           className="shrink-0 rounded-full border border-ink/25 px-3.5 py-2 text-xs font-medium text-ink/90 hover:bg-ink/10 sm:text-sm"
         >
           {t(lang, "cookMode.ingredientsButton")}
@@ -338,6 +347,7 @@ export function CookMode({
           type="button"
           onClick={() => setShowAllSteps(true)}
           aria-label={t(lang, "cookMode.allStepsButtonAria")}
+          data-cookmode-target="all-steps"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ink/25 text-ink/80 transition-colors hover:bg-ink/10 hover:text-ink"
         >
           <MenuIcon className="h-5 w-5" />
@@ -346,6 +356,7 @@ export function CookMode({
           type="button"
           onClick={() => setShowTimers(true)}
           aria-label={t(lang, "cookMode.timersButtonAria")}
+          data-cookmode-target="timers"
           className={clsx(
             "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors",
             anyTimerExpired
@@ -362,13 +373,17 @@ export function CookMode({
         </button>
         {/* Talestyring – vises kun der nettleseren faktisk støtter Web
          * Speech API (feature-detected i useVoiceCommands); ingen
-         * synlig, ikke-fungerende knapp i nettlesere uten støtte. */}
+         * synlig, ikke-fungerende knapp i nettlesere uten støtte. Derfor er
+         * "voice"-steget i CookModeTutorialOverlay.tsx markert som
+         * `optional` og hoppes automatisk over når data-cookmode-target
+         * ikke finnes i DOM-en (f.eks. Safari uten støtte). */}
         {voiceSupported && (
           <button
             type="button"
             onClick={() => (voiceListening ? stopVoice() : startVoice())}
             aria-pressed={voiceListening}
             aria-label={t(lang, voiceListening ? "cookMode.voiceStopAria" : "cookMode.voiceStartAria")}
+            data-cookmode-target="voice"
             className={clsx(
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors",
               voiceListening
@@ -493,7 +508,10 @@ export function CookMode({
         )}
       </div>
 
-      <footer className="flex items-center gap-3 border-t border-ink/10 px-4 py-4 sm:px-6">
+      <footer
+        className="flex items-center gap-3 border-t border-ink/10 px-4 py-4 sm:px-6"
+        data-cookmode-target="footer"
+      >
         <button
           type="button"
           onClick={goPrev}
