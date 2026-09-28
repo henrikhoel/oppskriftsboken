@@ -100,12 +100,10 @@ export function RecipeInteractive({
   // åpent; `showTutorial` styrer i tillegg HVILKEN av de to (den guidede
   // tutorial-varianten, med den samme oppdiktede demo-oppskriften som
   // /cook-mode selv bruker, eller den ekte CookMode for DENNE oppskriften)
-  // som faktisk vises mens det er åpent. Lest KUN ved første montering (
-  // ikke synkronisert på nytt ved re-render) – med vilje, slik at et
-  // "Start matlaging"-klikk (som setter showTutorial til false via
-  // CookModeTutorial sin onStartCooking) ikke hopper tilbake til tutorial-
-  // varianten om brukeren lukker og åpner Cook Mode på nytt SENERE i
-  // samme sidevisning uten å ha huket av "ikke vis igjen".
+  // som faktisk vises MENS det er åpent. Startverdien her spiller ingen
+  // rolle utover selve FØRSTE rendering – openCookMode() under regner den
+  // ut PÅ NYTT hver gang man trykker "Start matlaging", ut fra ferskeste
+  // `tutorialCompleted` (se RETTET-notatet der for hvorfor).
   const [showTutorial, setShowTutorial] = useState(!hasCompletedCookModeTutorial);
   // (29.09.2026, Henrik: "man kan jo angre liksom") – speiler den siste
   // KJENTE "ikke vis igjen"-avgjørelsen for resten av denne sidevisningen.
@@ -115,7 +113,28 @@ export function RecipeInteractive({
   // (via CookMode sin "?"-knapp) viser riktig forhåndshuket/uhuket
   // tilstand med én gang, ikke bare den opprinnelige, potensielt utdaterte
   // verdien fra selve sidelastingen.
+  //
+  // RETTET (29.09.2026) – Henrik: "nå fjernet jeg avhukingen for 'ikke vis
+  // denne veiledningen igjen', så gikk jeg ut av cook mode og inn igjen,
+  // og den kom fortsatt ikke opp". Årsaken: `showTutorial` ble tidligere
+  // KUN satt til false inne i selve tutorial-visningen (onStartCooking) og
+  // ALDRI satt tilbake til true igjen når `tutorialCompleted` senere ble
+  // false – å fjerne avkrysningen oppdaterte riktignok `tutorialCompleted`
+  // (og selve profilen), men neste "Start matlaging"-klikk leste fortsatt
+  // den GAMLE `showTutorial`-verdien fra forrige cook mode-økt. Løst ved å
+  // la selve ÅPNINGEN (openCookMode under), ikke kun første montering,
+  // regne `showTutorial` ut på nytt fra ferskeste `tutorialCompleted` hver
+  // eneste gang.
   const [tutorialCompleted, setTutorialCompleted] = useState(hasCompletedCookModeTutorial);
+
+  // Se RETTET-notatet over `showTutorial` – regner ut ferskt hvilken av de
+  // to (tutorial vs. ekte Cook Mode) som skal vises HVER GANG man åpner,
+  // fremfor å stole på en verdi som kan ha blitt "sittende fast" fra en
+  // tidligere cook mode-økt i samme sidevisning.
+  function openCookMode() {
+    setShowTutorial(!tutorialCompleted);
+    setCookModeOpen(true);
+  }
   const [justAdded, setJustAdded] = useState(false);
   // Løftet opp fra CookingTimelinePanel slik at samme beregnede tidspunkt
   // også kan vises inline under hvert steg i fremgangsmåten under, ikke
@@ -637,7 +656,7 @@ export function RecipeInteractive({
             </div>
 
             <div className="mt-4 flex flex-col gap-3">
-              <Button variant="primary" size="lg" onClick={() => setCookModeOpen(true)}>
+              <Button variant="primary" size="lg" onClick={openCookMode}>
                 <PlayIcon className="h-4 w-4" />
                 {t(lang, hasCookModeProgress ? "recipeDetail.continueCooking" : "recipeDetail.startCooking")}
               </Button>
