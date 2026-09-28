@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { t, type Lang, type DictKey } from "@/lib/i18n";
 import {
@@ -214,32 +214,45 @@ export function CookModeTutorialOverlay({
 
   const step = STEPS[index];
   const isFraming = step.target === null; // intro eller avslutning – bred, "editorial" kortvariant
-  // Alle pulserende highlights (.cookmode-tutorial-pulse OG
-  // .cookmode-tutorial-button-glow, se app/globals.css) deler samme
-  // syklus-lengde (1,8s). To elementer som begge kjører `animation: ...
-  // infinite` uten noen eksplisitt animation-delay starter hver sin egen
-  // klokke fra ØYEBLIKKET DE MONTERES – to elementer montert selv få
-  // millisekunder fra hverandre (Forrige og Neste sine highlights på
-  // "footer"-steget, se ringTargets) kan dermed ende opp ute av fase.
-  //
-  // Første forsøk (28.09.2026) regnet ut en negativ animation-delay fra
-  // `Date.now()` PÅ NYTT i hver render – men siden komponenten her rerender
-  // ganske ofte (resize, settle-timeout, stegbytte), endret selve
-  // delay-VERDIEN seg for hver rerender, og en nettleser som får en NY
-  // animation-delay midt i en allerede kjørende animasjon hopper/forskyver
-  // seg fra DET øyeblikket, i stedet for å regne hele animasjonens
-  // starttidspunkt på nytt fra bunnen – dermed kunne de to elementene
-  // likevel gli fra hverandre over tid selv om de fikk "samme" formel
-  // (Henrik, 28.09.2026: "de har samme rytme, men ikke synkronisert").
-  //
-  // Fikset ved å låse denne verdien ÉN gang, ved første render av selve
-  // tutorial-overlayet (useState sin lazy initializer kjører kun én gang
-  // for komponentens levetid) – samme faste delay brukes deretter av ALLE
-  // pulserende highlights gjennom hele tutorialen, uansett hvor mange
-  // ganger de selv monteres/avmonteres idet man blar frem og tilbake
-  // mellom steg.
+
+  // (28.09.2026, tredje og korrekte forsøk – se `pulseDelayFor` under for
+  // selve mekanismen) Synkroniserer alle pulserende highlights
+  // (.cookmode-tutorial-pulse OG .cookmode-tutorial-button-glow, samme
+  // 1,8s syklus, se app/globals.css) med hverandre, SELV OM de faktiske
+  // DOM-elementene monteres på helt ulike tidspunkt (Forrige sin ring på
+  // "footer"-steget er typisk et GJENBRUKT element som har animert helt
+  // siden "Lukk"-steget, mens Neste sin glød er splitter nytt akkurat der
+  // – se ringTargets). To forrige forsøk feilet: (1) ingen eksplisitt
+  // delay i det hele tatt lot hvert element starte klokken sin fra eget
+  // monteringsøyeblikk; (2) én delay regnet ut og delt av ALLE elementer
+  // fungerte bare tilfeldigvis når de monterte på nøyaktig samme
+  // millisekund – ellers ble de fortsatt forskjøvet med akkurat
+  // differansen mellom monteringstidspunktene (Henrik, 28.09.2026: "sirkelen
+  // flytter seg ned til 'tilbake' og 'neste' kjører allerede sitt eget løp
+  // før sirkelen har kommet frem").
   const PULSE_CYCLE_MS = 1800;
-  const [pulseDelayMs] = useState(() => -(Date.now() % PULSE_CYCLE_MS));
+  // Husker ÉN delay-verdi per "ring-plass" (array-indeksen i `rings`, se
+  // rendering under), regnet ut KUN første gang akkurat DEN plassen
+  // faktisk får et element – aldri regnet om etter det, selv om plassen
+  // siden blir gjenbrukt for et annet mål (f.eks. når ring-plass 0 glir fra
+  // "Talestyring" over til "Forrige" på footer-steget). Matematikken: en
+  // delay utregnet som -(monteringstidspunkt % PULSE_CYCLE_MS) gjør at
+  // animasjonens "syklus-nullpunkt" alltid havner på et HELTALLS multiplum
+  // av PULSE_CYCLE_MS uansett NÅR den regnes ut – to elementer som hver for
+  // seg bruker denne formelen ved sitt eget (høyst forskjellige)
+  // monteringsøyeblikk ender dermed alltid opp perfekt synkronisert med
+  // hverandre, uten at noen delay-verdi noensinne trenger å endres på et
+  // element som allerede animerer (som var det som ødela forsøk to over).
+  const pulseDelayCacheRef = useRef<Map<number, number>>(new Map());
+  function pulseDelayFor(ringIndex: number): number {
+    const cache = pulseDelayCacheRef.current;
+    let delay = cache.get(ringIndex);
+    if (delay === undefined) {
+      delay = -(Date.now() % PULSE_CYCLE_MS);
+      cache.set(ringIndex, delay);
+    }
+    return delay;
+  }
   // Eneste steget der boksen forlater sin faste, midtstilte plass – se
   // filheaderen over.
   const boxPosition: "center" | "bottom" = step.target === "step-text" ? "bottom" : "center";
@@ -385,7 +398,13 @@ export function CookModeTutorialOverlay({
             key={i}
             aria-hidden="true"
             className={clsx(
-              "pointer-events-none fixed z-[80] transition-all duration-500 ease-out",
+              // Kun posisjon/form glir mykt (transition) – box-shadow er
+              // BEVISST utelatt herfra (i motsetning til tidligere
+              // transition-all) og eies utelukkende av puls-animasjonen.
+              // Delte de to, kunne en position-transisjon på et element som
+              // nettopp glir mellom to mål (se pulseDelayFor sin kommentar
+              // over) midlertidig konkurrere med box-shadow-animasjonen.
+              "pointer-events-none fixed z-[80] transition-[top,left,width,height,border-radius] duration-500 ease-out",
               ring.variant === "glow" ? "cookmode-tutorial-button-glow" : "cookmode-tutorial-pulse",
             )}
             style={{
@@ -394,9 +413,7 @@ export function CookModeTutorialOverlay({
               width: ring.width + pad * 2,
               height: ring.height + pad * 2,
               borderRadius: ring.shape === "circle" ? 9999 : 16,
-              // Se `pulseDelayMs` sin kommentar over – låser denne og alle
-              // andre pulserende highlights til samme, delte rytme.
-              animationDelay: `${pulseDelayMs}ms`,
+              animationDelay: `${pulseDelayFor(i)}ms`,
             }}
           />
         );
