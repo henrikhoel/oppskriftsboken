@@ -35,24 +35,27 @@ export async function generateMetadata(): Promise<Metadata> {
  * er der, sånn at når man genererer en meny, og siden blir større, så
  * ligger fortsatt bildet naturlig i bakgrunnen") – `public/images/weekly-menu.jpg`
  * (råvarer i mørkt, redaksjonelt lys, mest sort/negativ plass med
- * komposisjonen samlet øverst til høyre). Lagt som et EGET, `fixed`
- * lag (IKKE en vanlig `bg-cover`-bakgrunn på selve sideelementet, og
- * IKKE `background-attachment: fixed` på et scrollende element – begge
- * ville enten strukket/klippet bildet annerledes etter hvert som
- * dokumentet vokser når en uke genereres, eller er notorisk upålitelig på
- * iOS Safari). Et `fixed inset-0`-lag dekker alltid nøyaktig
- * VIEWPORTET, helt uavhengig av hvor høyt selve dokumentet blir –
- * bildet "ligger fortsatt naturlig i bakgrunnen" akkurat slik Henrik ba
- * om, uansett om fem retter er generert under eller ikke. Samme
- * fast-bakgrunn-prinsipp kunne vært gjort med ren CSS
- * (`background-position/size` på et element), men next/image sin `fill`
- * gir automatisk responsiv `srcset`/optimalisering for et bilde som
- * uansett alltid fyller hele skjermen, uansett skjermstørrelse. Ingen
- * mørkt overlegg lagt oppå (til forskjell fra f.eks. MoodModeSection.tsx
- * sitt forsidebilde) – bildet er allerede nesten helt sort i seg selv
- * (samme tone som --color-cream), og introteksten står i venstre kolonne
- * et godt stykke unna råvare-komposisjonen øverst til høyre, så
- * lesbarheten er uansett god uten et ekstra lag.
+ * komposisjonen samlet øverst til høyre).
+ *
+ * FØRSTE FORSØK brukte `fixed inset-0` (pinnet til viewportet, fulgte
+ * med under scroll) – Henrik, med skjermbilde av et visuelt glitch øverst
+ * til høyre: "det ble litt buggy [...] jeg vil ikke at det skal ligge
+ * fast når man scroller, toppen må bli igjen hvis du skjønner?". Byttet
+ * derfor til `absolute` med en FAST høyde, forankret til toppen av denne
+ * sidens EGEN `relative`-wrapper (ikke viewportet) – bildet sitter dermed
+ * fysisk øverst i selve DOKUMENTET, akkurat som et vanlig
+ * bakgrunnsbilde, og ruller normalt ut av syne når man scroller forbi
+ * det, i stedet for å henge igjen. Den faste høyden (ikke `inset-0`
+ * strukket til hele wrapperen) er selve løsningen på det opprinnelige
+ * "ligger naturlig i bakgrunnen selv når siden blir større"-kravet: når
+ * fem retter genereres og siden blir lengre, vokser IKKE bildet med (det
+ * har jo en fast høyde) – det blir bare liggende akkurat der det alltid
+ * har vært, øverst, mens resten av siden (dagene) fortsetter nedover
+ * under det. Ingen mørkt overlegg lagt oppå (til forskjell fra f.eks.
+ * MoodModeSection.tsx sitt forsidebilde) – bildet er allerede nesten
+ * helt sort i seg selv (samme tone som --color-cream), og introteksten
+ * står i venstre kolonne et godt stykke unna råvare-komposisjonen øverst
+ * til høyre, så lesbarheten er uansett god uten et ekstra lag.
  */
 export default async function WeeklyMenuPage() {
   const [allRecipes, lang, user] = await Promise.all([
@@ -64,7 +67,10 @@ export default async function WeeklyMenuPage() {
 
   return (
     <div className="relative">
-      <div className="fixed inset-0 -z-10" aria-hidden="true">
+      <div
+        className="absolute inset-x-0 top-0 -z-10 h-[520px] overflow-hidden sm:h-[620px] lg:h-[760px]"
+        aria-hidden="true"
+      >
         <Image
           src="/images/weekly-menu.jpg"
           alt=""
