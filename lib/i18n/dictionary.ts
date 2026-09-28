@@ -637,9 +637,16 @@ const DICT = {
     no: "Du har allerede fullført denne veiledningen",
     en: "You've already completed this guide",
   },
+  // (29.09.2026) Henrik, etter å ha sett skjermbilde av denne meldingen:
+  // "'Du valgte å ikke vise den igjen.' må fjernes fordi det ikke alltid
+  // er noe man bevisst gjør" – flagget settes nå også AUTOMATISK ved å
+  // fullføre demo-tutorialen (se exploreRecipes i CookModeTutorial.tsx),
+  // ikke bare ved en bevisst avkrysning i mode="recipe", så en setning som
+  // påstår et aktivt VALG stemmer ikke alltid. Nøytral tekst i stedet, uten
+  // å påstå NOE om hvordan/hvorfor.
   "cookModeTutorial.alreadyCompletedBody": {
-    no: "Du valgte å ikke vise den igjen. Du kan utforske oppskrifter, eller se gjennomgangen på nytt om du vil friske opp minnet.",
-    en: "You chose not to see it again. You can explore recipes, or watch the walkthrough again for a refresher.",
+    no: "Du kan utforske oppskrifter, eller se gjennomgangen på nytt om du vil friske opp minnet.",
+    en: "You can explore recipes, or watch the walkthrough again for a refresher.",
   },
   "cookModeTutorial.watchAgain": { no: "Vis den på nytt", en: "Watch it again" },
   "cookModeTutorial.close": { no: "Lukk", en: "Close" },
