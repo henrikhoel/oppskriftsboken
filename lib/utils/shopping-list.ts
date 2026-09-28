@@ -1,6 +1,7 @@
 import type { IngredientGroup, ShoppingListEntry, ShoppingListSourceRef } from "@/lib/types";
 import { parseAmount } from "@/lib/utils/scale";
 import { generateId } from "@/lib/utils/id";
+import { normalizeUnit as classifyMetricUnit, metricUnitToBaseFactor, type MetricUnitKind } from "@/lib/utils/units";
 
 /**
  * Normaliserer et ingrediensnavn for sammenligning ("Parmesan, revet" og
@@ -11,7 +12,7 @@ function normalizeName(name: string): string {
   return name
     .toLowerCase()
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9æøå\s]/g, "")
     .trim();
 }
@@ -72,6 +73,22 @@ const PANTRY_STAPLE_PATTERNS = [
     "black pepper",
     "ground black pepper",
     "white pepper",
+    // Bart "olje" (uten kvalifiserende ord, f.eks. "litt olje") lagt til
+    // 28.09.2026 (Henrik, med skjermbilde: "det står også 'litt olje' der,
+    // det er basisvare") – de mer spesifikke variantene under (olivenolje,
+    // matolje osv.) dekket ikke en helt generisk "olje" uten noe foran.
+    // Trygt som et HELT, avgrenset ord (\bolje\b) på norsk: kvalifiserte
+    // oljer skrives normalt sammensatt/uten mellomrom på norsk
+    // ("sesamolje", "trøffelolje", "chiliolje"), så \bolje\b treffer ALDRI
+    // midt inni de ordene – kun en reelt bar "olje" fanges opp.
+    //
+    // Bevisst IKKE lagt til bart "oil" på engelsk-siden – der skrives
+    // kvalifiserte oljer ofte MED mellomrom ("sesame oil", "chili oil",
+    // "truffle oil"), så et bart \boil\b-ord ville feilaktig markert de
+    // spesialoljene som basisvarer også. De engelske variantene under
+    // (olive oil, vegetable oil, cooking oil osv.) er derfor fortsatt kun
+    // eksplisitte, kvalifiserte fraser.
+    "olje",
     "olivenolje",
     "extra virgin olivenolje",
     "matolje",
@@ -154,11 +171,60 @@ function hasSameSource(sources: ShoppingListSourceRef[], source: ShoppingListSou
 }
 
 /**
+ * Regner om en mengde+enhet til "grunnenhet" (gram for vekt, milliliter for
+ * volum) – kun for de kompatible, metriske enhetene lib/utils/units.ts sin
+ * normalizeUnit kjenner igjen (g/kg, ml/l/dl/ss/ts). Returnerer null for alt
+ * annet (stk, boks, fedd, håndfull, ukjente/tomme enheter) – slike enheter
+ * har ingen entydig felles grunnenhet å regne om til, og skal ALDRI slås
+ * sammen på tvers (se KRYSS-ENHET-SAMMENSLÅING lenger ned).
+ */
+function toBaseAmount(amount: number, unit: string | null): { base: "g" | "ml"; value: number } | null {
+  if (!unit) return null;
+  const kind: MetricUnitKind | null = classifyMetricUnit(unit);
+  if (!kind) return null;
+  const { base, factor } = metricUnitToBaseFactor(kind);
+  return { base, value: amount * factor };
+}
+
+/** Velger en naturlig norsk visningsenhet for en total volummengde (i ml),
+ * samme prinsipp som lib/utils/units.ts sin formatVolumeMl (der for
+ * US-mål) – men her i vanlige norske kjøkkenenheter (ts/ss/dl/l) siden
+ * dette kun brukes til å vise SUMMEN etter kryss-enhet-sammenslåing i
+ * handlelista, ikke til US-konvertering. Grensene følger naturlig når
+ * neste enhet blir det mer lesbare valget (14,7868 ml = akkurat 1 ss,
+ * 100 ml = 1 dl, 1000 ml = 1 l). */
+function pickNiceVolumeUnit(totalMl: number): { amount: number; unit: string } {
+  // Faktorene hentes fra samme kilde som selve omregningen (toBaseAmount
+  // over/metricUnitToBaseFactor i lib/utils/units.ts) i stedet for å
+  // duplisere tallene 14,7868/4,92892 en gang til her.
+  const mlPerTbsp = metricUnitToBaseFactor("ss").factor;
+  const mlPerTsp = metricUnitToBaseFactor("ts").factor;
+  if (totalMl < mlPerTbsp) return { amount: totalMl / mlPerTsp, unit: "ts" };
+  if (totalMl < 100) return { amount: totalMl / mlPerTbsp, unit: "ss" };
+  if (totalMl < 1000) return { amount: totalMl / 100, unit: "dl" };
+  return { amount: totalMl / 1000, unit: "l" };
+}
+
+/** Samme prinsipp som pickNiceVolumeUnit over, for vekt (g/kg). */
+function pickNiceWeightUnit(totalG: number): { amount: number; unit: string } {
+  if (totalG < 1000) return { amount: totalG, unit: "g" };
+  return { amount: totalG / 1000, unit: "kg" };
+}
+
+/**
  * Legger ingredienser fra en eller flere oppskrifter til en eksisterende
- * handleliste. To linjer slås KUN sammen dersom navn og enhet er identiske
- * (etter normalisering) og begge mengder er tallbare – ellers legges de til
- * som separate linjer, for å unngå å gjette feil (f.eks. "1 boks" + "400 g"
- * slås aldri sammen).
+ * handleliste.
+ *
+ * To linjer slås sammen på to måter:
+ *  1) SAMME enhet (etter normalisering) – summeres direkte i den enheten,
+ *     akkurat som før (ingen omregning, ingen presisjonstap).
+ *  2) ULIK, men KOMPATIBEL enhet (28.09.2026, se KRYSS-ENHET-SAMMENSLÅING
+ *     under) – f.eks. "1 ss soyasaus" + "1 ts soyasaus": begge er
+ *     volum-enheter, regnes om til ml, summeres, og vises tilbake i en
+ *     naturlig enhet (ts/ss/dl/l for volum, g/kg for vekt).
+ * Genuint ULIKE/ikke-omregnbare enheter (f.eks. "1 boks" + "400 g", eller
+ * "3 fedd" + "10 g") slås ALDRI sammen – for usikkert å gjette riktig
+ * omregning, se toBaseAmount over.
  *
  * `source` (valgfri) – strukturert sporbarhet (recipeId/slug/porsjoner), se
  * ShoppingListSourceRef i lib/types.ts. Lagt til for "kombinert
@@ -208,10 +274,11 @@ export function mergeIngredientsIntoList(
       // linjer skal kunne summeres, kun at de er LIKE (normalizedUnit-
       // sammenligningen under dekker "begge enhetsløse" som gyldig likhet,
       // på samme måte som "begge i g"). Det som fortsatt aldri slås sammen,
-      // er ulike enheter (f.eks. "1 boks" + "400 g").
+      // er ulike enheter (f.eks. "1 boks" + "400 g") – MED MINDRE de er
+      // kompatible metriske enheter, se KRYSS-ENHET-SAMMENSLÅING under.
       const canMerge = scaledAmount != null;
 
-      const match = canMerge
+      const exactMatch = canMerge
         ? next.find(
             (entry) =>
               normalizeName(entry.name) === normalizedName &&
@@ -220,23 +287,109 @@ export function mergeIngredientsIntoList(
           )
         : undefined;
 
-      if (match && canMerge) {
-        match.amount = (match.amount ?? 0) + (scaledAmount ?? 0);
-        if (!match.fromRecipes.includes(recipeTitle)) {
-          match.fromRecipes.push(recipeTitle);
+      if (exactMatch) {
+        exactMatch.amount = (exactMatch.amount ?? 0) + (scaledAmount ?? 0);
+        if (!exactMatch.fromRecipes.includes(recipeTitle)) {
+          exactMatch.fromRecipes.push(recipeTitle);
         }
         if (source) {
-          match.sources = match.sources ?? [];
-          if (!hasSameSource(match.sources, source)) match.sources.push(source);
+          exactMatch.sources = exactMatch.sources ?? [];
+          if (!hasSameSource(exactMatch.sources, source)) exactMatch.sources.push(source);
         }
         // Fyller kun inn kjøpstips dersom linjen ikke alt har ett – den
         // FØRSTE oppskriftens tips vinner, i stedet for å overskrives av en
         // senere oppskrift som tilfeldigvis også bruker samme vin uten selv
         // å ha noe notat.
-        if (!match.note && item.note && isBuyingTipWorthKeeping(item.name)) {
-          match.note = item.note;
+        if (!exactMatch.note && item.note && isBuyingTipWorthKeeping(item.name)) {
+          exactMatch.note = item.note;
         }
         continue;
+      }
+
+      // KRYSS-ENHET-SAMMENSLÅING (28.09.2026) – Henrik, med skjermbilde av
+      // en reell handleliste: "se hvor mange ganger det står lime på
+      // forskjellige måter her, og soyasaus og sesamfrø og, handlelista
+      // blir jo en mil lang med gjentakelser". Rot-årsaken: "1 ss soyasaus"
+      // fra én oppskrift og "1 ts soyasaus" fra en annen har ULIK enhet
+      // (ss/ts), så det eksakte matchet over (samme enhet) traff aldri –
+      // hver oppskrift fikk sin egen linje, selv om det er nøyaktig samme
+      // vare. Løsningen: dersom IKKE noe eksakt-enhet-match ble funnet,
+      // prøv å finne en eksisterende linje med samme navn hvis enhet er en
+      // ANNEN, men KOMPATIBEL metrisk enhet (begge volum: ml/l/dl/ss/ts,
+      // eller begge vekt: g/kg, se toBaseAmount over) – regn begge om til
+      // samme grunnenhet, summer, og vis tilbake i en naturlig enhet
+      // (pickNiceVolumeUnit/pickNiceWeightUnit). Rene tellbare/ukjente
+      // enheter (stk, boks, fedd, håndfull) klassifiseres aldri av
+      // toBaseAmount, så de faller alltid videre til NY linje under –
+      // akkurat som "ulike varenavn" (lime/limebåter/limejuice) fortsatt
+      // bevisst IKKE slås sammen, siden det ville krevd å gjette en
+      // omregning vi ikke kan vite er riktig.
+      if (canMerge) {
+        const itemBase = toBaseAmount(scaledAmount as number, item.unit);
+        if (itemBase) {
+          const compatMatch = next.find((entry) => {
+            if (normalizeName(entry.name) !== normalizedName || entry.amount == null) return false;
+            const entryBase = toBaseAmount(entry.amount, entry.unit);
+            return entryBase != null && entryBase.base === itemBase.base;
+          });
+
+          if (compatMatch) {
+            const compatMatchBase = toBaseAmount(compatMatch.amount as number, compatMatch.unit) as {
+              base: "g" | "ml";
+              value: number;
+            };
+            const totalBase = compatMatchBase.value + itemBase.value;
+            const nice =
+              itemBase.base === "ml" ? pickNiceVolumeUnit(totalBase) : pickNiceWeightUnit(totalBase);
+            compatMatch.amount = nice.amount;
+            compatMatch.unit = nice.unit;
+            if (!compatMatch.fromRecipes.includes(recipeTitle)) {
+              compatMatch.fromRecipes.push(recipeTitle);
+            }
+            if (source) {
+              compatMatch.sources = compatMatch.sources ?? [];
+              if (!hasSameSource(compatMatch.sources, source)) compatMatch.sources.push(source);
+            }
+            if (!compatMatch.note && item.note && isBuyingTipWorthKeeping(item.name)) {
+              compatMatch.note = item.note;
+            }
+            continue;
+          }
+        }
+      }
+
+      // RENE, TOMME DUPLIKATER (28.09.2026) – ingredienser uten en
+      // tallbar mengde (f.eks. "sesamfrø" helt uten "1 ts" foran, eller
+      // "etter smak") kunne tidligere ALDRI slås sammen i det hele tatt,
+      // siden canMerge da alltid er false. To linjer som er 100 % IDENTISKE
+      // (samme navn, samme enhet, og samme opprinnelige fritekst-mengde –
+      // f.eks. to helt like "sesamfrø"-oppføringer uten mengde) er en ren
+      // duplikat, ikke to ulike behov, og slås derfor sammen her. MERK:
+      // dette slår bevisst IKKE sammen en tom "sesamfrø" (f.eks. "til
+      // servering") med en tallfestet "1 ts sesamfrø" (til marinaden) –
+      // ulik enhet/mengde betyr et reelt, ULIKT behov (nok til marinaden
+      // OG litt ekstra til pynt), og skal fortsatt vises som to linjer.
+      if (!canMerge) {
+        const blankDuplicate = next.find(
+          (entry) =>
+            entry.amount == null &&
+            normalizeName(entry.name) === normalizedName &&
+            normalizeUnit(entry.unit) === normalizedUnit &&
+            (entry.displayAmount ?? "").trim().toLowerCase() === (item.amount ?? "").trim().toLowerCase(),
+        );
+        if (blankDuplicate) {
+          if (!blankDuplicate.fromRecipes.includes(recipeTitle)) {
+            blankDuplicate.fromRecipes.push(recipeTitle);
+          }
+          if (source) {
+            blankDuplicate.sources = blankDuplicate.sources ?? [];
+            if (!hasSameSource(blankDuplicate.sources, source)) blankDuplicate.sources.push(source);
+          }
+          if (!blankDuplicate.note && item.note && isBuyingTipWorthKeeping(item.name)) {
+            blankDuplicate.note = item.note;
+          }
+          continue;
+        }
       }
 
       next.push({

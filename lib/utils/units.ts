@@ -15,7 +15,7 @@ import { parseAmount } from "@/lib/utils/scale";
 
 export type UnitSystem = "metric" | "us";
 
-type MetricUnitKind = "g" | "kg" | "ml" | "l" | "dl" | "ss" | "ts";
+export type MetricUnitKind = "g" | "kg" | "ml" | "l" | "dl" | "ss" | "ts";
 
 const G_PER_OZ = 28.3495;
 const G_PER_LB = 453.592;
@@ -24,7 +24,15 @@ const ML_PER_TBSP = 14.7868;
 const ML_PER_CUP = 236.588;
 const ML_PER_QT = 946.353;
 
-function normalizeUnit(unit: string): MetricUnitKind | null {
+/** Eksportert (opprinnelig privat) – lib/utils/shopping-list.ts sin smarte
+ * handleliste-sammenslåing (28.09.2026, se filheaderen der) trenger akkurat
+ * denne klassifiseringen av en enhet-streng ("g"/"gram" -> "g", "ss"/
+ * "spiseskje" -> "ss" osv.) for å vite hvilke enheter som trygt kan regnes
+ * om til samme grunnenhet og summeres. Gjenbruker denne i stedet for å
+ * duplisere alias-listen (g/gram, kg/kilo, ss/spiseskje osv.) i to filer –
+ * én kilde til sannhet for hvilke enheter som regnes som "metriske og
+ * kompatible". Selve funksjonen og oppførselen er UENDRET, kun eksportert. */
+export function normalizeUnit(unit: string): MetricUnitKind | null {
   const u = unit.trim().toLowerCase().replace(/\.$/, "");
   if (["g", "gram"].includes(u)) return "g";
   if (["kg", "kilo", "kilogram"].includes(u)) return "kg";
@@ -34,6 +42,30 @@ function normalizeUnit(unit: string): MetricUnitKind | null {
   if (["ss", "spiseskje", "spiseskjeer"].includes(u)) return "ss";
   if (["ts", "teskje", "teskjeer"].includes(u)) return "ts";
   return null;
+}
+
+/** Grunnenhet ("g" for vekt, "ml" for volum) + omregningsfaktor for én
+ * MetricUnitKind – f.eks. "ss" -> { base: "ml", factor: 14.7868 } (én
+ * spiseskje er 14,7868 ml). Brukt av handleliste-sammenslåingen (se
+ * merknaden ved normalizeUnit over) til å regne to ulike, men kompatible
+ * enheter ("1 ss" + "1 ts") om til samme grunnenhet før de summeres. */
+export function metricUnitToBaseFactor(kind: MetricUnitKind): { base: "g" | "ml"; factor: number } {
+  switch (kind) {
+    case "g":
+      return { base: "g", factor: 1 };
+    case "kg":
+      return { base: "g", factor: 1000 };
+    case "ml":
+      return { base: "ml", factor: 1 };
+    case "dl":
+      return { base: "ml", factor: 100 };
+    case "l":
+      return { base: "ml", factor: 1000 };
+    case "ss":
+      return { base: "ml", factor: ML_PER_TBSP };
+    case "ts":
+      return { base: "ml", factor: ML_PER_TSP };
+  }
 }
 
 const EIGHTHS: Array<{ value: number; label: string }> = [
