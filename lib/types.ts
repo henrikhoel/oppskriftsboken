@@ -3,6 +3,7 @@ import type { TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import type { NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
 import type { DrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
 import type { MoodId } from "@/lib/kitchen-intelligence/moods";
+import type { WeeklyMenuStyleId } from "@/lib/kitchen-intelligence/weekly-menu-styles";
 import type { MealCourseRole } from "@/lib/kitchen-intelligence/types";
 
 /**
@@ -357,6 +358,14 @@ export interface Recipe {
    * /admin/ukesmeny. Standard false (å utelate er unntaket, ikke
    * normalen). */
   weeklyMenuExcluded: boolean;
+  /** Admin-satte "ukesmeny-stil"-kategorier (Sunt og enkelt/Rask
+   * uke/Familievennlig/Litt ekstra), se migrasjon 0025. Styres fra
+   * /admin/ukesmeny. En oppskrift kan stå i flere stiler samtidig, samme
+   * mønster som moods/courses over. Tom liste/valgfritt = ingen spesifikk
+   * stil satt (oppskriften dukker da kun opp under "Variert", som ikke
+   * filtrerer på dette feltet). Valgfritt her av samme grunn som
+   * moods/courses (ikke satt i demo-data). */
+  weeklyMenuStyles?: WeeklyMenuStyleId[];
   /** Sum av alle stjernevurderinger (1-5). Snitt = ratingSum / ratingCount. */
   ratingSum: number;
   ratingCount: number;
@@ -383,6 +392,7 @@ export type RecipeSummary = Pick<
   | "featuredSortOrder"
   | "favoritedByAdmin"
   | "weeklyMenuExcluded"
+  | "weeklyMenuStyles"
   | "moods"
   | "courses"
   | "createdAt"

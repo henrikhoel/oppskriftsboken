@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
 import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
+import { WEEKLY_MENU_STYLE_DEFINITIONS, type WeeklyMenuStyleId } from "@/lib/kitchen-intelligence/weekly-menu-styles";
 import { createClient } from "@/lib/supabase/server";
 import { getAllRecipeSlugsForCollisionCheck, getPublishedRecipeSummaries, getRecipesByIds } from "@/lib/data/recipes";
 import { ensureUniqueSlug, slugify } from "@/lib/utils/slug";
@@ -1777,6 +1778,69 @@ export async function setWeeklyMenuExclusion(recipeId: string, excluded: boolean
     .eq("id", recipeId);
   if (error) {
     throw new Error(`Kunne ikke oppdatere ukesmeny-status: ${error.message}`);
+  }
+  revalidatePath("/admin/ukesmeny");
+}
+
+/**
+ * "Ukesmeny-stiler" (30.09.2026, se migrasjon
+ * 0025_recipe_weekly_menu_styles.sql for hele bakgrunnen) – HELT samme
+ * legg-til/fjern-mønster som addRecipeToMood/removeRecipeFromMood, kun for
+ * et annet array-felt (weekly_menu_styles i stedet for moods). Styrer
+ * hvilke oppskrifter som er kandidater når en besøkende velger en av de
+ * fire spesifikke stilene på /ukesmeny (WeeklyMenuView.tsx) – "Variert"
+ * filtrerer ikke på dette feltet i det hele tatt, se filheaderen i
+ * weekly-menu-styles.ts.
+ */
+export async function addRecipeToWeeklyMenuStyle(recipeId: string, styleId: WeeklyMenuStyleId): Promise<void> {
+  await requireAdmin();
+  if (!WEEKLY_MENU_STYLE_DEFINITIONS.some((s) => s.id === styleId)) {
+    throw new Error("Ukjent ukesmeny-stil");
+  }
+  const supabase = await createClient();
+
+  const { data: row, error: fetchError } = await supabase
+    .from("recipes")
+    .select("weekly_menu_styles")
+    .eq("id", recipeId)
+    .single();
+  if (fetchError || !row) {
+    throw new Error(fetchError?.message ?? "Fant ikke oppskriften");
+  }
+
+  const current = row.weekly_menu_styles ?? [];
+  if (current.includes(styleId)) return;
+
+  const { error } = await supabase
+    .from("recipes")
+    .update({ weekly_menu_styles: [...current, styleId] })
+    .eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke legge til ukesmeny-stil: ${error.message}`);
+  }
+  revalidatePath("/admin/ukesmeny");
+}
+
+export async function removeRecipeFromWeeklyMenuStyle(recipeId: string, styleId: WeeklyMenuStyleId): Promise<void> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: row, error: fetchError } = await supabase
+    .from("recipes")
+    .select("weekly_menu_styles")
+    .eq("id", recipeId)
+    .single();
+  if (fetchError || !row) {
+    throw new Error(fetchError?.message ?? "Fant ikke oppskriften");
+  }
+
+  const current = row.weekly_menu_styles ?? [];
+  const { error } = await supabase
+    .from("recipes")
+    .update({ weekly_menu_styles: current.filter((s: string) => s !== styleId) })
+    .eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke fjerne ukesmeny-stil: ${error.message}`);
   }
   revalidatePath("/admin/ukesmeny");
 }

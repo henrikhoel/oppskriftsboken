@@ -1329,6 +1329,14 @@ const DICT = {
     no: "Trenger minst {count} publiserte oppskrifter egnet for ukesmeny (se /admin/ukesmeny) for å kunne generere en uke. I dag er det for få.",
     en: "Needs at least {count} published recipes suited for the weekly menu (see /admin/ukesmeny) to generate a week. There aren't enough yet.",
   },
+  "weeklyMenu.styleHeading": { no: "Velg stil for uken", en: "Choose a style for the week" },
+  "weeklyMenu.style.variert": { no: "Variert", en: "Varied" },
+  "weeklyMenu.style.sunt_enkelt": { no: "Sunt og enkelt", en: "Healthy & simple" },
+  "weeklyMenu.style.rask": { no: "Rask uke", en: "Quick week" },
+  "weeklyMenu.style.familievennlig": { no: "Familievennlig", en: "Family-friendly" },
+  "weeklyMenu.style.litt_ekstra": { no: "Litt ekstra", en: "A little extra" },
+  "weeklyMenu.swap": { no: "Bytt ut", en: "Swap" },
+  "weeklyMenu.swapAria": { no: "Bytt ut retten for {day}", en: "Swap the dish for {day}" },
 
   // Hel-meny-timeline (Fase 5 – Experience, 5.8) – se
   // components/meal/MealTimelineSection.tsx og computeMealTimeline i

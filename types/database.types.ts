@@ -116,6 +116,7 @@ export interface Database {
           featured_sort_order: number | null;
           favorited_by_admin: boolean;
           weekly_menu_excluded: boolean;
+          weekly_menu_styles: string[];
           // Delmengde av "quick" | "cozy" | "impress" | "crowd" | "healthy"
           // – se migrasjon 0020_recipe_mood.sql. Holdt som `string[]` her
           // (ikke MoodId[]) siden denne fila er en håndskrevet speiling av
@@ -170,6 +171,7 @@ export interface Database {
           featured_sort_order?: number | null;
           favorited_by_admin?: boolean;
           weekly_menu_excluded?: boolean;
+          weekly_menu_styles?: string[];
           moods?: string[];
           courses?: string[];
           wine_pairing?: string | null;
