@@ -53,21 +53,24 @@ export function AppDownloadIconButton({ lang }: { lang: Lang }) {
 
   return (
     <>
-      {/* Liten strek under selve ikonet (ikke bare en hover-tilstand, som
-          uansett ikke vises på berøringsskjermer) – Henrik: "det må være en
-          strek under symbolet eller noe som antyder at den er klikkbar".
-          Samme "understreket lenke"-signal som den tidligere bannerlinjens
-          tekst hadde (underline decoration-ink/30), bare tegnet som en egen
-          liten stolpe siden det ikke er noen tekst igjen å understreke her. */}
+      {/* "App"-tekst lagt til ved siden av ikonet (28.09.2026, Henrik: "kan
+          du legge til teksten 'App' ved siden av?") – selve teksten er nå
+          det som gjør knappen synlig klikkbar (vanlig understreket lenke-
+          stil, samme mønster som andre diskrete tekst-handlinger i appen,
+          f.eks. "Bytt ut" i WeeklyMenuView.tsx), så den forrige, tekstløse
+          "strek under ikonet"-erstatningen (Henrik den gang: "det må være
+          en strek under symbolet eller noe som antyder at den er
+          klikkbar") er ikke lenger nødvendig – selve ordet "App" er nå det
+          signalet. */}
       <button
         type="button"
         onClick={() => setShowHelp(true)}
         aria-label={t(lang, "appBanner.mobileCta")}
         title={t(lang, "appBanner.mobileCta")}
-        className="flex h-8 w-8 shrink-0 flex-col items-center justify-center gap-1 rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink sm:hidden"
+        className="flex shrink-0 items-center gap-1 rounded-full px-1.5 py-1 text-xs font-medium text-ink-soft underline decoration-ink-soft/40 underline-offset-2 transition-colors hover:bg-cream-dark hover:text-ink sm:hidden"
       >
         <SmartphoneIcon className="h-4 w-4" />
-        <span aria-hidden="true" className="h-px w-3.5 rounded-full bg-ink-soft/50" />
+        {t(lang, "appBanner.appLabel")}
       </button>
 
       <Drawer

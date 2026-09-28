@@ -125,18 +125,27 @@ const DICT = {
   "appBanner.text": { no: "Snart som app", en: "Coming soon as an app" },
   "appBanner.scanHint": { no: "Skann for å laste ned", en: "Scan to download" },
   "appBanner.mobileCta": { no: "Legg til på hjemskjerm", en: "Add to Home Screen" },
+  // Synlig tekst ved siden av telefon-ikonet i headeren (28.09.2026,
+  // Henrik: "kan du legge til teksten 'App' ved siden av?") – ikonet var
+  // tidligere helt uten tekst (kun en liten understrek som klikkbarhets-
+  // signal, se AppDownloadIconButton.tsx), samme knapp, samme handling.
+  "appBanner.appLabel": { no: "App", en: "App" },
   "appBanner.helpTitle": { no: "Legg til på hjemskjerm", en: "Add to Home Screen" },
+  // UTVIDET (28.09.2026, Henrik: "kan du skrive noe sånn som 'få
+  // opplevelsen av en app' [...] noe med at det føles som app") – alle tre
+  // varianter (iOS/Android/generisk) avsluttes nå med samme korte
+  // gevinst-setning, i tillegg til selve fremgangsmåten.
   "appBanner.helpIOS": {
-    no: "Trykk Del-ikonet nederst i Safari (firkanten med pil opp), bla ned og velg «Legg til på Hjem-skjerm».",
-    en: "Tap the Share icon at the bottom of Safari (the square with an arrow up), scroll down and choose “Add to Home Screen”.",
+    no: "Trykk Del-ikonet nederst i Safari (firkanten med pil opp), bla ned og velg «Legg til på Hjem-skjerm» – da får du opplevelsen av en app, rett fra hjemskjermen.",
+    en: "Tap the Share icon at the bottom of Safari (the square with an arrow up), scroll down and choose “Add to Home Screen” – you'll get the feel of a real app, right from your home screen.",
   },
   "appBanner.helpAndroid": {
-    no: "Trykk menyknappen (de tre prikkene) øverst til høyre i Chrome, og velg «Legg til på startskjermen».",
-    en: "Tap the menu button (the three dots) in the top right of Chrome, and choose “Add to Home screen”.",
+    no: "Trykk menyknappen (de tre prikkene) øverst til høyre i Chrome, og velg «Legg til på startskjermen» – da får du opplevelsen av en app, rett fra hjemskjermen.",
+    en: "Tap the menu button (the three dots) in the top right of Chrome, and choose “Add to Home screen” – you'll get the feel of a real app, right from your home screen.",
   },
   "appBanner.helpGeneric": {
-    no: "Se etter «Legg til på hjemskjerm» i nettleserens meny eller del-knapp.",
-    en: "Look for “Add to Home Screen” in your browser's menu or share button.",
+    no: "Se etter «Legg til på hjemskjerm» i nettleserens meny eller del-knapp – da får du opplevelsen av en app, rett fra hjemskjermen.",
+    en: "Look for “Add to Home Screen” in your browser's menu or share button – you'll get the feel of a real app, right from your home screen.",
   },
   "appBanner.closeAria": { no: "Lukk", en: "Close" },
 
