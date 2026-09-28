@@ -6,7 +6,7 @@ import { t, type Lang, type DictKey } from "@/lib/i18n";
 
 interface TutorialStep {
   /** Verdien på data-cookmode-target i CookMode.tsx, eller null for de to
-   * sentrerte "ramme"-stegene (intro/outro) uten noe spesifikt å peke på. */
+   * "ramme"-stegene (intro/avslutning) uten noe spesifikt å peke på. */
   target: string | null;
   shape: "circle" | "box";
   titleKey: DictKey;
@@ -58,20 +58,72 @@ interface BubblePlacement {
   offset: number;
 }
 
+/** Én rundet firkant som SVG-sti, bygget fra de samme fire kommandoene
+ * (M/H/A/V/A/H/A/V/A/Z) uansett hjørneradius – en "sirkel" er bare denne
+ * formelen med radius = halve bredden/høyden (de rette linjestykkene
+ * mellom buene får da lengde 0, og resultatet blir en perfekt sirkel).
+ * Poenget: samme sti-STRUKTUR for både "circle"- og "box"-formede mål
+ * (se `shape` på TutorialStep) er det som gjør at nettleseren kan
+ * MORPHE clip-path jevnt mellom steg (se transition-[clip-path] under) –
+ * to path()-strenger med ulik kommandostruktur hopper i stedet for å
+ * glatte over. */
+function roundedRectPath(x: number, y: number, w: number, h: number, r: number): string {
+  const radius = Math.max(0, Math.min(r, w / 2, h / 2));
+  return [
+    `M ${x + radius} ${y}`,
+    `H ${x + w - radius}`,
+    `A ${radius} ${radius} 0 0 1 ${x + w} ${y + radius}`,
+    `V ${y + h - radius}`,
+    `A ${radius} ${radius} 0 0 1 ${x + w - radius} ${y + h}`,
+    `H ${x + radius}`,
+    `A ${radius} ${radius} 0 0 1 ${x} ${y + h - radius}`,
+    `V ${y + radius}`,
+    `A ${radius} ${radius} 0 0 1 ${x + radius} ${y}`,
+    "Z",
+  ].join(" ");
+}
+
+/** Hele "kamera-fokus"-utsparingen: en full-skjerm firkant MINUS
+ * hull-firkanten over, tolket med evenodd-fyllregel (se clip-path-bruken
+ * under) – det er selve HULLET i det blurrede laget som avslører det
+ * skarpe Cook Mode-elementet bak. `null` hole = ingen utsparing i det hele
+ * tatt (intro/avslutning uten noe bestemt mål – hele skjermen forblir jevnt
+ * blurret). */
+function spotlightClipPath(hole: { x: number; y: number; w: number; h: number; r: number } | null, vw: number, vh: number): string {
+  const outer = `M 0 0 H ${vw} V ${vh} H 0 Z`;
+  if (!hole) return outer;
+  return `${outer} ${roundedRectPath(hole.x, hole.y, hole.w, hole.h, hole.r)}`;
+}
+
 /**
- * (28.09.2026) Ligger OVENPÅ en allerede åpen, ekte CookMode (se
- * components/cook-mode-tutorial/CookModeTutorial.tsx) og peker – med et
- * enkelt getBoundingClientRect()-oppslag mot CookMode.tsx sine
- * data-cookmode-target-attributter – ut én ekte knapp om gangen, med en kort
- * forklaring. Bevisst IKKE en generisk "spotlight-bibliotek"-løsning: ingen
- * SVG-maske, kun et fast-posisjonert lag med en enorm box-shadow
- * ("spotlight"-trikset – se ring-diven under) som lager utsparingen rundt
- * målet, i tråd med sidens ellers enkle, biblioteksfrie linje (samme
- * tilnærming som Drawer.tsx/CookMode.tsx sine egne paneler).
+ * (28.09.2026, redesignet) Ligger OVENPÅ en allerede åpen, ekte CookMode
+ * (se components/cook-mode-tutorial/CookModeTutorial.tsx) og peker – med et
+ * getBoundingClientRect()-oppslag mot CookMode.tsx sine
+ * data-cookmode-target-attributter – ut én ekte knapp om gangen.
  *
- * Klikk hvor som helst på det nedtonede laget (utenfor selve boblen) går
- * videre til neste steg – en vanlig, forventet snarvei i denne typen
- * gjennomgang, i tillegg til den eksplisitte "Neste"-knappen.
+ * "Kamera-fokus"-effekten (Henrik: "resten av Cook Mode er fortsatt synlig,
+ * men oppmerksomheten ligger på det tutorialen viser") er BEVISST løst med
+ * `backdrop-filter: blur()` + `clip-path` på et SEPARAT lag OVENPÅ CookMode
+ * – ALDRI et `filter: blur()` på selve CookMode eller en wrapper rundt den.
+ * En CSS `filter` på en forelder ville blurret HELE undertreet, inkludert
+ * det som skal være skarpt (ingen måte å "punktere hull" i en filter-blurret
+ * flate fra utsiden). `backdrop-filter` løser dette annerledes: laget selv
+ * blurrer det som ligger BAK det, og der laget er klippet bort (clip-path,
+ * se roundedRectPath/spotlightClipPath over) blurres INGENTING der – man
+ * ser rett gjennom til den ene, ekte, skarpe CookMode-instansen. Dermed
+ * finnes CookMode kun ÉN gang i DOM-en (ingen duplisert komponent, ingen
+ * fare for doble tidtakere/talestyring/tastatur-lyttere), og ingen
+ * `position: fixed`-forelder får `filter`/`transform` som ville endret
+ * hvilken boks CookMode sine egne fixed-barn er posisjonert i forhold til.
+ *
+ * Selve gull-ringen (uendret idé fra første runde, kun forenklet CSS – se
+ * .cookmode-tutorial-pulse i app/globals.css) ligger som et helt eget,
+ * tredje lag OVENPÅ blur-laget, ikke bak det – helt uavhengig av
+ * backdrop-filter, alltid skarp.
+ *
+ * Klikk hvor som helst på det usynlige klikk-laget (Lag A, under) – utenfor
+ * selve boblen – går videre til neste steg, i tillegg til den eksplisitte
+ * "Neste"-knappen.
  */
 export function CookModeTutorialOverlay({
   lang,
@@ -85,10 +137,25 @@ export function CookModeTutorialOverlay({
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<SpotlightRect | null>(null);
   const [placement, setPlacement] = useState<BubblePlacement>({ align: "center", offset: 0 });
+  const [viewport, setViewport] = useState<{ w: number; h: number } | null>(null);
 
   const step = STEPS[index];
+  const isFraming = step.target === null; // intro eller avslutning – bred, "editorial" kortvariant
   const isFirst = index === 0;
   const isLast = index === STEPS.length - 1;
+
+  // Vindusstørrelsen trengs for selve klippe-stiens YTRE firkant (se
+  // spotlightClipPath) – egen, enkel effekt uavhengig av steg-målingen
+  // under, siden den bare trenger å oppdateres ved resize, ikke ved hvert
+  // stegbytte.
+  useEffect(() => {
+    function updateViewport() {
+      setViewport({ w: window.innerWidth, h: window.innerHeight });
+    }
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   useEffect(() => {
     if (!step.target) {
@@ -141,67 +208,64 @@ export function CookModeTutorialOverlay({
     setIndex((i) => Math.max(i - 1, 0));
   }
 
-  const padding = step.shape === "circle" ? 6 : 10;
+  const holePadding = step.shape === "circle" ? 6 : 10;
+  const hole = rect
+    ? {
+        x: rect.left - holePadding,
+        y: rect.top - holePadding,
+        w: rect.width + holePadding * 2,
+        h: rect.height + holePadding * 2,
+        r: step.shape === "circle" ? 9999 : 16,
+      }
+    : null;
+  const clipPathValue = viewport ? `path(evenodd, "${spotlightClipPath(hole, viewport.w, viewport.h)}")` : undefined;
 
   return (
     <div className="fixed inset-0 z-[80]">
-      {/* Lag A – usynlig, men fyller HELE skjermen og fanger klikk: "trykk
-       * hvor som helst for å gå videre". Holdt adskilt fra det rent
-       * VISUELLE nedtonings-/spotlight-laget under (Lag B), fordi en
-       * box-shadow (som Lag B bruker til å male ut resten av skjermen mørk
-       * rundt målet) aldri selv fanger klikk i nettlesere – uten dette
-       * separate, fulle klikk-laget ville "trykk for å gå videre" sluttet å
-       * virke i det øyeblikket et mål faktisk er lyssatt. */}
-      <div
-        role="presentation"
-        onClick={goNext}
-        className="fixed inset-0 z-[80] cursor-default"
-      />
+      {/* Lag A – usynlig, men fyller HELE skjermen (også "hullet" i Lag B
+       * under) og fanger klikk: "trykk hvor som helst for å gå videre".
+       * Holdt adskilt fra de rent VISUELLE lagene under, siden et
+       * clip-path/backdrop-filter-lag naturlig nok ikke fanger klikk der
+       * det selv er klippet bort – uten dette separate, fulle klikk-laget
+       * ville "trykk for å gå videre" hatt et dødt felt akkurat der det
+       * skarpe elementet er synlig. */}
+      <div role="presentation" onClick={goNext} className="fixed inset-0 z-[80] cursor-default" />
 
-      {/* Lag B – rent visuelt: enten et jevnt nedtonet lag (ingen mål, f.eks.
-       * intro/avslutning), eller en liten ring nøyaktig over målknappen med
-       * en enorm box-shadow-spredning som "spotlight"-triks – se
-       * filheaderen. pointer-events-none slik at Lag A under fortsatt tar
-       * imot klikk overalt, også over selve den lyssatte knappen (med
-       * vilje: et trykk der skal gå videre i tutorialen, ikke trigge den
-       * ekte knappen bak).
-       *
-       * Ringen får en myk, gjentakende puls (.cookmode-tutorial-pulse, se
-       * app/globals.css) i stedet for en pil som skulle pekt fra boblen til
-       * målet – vurdert og bevisst droppet 28.09.2026 (for risikabelt å
-       * treffe geometrisk pent på tvers av 8 svært ulike mål-former uten å
-       * kunne se resultatet visuelt selv, se globals.css sin kommentar for
-       * hele resonnementet). Boks-skyggen selv styres av CSS-animasjonen,
-       * ikke av inline style her – kun posisjon/størrelse/fasong er inline. */}
+      {/* Lag B – selve "kamera-fokus"-blurringen. Se filheaderen for hele
+       * resonnementet bak backdrop-filter + clip-path fremfor filter på en
+       * forelder. transition-[clip-path] lar utsparingen gli mykt fra ett
+       * steg til det neste (samme sti-struktur uansett form, se
+       * roundedRectPath). */}
       <div
         aria-hidden="true"
-        className={clsx(
-          "pointer-events-none fixed z-[80] transition-[top,left,width,height] duration-300 ease-out",
-          // NB: "cream" er det MØRKE tokenet og "ink" det LYSE i CONVITEs
-          // inverterte palett (se app/globals.css sin filheader) – bg-cream
-          // her, ikke bg-ink, er det som faktisk gir et mørkt nedtonings-lag
-          // for intro-/avslutningsstegene (uten mål å ringe inn).
-          rect ? "cookmode-tutorial-pulse" : "inset-0 bg-cream/70",
-        )}
-        style={
-          rect
-            ? {
-                top: rect.top - padding,
-                left: rect.left - padding,
-                width: rect.width + padding * 2,
-                height: rect.height + padding * 2,
-                borderRadius: step.shape === "circle" ? 9999 : 16,
-              }
-            : undefined
-        }
+        className="pointer-events-none fixed inset-0 z-[80] backdrop-blur-[5px] transition-[clip-path] duration-500 ease-out"
+        style={clipPathValue ? { clipPath: clipPathValue } : undefined}
       />
+
+      {/* Lag C – den skarpe gull-ringen rundt målet, helt uavhengig av
+       * blur-laget over (den ligger OVENPÅ det, ikke bak). Selve pulsen
+       * (.cookmode-tutorial-pulse) er definert i app/globals.css. */}
+      {rect && (
+        <div
+          aria-hidden="true"
+          className="cookmode-tutorial-pulse pointer-events-none fixed z-[80] transition-all duration-500 ease-out"
+          style={{
+            top: rect.top - holePadding,
+            left: rect.left - holePadding,
+            width: rect.width + holePadding * 2,
+            height: rect.height + holePadding * 2,
+            borderRadius: step.shape === "circle" ? 9999 : 16,
+          }}
+        />
+      )}
 
       <div
         role="dialog"
         aria-modal="true"
         aria-label={t(lang, step.titleKey)}
         className={clsx(
-          "pointer-events-none fixed left-1/2 z-[81] w-[calc(100%-2rem)] max-w-xs -translate-x-1/2",
+          "pointer-events-none fixed left-1/2 z-[81] -translate-x-1/2 px-4",
+          isFraming ? "w-full max-w-xl" : "w-[calc(100%-2rem)] max-w-[280px]",
           placement.align === "center" && "top-1/2 -translate-y-1/2",
         )}
         style={
@@ -212,33 +276,72 @@ export function CookModeTutorialOverlay({
               : undefined
         }
       >
-        <div className="pointer-events-auto rounded-2xl bg-cream p-5 text-center shadow-card-hover">
-          <p className="font-serif text-lg leading-snug text-ink">{t(lang, step.titleKey)}</p>
-          <p className="mt-2 text-sm text-ink-faint">{t(lang, step.bodyKey)}</p>
+        {isFraming ? (
+          // Bred, lav "editorial" flate for intro/avslutning – eyebrow +
+          // serif-overskrift + undertekst + notis, med god horisontal luft
+          // i stedet for den tidligere, nesten kvadratiske modal-boksen.
+          <div className="pointer-events-auto rounded-2xl border border-clay/15 bg-cream px-8 py-9 text-center shadow-card-hover sm:px-14 sm:py-11">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+              {t(lang, "home.cookMode.eyebrow")}
+            </p>
+            <p className="mt-3 text-balance font-serif text-2xl leading-snug text-ink sm:text-3xl">
+              {t(lang, step.titleKey)}
+            </p>
+            {isFirst ? (
+              <>
+                <p className="mx-auto mt-3 max-w-sm text-pretty text-sm text-ink-soft sm:text-base">
+                  {t(lang, "cookModeTutorial.introSubtitle")}
+                </p>
+                <p className="mt-2 text-xs text-ink-faint">{t(lang, "cookModeTutorial.introNote")}</p>
+              </>
+            ) : (
+              <p className="mx-auto mt-3 max-w-sm text-pretty text-sm text-ink-soft sm:text-base">
+                {t(lang, step.bodyKey)}
+              </p>
+            )}
 
-          {isLast ? (
-            <div className="mt-5 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={onExplore}
-                className="rounded-full bg-clay px-5 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark"
-              >
-                {t(lang, "cookModeTutorial.exploreRecipes")}
-              </button>
-              <button
-                type="button"
-                onClick={onFinish}
-                className="rounded-full px-5 py-2 text-sm font-medium text-ink-faint transition-colors hover:text-clay-dark"
-              >
-                {t(lang, "cookModeTutorial.close")}
-              </button>
-            </div>
-          ) : (
-            <div className="mt-5 flex items-center justify-between gap-3">
+            <div className="mt-7 flex items-center justify-center gap-5">
               <button
                 type="button"
                 onClick={onFinish}
                 className="text-xs font-medium text-ink-faint transition-colors hover:text-clay-dark"
+              >
+                {t(lang, "cookModeTutorial.skip")}
+              </button>
+              {isFirst ? (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark"
+                >
+                  {t(lang, "cookModeTutorial.start")} <span aria-hidden="true">→</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onExplore}
+                  className="rounded-full bg-clay px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark"
+                >
+                  {t(lang, "cookModeTutorial.exploreRecipes")}
+                </button>
+              )}
+            </div>
+
+            <TutorialDots index={index} />
+          </div>
+        ) : (
+          // Kompakt variant for de faktiske, pekt-ut stegene – selve
+          // Cook Mode-elementet (ringen) er hovedpersonen her, boblen skal
+          // ikke konkurrere med den om oppmerksomheten.
+          <div className="pointer-events-auto rounded-2xl border border-clay/15 bg-cream p-4 text-center shadow-card-hover">
+            <p className="font-serif text-base leading-snug text-ink">{t(lang, step.titleKey)}</p>
+            <p className="mt-1.5 text-xs text-ink-soft">{t(lang, step.bodyKey)}</p>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={onFinish}
+                className="text-[11px] font-medium text-ink-faint transition-colors hover:text-clay-dark"
               >
                 {t(lang, "cookModeTutorial.skip")}
               </button>
@@ -247,7 +350,7 @@ export function CookModeTutorialOverlay({
                   <button
                     type="button"
                     onClick={goPrev}
-                    className="rounded-full border border-line-strong px-3.5 py-2 text-xs font-medium text-ink transition-colors hover:bg-cream-dark"
+                    className="rounded-full border border-line-strong px-3 py-1.5 text-[11px] font-medium text-ink transition-colors hover:bg-cream-dark"
                   >
                     {t(lang, "cookModeTutorial.previous")}
                   </button>
@@ -255,20 +358,36 @@ export function CookModeTutorialOverlay({
                 <button
                   type="button"
                   onClick={goNext}
-                  className="rounded-full bg-clay px-4 py-2 text-xs font-medium text-cream transition-colors hover:bg-clay-dark"
+                  className="rounded-full bg-clay px-3.5 py-1.5 text-[11px] font-medium text-cream transition-colors hover:bg-clay-dark"
                 >
                   {t(lang, "cookModeTutorial.next")}
                 </button>
               </div>
             </div>
-          )}
 
-          {/* Enkel "n av m"-indikator – tall trenger ingen oversettelse. */}
-          <p className="mt-3 text-[11px] tracking-wider text-ink-faint/70">
-            {index + 1}/{STEPS.length}
-          </p>
-        </div>
+            <TutorialDots index={index} />
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+/** Diskret "n av m"-erstatning (Henrik: "føles litt teknisk") – en rad med
+ * små prikker i dempet gull, der den aktive strekker seg til en kort pille.
+ * Rent visuelt, ingen egen state – kun avledet av `index`. */
+function TutorialDots({ index }: { index: number }) {
+  return (
+    <div className="mt-5 flex items-center justify-center gap-1.5" aria-hidden="true">
+      {STEPS.map((_, i) => (
+        <span
+          key={i}
+          className={clsx(
+            "h-1.5 rounded-full transition-all duration-300",
+            i === index ? "w-4 bg-clay" : "w-1.5 bg-ink-faint/30",
+          )}
+        />
+      ))}
     </div>
   );
 }

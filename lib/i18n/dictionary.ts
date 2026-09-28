@@ -526,10 +526,26 @@ const DICT = {
   // CookMode.tsx (via data-cookmode-target-attributtene lagt til der samme
   // dag) – aldri en egen, påstått "fake" forklaring uten noe å peke på.
   "cookModeTutorial.introTitle": { no: "Dette er Cook Mode", en: "This is Cook Mode" },
+  // introBody brukes ikke lenger av selve intro-steget (se introSubtitle/
+  // introNote under) – ligger igjen kun fordi TutorialStep-typen krever en
+  // bodyKey for alle steg, inkludert de to "framing"-stegene. Praktisk sett
+  // ubrukt tekst; ikke fjern nøkkelen uten å også gjøre bodyKey valgfri.
   "cookModeTutorial.introBody": {
     no: "En kort gjennomgang av det du finner her – tar bare et halvt minutt.",
     en: "A quick look at what's here – it only takes half a minute.",
   },
+  // De to linjene i den brede intro-kortvarianten (se CookModeTutorialOverlay.tsx
+  // sin "framing"-gren) – subtitle er selve løftet, note er den lave,
+  // dempede tidsangivelsen under.
+  "cookModeTutorial.introSubtitle": {
+    no: "Ett steg av gangen. Alt du trenger mens du lager mat.",
+    en: "One step at a time. Everything you need while you cook.",
+  },
+  "cookModeTutorial.introNote": {
+    no: "Vi viser deg hvordan det fungerer på under et minutt.",
+    en: "We'll show you how it works in under a minute.",
+  },
+  "cookModeTutorial.start": { no: "Start omvisningen", en: "Start the tour" },
   "cookModeTutorial.closeTitle": { no: "Ut når som helst", en: "Exit whenever you like" },
   "cookModeTutorial.closeBody": {
     no: "Denne knappen lukker Cook Mode og tar deg tilbake.",
