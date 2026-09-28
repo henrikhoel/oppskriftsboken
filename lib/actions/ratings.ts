@@ -42,9 +42,18 @@ export async function rateRecipe(
 
   const row = Array.isArray(data) ? data[0] : data;
 
+  // (29.09.2026, Henrik: "kan noe reduseres ytterligere?" – etter å ha
+  // oppgradert til Vercel Pro og gått gjennom hva som trekker av de
+  // delte 20 dollarne i månedlig kreditt) – fjernet de to brede kallene
+  // som fornyet HELE forsiden og HELE oppskriftslisten på hver eneste
+  // stjernevurdering, fra hvem som helst, uten innlogging. Unødvendig
+  // aggressivt: personen som vurderer ser sitt eget nye snitt med det
+  // samme (RatingStars.tsx oppdaterer seg selv optimistisk, uavhengig av
+  // denne revalideringen), og selve oppskriftssiden har uansett en
+  // 5-minutters automatisk fornyelse (revalidate = 300 lenger opp i
+  // app/oppskrifter/[slug]/page.tsx) som sprer det oppdaterte snittet
+  // videre til andre besøkende uten at vi trenger å tvinge det frem her.
   if (recipeSlug) revalidatePath(`/oppskrifter/${recipeSlug}`);
-  revalidatePath("/oppskrifter");
-  revalidatePath("/");
 
   return {
     ratingSum: row?.rating_sum ?? 0,
