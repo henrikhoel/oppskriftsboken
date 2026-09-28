@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { siteConfig } from "@/lib/config";
 import { BackToTopLink } from "@/components/layout/BackToTopLink";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { t, type Lang } from "@/lib/i18n";
 
 export function Footer({ lang }: { lang: Lang }) {
@@ -61,9 +62,22 @@ export function Footer({ lang }: { lang: Lang }) {
             </Link>
           </nav>
         </div>
-        <p className="mt-10 text-xs text-ink-faint">
-          © {new Date().getFullYear()} {siteConfig.name}
-        </p>
+        {/* NO/EN flyttet hit fra Header.tsx (28.09.2026) – Henrik: "du kan
+            godt legge NO/EN nede på siden i stedet for". Bakgrunn: header-
+            navigasjonen (logo + søk + alle lenkene + handleliste/+/logg ut
+            + NO/EN) ble for bred til å få plass på vanlige skjermbredder
+            (1024–1500px), og NO/EN – som det siste elementet i raden – ble
+            dermed skjøvet helt utenfor synlig område i stedet for å brytes
+            til ny linje eller krympe ("NO/EN ligger utenfor"). Enklere å
+            fjerne den fra den trange headerraden helt enn å presse den inn
+            med enda strammere paddinger. Samme LanguageSwitcher-komponent
+            som før, bare et annet sted. */}
+        <div className="mt-10 flex items-center justify-between">
+          <p className="text-xs text-ink-faint">
+            © {new Date().getFullYear()} {siteConfig.name}
+          </p>
+          <LanguageSwitcher lang={lang} />
+        </div>
       </div>
     </footer>
   );

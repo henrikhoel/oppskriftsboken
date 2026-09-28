@@ -4,7 +4,6 @@ import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 import { HeaderSearchSlot } from "@/components/layout/HeaderSearchSlot";
-import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { AppDownloadIconButton } from "@/components/layout/AppDownloadIconButton";
 import { ShoppingListBadgeCount } from "@/components/shopping/ShoppingListBadgeCount";
 import { AccountLogOutButton } from "@/components/auth/AccountLogOutButton";
@@ -44,7 +43,15 @@ import {
    være en tydelig, alltid synlig inngang – ikke bare en liten ekstra-
    detalj. `user` (allerede hentet under for isAdmin) avgjør om det vises
    et innloggings- eller utloggings-ikon; ingen egen "min konto"-side ennå
-   (kommer senere), kun av/på. */
+   (kommer senere), kun av/på.
+
+   (28.09.2026) NO/EN-bryteren (LanguageSwitcher) bodde tidligere som siste
+   element i denne navigasjonsraden. Flyttet til Footer.tsx – hovednav-raden
+   (logo + søk + alle lenkene + handleliste/+/logg ut) ble for bred for
+   vanlige skrivebordsbredder (1024–1500px), og NO/EN, som siste element,
+   ble skjøvet helt utenfor synlig område i stedet for å brytes til ny linje
+   (Henrik: "NO/EN ligger utenfor" / "du kan godt legge NO/EN nede på siden
+   i stedet for"). Se Footer.tsx sin egen kommentar for hele forklaringen. */
 export async function Header() {
   const lang = await getLang();
   // getCurrentUserFast (ikke getCurrentUser) – Header rendres på HVER eneste
@@ -194,7 +201,6 @@ export async function Header() {
               <UserIcon className="h-5 w-5" />
             </Link>
           )}
-          <LanguageSwitcher lang={lang} className="ml-1" />
         </nav>
       </div>
     </header>
