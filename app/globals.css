@@ -166,15 +166,19 @@
     animation: cookmode-tutorial-pulse 1.8s ease-in-out infinite;
   }
 
-  /* (28.09.2026, redesign-runde 2) Stillestående motstykke til pulsen over
-   * – brukt av CookModeTutorialOverlay.tsx sitt "footer"-steg rundt
-   * Forrige-knappen, mens selve Neste-knappen fortsatt får
-   * .cookmode-tutorial-pulse. Henrik: fjern den lange, brede gull-streken
-   * som før lå rundt HELE navigasjonsområdet, og vis i stedet to mindre,
-   * ulikt behandlede ringer rundt de to faktiske knappene. Samme
-   * kant-tykkelse/farge som pulsens hviletilstand, bare uten animasjon. */
-  .cookmode-tutorial-ring-static {
-    box-shadow: 0 0 0 2px var(--color-clay);
+  /* (28.09.2026, redesign-runde 2, justert samme dag – se
+   * CookModeTutorialOverlay.tsx sin RingRect.variant "glow") Brukes av
+   * "footer"-steget sin Neste-knapp, som allerede er helt gullfylt: en
+   * separat RING rundt den (slik Forrige-knappen fortsatt får, se
+   * .cookmode-tutorial-pulse over) så ut som to nøstede piller (Henrik,
+   * skjermbilde 28.09.2026). Denne varianten legges tett inntil knappens
+   * egne kanter (0 i padding, se `pad` i CookModeTutorialOverlay.tsx) og
+   * har INGEN kant-lag i det hele tatt – bare en pulserende glød, slik at
+   * det er selve knappen som ser ut til å "puste", ikke en ramme rundt
+   * den. Samme varighet/kurve som .cookmode-tutorial-pulse for at de to
+   * skal føles som ÉN og samme rytme når begge vises samtidig. */
+  .cookmode-tutorial-button-glow {
+    animation: cookmode-tutorial-button-glow 1.8s ease-in-out infinite;
   }
 }
 
@@ -189,6 +193,19 @@
     box-shadow:
       0 0 0 4px var(--color-clay),
       0 0 16px 3px var(--color-clay-dark);
+  }
+}
+
+/* Kun ÉTT box-shadow-lag her (ren glød, ingen kant-lag) – trenger derfor
+ * ikke den samme "lik antall lag i alle steg"-forsiktigheten som pulsen
+ * over, men følger prinsippet likevel for konsistens. */
+@keyframes cookmode-tutorial-button-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(230, 195, 79, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px var(--color-clay-dark);
   }
 }
 

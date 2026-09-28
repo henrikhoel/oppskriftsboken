@@ -24,16 +24,22 @@ interface TutorialStep {
    * `optional` slik at steget hoppes automatisk over når elementet rett og
    * slett ikke finnes i DOM-en, i stedet for å stå fast og peke på tomrom. */
   optional?: boolean;
-  /** (28.09.2026, redesign-runde 2) Kun for "footer"-steget: tegn EGNE,
-   * mindre gull-ringer rundt disse elementene i stedet for automatisk én
-   * ring som dekker HELE `target`-elementet. Henrik ville fjerne "den lange
-   * gule highlight-streken" som før lå rundt hele navigasjonsområdet, og i
-   * stedet la Forrige få en stillestående ring og Neste en pulserende – se
-   * .cookmode-tutorial-ring-static / .cookmode-tutorial-pulse i
-   * app/globals.css. `target` over brukes fortsatt til selve
-   * blur-utsparingen (begge knappene skal uansett være skarpe), bare den
-   * synlige ringen erstattes når dette feltet er satt. */
-  ringTargets?: { target: string; pulse: boolean }[];
+  /** (28.09.2026, redesign-runde 2, justert samme dag) Kun for
+   * "footer"-steget: tegn EGNE, mindre gull-highlights rundt disse
+   * elementene i stedet for automatisk én ring som dekker HELE
+   * `target`-elementet. Henrik ville fjerne "den lange gule highlight-
+   * streken" som før lå rundt hele navigasjonsområdet: Forrige (ikke
+   * gullfylt selv) får en ring UTENFOR knappen som pulserer akkurat som
+   * ringene ellers i tutorialen (variant "ring", .cookmode-tutorial-pulse i
+   * app/globals.css), mens Neste (allerede helt gullfylt – en ring rundt
+   * DEN så ut som to nøstede piller, se skjermbilde fra Henrik 28.09.2026)
+   * i stedet får en ren glød direkte på knappens egne omriss, uten noen
+   * synlig ramme (variant "glow", .cookmode-tutorial-button-glow) – det er
+   * selve knappen som "puster", ikke en ring rundt den. `target` over
+   * brukes fortsatt til selve blur-utsparingen (begge knappene skal
+   * uansett være skarpe), bare den synlige highlighten erstattes når dette
+   * feltet er satt. */
+  ringTargets?: { target: string; variant: "ring" | "glow" }[];
   /** (28.09.2026, redesign-runde 2) Steg-id fra demo-oppskriften
    * (lib/cook-mode-tutorial/demo-recipe.ts) som CookMode.tsx TVINGES til å
    * vise mens dette tutorial-steget er aktivt (se `onForcedStepChange`
@@ -91,8 +97,8 @@ const STEPS: TutorialStep[] = [
     titleKey: "cookModeTutorial.navTitle",
     bodyKey: "cookModeTutorial.navBody",
     ringTargets: [
-      { target: "footer-prev", pulse: false },
-      { target: "footer-next", pulse: true },
+      { target: "footer-prev", variant: "ring" },
+      { target: "footer-next", variant: "glow" },
     ],
     forcedRecipeStepId: COOK_MODE_TUTORIAL_MIDDLE_STEP_ID,
   },
@@ -108,7 +114,13 @@ interface SpotlightRect {
 
 interface RingRect extends SpotlightRect {
   shape: "circle" | "box";
-  pulse: boolean;
+  /** "ring" = utenpåliggende, pulserende ring med luft rundt elementet
+   * (standard – og "footer"-steget sin Forrige-knapp). "glow" = ingen
+   * ramme i det hele tatt, bare en pulserende glød tett inntil elementets
+   * egne kanter (0 i padding, se `pad`-beregningen under) – brukt for
+   * "footer"-steget sin allerede gullfylte Neste-knapp, der en ring rundt
+   * ville sett ut som to nøstede piller. */
+  variant: "ring" | "glow";
 }
 
 /** Én rundet firkant som SVG-sti, bygget fra de samme fire kommandoene
@@ -259,18 +271,18 @@ export function CookModeTutorialOverlay({
       setRect(primary);
 
       if (step.ringTargets && step.ringTargets.length > 0) {
-        // (rt.target-elementenes ringer er alltid "circle"-formet, se
+        // (rt.target-elementenes highlights er alltid "circle"-formet, se
         // ringTargets sin doc-kommentar – bygges derfor som RingRect
         // eksplisitt her, i stedet for en type predicate TS ikke greier å
         // forene med den bredere "circle" | "box"-typen på RingRect.shape.)
         const measured: RingRect[] = [];
         for (const rt of step.ringTargets) {
           const m = measure(rt.target);
-          if (m) measured.push({ ...m, shape: "circle", pulse: rt.pulse });
+          if (m) measured.push({ ...m, shape: "circle", variant: rt.variant });
         }
         setRings(measured);
       } else {
-        setRings([{ ...primary, shape: step.shape, pulse: true }]);
+        setRings([{ ...primary, shape: step.shape, variant: "ring" }]);
       }
     }
 
@@ -333,21 +345,22 @@ export function CookModeTutorialOverlay({
         style={clipPathValue ? { clipPath: clipPathValue } : undefined}
       />
 
-      {/* Lag C – de skarpe gull-ringene rundt målet/målene, helt uavhengig
-       * av blur-laget over (de ligger OVENPÅ det, ikke bak). Vanligvis én
-       * ring (pulserende), men "footer"-steget tegner to (se
-       * `ringTargets`) – en stillestående rundt Forrige, en pulserende
-       * rundt Neste, i stedet for én lang ring rundt hele
-       * navigasjonsområdet. */}
+      {/* Lag C – de skarpe gull-highlightene rundt målet/målene, helt
+       * uavhengig av blur-laget over (de ligger OVENPÅ det, ikke bak).
+       * Vanligvis én pulserende ring med luft rundt, men "footer"-steget
+       * tegner to ulike (se `ringTargets`) – en pulserende ring UTENFOR
+       * Forrige, og en pulserende glød TETT INNTIL selve Neste-knappen
+       * (ingen padding, se `pad` under) i stedet for én lang ring rundt
+       * hele navigasjonsområdet. */}
       {rings.map((ring, i) => {
-        const pad = ring.shape === "circle" ? 6 : 10;
+        const pad = ring.variant === "glow" ? 0 : ring.shape === "circle" ? 6 : 10;
         return (
           <div
             key={i}
             aria-hidden="true"
             className={clsx(
               "pointer-events-none fixed z-[80] transition-all duration-500 ease-out",
-              ring.pulse ? "cookmode-tutorial-pulse" : "cookmode-tutorial-ring-static",
+              ring.variant === "glow" ? "cookmode-tutorial-button-glow" : "cookmode-tutorial-pulse",
             )}
             style={{
               top: ring.top - pad,
