@@ -35,9 +35,21 @@ import type { Lang } from "@/lib/i18n";
  *
  * - "demo" (default): /cook-mode ("Utforsk Cook Mode"-lenken). Både "Hopp
  *   over" og selve CookMode sin X/ESC går til forsiden; siste steg sin
- *   knapp går til /oppskrifter. Ingen avkrysning for "ikke vis igjen" – se
- *   CookModeTutorialEntry.tsx for hvordan DENNE siden i stedet håndterer et
- *   "du har allerede fullført tutorialen"-tilfelle.
+ *   knapp går til /oppskrifter. Ingen avkrysning for "ikke vis igjen" her –
+ *   men å faktisk FULLFØRE demoen (nå frem til siste steg og trykke
+ *   "Utforsk oppskrifter") markerer likevel profiles.cook_mode_
+ *   tutorial_completed = true automatisk (se exploreRecipes under),
+ *   akkurat som om man hadde huket av i mode="recipe" – Henrik, 29.09.2026:
+ *   "når man går via 'utforsk cook mode' og går videre til en oppskrift og
+ *   tester, så vil tutorialen komme opp på nytt igjen fra oppskriftsiden,
+ *   det er irriterende, fordi man ikke har en 'huk av for å ikke vise
+ *   igjen'-knapp når man går inn via 'utforsk cook mode'". Har man derimot
+ *   bare hoppet over (goHome, ikke gått hele veien), er det ingen sterk nok
+ *   signal om at man faktisk forstår Cook Mode ennå – da forblir flagget
+ *   urørt, og tutorialen dukker fortsatt opp normalt på første ekte
+ *   oppskrift. Se CookModeTutorialEntry.tsx for hvordan /cook-mode selv
+ *   håndterer et "du har allerede fullført tutorialen"-tilfelle (med en
+ *   "vis den på nytt"-knapp, siden avkrysningen ikke finnes her).
  * - "recipe": lagt oppå Cook Mode på en EKTE oppskrift, første gang en
  *   innlogget bruker starter matlaging (se RecipeInteractive.tsx), inntil
  *   de eventuelt huker av for "ikke vis igjen" (dontShowAgain under). To
@@ -111,7 +123,19 @@ export function CookModeTutorial({
     router.push("/");
   }
 
-  function exploreRecipes() {
+  async function exploreRecipes() {
+    // (29.09.2026) Se filheaderen over – å FULLFØRE demo-tutorialen (nå
+    // frem til dette, siste steget) markerer profilen som ferdig med
+    // tutorialen, selv uten noen egen avkrysning her, slik at den ikke
+    // dukker opp igjen med det samme på den første ekte oppskriften man
+    // besøker rett etter. Stille feil, samme begrunnelse som i
+    // syncDontShowAgain under: en mislykket lagring skal ikke blokkere at
+    // man faktisk kommer seg videre til oppskriftene.
+    try {
+      await setCookModeTutorialCompleted(true);
+    } catch (error) {
+      console.error("Kunne ikke lagre at Cook Mode-tutorialen er fullført:", error);
+    }
     router.push("/oppskrifter");
   }
 
