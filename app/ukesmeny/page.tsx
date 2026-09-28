@@ -78,7 +78,20 @@ export default async function WeeklyMenuPage() {
           priority
           sizes="100vw"
           className="object-cover"
-          style={{ objectPosition: "right top" }}
+          // 60% i stedet for "right" (=100%) (28.09.2026, Henrik: "BILDET
+          // ER JO I 4:3, det er BREDT [...] FLYTT BILDET LENGER TIL HØYRE,
+          // sånn at grønnsakene blir utenfor og mer av området til
+          // venstre i bildet blir brukt") – object-position styrer HVILKEN
+          // del av det brede 4:3-bildet som vises i den smale boksen. På
+          // "right" (100%) viste boksen alltid den ytterste høyre kanten av
+          // bildet, der råvarene ligger – uansett hvor mye tom, mørk plass
+          // som fantes lenger til venstre I BILDET, siden den delen rett
+          // og slett aldri var innenfor det viste utsnittet. Ved å sette
+          // posisjonen lavere (60%) skyves det viste utsnittet lenger mot
+          // VENSTRE i bildet – viser mer av den tomme venstre delen, og
+          // skyver råvarene (som sitter helt til høyre i selve bildet)
+          // delvis eller helt utenfor det synlige området i stedet.
+          style={{ objectPosition: "60% top" }}
         />
         {/* Nedtoning mot sidens egen bakgrunnsfarge nederst – uten denne
             fikk billedboksen en synlig, hard kant der den faste høyden
