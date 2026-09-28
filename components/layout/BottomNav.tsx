@@ -51,7 +51,7 @@ export function BottomNav({ lang }: { lang: Lang }) {
     <nav
       id="bottom-nav"
       aria-label={t(lang, "nav.mainNavMobile")}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 backdrop-blur pb-[calc(env(safe-area-inset-bottom)+6px)] md:hidden"
     >
       {/* px-3 på selve rutenettet (IKKE på <nav>, som fortsatt skal ha
        * bakgrunn/border helt ut til kantene) – uten denne satt den ytterste
@@ -80,7 +80,24 @@ export function BottomNav({ lang }: { lang: Lang }) {
        * som opprinnelig løste dette trengs igjen. Satt tilbake til fast
        * px-3 (droppet sm-reduksjonen) – nav.pantryShort (se over) frigjorde
        * nok bredde til at seks kolonner uansett har plass på én linje med
-       * full px-3, se skjermbildet fra vanlig nettleser. */}
+       * full px-3, se skjermbildet fra vanlig nettleser.
+       *
+       * BEHOLDER (28.09.2026) – nytt, separat problem, samme rot-årsak
+       * (ingen Safari-kant i den installerte "appen"): Henrik, med
+       * skjermbilde av "appen": "ser du den streken helt nederst? den
+       * kommer noen ganger opp og blokkerer teksten på den nederste linja"
+       * – hjem-indikator-streken (swipe-baren iOS tegner rett over selve
+       * appen i standalone-modus) lå for tett inntil "Kjøleskapet"-
+       * teksten. `pb-[env(safe-area-inset-bottom)]` på <nav> over gir i
+       * teorien nøyaktig nok klaring, men iOS sin egen rapporterte
+       * safe-area-verdi er tydeligvis for knapp til å alltid unngå visuell
+       * overlapp i praksis (bekreftet av Henrik: "på appen altså" – kun i
+       * den installerte PWA-en, ikke i vanlig nettleser, samme mønster som
+       * px-3-fiksen over). Lagt til 6px ekstra klaring utover selve
+       * safe-area-verdien (`calc(env(safe-area-inset-bottom)+6px)`), en
+       * vanlig og trygg buffer for akkurat dette – ingen ulempe i
+       * nettlesere uten hjem-indikator (safe-area-inset-bottom er da bare
+       * 0, så det blir 6px fast bunnmargin der, knapt merkbart). */}
       <ul className="grid grid-cols-6 px-3">
         {NAV_ITEMS.map(({ href, labelKey, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
