@@ -27,6 +27,14 @@ const DICT = {
   // og med BottomNav.tsx sin nav-lenke – URL-en er BEVISST uendret
   // (/hva-kan-jeg-lage), kun den synlige teksten er ny.
   "nav.pantry": { no: "I kjøleskapet", en: "In the fridge" },
+  // Kort variant til BottomNav.tsx (28.09.2026, Henrik med skjermbilde: "det
+  // ser dog ut som ikke er nok plass") – etter at Ukesmeny ble lagt til i
+  // bunnmenyen (grid-cols-5 → 6) var kolonnen for smal for "I kjøleskapet",
+  // så "I" brakk av alene på egen linje over "kjøleskapet". Samme mønster
+  // som nav.guidesShort allerede bruker for akkurat denne typen trange
+  // navigasjonssteder – dropper "I "-prefikset, som var selve ordet som
+  // brakk av alene.
+  "nav.pantryShort": { no: "Kjøleskapet", en: "The fridge" },
   "nav.language": { no: "Språk", en: "Language" },
   // Opprinnelig for fellespassordet for hele nettstedet (fjernet
   // 27.09.2026, se filheaderen i proxy.ts) – gjenbrukt samme dag til

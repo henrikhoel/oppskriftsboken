@@ -27,7 +27,7 @@ const NAV_ITEMS = [
   { href: "/", labelKey: "nav.home", icon: HomeIcon },
   { href: "/oppskrifter", labelKey: "nav.recipes", icon: BookIcon },
   { href: "/ukesmeny", labelKey: "nav.weeklyMenu", icon: CalendarIcon },
-  { href: "/hva-kan-jeg-lage", labelKey: "nav.pantry", icon: CameraIcon },
+  { href: "/hva-kan-jeg-lage", labelKey: "nav.pantryShort", icon: CameraIcon },
   // "Hvordan gjør jeg det?" (27.08.2026) – kunnskapsbiblioteket for
   // kjøkkenteknikker, se app/hvordan-gjor-jeg-det/*. Bruker den KORTE
   // nav.guidesShort-teksten her (samme nøkkel spesifikasjonen egentlig kun
