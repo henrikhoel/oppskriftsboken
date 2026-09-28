@@ -214,6 +214,24 @@ export function CookModeTutorialOverlay({
 
   const step = STEPS[index];
   const isFraming = step.target === null; // intro eller avslutning – bred, "editorial" kortvariant
+  // Alle pulserende highlights (.cookmode-tutorial-pulse OG
+  // .cookmode-tutorial-button-glow, se app/globals.css) deler samme
+  // syklus-lengde (1,8s). To elementer som begge kjører `animation: ...
+  // infinite` uten noen eksplisitt animation-delay starter derimot hver sin
+  // egen klokke fra ØYEBLIKKET DE MONTERES – to elementer montert selv få
+  // millisekunder fra hverandre (f.eks. Forrige og Neste sine ringer på
+  // "footer"-steget, se ringTargets) kan dermed ende opp helt ute av fase
+  // med hverandre, og hvor mye varierer tilfeldig fra besøk til besøk
+  // (Henrik, 28.09.2026: "litt random om dem blinker likt eller ikke").
+  // Løsning: fest ALLE pulserende highlights til samme, DELTE klokke – en
+  // negativ animation-delay utregnet fra `Date.now()` modulo syklus-
+  // lengden. Uansett NÅR et element faktisk monteres, hopper denne
+  // negative forsinkelsen animasjonen rett til riktig punkt i syklusen sett
+  // fra et globalt, absolutt klokkeslett – to elementer med denne samme
+  // utregningen er dermed ALLTID i fase med hverandre, selv om de aldri
+  // monteres i nøyaktig samme React-commit.
+  const PULSE_CYCLE_MS = 1800;
+  const pulseDelayMs = -(Date.now() % PULSE_CYCLE_MS);
   // Eneste steget der boksen forlater sin faste, midtstilte plass – se
   // filheaderen over.
   const boxPosition: "center" | "bottom" = step.target === "step-text" ? "bottom" : "center";
@@ -368,6 +386,9 @@ export function CookModeTutorialOverlay({
               width: ring.width + pad * 2,
               height: ring.height + pad * 2,
               borderRadius: ring.shape === "circle" ? 9999 : 16,
+              // Se `pulseDelayMs` sin kommentar over – låser denne og alle
+              // andre pulserende highlights til samme, delte rytme.
+              animationDelay: `${pulseDelayMs}ms`,
             }}
           />
         );
