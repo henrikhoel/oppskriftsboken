@@ -628,10 +628,25 @@ export function EveningExperience({
            * bildets egen lys/mørke-struktur fortsatt er synlig gjennom
            * overlegget. `scale-110` → `scale-105` samtidig, siden en
            * mindre blur-radius trenger mindre overskalering for å unngå
-           * kant-avsløring. */}
+           * kant-avsløring.
+           *
+           * JUSTERT VIDERE (28.09.2026, 24. runde – Henrik, med skjermbilde
+           * av VIN/PÅ BORDET/STEMNING-kapitlene: "jeg syns bakgrunnen inne
+           * på 'gjør det til en kveld' er for blurry") – selv `blur-sm`
+           * (~4px) sammen med `bg-cream/86`-overlegget viste seg å viske ut
+           * for mye av bildets egen struktur (se skjermbildet: flaten leser
+           * nesten som ensfarget mørke, samme symptom som 23. runde over,
+           * bare mindre ekstremt). Satt ned til en enda mildere, egendefinert
+           * `blur-[2px]` – fortsatt nok til å dempe de skarpeste glass-/
+           * karaffel-kantene (selve grunnen til at blur ble innført i 22.
+           * runde), men lite nok til at stearinlys-gløden og bildets egen
+           * lys/mørke-tekstur faktisk er synlig gjennom overlegget i stedet
+           * for å drukne i det. `scale-105` beholdt uendret – gir fortsatt
+           * god nok margin mot kant-avsløring ved en SVAKERE blur-radius
+           * enn den den opprinnelig ble satt for. */}
           <div className="relative isolate overflow-hidden">
             <div
-              className="absolute inset-0 scale-105 bg-cover bg-center blur-sm"
+              className="absolute inset-0 scale-105 bg-cover bg-center blur-[2px]"
               style={{ backgroundImage: "url(/images/evening-table.jpg)" }}
               aria-hidden="true"
             />
