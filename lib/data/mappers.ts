@@ -67,6 +67,7 @@ export interface RawRecipeRow {
   show_meal_builder: boolean;
   featured_sort_order: number | null;
   favorited_by_admin: boolean;
+  weekly_menu_excluded: boolean;
   rating_sum: number;
   rating_count: number;
   created_at: string;
@@ -194,6 +195,7 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
     showMealBuilder: raw.show_meal_builder,
     featuredSortOrder: raw.featured_sort_order,
     favoritedByAdmin: raw.favorited_by_admin,
+    weeklyMenuExcluded: raw.weekly_menu_excluded,
     ratingSum: raw.rating_sum,
     ratingCount: raw.rating_count,
     createdAt: raw.created_at,
@@ -204,7 +206,7 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
 export const RECIPE_SELECT = `
   id, slug, title, description, title_en, description_en, taste_profile, nutrition_info, drink_pairing, vegetarian_variant, hero_image_url, hero_image_alt, hero_image_is_ai_generated, servings,
   prep_time_minutes, cook_time_minutes, cook_time_minutes_max, total_time_minutes, difficulty,
-  notes, tips, warnings, source, is_published, is_featured, moods, courses, show_beverage_match_checker, show_meal_builder, featured_sort_order, favorited_by_admin,
+  notes, tips, warnings, source, is_published, is_featured, moods, courses, show_beverage_match_checker, show_meal_builder, featured_sort_order, favorited_by_admin, weekly_menu_excluded,
   rating_sum, rating_count,
   created_at, updated_at,
   category:categories(id, slug, name, name_en, sort_order),
@@ -233,6 +235,7 @@ export function toSummary(recipe: Recipe): RecipeSummary {
     moods: recipe.moods,
     courses: recipe.courses,
     favoritedByAdmin: recipe.favoritedByAdmin,
+    weeklyMenuExcluded: recipe.weeklyMenuExcluded,
     createdAt: recipe.createdAt,
     isPublished: recipe.isPublished,
     ratingSum: recipe.ratingSum,

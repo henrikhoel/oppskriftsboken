@@ -10,6 +10,7 @@ import { ShoppingListBadgeCount } from "@/components/shopping/ShoppingListBadgeC
 import { AccountLogOutButton } from "@/components/auth/AccountLogOutButton";
 import {
   BookIcon,
+  CalendarIcon,
   CameraIcon,
   HeartIcon,
   HelpCircleIcon,
@@ -121,6 +122,13 @@ export async function Header() {
           >
             <HeartIcon className="h-4 w-4" />
             {t(lang, "nav.favorites")}
+          </Link>
+          <Link
+            href="/ukesmeny"
+            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
+          >
+            <CalendarIcon className="h-4 w-4" />
+            {t(lang, "nav.weeklyMenu")}
           </Link>
           {/* Kun fra lg og opp (ikke md, som de fire lenkene over) – "Hva
               skal vi spise?"-lenken som sto her ved siden av er fjernet

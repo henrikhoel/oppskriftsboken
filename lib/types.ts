@@ -352,6 +352,11 @@ export interface Recipe {
    * isFeatured=true. Helt atskilt fra favoritedByAdmin under (hjertet). */
   featuredSortOrder: number | null;
   favoritedByAdmin: boolean;
+  /** true = denne oppskriften skal ALDRI trekkes ut i den automatiske
+   * man–fre-ukesmenyen (/ukesmeny) – se migrasjon 0024. Styres fra
+   * /admin/ukesmeny. Standard false (å utelate er unntaket, ikke
+   * normalen). */
+  weeklyMenuExcluded: boolean;
   /** Sum av alle stjernevurderinger (1-5). Snitt = ratingSum / ratingCount. */
   ratingSum: number;
   ratingCount: number;
@@ -377,6 +382,7 @@ export type RecipeSummary = Pick<
   | "isFeatured"
   | "featuredSortOrder"
   | "favoritedByAdmin"
+  | "weeklyMenuExcluded"
   | "moods"
   | "courses"
   | "createdAt"

@@ -12,6 +12,7 @@ import type { Lang } from "@/lib/i18n/types";
 const DICT = {
   "nav.recipes": { no: "Oppskrifter", en: "Recipes" },
   "nav.favorites": { no: "Favoritter", en: "Favorites" },
+  "nav.weeklyMenu": { no: "Ukesmeny", en: "Weekly menu" },
   "nav.shoppingList": { no: "Handleliste", en: "Shopping list" },
   "nav.search": { no: "Søk", en: "Search" },
   "nav.admin": { no: "Admin", en: "Admin" },
@@ -890,6 +891,10 @@ const DICT = {
     no: "Meny-byggeren er kun tilgjengelig når du er logget inn.",
     en: "The menu builder is only available when you're logged in.",
   },
+  "featureLocked.weeklyMenuMessage": {
+    no: "Ukesmenyen er kun tilgjengelig når du er logget inn.",
+    en: "The weekly menu is only available when you're logged in.",
+  },
   // (26.09.2026, Henrik: "jeg vil at man skal kunne dele lenken til
   // oppskriften via snarveien på telefonen ... en liten knapp ved siden av
   // hjertet på oppskriftsiden hadde vært gull") – se ShareButton.tsx.
@@ -1300,6 +1305,29 @@ const DICT = {
   "mealShopping.noExisting": {
     no: "Ingen av rettene i denne menyen finnes som ekte oppskrifter ennå, så det er ingenting å legge i handlelisten.",
     en: "None of the dishes in this menu exist as real recipes yet, so there's nothing to add to the shopping list.",
+  },
+
+  // AUTOMATISK UKESMENY (29.09.2026) – se app/ukesmeny/page.tsx og
+  // components/meal/WeeklyMenuView.tsx.
+  "weeklyMenu.title": { no: "Ukesmeny", en: "Weekly menu" },
+  "weeklyMenu.description": {
+    no: "Fem middager for mandag til fredag, trukket tilfeldig blant oppskriftene som passer for en hverdag. Bytt ut hele uken så mange ganger du vil.",
+    en: "Five dinners for Monday to Friday, drawn at random from the recipes suited for a weeknight. Swap out the whole week as many times as you like.",
+  },
+  "weeklyMenu.regenerate": { no: "Generer ny uke", en: "Generate a new week" },
+  "weeklyMenu.monday": { no: "Mandag", en: "Monday" },
+  "weeklyMenu.tuesday": { no: "Tirsdag", en: "Tuesday" },
+  "weeklyMenu.wednesday": { no: "Onsdag", en: "Wednesday" },
+  "weeklyMenu.thursday": { no: "Torsdag", en: "Thursday" },
+  "weeklyMenu.friday": { no: "Fredag", en: "Friday" },
+  "weeklyMenu.viewRecipe": { no: "Se oppskrift", en: "View recipe" },
+  "weeklyMenu.addButton": { no: "Legg hele uken i handlelisten", en: "Add the whole week to the shopping list" },
+  "weeklyMenu.addLoading": { no: "Legger til …", en: "Adding …" },
+  "weeklyMenu.addDone": { no: "Lagt til i handlelisten.", en: "Added to the shopping list." },
+  "weeklyMenu.viewList": { no: "Se handlelisten", en: "View shopping list" },
+  "weeklyMenu.notEnoughRecipes": {
+    no: "Trenger minst {count} publiserte oppskrifter egnet for ukesmeny (se /admin/ukesmeny) for å kunne generere en uke. I dag er det for få.",
+    en: "Needs at least {count} published recipes suited for the weekly menu (see /admin/ukesmeny) to generate a week. There aren't enough yet.",
   },
 
   // Hel-meny-timeline (Fase 5 – Experience, 5.8) – se

@@ -1761,6 +1761,27 @@ export async function removeRecipeFromCourse(recipeId: string, role: MealCourseR
 }
 
 /**
+ * "Ukesmeny" – admin-styring av hvilke oppskrifter som ALDRI skal trekkes
+ * ut i den automatiske man–fre-ukesmenyen (29.09.2026, se migrasjon
+ * 0024_recipe_weekly_menu_exclude.sql for hele bakgrunnen). Én enkelt
+ * boolsk kolonne (ikke et array som courses/moods), så ingen
+ * fetch-og-filtrer-mønster nødvendig her – rett frem samme mønster som
+ * toggleAdminFavorite i lib/actions/favorites.ts.
+ */
+export async function setWeeklyMenuExclusion(recipeId: string, excluded: boolean): Promise<void> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("recipes")
+    .update({ weekly_menu_excluded: excluded })
+    .eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke oppdatere ukesmeny-status: ${error.message}`);
+  }
+  revalidatePath("/admin/ukesmeny");
+}
+
+/**
  * Leseside til "Roller" – brukt av ManualMealBuilder.tsx sin
  * retteVELGER for å filtrere bort oppskrifter som ikke er plassert i den
  * aktuelle rollen (Henrik: "det kun er oppskrifter i de kategoriene som
