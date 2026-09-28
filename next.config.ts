@@ -43,6 +43,28 @@ const nextConfig: NextConfig = {
   // routeren gir en ny adresse, eller andre enheter skal teste siden).
   allowedDevOrigins: ["192.168.10.185"],
   images: {
+    // (28.09.2026) Vercel-epost: "Approaching your limits" – gratiskvoten på
+    // 5 000 bilde-transformasjoner/måned (Image Optimization) var brukt opp.
+    // Uten `minimumCacheTTL` bruker Next.js standardverdien på kun 3600
+    // sekunder (1 time) for EKSTERNE bilder (remote – det er det alle
+    // oppskriftsbildene er, de kommer fra Supabase Storage/Unsplash/import-
+    // lenker over, ikke /public). Det betyr at et populært oppskriftsbilde
+    // må transformeres PÅ NYTT hver eneste time det fortsatt er trafikk på
+    // det – uavhengig av om det er 5 eller 5000 besøkende i den timen – så
+    // med ekte, jevn trafikk ville 5 000/måned blitt spist opp fort selv med
+    // relativt få unike bilder på siden.
+    //
+    // Oppskriftsbilder endres praktisk talt aldri etter at de er lastet opp
+    // (og selv om et bilde skulle bli byttet ut, se image-optimization-
+    // dokumentasjonen: cachen for eksterne bilder invalideres uansett ikke
+    // automatisk av det – den holder helt til TTL-en løper ut eller man
+    // manuelt "purger" den), så en lang levetid her er trygt. 2 678 400
+    // sekunder = 31 dager, samme maks-levetid Vercel selv gir bilder fra
+    // /public-mappen automatisk – gir dermed lokale og eksterne bilder
+    // samme cache-oppførsel. Resultatet: hvert bilde/bredde/format-
+    // kombinasjon transformeres stort sett bare ÉN gang i måneden i stedet
+    // for opptil 24 ganger per dag, uansett hvor mye trafikk siden får.
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       {
         protocol: "https",
