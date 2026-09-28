@@ -595,9 +595,16 @@ const DICT = {
     en: "Use these buttons, the arrow keys, or your voice.",
   },
   "cookModeTutorial.outroTitle": { no: "Du er klar!", en: "You're all set!" },
+  // (29.09.2026) Henrik, etter å ha gått gjennom hele demo-tutorialen selv:
+  // "man får tutorial, også bli sendt til oppskrifter, også står det
+  // ingenting om hva man skal trykke på for å åpne cook mode i en
+  // oppskrift" – den forrige teksten sa bare "finn en ekte oppskrift",
+  // uten å si HVA man faktisk skal trykke på der. Nevner nå knappen ved
+  // navn ("Start matlaging" – recipeDetail.startCooking), samme sted den
+  // faktisk står på en ekte oppskriftsside.
   "cookModeTutorial.outroBody": {
-    no: "Sånn, nå kjenner du Cook Mode. Finn en ekte oppskrift å prøve den på.",
-    en: "That's it – now you know Cook Mode. Find a real recipe to try it on.",
+    no: "Sånn, nå kjenner du Cook Mode. Åpne en ekte oppskrift og trykk «Start matlaging» for å prøve den.",
+    en: "That's it – now you know Cook Mode. Open a real recipe and press \"Start cooking\" to try it.",
   },
   "cookModeTutorial.exploreRecipes": { no: "Utforsk oppskrifter", en: "Explore recipes" },
   // (29.09.2026) "mode='recipe'"-varianten av outro-steget – vises når
