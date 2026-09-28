@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import { BookIcon, CameraIcon, HelpCircleIcon, HomeIcon, LeafIcon } from "@/components/ui/icons";
+import { BookIcon, CalendarIcon, CameraIcon, HelpCircleIcon, HomeIcon, LeafIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 // Handleliste og Favoritter fjernet herfra 26.09.2026 (Henrik: "'handleliste'
@@ -14,14 +14,24 @@ import { t, type Lang } from "@/lib/i18n";
 // Header.tsx). Frigjorde plass i bunnmenyen brukt til "I sesong" i stedet
 // (samme tilbakemelding, punkt 4: "Nå som vi har fått plass på linja nede kan
 // vi legge inn 'i sesong' på telefon også").
+//
+// "Ukesmeny" lagt til (28.09.2026, Henrik: "eeeh hvor er ukesmeny på
+// telefon???") – funksjonen ble lagt i Header.tsx sin desktop-nav tidligere
+// i samme økt, men BottomNav (selve mobilnavigasjonen) ble aldri oppdatert
+// samtidig, så den var i praksis helt utilgjengelig på telefon uten å taste
+// inn /ukesmeny direkte. Lagt inn rett etter Oppskrifter – samme rekkefølge
+// som Henrik nettopp valgte for desktop-headeren (Oppskrifter → Ukesmeny →
+// …). grid-cols-5 → grid-cols-6 under for å gi den plass uten å fjerne noe
+// annet fra bunnmenyen.
 const NAV_ITEMS = [
   { href: "/", labelKey: "nav.home", icon: HomeIcon },
   { href: "/oppskrifter", labelKey: "nav.recipes", icon: BookIcon },
+  { href: "/ukesmeny", labelKey: "nav.weeklyMenu", icon: CalendarIcon },
   { href: "/hva-kan-jeg-lage", labelKey: "nav.pantry", icon: CameraIcon },
   // "Hvordan gjør jeg det?" (27.08.2026) – kunnskapsbiblioteket for
   // kjøkkenteknikker, se app/hvordan-gjor-jeg-det/*. Bruker den KORTE
   // nav.guidesShort-teksten her (samme nøkkel spesifikasjonen egentlig kun
-  // ga unntak for i desktop-headeren) fordi 5 like brede kolonner i
+  // ga unntak for i desktop-headeren) fordi 6 like brede kolonner i
   // bunnmenyen ikke har plass til hele "Hvordan gjør jeg det?" på én linje
   // uten å bryte layouten – selve siden sin <h1> viser fortsatt hele,
   // riktige konseptnavnet uendret, se app/hvordan-gjor-jeg-det/page.tsx.
@@ -55,7 +65,7 @@ export function BottomNav({ lang }: { lang: Lang }) {
        * Henrik, 27.09.2026, med skjermbilde: "telefonen er rund i kantene
        * og kutter derfor ganske mye av den linja. feks så kutter den
        * omtrent litt av 'g'en i 'I sesong'." */}
-      <ul className="grid grid-cols-5 px-3">
+      <ul className="grid grid-cols-6 px-1.5 sm:px-3">
         {NAV_ITEMS.map(({ href, labelKey, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
