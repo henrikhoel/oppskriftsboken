@@ -14,6 +14,14 @@ interface TutorialStep {
    * "ramme"-stegene (intro/avslutning) uten noe spesifikt å peke på. */
   target: string | null;
   shape: "circle" | "box";
+  /** Luft mellom elementets egne kanter og selve ringen. Utelates for
+   * standard-luft (6px for "circle", 10px for "box" – se render-koden
+   * under). "footer"-steget setter en mye trangere verdi (Henrik,
+   * 28.09.2026, etter at standard-luften ble brukt der ved en feil: "den
+   * går jo langt utenfor selve knappene. sirkelen skal gå helt inntil
+   * knappene!!") – ringen skal ligge tett inntil Forrige/Neste, ikke ha
+   * samme luftige avstand som en enkelt liten ikon-knapp får. */
+  ringPadding?: number;
   titleKey: DictKey;
   bodyKey: DictKey;
   /** Talestyring finnes kun i nettlesere som støtter Web Speech API (se
@@ -78,9 +86,11 @@ const STEPS: TutorialStep[] = [
     // (som stadig endte opp asynkront på en eller annen måte, se historikk
     // i git-loggen), landet Henrik på at én enkelt, delt ring rundt begge
     // er enklest OG mest robust: det finnes bare ett element å synkronisere
-    // i det hele tatt.
+    // i det hele tatt. ringPadding trukket helt ned (se doc-kommentaren på
+    // ringPadding over) siden footeren er mye større enn de andre målene.
     target: "footer",
     shape: "box",
+    ringPadding: 2,
     titleKey: "cookModeTutorial.navTitle",
     bodyKey: "cookModeTutorial.navBody",
     forcedRecipeStepId: COOK_MODE_TUTORIAL_MIDDLE_STEP_ID,
@@ -273,7 +283,7 @@ export function CookModeTutorialOverlay({
     setIndex(i);
   }
 
-  const holePadding = step.shape === "circle" ? 6 : 10;
+  const holePadding = step.ringPadding ?? (step.shape === "circle" ? 6 : 10);
   const hole = rect
     ? {
         x: rect.left - holePadding,
@@ -313,7 +323,7 @@ export function CookModeTutorialOverlay({
        * mål, akkurat som alle andre steg, og glir dermed helt normalt
        * (position-transisjonen under) fra forrige steg sitt mål til denne. */}
       {rings.map((ring, i) => {
-        const pad = ring.shape === "circle" ? 6 : 10;
+        const pad = step.ringPadding ?? (ring.shape === "circle" ? 6 : 10);
         return (
           <div
             key={i}
