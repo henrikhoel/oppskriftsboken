@@ -502,11 +502,17 @@ export function CookMode({
           )}
         </div>
 
-        <div
-          className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center py-8"
-          data-cookmode-target="step-text"
-        >
-          <p className="text-balance text-center font-serif text-2xl leading-snug sm:text-3xl md:text-4xl">
+        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center py-8">
+          {/* data-cookmode-target satt på selve <p>-en, IKKE wrapper-diven
+           * over: den er flex-1 og strekker seg over all ledig høyde i
+           * innholdsområdet, så en tutorial-ring rundt DEN ble en enorm
+           * firkant uavhengig av hvor mye tekst steget faktisk har (Henrik,
+           * 28.09.2026: "den gule firkanten her er også alt for stor").
+           * Ringen skal kun omslutte den faktisk synlige teksten. */}
+          <p
+            className="text-balance text-center font-serif text-2xl leading-snug sm:text-3xl md:text-4xl"
+            data-cookmode-target="step-text"
+          >
             {currentStep.text}
           </p>
         </div>
