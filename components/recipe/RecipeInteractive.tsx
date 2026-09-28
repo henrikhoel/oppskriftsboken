@@ -860,6 +860,13 @@ export function RecipeInteractive({
           cookingTimeline={cookingTimeline}
           onClose={() => setCookModeOpen(false)}
           lang={lang}
+          // (29.09.2026, Henrik: "når man er inne i cook mode via en
+          // oppskrift etter man har valgt å ikke vise tutorialen igjen,
+          // bør det være en liten knapp for å få den opp igjen der også
+          // ... man kan jo angre liksom") – viser tutorial-varianten på
+          // nytt (samme demo-omvisning som ved "Start matlaging" første
+          // gang), IKKE en ny/annen forklaring.
+          onShowTutorial={() => setShowTutorial(true)}
         />
       )}
     </>

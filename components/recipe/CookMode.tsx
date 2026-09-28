@@ -17,6 +17,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ClockIcon,
+  HelpCircleIcon,
   MenuIcon,
   MicIcon,
   MicOffIcon,
@@ -76,6 +77,21 @@ interface CookModeProps {
    * oppførselen helt uendret fra før.
    */
   forcedStepId?: string | null;
+  /**
+   * (29.09.2026) Henrik, etter at Cook Mode-tutorialen fikk en "ikke vis
+   * igjen"-avkrysning: "når man er inne i cook mode via en oppskrift etter
+   * man har valgt å ikke vise tutorialen igjen, bør det være en liten
+   * knapp for å få den opp igjen der også? ... man kan jo angre liksom."
+   * Udefinert i vanlig bruk (og alltid i selve tutorial-visningen – å vise
+   * "vis tutorial"-knappen INNI tutorialen ville jo vært meningsløst) –
+   * kun satt av RecipeInteractive.tsx sin ekte (ikke-tutorial) CookMode-
+   * rendring. Se filheaderen i CookModeTutorial.tsx for hvorfor dette må
+   * være en TILBAKE-VEI til tutorial-varianten i stedet for et eget,
+   * duplisert tutorial-UI her. Bevisst en LITEN, visuelt tilbaketrukket
+   * knapp (se render-koden under) – dette er en sjelden brukt "angre"-vei,
+   * ikke en primær handling på linje med ingredienser/alle steg/timere.
+   */
+  onShowTutorial?: () => void;
 }
 
 export function CookMode({
@@ -88,6 +104,7 @@ export function CookMode({
   cookingTimeline,
   headerExtra,
   forcedStepId,
+  onShowTutorial,
 }: CookModeProps) {
   const { state, toggleIngredient, setCurrentStepIndex } = useCookModeState(recipeId);
   const {
@@ -414,6 +431,21 @@ export function CookMode({
             )}
           >
             {voiceListening ? <MicIcon className="h-5 w-5" /> : <MicOffIcon className="h-5 w-5" />}
+          </button>
+        )}
+        {onShowTutorial && (
+          // Bevisst LITEN og visuelt tilbaketrukket (se doc-kommentaren på
+          // onShowTutorial over) – ingen sirkel/kant som de andre knappene
+          // i denne raden, kun et dempet symbol. h-9 w-9 (ikke h-8/h-7) for
+          // å beholde en grei trykkflate på mobil, selve ikonet er likevel
+          // synlig mindre (h-4 w-4 mot h-5 w-5 på resten).
+          <button
+            type="button"
+            onClick={onShowTutorial}
+            aria-label={t(lang, "cookMode.showTutorialAria")}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink/40 transition-colors hover:bg-ink/10 hover:text-clay-dark"
+          >
+            <HelpCircleIcon className="h-4 w-4" />
           </button>
         )}
       </header>

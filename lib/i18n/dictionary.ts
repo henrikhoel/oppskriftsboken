@@ -658,6 +658,9 @@ const DICT = {
   "cookMode.dialogAria": { no: "Cook Mode: {title}", en: "Cook Mode: {title}" },
   "cookMode.voiceStartAria": { no: "Skru på talestyring", en: "Turn on voice control" },
   "cookMode.voiceStopAria": { no: "Skru av talestyring", en: "Turn off voice control" },
+  // (29.09.2026) Den lille "vis tutorial igjen"-knappen i CookMode.tsx sin
+  // header, se onShowTutorial-kommentaren der.
+  "cookMode.showTutorialAria": { no: "Vis Cook Mode-veiledningen igjen", en: "Show the Cook Mode guide again" },
   "cookMode.voiceListening": {
     no: "Lytter … si «neste», «tilbake», «gjenta» eller «ferdig»",
     en: "Listening … say “next”, “back”, “repeat” or “done”",
