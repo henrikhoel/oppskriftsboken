@@ -387,7 +387,13 @@ export function CookModeTutorialOverlay({
         aria-label={t(lang, step.titleKey)}
         className={clsx(
           "pointer-events-none fixed left-1/2 z-[81] -translate-x-1/2 px-4",
-          isFraming ? "w-full max-w-xl" : "w-[calc(100%-2rem)] max-w-[280px]",
+          // (28.09.2026, Henrik: "gjør tutorial-boksen ca. 10–15 % større...
+          // bare litt mer størrelse og luft") – maks-breddene og kortenes
+          // egen ytre polstring (px-9/py-10/sm:px-16/sm:py-12 og p-[18px]
+          // under) er skalert ~11–14 % opp fra de opprinnelige verdiene.
+          // Selve INNHOLDET (tekststørrelser og avstanden mellom elementene
+          // inni kortet) er bevisst urørt, slik Henrik ba om.
+          isFraming ? "w-full max-w-[40rem]" : "w-[calc(100%-2rem)] max-w-[315px]",
           boxPosition === "bottom" ? "bottom-8 sm:bottom-12" : "top-1/2 -translate-y-1/2",
         )}
       >
@@ -395,7 +401,7 @@ export function CookModeTutorialOverlay({
           // Bred, lav "editorial" flate for intro/avslutning – eyebrow +
           // serif-overskrift + undertekst + notis, med god horisontal luft
           // i stedet for den tidligere, nesten kvadratiske modal-boksen.
-          <div className="pointer-events-auto rounded-2xl border border-clay/15 bg-cream px-8 py-9 text-center shadow-card-hover sm:px-14 sm:py-11">
+          <div className="pointer-events-auto rounded-2xl border border-clay/15 bg-cream px-9 py-10 text-center shadow-card-hover sm:px-16 sm:py-12">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
               {t(lang, "home.cookMode.eyebrow")}
             </p>
@@ -448,7 +454,7 @@ export function CookModeTutorialOverlay({
           // Kompakt variant for de faktiske, pekt-ut stegene – selve
           // Cook Mode-elementet (ringen) er hovedpersonen her, boblen skal
           // ikke konkurrere med den om oppmerksomheten.
-          <div className="pointer-events-auto rounded-2xl border border-clay/15 bg-cream p-4 text-center shadow-card-hover">
+          <div className="pointer-events-auto rounded-2xl border border-clay/15 bg-cream p-[18px] text-center shadow-card-hover">
             <p className="font-serif text-base leading-snug text-ink">{t(lang, step.titleKey)}</p>
             <p className="mt-1.5 text-xs text-ink-soft">{t(lang, step.bodyKey)}</p>
 
