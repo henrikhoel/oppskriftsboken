@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CookMode } from "@/components/recipe/CookMode";
 import { CookModeTutorialOverlay } from "@/components/cook-mode-tutorial/CookModeTutorialOverlay";
 import { getCookModeTutorialRecipe } from "@/lib/cook-mode-tutorial/demo-recipe";
-import { markCookModeTutorialCompleted } from "@/lib/actions/cook-mode-tutorial";
+import { setCookModeTutorialCompleted } from "@/lib/actions/cook-mode-tutorial";
 import type { Lang } from "@/lib/i18n";
 
 /**
@@ -62,6 +62,8 @@ export function CookModeTutorial({
   mode = "demo",
   onExitCookMode,
   onStartCooking,
+  initialDontShowAgain = false,
+  onDontShowAgainChange,
 }: {
   lang: Lang;
   mode?: "demo" | "recipe";
@@ -69,11 +71,41 @@ export function CookModeTutorial({
   onExitCookMode?: () => void;
   /** Kun i bruk når mode="recipe" – se filheaderen over. */
   onStartCooking?: () => void;
+  /**
+   * (29.09.2026, Henrik, etter å ha prøvd den nye "vis tutorial igjen"-
+   * knappen i CookMode.tsx sin header: "det er forvirrende at det står
+   * 'ikke vis denne veiledningen igjen', for da begynner man å lure på om
+   * den glemmer at man har huket av på det fordi man trykker på symbolet")
+   * – avkrysningen startet ALLTID uhuket ved hver ny visning, selv for en
+   * bruker som allerede HAR huket av fra før (profiles.cook_mode_
+   * tutorial_completed = true) og bare åpner tutorialen på nytt for å se
+   * den, uten noen intensjon om å endre valget sitt. Boksen skal i stedet
+   * gjenspeile det FAKTISKE, allerede lagrede valget med én gang – satt av
+   * RecipeInteractive.tsx til samme (lokalt speilede, se
+   * onDontShowAgainChange under) `hasCompletedCookModeTutorial`-verdi som
+   * styrer om tutorialen vises automatisk i utgangspunktet. Uendret
+   * (false) i mode="demo", der avkrysningen uansett ikke finnes.
+   */
+  initialDontShowAgain?: boolean;
+  /**
+   * (29.09.2026, samme tilbakemelding som over: "man kan jo angre
+   * liksom") – siden boksen nå åpnes FORHÅNDSHUKET for en bruker som
+   * allerede har valgt "ikke vis igjen", må den også kunne HUKES AV igjen
+   * med faktisk effekt, ikke bare fremstå som avkrysningsbar. Kalt med
+   * siste `dontShowAgain`-verdi idet tutorialen avsluttes (uansett hvilken
+   * av de to avslutningsveiene, se filheaderen), slik at
+   * RecipeInteractive.tsx kan oppdatere sin egen speilede state med én
+   * gang – ellers ville en ny åpning via CookMode sin "?"-knapp, SENERE i
+   * samme sidevisning, vist en utdatert (opprinnelig innlastet) verdi i
+   * stedet for det brukeren nettopp faktisk valgte. Kun i bruk i
+   * mode="recipe".
+   */
+  onDontShowAgainChange?: (value: boolean) => void;
 }) {
   const router = useRouter();
   const recipe = getCookModeTutorialRecipe(lang);
   const [forcedStepId, setForcedStepId] = useState<string | null>(null);
-  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(initialDontShowAgain);
 
   function goHome() {
     router.push("/");
@@ -83,26 +115,28 @@ export function CookModeTutorial({
     router.push("/oppskrifter");
   }
 
-  async function persistDontShowAgainIfChecked() {
-    if (mode !== "recipe" || !dontShowAgain) return;
+  async function syncDontShowAgain() {
+    if (mode !== "recipe") return;
+    onDontShowAgainChange?.(dontShowAgain);
+    if (dontShowAgain === initialDontShowAgain) return; // urørt av brukeren, ingenting å skrive
     try {
-      await markCookModeTutorialCompleted();
+      await setCookModeTutorialCompleted(dontShowAgain);
     } catch (error) {
       // Stille feil, bevisst: brukeren skal uansett komme videre til
-      // matlagingen selv om selve LAGRINGEN av preferansen feiler – i
-      // verste fall dukker tutorialen opp igjen neste gang, ikke noe som
-      // bør blokkere at man kommer i gang med retten nå.
-      console.error("Kunne ikke lagre 'ikke vis Cook Mode-tutorialen igjen':", error);
+      // matlagingen (eller ut av Cook Mode) selv om selve LAGRINGEN av
+      // preferansen feiler – i verste fall er valget ikke husket til neste
+      // gang, ikke noe som bør blokkere det man faktisk holder på med nå.
+      console.error("Kunne ikke lagre Cook Mode-tutorial-preferansen:", error);
     }
   }
 
   async function handleStartCooking() {
-    await persistDontShowAgainIfChecked();
+    await syncDontShowAgain();
     onStartCooking?.();
   }
 
   async function handleExitCookMode() {
-    await persistDontShowAgainIfChecked();
+    await syncDontShowAgain();
     onExitCookMode?.();
   }
 

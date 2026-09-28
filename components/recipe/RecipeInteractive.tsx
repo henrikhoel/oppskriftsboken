@@ -83,6 +83,11 @@ export function RecipeInteractive({
    * INNLEDENDE valget av showTutorial under (lest én gang ved montering);
    * selve profil-lagringen (når brukeren huker av "ikke vis igjen") skjer
    * inne i CookModeTutorial selv. */
+  /** (29.09.2026) Se initialDontShowAgain/onDontShowAgainChange-
+   * kommentarene på CookModeTutorial.tsx – denne rå prop-verdien brukes
+   * bare til å SETTE STARTVERDIEN på `tutorialCompleted` under (lest én
+   * gang ved montering); selve profil-lagringen skjer inne i
+   * CookModeTutorial. */
   hasCompletedCookModeTutorial: boolean;
 }) {
   const [servings, setServings] = useState(recipe.servings);
@@ -102,6 +107,15 @@ export function RecipeInteractive({
   // varianten om brukeren lukker og åpner Cook Mode på nytt SENERE i
   // samme sidevisning uten å ha huket av "ikke vis igjen".
   const [showTutorial, setShowTutorial] = useState(!hasCompletedCookModeTutorial);
+  // (29.09.2026, Henrik: "man kan jo angre liksom") – speiler den siste
+  // KJENTE "ikke vis igjen"-avgjørelsen for resten av denne sidevisningen.
+  // Starter fra den server-lagrede verdien, men oppdateres UMIDDELBART via
+  // CookModeTutorial sin onDontShowAgainChange når brukeren faktisk endrer
+  // avkrysningen – slik at et nytt besøk i tutorialen i SAMME sidevisning
+  // (via CookMode sin "?"-knapp) viser riktig forhåndshuket/uhuket
+  // tilstand med én gang, ikke bare den opprinnelige, potensielt utdaterte
+  // verdien fra selve sidelastingen.
+  const [tutorialCompleted, setTutorialCompleted] = useState(hasCompletedCookModeTutorial);
   const [justAdded, setJustAdded] = useState(false);
   // Løftet opp fra CookingTimelinePanel slik at samme beregnede tidspunkt
   // også kan vises inline under hvert steg i fremgangsmåten under, ikke
@@ -849,6 +863,14 @@ export function RecipeInteractive({
           // trykker "Start matlaging" i SAMME sidevisning.
           onExitCookMode={() => setCookModeOpen(false)}
           onStartCooking={() => setShowTutorial(false)}
+          // (29.09.2026) Se de to nye kommentarene på tutorialCompleted-
+          // state over: avkrysningen starter forhåndshuket/uhuket ut fra
+          // det SISTE kjente valget i denne sidevisningen, og et endret
+          // valg speiles umiddelbart tilbake hit – slik virker "angre"
+          // faktisk begge veier innenfor samme sidevisning, ikke bare ved
+          // første åpning.
+          initialDontShowAgain={tutorialCompleted}
+          onDontShowAgainChange={setTutorialCompleted}
         />
       )}
       {cookModeOpen && !showTutorial && (
