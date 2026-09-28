@@ -102,12 +102,24 @@ export async function Header() {
             (allerede `flex-1`/`min-w-0` via SearchBar) som krymper når
             plassen blir trang, ikke navigasjonsteksten som brekker. */}
         <nav aria-label={t(lang, "nav.mainNav")} className="ml-auto flex items-center gap-1 sm:gap-2">
+          {/* Rekkefølge (28.09.2026, Henrik): Oppskrifter → Ukesmeny →
+              I kjøleskapet → Guider → I sesong → Favoritter. "I sesong" er
+              fortsatt lg-only (se egen kommentar ved den lenken under) – de
+              tre først-viste md:flex-lenkene over den er dermed Oppskrifter,
+              Ukesmeny og I kjøleskapet, ikke fire som før omrokkeringen. */}
           <Link
             href="/oppskrifter"
             className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
           >
             <BookIcon className="h-4 w-4" />
             {t(lang, "nav.recipes")}
+          </Link>
+          <Link
+            href="/ukesmeny"
+            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
+          >
+            <CalendarIcon className="h-4 w-4" />
+            {t(lang, "nav.weeklyMenu")}
           </Link>
           <Link
             href="/hva-kan-jeg-lage"
@@ -123,21 +135,7 @@ export async function Header() {
             <HelpCircleIcon className="h-4 w-4" />
             {t(lang, "nav.guidesShort")}
           </Link>
-          <Link
-            href="/favoritter"
-            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
-          >
-            <HeartIcon className="h-4 w-4" />
-            {t(lang, "nav.favorites")}
-          </Link>
-          <Link
-            href="/ukesmeny"
-            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
-          >
-            <CalendarIcon className="h-4 w-4" />
-            {t(lang, "nav.weeklyMenu")}
-          </Link>
-          {/* Kun fra lg og opp (ikke md, som de fire lenkene over) – "Hva
+          {/* Kun fra lg og opp (ikke md, som de tre lenkene over) – "Hva
               skal vi spise?"-lenken som sto her ved siden av er fjernet
               26.09.2026 (hele funksjonen fjernet, se
               lib/actions/what-to-eat.ts sin git-historikk), så dette er nå
@@ -149,6 +147,13 @@ export async function Header() {
           >
             <LeafIcon className="h-4 w-4" />
             {t(lang, "nav.season")}
+          </Link>
+          <Link
+            href="/favoritter"
+            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
+          >
+            <HeartIcon className="h-4 w-4" />
+            {t(lang, "nav.favorites")}
           </Link>
           <Link
             href="/oppskrifter"
