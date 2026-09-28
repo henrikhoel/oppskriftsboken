@@ -164,12 +164,20 @@ export function CookModeTutorialOverlay({
        * filheaderen. pointer-events-none slik at Lag A under fortsatt tar
        * imot klikk overalt, også over selve den lyssatte knappen (med
        * vilje: et trykk der skal gå videre i tutorialen, ikke trigge den
-       * ekte knappen bak). */}
+       * ekte knappen bak).
+       *
+       * Ringen får en myk, gjentakende puls (.cookmode-tutorial-pulse, se
+       * app/globals.css) i stedet for en pil som skulle pekt fra boblen til
+       * målet – vurdert og bevisst droppet 28.09.2026 (for risikabelt å
+       * treffe geometrisk pent på tvers av 8 svært ulike mål-former uten å
+       * kunne se resultatet visuelt selv, se globals.css sin kommentar for
+       * hele resonnementet). Boks-skyggen selv styres av CSS-animasjonen,
+       * ikke av inline style her – kun posisjon/størrelse/fasong er inline. */}
       <div
         aria-hidden="true"
         className={clsx(
-          "pointer-events-none fixed z-[80] transition-all duration-300 ease-out",
-          !rect && "inset-0 bg-ink/70",
+          "pointer-events-none fixed z-[80] transition-[top,left,width,height] duration-300 ease-out",
+          rect ? "cookmode-tutorial-pulse" : "inset-0 bg-ink/70",
         )}
         style={
           rect
@@ -179,7 +187,6 @@ export function CookModeTutorialOverlay({
                 width: rect.width + padding * 2,
                 height: rect.height + padding * 2,
                 borderRadius: step.shape === "circle" ? 9999 : 16,
-                boxShadow: "0 0 0 2px var(--color-clay), 0 0 0 9999px rgba(11,11,10,0.72)",
               }
             : undefined
         }

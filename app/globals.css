@@ -139,6 +139,38 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* (28.09.2026) CookModeTutorialOverlay.tsx sin gull-ring rundt hvert
+   * pekt-ut Cook Mode-element – Henrik prøvde først et bevisst droppet
+   * forslag om en beregnet, håndtegnet-aktig pil fra forklaringsboblen til
+   * målet, men den måtte gitt god geometri på tvers av 8 svært ulike
+   * mål-former (en liten sirkel oppe til venstre, en full-bredde stolpe
+   * nederst, ikoner klynget oppe til høyre), og var for risikabelt å treffe
+   * pent på uten å kunne se resultatet visuelt selv. En myk, jevn puls på
+   * selve ringen løser "jeg slet med å finne denne" like påfallende, men
+   * uten den geometriske risikoen – fungerer identisk uansett hvor på
+   * skjermen eller hvilken form målet har. Kun ring-tykkelsen/gløden
+   * pulserer (2px -> 4px + et mykt glødelag) – selve "hullet" i det
+   * nedtonede laget (9999px-spredningen, se CookModeTutorialOverlay.tsx)
+   * holder seg i ro, for å unngå at utsparingen selv hopper i størrelse. */
+  .cookmode-tutorial-pulse {
+    animation: cookmode-tutorial-pulse 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes cookmode-tutorial-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--color-clay),
+      0 0 0 9999px rgba(11, 11, 10, 0.72);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px var(--color-clay),
+      0 0 16px 3px var(--color-clay-dark),
+      0 0 0 9999px rgba(11, 11, 10, 0.72);
+  }
 }
 
 /* Rundere, mer sjenerøs sidemarg for de utskriftsvennlige menyvisningene
