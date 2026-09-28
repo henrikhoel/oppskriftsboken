@@ -96,7 +96,17 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
-  const { style, recipeIds } = menu;
+  // Forsvar mot GAMMEL v1-lagringsform (før 30.09.2026 lå kun en ren
+  // string[] med fem oppskrift-id-er under denne nøkkelen, ikke
+  // { style, recipeIds }) – en besøkende som testet v1 FØR denne
+  // utvidelsen har fortsatt den gamle formen liggende i nettleseren sin.
+  // Standardverdier på selve destruktureringen (ikke kun i
+  // useLocalStorage sin egen initialValue, som kun brukes FØR noe i det
+  // hele tatt er lagret) gjør at ".length" o.l. under aldri krasjer på et
+  // objekt som mangler feltene – under-effekten (storedIsValid === false,
+  // siden recipeIds.length da er 0) regenererer automatisk en gyldig uke
+  // med det samme, helt stille.
+  const { style = VARIED_CHOICE, recipeIds = [] } = menu ?? EMPTY_MENU;
 
   const pool = useMemo(
     () =>
