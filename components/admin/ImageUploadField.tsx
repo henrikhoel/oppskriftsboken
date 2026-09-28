@@ -91,7 +91,12 @@ export function ImageUploadField({
       <div className="flex items-start gap-4">
         <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-line bg-cream-dark">
           {value?.url ? (
-            <Image src={value.url} alt="" fill sizes="112px" className="object-cover" />
+            // (29.09.2026, Henrik: "hopper over de som faktisk ikke trenger
+            // responsiv skalering") – fast 112px admin-forhåndsvisning av
+            // bildet man nettopp lastet opp/genererte, ikke et innholdsbilde
+            // besøkende ser. unoptimized sparer Vercels bilde-
+            // transformasjonskvote (se next.config.ts sin kommentar).
+            <Image src={value.url} alt="" fill unoptimized sizes="112px" className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-ink-faint">
               <ImageIcon className="h-6 w-6" />

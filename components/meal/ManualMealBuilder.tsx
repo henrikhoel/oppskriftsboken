@@ -391,10 +391,16 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
               <div key={recipe.id} className="flex items-center gap-3 rounded-lg border border-line bg-paper px-3 py-2">
                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-cream-dark">
                   {recipe.heroImageUrl && (
+                    // (29.09.2026, Henrik: "hopper over de som faktisk ikke
+                    // trenger responsiv skalering") – fast 48px miniatyr i
+                    // søkeresultatene, kun til gjenkjenning. unoptimized
+                    // sparer Vercels bilde-transformasjonskvote (se
+                    // next.config.ts sin kommentar om 5000/mnd-kvoten).
                     <Image
                       src={recipe.heroImageUrl}
                       alt=""
                       fill
+                      unoptimized
                       sizes="48px"
                       className="object-cover"
                     />

@@ -56,10 +56,15 @@ export function AdminRecipeRow({ recipe }: { recipe: RecipeSummary }) {
         className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream-dark"
       >
         {recipe.heroImageUrl && (
+          // (29.09.2026, Henrik: "hopper over de som faktisk ikke trenger
+          // responsiv skalering") – fast 56px admin-listeminiatyr, kun til
+          // gjenkjenning. unoptimized dropper Vercels bilde-transformasjon
+          // (se next.config.ts sin kommentar om 5000/mnd-kvoten).
           <Image
             src={recipe.heroImageUrl}
             alt=""
             fill
+            unoptimized
             sizes="56px"
             className="object-cover transition-transform duration-300 ease-out group-hover:scale-110"
           />

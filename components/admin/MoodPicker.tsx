@@ -39,9 +39,16 @@ const MOOD_ICONS = {
 } as const;
 
 function Thumb({ recipe }: { recipe: RecipeSummary }) {
+  // (29.09.2026, Henrik: "hopper over de som faktisk ikke trenger responsiv
+  // skalering") – fast 48px admin-miniatyr, kun til gjenkjenning i en liste.
+  // unoptimized dropper Vercels bilde-transformasjon (se next.config.ts sin
+  // kommentar om 5000/mnd-kvoten) i stedet for å generere flere
+  // bredde-varianter av samme bilde for et 48px ikon.
   return (
     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-cream-dark">
-      {recipe.heroImageUrl && <Image src={recipe.heroImageUrl} alt="" fill sizes="48px" className="object-cover" />}
+      {recipe.heroImageUrl && (
+        <Image src={recipe.heroImageUrl} alt="" fill unoptimized sizes="48px" className="object-cover" />
+      )}
     </div>
   );
 }

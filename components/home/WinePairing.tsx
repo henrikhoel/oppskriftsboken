@@ -128,7 +128,11 @@ function DishPicker({ lang, onPick }: { lang: Lang; onPick: (recipe: SearchableR
                   >
                     <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-cream/10">
                       {r.heroImageUrl && (
-                        <Image src={r.heroImageUrl} alt="" fill sizes="44px" className="object-cover" />
+                        // (29.09.2026, Henrik: "hopper over de som faktisk ikke trenger responsiv
+                        // skalering") – liten, fast 44px miniatyr i søkeresultatlisten, kun til
+                        // gjenkjenning. unoptimized dropper Vercels bilde-transformasjon (se
+                        // next.config.ts sin kommentar om 5000/mnd-kvoten).
+                        <Image src={r.heroImageUrl} alt="" fill unoptimized sizes="44px" className="object-cover" />
                       )}
                     </div>
                     <span className="min-w-0 flex-1 truncate text-sm text-cream">{localizedTitle(r, lang)}</span>
@@ -271,7 +275,8 @@ function FoodToWine({ lang, isLoggedIn }: { lang: Lang; isLoggedIn: boolean }) {
       <div className="flex items-center gap-3">
         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream-dark">
           {selected.heroImageUrl && (
-            <Image src={selected.heroImageUrl} alt="" fill sizes="56px" className="object-cover" />
+            // Samme begrunnelse som 44px-miniatyren over – fast 56px, kun gjenkjenning.
+            <Image src={selected.heroImageUrl} alt="" fill unoptimized sizes="56px" className="object-cover" />
           )}
         </div>
         <div className="min-w-0">

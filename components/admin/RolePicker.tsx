@@ -45,9 +45,13 @@ const ROLE_ICONS = {
 } as const;
 
 function Thumb({ recipe }: { recipe: RecipeSummary }) {
+  // Samme begrunnelse som Thumb i MoodPicker.tsx – fast 48px admin-miniatyr,
+  // kun til gjenkjenning; unoptimized sparer Vercels bilde-transformasjonskvote.
   return (
     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-cream-dark">
-      {recipe.heroImageUrl && <Image src={recipe.heroImageUrl} alt="" fill sizes="48px" className="object-cover" />}
+      {recipe.heroImageUrl && (
+        <Image src={recipe.heroImageUrl} alt="" fill unoptimized sizes="48px" className="object-cover" />
+      )}
     </div>
   );
 }
