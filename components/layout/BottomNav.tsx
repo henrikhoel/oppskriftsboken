@@ -64,8 +64,24 @@ export function BottomNav({ lang }: { lang: Lang }) {
        * pragmatiske svaret (samme løsning som er vanlig i native apper).
        * Henrik, 27.09.2026, med skjermbilde: "telefonen er rund i kantene
        * og kutter derfor ganske mye av den linja. feks så kutter den
-       * omtrent litt av 'g'en i 'I sesong'." */}
-      <ul className="grid grid-cols-6 px-1.5 sm:px-3">
+       * omtrent litt av 'g'en i 'I sesong'."
+       *
+       * REGRESJON OG RETTET (28.09.2026) – da Ukesmeny ble lagt til (grid-
+       * cols-5 → 6, se lenger opp), ble denne px-3-en midlertidig satt ned
+       * til px-1.5 under sm for å gi de seks kolonnene mer bredde. Det
+       * fungerte fint i vanlig nettleser (Henrik: "det ser veldig bra ut i
+       * nettleseren nå"), men gjeninnførte akkurat 27.09-bugen i den
+       * hjemme-skjerm-installerte PWA-en ("appen"): "den kutter litt av
+       * 'hjem' og 'i sesong' fordi skjermen er buet [...] det skjer kun i
+       * appen fordi linja er helt nede på skjermen, det er den ikke i
+       * nettleseren" – i en installert PWA (display: standalone) er det
+       * ingen Safari-kant som demper mot skjermens avrundede hjørner slik
+       * det er i en vanlig nettleserfane, så den samme rette px-3-marginen
+       * som opprinnelig løste dette trengs igjen. Satt tilbake til fast
+       * px-3 (droppet sm-reduksjonen) – nav.pantryShort (se over) frigjorde
+       * nok bredde til at seks kolonner uansett har plass på én linje med
+       * full px-3, se skjermbildet fra vanlig nettleser. */}
+      <ul className="grid grid-cols-6 px-3">
         {NAV_ITEMS.map(({ href, labelKey, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
