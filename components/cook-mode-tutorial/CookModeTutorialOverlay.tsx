@@ -24,22 +24,21 @@ interface TutorialStep {
    * `optional` slik at steget hoppes automatisk over når elementet rett og
    * slett ikke finnes i DOM-en, i stedet for å stå fast og peke på tomrom. */
   optional?: boolean;
-  /** (28.09.2026, redesign-runde 2, justert samme dag) Kun for
-   * "footer"-steget: tegn EGNE, mindre gull-highlights rundt disse
+  /** (28.09.2026, redesign-runde 2, forenklet igjen samme dag – se
+   * RingRect sin doc-kommentar for hele historikken) Kun for
+   * "footer"-steget: tegn EGNE, mindre gull-ringer TETT rundt disse to
    * elementene i stedet for automatisk én ring som dekker HELE
-   * `target`-elementet. Henrik ville fjerne "den lange gule highlight-
-   * streken" som før lå rundt hele navigasjonsområdet: Forrige (ikke
-   * gullfylt selv) får en ring UTENFOR knappen som pulserer akkurat som
-   * ringene ellers i tutorialen (variant "ring", .cookmode-tutorial-pulse i
-   * app/globals.css), mens Neste (allerede helt gullfylt – en ring rundt
-   * DEN så ut som to nøstede piller, se skjermbilde fra Henrik 28.09.2026)
-   * i stedet får en ren glød direkte på knappens egne omriss, uten noen
-   * synlig ramme (variant "glow", .cookmode-tutorial-button-glow) – det er
-   * selve knappen som "puster", ikke en ring rundt den. `target` over
-   * brukes fortsatt til selve blur-utsparingen (begge knappene skal
-   * uansett være skarpe), bare den synlige highlighten erstattes når dette
-   * feltet er satt. */
-  ringTargets?: { target: string; variant: "ring" | "glow" }[];
+   * `target`-elementet (Henrik ville fjerne "den lange gule highlight-
+   * streken" som før lå rundt hele navigasjonsområdet). Etter flere
+   * mislykkede forsøk på å gi Forrige og Neste ULIK behandling (stille-
+   * stående vs. pulserende, ring vs. ren glød på selve knappen – alle
+   * versjoner endte opp asynkrone på en eller annen måte) landet Henrik på
+   * det enkleste: BEGGE får nøyaktig samme, tette, pulserende ring – ingen
+   * forskjell i stil i det hele tatt, kun to like ringer rundt to
+   * forskjellige knapper. `target` over brukes fortsatt til selve
+   * blur-utsparingen (begge knappene skal uansett være skarpe), bare den
+   * synlige ringen erstattes når dette feltet er satt. */
+  ringTargets?: { target: string }[];
   /** (28.09.2026, redesign-runde 2) Steg-id fra demo-oppskriften
    * (lib/cook-mode-tutorial/demo-recipe.ts) som CookMode.tsx TVINGES til å
    * vise mens dette tutorial-steget er aktivt (se `onForcedStepChange`
@@ -96,10 +95,7 @@ const STEPS: TutorialStep[] = [
     shape: "box",
     titleKey: "cookModeTutorial.navTitle",
     bodyKey: "cookModeTutorial.navBody",
-    ringTargets: [
-      { target: "footer-prev", variant: "ring" },
-      { target: "footer-next", variant: "glow" },
-    ],
+    ringTargets: [{ target: "footer-prev" }, { target: "footer-next" }],
     forcedRecipeStepId: COOK_MODE_TUTORIAL_MIDDLE_STEP_ID,
   },
   { target: null, shape: "box", titleKey: "cookModeTutorial.outroTitle", bodyKey: "cookModeTutorial.outroBody" },
@@ -114,13 +110,15 @@ interface SpotlightRect {
 
 interface RingRect extends SpotlightRect {
   shape: "circle" | "box";
-  /** "ring" = utenpåliggende, pulserende ring med luft rundt elementet
-   * (standard – og "footer"-steget sin Forrige-knapp). "glow" = ingen
-   * ramme i det hele tatt, bare en pulserende glød tett inntil elementets
-   * egne kanter (0 i padding, se `pad`-beregningen under) – brukt for
-   * "footer"-steget sin allerede gullfylte Neste-knapp, der en ring rundt
-   * ville sett ut som to nøstede piller. */
-  variant: "ring" | "glow";
+  /** Luft mellom elementets egne kanter og selve ringen. Standard-stegene
+   * (ett mål om gangen) bruker en litt rundere luft (se `holePadding`-
+   * mønsteret andre steder i fila); "footer"-steget sine to samtidige
+   * ringer bruker bevisst en TRANGERE padding – Henrik, etter flere
+   * mislykkede forsøk på ulik ring/glød-behandling av Forrige og Neste
+   * (se ringTargets sin kommentar): "kjør en sirkel rundt både forrige og
+   * neste, ikke så stor som du gjorde innledningsvis, kun rundt selve
+   * boksene liksom". */
+  pad: number;
 }
 
 /** Én rundet firkant som SVG-sti, bygget fra de samme fire kommandoene
@@ -216,13 +214,13 @@ export function CookModeTutorialOverlay({
   const isFraming = step.target === null; // intro eller avslutning – bred, "editorial" kortvariant
 
   // (28.09.2026, tredje og korrekte forsøk – se `pulseDelayFor` under for
-  // selve mekanismen) Synkroniserer alle pulserende highlights
-  // (.cookmode-tutorial-pulse OG .cookmode-tutorial-button-glow, samme
-  // 1,8s syklus, se app/globals.css) med hverandre, SELV OM de faktiske
-  // DOM-elementene monteres på helt ulike tidspunkt (Forrige sin ring på
-  // "footer"-steget er typisk et GJENBRUKT element som har animert helt
-  // siden "Lukk"-steget, mens Neste sin glød er splitter nytt akkurat der
-  // – se ringTargets). To forrige forsøk feilet: (1) ingen eksplisitt
+  // selve mekanismen) Synkroniserer alle pulserende ringer
+  // (.cookmode-tutorial-pulse, samme 1,8s syklus, se app/globals.css) med
+  // hverandre, SELV OM de faktiske DOM-elementene monteres på helt ulike
+  // tidspunkt (Forrige sin ring på "footer"-steget er typisk et GJENBRUKT
+  // element som har animert helt siden "Lukk"-steget, mens Neste sin ring
+  // er splitter ny akkurat der – se ringTargets). To forrige forsøk feilet:
+  // (1) ingen eksplisitt
   // delay i det hele tatt lot hvert element starte klokken sin fra eget
   // monteringsøyeblikk; (2) én delay regnet ut og delt av ALLE elementer
   // fungerte bare tilfeldigvis når de monterte på nøyaktig samme
@@ -310,18 +308,19 @@ export function CookModeTutorialOverlay({
       setRect(primary);
 
       if (step.ringTargets && step.ringTargets.length > 0) {
-        // (rt.target-elementenes highlights er alltid "circle"-formet, se
-        // ringTargets sin doc-kommentar – bygges derfor som RingRect
-        // eksplisitt her, i stedet for en type predicate TS ikke greier å
-        // forene med den bredere "circle" | "box"-typen på RingRect.shape.)
+        // (rt.target-elementenes ringer er alltid "circle"-formet og bruker
+        // en trang padding, se ringTargets/RingRect sine doc-kommentarer –
+        // bygges derfor som RingRect eksplisitt her, i stedet for en type
+        // predicate TS ikke greier å forene med den bredere
+        // "circle" | "box"-typen på RingRect.shape.)
         const measured: RingRect[] = [];
         for (const rt of step.ringTargets) {
           const m = measure(rt.target);
-          if (m) measured.push({ ...m, shape: "circle", variant: rt.variant });
+          if (m) measured.push({ ...m, shape: "circle", pad: 3 });
         }
         setRings(measured);
       } else {
-        setRings([{ ...primary, shape: step.shape, variant: "ring" }]);
+        setRings([{ ...primary, shape: step.shape, pad: step.shape === "circle" ? 6 : 10 }]);
       }
     }
 
@@ -384,29 +383,25 @@ export function CookModeTutorialOverlay({
         style={clipPathValue ? { clipPath: clipPathValue } : undefined}
       />
 
-      {/* Lag C – de skarpe gull-highlightene rundt målet/målene, helt
-       * uavhengig av blur-laget over (de ligger OVENPÅ det, ikke bak).
-       * Vanligvis én pulserende ring med luft rundt, men "footer"-steget
-       * tegner to ulike (se `ringTargets`) – en pulserende ring UTENFOR
-       * Forrige, og en pulserende glød TETT INNTIL selve Neste-knappen
-       * (ingen padding, se `pad` under) i stedet for én lang ring rundt
-       * hele navigasjonsområdet.
+      {/* Lag C – de skarpe gull-ringene rundt målet/målene, helt uavhengig
+       * av blur-laget over (de ligger OVENPÅ det, ikke bak). Vanligvis én
+       * ring, men "footer"-steget tegner to like, trange ringer (se
+       * `ringTargets`) rundt Forrige/Neste hver for seg, i stedet for én
+       * lang ring rundt hele navigasjonsområdet.
        *
        * `ringsShouldSlide` (28.09.2026): normalt gir posisjons-transisjonen
        * under en fin glidende overgang når ringen flytter seg fra forrige
-       * steg sitt mål til det neste. På et steg med FLERE samtidige
-       * highlights (som "footer") er dette derimot feil: Forrige-ringen er
-       * som regel et GJENBRUKT element (samme DOM-node som forrige steg sin
-       * ring, se `key`) og ville dermed brukt 500ms på å GLI inn til sin
-       * plass, mens Neste sin glød er splitter ny og dukker opp momentant –
-       * de to virker da ute av takt selv om selve puls-SYKLUSEN (se
+       * steg sitt mål til det neste. På et steg med FLERE samtidige ringer
+       * (som "footer") er dette derimot feil: Forrige-ringen er som regel
+       * et GJENBRUKT element (samme DOM-node som forrige steg sin ring, se
+       * `key`) og ville dermed brukt 500ms på å GLI inn til sin plass, mens
+       * Neste sin ring er splitter ny og dukker opp momentant – de to
+       * virker da ute av takt selv om selve puls-SYKLUSEN (se
        * pulseDelayFor) faktisk er perfekt synkronisert (Henrik, 28.09.2026:
        * "det tar litt tid før forrige begynner sitt løp"). Løsning: på
        * nettopp disse flerhøydepunkt-stegene slås glidningen helt av, slik
-       * at BEGGE highlightene smetter inn på plass samtidig, øyeblikkelig –
-       * akkurat som Neste allerede gjorde. */}
+       * at BEGGE ringene smetter inn på plass samtidig, øyeblikkelig. */}
       {rings.map((ring, i) => {
-        const pad = ring.variant === "glow" ? 0 : ring.shape === "circle" ? 6 : 10;
         const ringsShouldSlide = !step.ringTargets;
         return (
           <div
@@ -419,17 +414,16 @@ export function CookModeTutorialOverlay({
               // Delte de to, kunne en position-transisjon på et element som
               // nettopp glir mellom to mål (se pulseDelayFor sin kommentar
               // over) midlertidig konkurrere med box-shadow-animasjonen.
-              "pointer-events-none fixed z-[80]",
+              "pointer-events-none fixed z-[80] cookmode-tutorial-pulse",
               ringsShouldSlide
                 ? "transition-[top,left,width,height,border-radius] duration-500 ease-out"
                 : "transition-none",
-              ring.variant === "glow" ? "cookmode-tutorial-button-glow" : "cookmode-tutorial-pulse",
             )}
             style={{
-              top: ring.top - pad,
-              left: ring.left - pad,
-              width: ring.width + pad * 2,
-              height: ring.height + pad * 2,
+              top: ring.top - ring.pad,
+              left: ring.left - ring.pad,
+              width: ring.width + ring.pad * 2,
+              height: ring.height + ring.pad * 2,
               borderRadius: ring.shape === "circle" ? 9999 : 16,
               animationDelay: `${pulseDelayFor(i)}ms`,
             }}
