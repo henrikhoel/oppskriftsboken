@@ -188,42 +188,52 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
 
   return (
     <div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="text-xs uppercase tracking-wide text-ink-faint">{t(lang, "weeklyMenu.styleHeading")}</p>
-        {/* "Se lagrede ukesmenyer" (28.09.2026) – samme plassering/stil-
-            prinsipp som "Dine lagrede menyer" ved siden av "Bygg en meny
-            selv" på /oppskrifter (recipesPage.savedMealsLink), her øverst
-            til høyre for stil-raden siden siden ikke har noen annen
-            fast handlings-rad før en uke er generert. */}
+      <p className="text-xs uppercase tracking-wide text-ink-faint">{t(lang, "weeklyMenu.styleHeading")}</p>
+      {/* "Se lagrede ukesmenyer" (28.09.2026) – FEILRETTET rett etter
+          første forsøk: lå opprinnelig helt til høyre i en justify-between-
+          rad ved siden av selve stil-overskriften, som i praksis satte den
+          rett oppå råvare-komposisjonen øverst til høyre i bakgrunnsbildet
+          (public/images/weekly-menu.jpg) – nesten uleselig lys, tynn tekst
+          mot et travelt fotografi der (Henrik, med skjermbilde: "hvor er
+          'lagrede ukesmenyer'?" – fant den rett og slett ikke). Flyttet ned
+          til å stå i SAMME rad som stil-pillene under i stedet (venstre-
+          justert, ikke justify-between) – akkurat den sonen av bildet er
+          bevisst mørk/tom (se objectPosition-justeringen i
+          app/ukesmeny/page.tsx, 28.09.2026, "FLYTT BILDET LENGER TIL
+          HØYRE"), som allerede er bekreftet leselig av knappene/pillene som
+          står der. Vises uansett (ikke bare når en uke er generert), siden
+          en besøkende skal kunne hoppe rett til lagrede uker uten å måtte
+          velge stil/generere først. */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex flex-wrap gap-2">
+          {STYLE_CHOICES.map((choice) => {
+            const Icon = STYLE_ICONS[choice.id];
+            const active = choice.id === style;
+            return (
+              <button
+                key={choice.id}
+                type="button"
+                onClick={() => handlePickStyle(choice.id)}
+                aria-pressed={active}
+                className={clsx(
+                  "flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                  active
+                    ? "border-clay/50 bg-clay/10 text-clay-dark"
+                    : "border-line text-ink-soft hover:border-line-strong hover:text-ink",
+                )}
+              >
+                {Icon && <Icon className="h-3.5 w-3.5" />}
+                {t(lang, choice.labelKey)}
+              </button>
+            );
+          })}
+        </div>
         <Link
           href="/ukesmeny/lagrede"
           className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
         >
           {t(lang, "weeklyMenu.savedMenusLink")}
         </Link>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {STYLE_CHOICES.map((choice) => {
-          const Icon = STYLE_ICONS[choice.id];
-          const active = choice.id === style;
-          return (
-            <button
-              key={choice.id}
-              type="button"
-              onClick={() => handlePickStyle(choice.id)}
-              aria-pressed={active}
-              className={clsx(
-                "flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                active
-                  ? "border-clay/50 bg-clay/10 text-clay-dark"
-                  : "border-line text-ink-soft hover:border-line-strong hover:text-ink",
-              )}
-            >
-              {Icon && <Icon className="h-3.5 w-3.5" />}
-              {t(lang, choice.labelKey)}
-            </button>
-          );
-        })}
       </div>
 
       {/* TOM STARTTILSTAND – ingen retter, ingen tomme kort. Kun knappen
