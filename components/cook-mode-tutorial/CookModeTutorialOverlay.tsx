@@ -390,9 +390,24 @@ export function CookModeTutorialOverlay({
        * tegner to ulike (se `ringTargets`) – en pulserende ring UTENFOR
        * Forrige, og en pulserende glød TETT INNTIL selve Neste-knappen
        * (ingen padding, se `pad` under) i stedet for én lang ring rundt
-       * hele navigasjonsområdet. */}
+       * hele navigasjonsområdet.
+       *
+       * `ringsShouldSlide` (28.09.2026): normalt gir posisjons-transisjonen
+       * under en fin glidende overgang når ringen flytter seg fra forrige
+       * steg sitt mål til det neste. På et steg med FLERE samtidige
+       * highlights (som "footer") er dette derimot feil: Forrige-ringen er
+       * som regel et GJENBRUKT element (samme DOM-node som forrige steg sin
+       * ring, se `key`) og ville dermed brukt 500ms på å GLI inn til sin
+       * plass, mens Neste sin glød er splitter ny og dukker opp momentant –
+       * de to virker da ute av takt selv om selve puls-SYKLUSEN (se
+       * pulseDelayFor) faktisk er perfekt synkronisert (Henrik, 28.09.2026:
+       * "det tar litt tid før forrige begynner sitt løp"). Løsning: på
+       * nettopp disse flerhøydepunkt-stegene slås glidningen helt av, slik
+       * at BEGGE highlightene smetter inn på plass samtidig, øyeblikkelig –
+       * akkurat som Neste allerede gjorde. */}
       {rings.map((ring, i) => {
         const pad = ring.variant === "glow" ? 0 : ring.shape === "circle" ? 6 : 10;
+        const ringsShouldSlide = !step.ringTargets;
         return (
           <div
             key={i}
@@ -404,7 +419,10 @@ export function CookModeTutorialOverlay({
               // Delte de to, kunne en position-transisjon på et element som
               // nettopp glir mellom to mål (se pulseDelayFor sin kommentar
               // over) midlertidig konkurrere med box-shadow-animasjonen.
-              "pointer-events-none fixed z-[80] transition-[top,left,width,height,border-radius] duration-500 ease-out",
+              "pointer-events-none fixed z-[80]",
+              ringsShouldSlide
+                ? "transition-[top,left,width,height,border-radius] duration-500 ease-out"
+                : "transition-none",
               ring.variant === "glow" ? "cookmode-tutorial-button-glow" : "cookmode-tutorial-pulse",
             )}
             style={{

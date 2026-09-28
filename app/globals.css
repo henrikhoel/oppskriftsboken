@@ -182,9 +182,10 @@
   }
 }
 
-/* (28.09.2026, dempet litt – Henrik: "pulseringen er litt for intens, bare
- * skru ned bittelitt") Kanten vokser nå kun 2px -> 3px (var 2px -> 4px), og
- * gløden er både mindre spredt og svakere (12px/2px, var 16px/3px). */
+/* (28.09.2026, dempet i to omganger – Henrik: "pulseringen er litt for
+ * intens" og deretter "gløden kan skrus ned enda litt til") Kanten vokser
+ * kun 2px -> 3px, og gløden er nå både mindre spredt og svakere
+ * (8px/2px – var først 16px/3px, så 12px/2px). */
 @keyframes cookmode-tutorial-pulse {
   0%,
   100% {
@@ -195,21 +196,21 @@
   50% {
     box-shadow:
       0 0 0 3px var(--color-clay),
-      0 0 12px 2px var(--color-clay-dark);
+      0 0 8px 2px var(--color-clay-dark);
   }
 }
 
 /* Kun ÉTT box-shadow-lag her (ren glød, ingen kant-lag) – trenger derfor
  * ikke den samme "lik antall lag i alle steg"-forsiktigheten som pulsen
- * over, men følger prinsippet likevel for konsistens. Dempet litt sammen
- * med pulsen over (14px/3px, var 20px/5px). */
+ * over, men følger prinsippet likevel for konsistens. Dempet i to omganger
+ * sammen med pulsen over (10px/2px – var først 20px/5px, så 14px/3px). */
 @keyframes cookmode-tutorial-button-glow {
   0%,
   100% {
     box-shadow: 0 0 0 0 rgba(230, 195, 79, 0);
   }
   50% {
-    box-shadow: 0 0 14px 3px var(--color-clay-dark);
+    box-shadow: 0 0 10px 2px var(--color-clay-dark);
   }
 }
 
