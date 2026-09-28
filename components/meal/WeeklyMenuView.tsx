@@ -247,7 +247,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
                         />
                       )}
                     </div>
-                    <p className="mt-4 font-serif text-lg text-ink transition-colors group-hover:text-clay-dark sm:text-xl">
+                    <p className="mt-4 font-serif text-sm text-ink transition-colors group-hover:text-clay-dark sm:text-base">
                       {localizedTitle(recipe, lang)}
                     </p>
                     <p className="mt-1 text-xs text-ink-faint">{formatMinutes(recipe.totalTimeMinutes, lang)}</p>
