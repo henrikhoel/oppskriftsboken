@@ -23,3 +23,13 @@ export const WEEKLY_MENU_STYLE_DEFINITIONS = [
 ] as const;
 
 export type WeeklyMenuStyleId = (typeof WEEKLY_MENU_STYLE_DEFINITIONS)[number]["id"];
+
+// "Variert" OG den kombinerte WeeklyMenuChoice-typen flyttet hit fra
+// WeeklyMenuView.tsx (28.09.2026) – "lagre ukesmeny"/"se lagrede
+// ukesmenyer" (se lib/hooks/useSavedWeeklyMenus.ts og
+// SavedWeeklyMenusList.tsx) trenger å kjenne igjen/vise akkurat den samme
+// stil-typen som selve genereringen bruker, uten å måtte importere den fra
+// en klientkomponent (WeeklyMenuView.tsx er "use client" og eier UI-et for
+// selve pille-raden, ikke et sted andre moduler bør hente en TYPE fra).
+export const VARIED_CHOICE = "variert" as const;
+export type WeeklyMenuChoice = typeof VARIED_CHOICE | WeeklyMenuStyleId;

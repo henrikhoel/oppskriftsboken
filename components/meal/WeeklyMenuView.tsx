@@ -10,13 +10,6 @@
  * - Siden åpner alltid TOM (ingen forhåndsvalgt stil, ingen generert uke,
  *   ingen placeholder-kort) – "Lag ukesmenyen"-knappen er deaktivert til en
  *   stil er valgt, og genererer FØRST uken når man trykker på den.
- * - INGEN localStorage lenger for selve uken/stilen (v1/v1.1 lagret
- *   { style, recipeIds } i nettleseren – det ga nettopp den utilsiktede
- *   "automatisk gjenopptar forrige uke ved åpning"-oppførselen Henrik nå
- *   eksplisitt IKKE vil ha, og var samtidig kilden til en krasj-bug fra en
- *   eldre lagringsform, se git-historikken). Uken lever nå kun i React
- *   state for varigheten av besøket – enklere, og fjerner hele den
- *   feilklassen på én gang.
  * - "Bytt ut" per dag og "Lag en ny uke" (regenerer innenfor valgt stil)
  *   er uendret i sin logikk, kun i visuelt uttrykk.
  * - Dagskortene er IKKE lenger RecipeCard (som viser kategori-badges,
@@ -24,29 +17,49 @@
  *   først og fremst å kommunisere: DAG → RETT → TID." Egen, minimal
  *   markering bygget direkte her i stedet: dag-label → bilde → oppskrift
  *   (serif) → tid → bytt ut, ingen kort-boks/border/skygge rundt.
+ *
+ * AKTIV UKE I sessionStorage, IKKE lenger ren React-state (28.09.2026,
+ * se filheaderen i lib/hooks/useSessionStorage.ts for hele bakgrunnen) –
+ * Henrik: "når jeg trykker på en av oppskriftene i ukesmenyen, så er det
+ * ikke en tilbakeknapp tilbake til ukesmenyen [...] man må kunne gå
+ * tilbake til ukesmenyen". Ren React-state overlevde ikke en navigering
+ * til en oppskriftsside og tilbake (Next.js sin App Router monterer denne
+ * siden helt på nytt), så en "tilbake"-lenke ville uansett bare vist en
+ * tom side. sessionStorage løser akkurat dette (overlever navigeringen,
+ * men tømmes når fanen lukkes) UTEN å gjeninnføre v1/v1.1 sin forkastede
+ * "gjenåpner forrige ukes meny automatisk neste gang du åpner nettsiden"-
+ * oppførsel (localStorage) – se useActiveWeeklyMenu.ts for hele
+ * resonnementet, bekreftet med Henrik som en eksplisitt avveining.
+ *
+ * "LAGRE UKESMENY" + "SE LAGREDE UKESMENYER" (28.09.2026, Henrik: "jeg
+ * mener også å ha en 'lagre ukesmeny' og 'se lagrede ukesmenyer'") –
+ * speiler "Dine menyer"-mønsteret fra den manuelle/AI-baserte
+ * menybyggeren (se lib/hooks/useSavedWeeklyMenus.ts sin filheader):
+ * EKSPLISITT lagring (en egen "Lagre ukesmenyen"-knapp, ikke automatisk),
+ * ekte localStorage (til forskjell fra den AKTIVE uken over), og en egen
+ * oversiktsside (/ukesmeny/lagrede, se SavedWeeklyMenusList.tsx).
  */
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
+import { useActiveWeeklyMenu } from "@/lib/hooks/useActiveWeeklyMenu";
+import { useSavedWeeklyMenus } from "@/lib/hooks/useSavedWeeklyMenus";
 import { getMealShoppingIngredients } from "@/lib/actions/meal-shopping-list";
 import { formatMinutes, localizedTitle } from "@/lib/utils/format";
-import { ShoppingBagIcon, ClockIcon, LeafIcon, UsersIcon, SparklesIcon } from "@/components/ui/icons";
+import { ShoppingBagIcon, ClockIcon, LeafIcon, UsersIcon, SparklesIcon, BookIcon, CheckIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/Button";
 import type { SearchableRecipe } from "@/lib/utils/search";
-import { WEEKLY_MENU_STYLE_DEFINITIONS, type WeeklyMenuStyleId } from "@/lib/kitchen-intelligence/weekly-menu-styles";
+import {
+  WEEKLY_MENU_STYLE_DEFINITIONS,
+  VARIED_CHOICE,
+  type WeeklyMenuChoice,
+} from "@/lib/kitchen-intelligence/weekly-menu-styles";
 import { t, type Lang, type DictKey } from "@/lib/i18n";
 
 const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const MIN_RECIPES = DAY_KEYS.length;
-
-// "Variert" er BEVISST ikke en del av WEEKLY_MENU_STYLE_DEFINITIONS (den
-// filtrerer ikke på weekly_menu_styles i det hele tatt) – se filheaderen i
-// lib/kitchen-intelligence/weekly-menu-styles.ts. Lagt til her, kun
-// klient-side, som det femte, alltid-tilgjengelige valget i pille-raden.
-const VARIED_CHOICE = "variert" as const;
-type WeeklyMenuChoice = typeof VARIED_CHOICE | WeeklyMenuStyleId;
 
 const STYLE_CHOICES: { id: WeeklyMenuChoice; labelKey: DictKey }[] = [
   { id: VARIED_CHOICE, labelKey: "weeklyMenu.style.variert" },
@@ -75,12 +88,26 @@ function pickRandomWeek(pool: SearchableRecipe[], excludeIds: string[] = []): st
 }
 
 export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[]; lang: Lang }) {
-  const [style, setStyle] = useState<WeeklyMenuChoice | null>(null);
-  const [recipeIds, setRecipeIds] = useState<string[]>([]);
+  // Kalt "activeWeek" (ikke "active") for å unngå navnekollisjon med den
+  // lokale `active`-variabelen inne i STYLE_CHOICES-map-en lenger ned
+  // (er choice.id den VALGTE stilen) – to helt ulike ting som tilfeldigvis
+  // begge naturlig heter "active".
+  const [activeWeek, setActiveWeek] = useActiveWeeklyMenu();
+  const { style, recipeIds } = activeWeek;
   const { addFromRecipe } = useShoppingList();
+  const { saveMenu } = useSavedWeeklyMenus();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
+  // Egen, LOKAL "lagret"-indikator (ikke utledet av useSavedWeeklyMenus,
+  // til forskjell fra MealView.tsx sin `saved`, som slår opp mealId i et
+  // register) – en lagret ukesmeny får sin egen, NYE id ved hver lagring
+  // (se saveMenu i useSavedWeeklyMenus.ts), det finnes ingen stabil id for
+  // "denne aktive uken" å slå opp mot. Nullstilles i alle handlinger som
+  // endrer selve uken (samme mønster som `added` over), slik at
+  // "Lagret ✓"-meldingen ikke blir stående og lyve om en uke som faktisk
+  // er endret siden sist lagring.
+  const [savedJustNow, setSavedJustNow] = useState(false);
 
   const byId = useMemo(() => new Map(recipes.map((r) => [r.id, r])), [recipes]);
 
@@ -95,27 +122,28 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
   function handlePickStyle(next: WeeklyMenuChoice) {
     if (next === style) return;
     setAdded(false);
-    setStyle(next);
+    setSavedJustNow(false);
     const nextPool = next === VARIED_CHOICE ? recipes : recipes.filter((r) => (r.weeklyMenuStyles ?? []).includes(next));
     // Kun regenerer AUTOMATISK ved stil-bytte hvis besøkende allerede har
     // generert en uke denne økten (da forventer man at "bytt type" faktisk
     // bytter ut det man ser). Har man IKKE trykket "Lag ukesmenyen" ennå,
     // skal det fortsatt kreve et eksplisitt trykk – se filheaderen.
-    if (generated) {
-      setRecipeIds(nextPool.length >= MIN_RECIPES ? pickRandomWeek(nextPool) : []);
-    }
+    const nextRecipeIds = generated ? (nextPool.length >= MIN_RECIPES ? pickRandomWeek(nextPool) : []) : recipeIds;
+    setActiveWeek({ style: next, recipeIds: nextRecipeIds });
   }
 
   function handleGenerate() {
     if (!hasEnoughRecipes) return;
     setAdded(false);
-    setRecipeIds(pickRandomWeek(pool));
+    setSavedJustNow(false);
+    setActiveWeek({ style, recipeIds: pickRandomWeek(pool) });
   }
 
   function handleRegenerate() {
     if (!hasEnoughRecipes) return;
     setAdded(false);
-    setRecipeIds(pickRandomWeek(pool));
+    setSavedJustNow(false);
+    setActiveWeek({ style, recipeIds: pickRandomWeek(pool) });
   }
 
   function handleSwapDay(index: number) {
@@ -125,7 +153,14 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
     const nextIds = [...recipeIds];
     nextIds[index] = replacement.id;
     setAdded(false);
-    setRecipeIds(nextIds);
+    setSavedJustNow(false);
+    setActiveWeek({ style, recipeIds: nextIds });
+  }
+
+  function handleSaveMenu() {
+    if (!style || recipeIds.length === 0) return;
+    saveMenu(style, recipeIds);
+    setSavedJustNow(true);
   }
 
   async function handleAddToShoppingList() {
@@ -153,7 +188,20 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
 
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-ink-faint">{t(lang, "weeklyMenu.styleHeading")}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="text-xs uppercase tracking-wide text-ink-faint">{t(lang, "weeklyMenu.styleHeading")}</p>
+        {/* "Se lagrede ukesmenyer" (28.09.2026) – samme plassering/stil-
+            prinsipp som "Dine lagrede menyer" ved siden av "Bygg en meny
+            selv" på /oppskrifter (recipesPage.savedMealsLink), her øverst
+            til høyre for stil-raden siden siden ikke har noen annen
+            fast handlings-rad før en uke er generert. */}
+        <Link
+          href="/ukesmeny/lagrede"
+          className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+        >
+          {t(lang, "weeklyMenu.savedMenusLink")}
+        </Link>
+      </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {STYLE_CHOICES.map((choice) => {
           const Icon = STYLE_ICONS[choice.id];
@@ -211,6 +259,29 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
               </div>
             )}
 
+            {/* "Lagre ukesmenyen" (28.09.2026) – sekundær handling ved
+                siden av "Legg uka i handlelisten", samme
+                ikon+farge-mønster som MealView.tsx sin "Lagre menyen"
+                (BookIcon, text-clay, ingen understrek – fargen ER
+                signalet). `savedJustNow` nullstilles av ENHVER endring av
+                selve uken over (bytt dag/stil, ny uke), se merknaden ved
+                state-deklarasjonen. */}
+            {!savedJustNow ? (
+              <button
+                type="button"
+                onClick={handleSaveMenu}
+                className="flex items-center gap-1.5 text-sm font-medium text-clay transition-colors hover:text-clay-dark"
+              >
+                <BookIcon className="h-4 w-4" />
+                {t(lang, "weeklyMenu.save")}
+              </button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-clay">
+                <CheckIcon className="h-4 w-4" />
+                {t(lang, "weeklyMenu.savedLabel")}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleRegenerate}
@@ -234,8 +305,16 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
 
                   {/* isLoggedIn/hjerte er bevisst droppet her – se
                       filheaderen: dette skal kommunisere dag → rett → tid,
-                      ikke gjenta hele oppskriftskort-UI-et. */}
-                  <Link href={`/oppskrifter/${recipe.slug}`} className="group mt-3 block">
+                      ikke gjenta hele oppskriftskort-UI-et.
+                      ?fromWeeklyMenu=1 (28.09.2026) – samme mønster som
+                      MealView.tsx sin ?fromMealId=<id> (se filheaderen i
+                      app/oppskrifter/[slug]/page.tsx): lar oppskriftssiden
+                      vise en "Tilbake til ukesmenyen"-lenke i stedet for
+                      den generelle "Alle oppskrifter". Ukesmenyen trenger
+                      ingen id i selve param-verdien (kun én AKTIV uke om
+                      gangen, se useActiveWeeklyMenu.ts), derfor holder et
+                      enkelt flagg. */}
+                  <Link href={`/oppskrifter/${recipe.slug}?fromWeeklyMenu=1`} className="group mt-3 block">
                     <div className="relative aspect-[4/3] w-full overflow-hidden bg-cream-dark">
                       {recipe.heroImageUrl && (
                         <Image

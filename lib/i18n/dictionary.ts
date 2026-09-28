@@ -881,6 +881,11 @@ const DICT = {
   // oppskriftsside, kun når siden ble åpnet fra en meny (?fromMealId=…, se
   // MealView.tsx) – se app/oppskrifter/[slug]/page.tsx.
   "recipeDetail.backToMealLink": { no: "Tilbake til menyen", en: "Back to the menu" },
+  // (28.09.2026) Samme mønster som backToMealLink over, for ukesmenyen –
+  // Henrik: "man må kunne gå tilbake til ukesmenyen". Vises kun når siden
+  // ble åpnet fra ukesmenyen (?fromWeeklyMenu=1, se WeeklyMenuView.tsx) –
+  // se app/oppskrifter/[slug]/page.tsx.
+  "recipeDetail.backToWeeklyMenuLink": { no: "Tilbake til ukesmenyen", en: "Back to the weekly menu" },
   "recipeDetail.imagePending": { no: "Bilde kommer", en: "Image coming" },
   // (26.09.2026, gjenopplivet 27.09.2026 mot ny konto-innlogging i stedet
   // for det gamle fellespassordet) "Teaser"-visningen av en oppskrift for
@@ -1270,6 +1275,25 @@ const DICT = {
   // menybyggeren.
   "savedMealsPage.removeButton": { no: "Fjern menyen", en: "Remove menu" },
 
+  // "Se lagrede ukesmenyer" (28.09.2026) – speiler savedMealsPage.* over,
+  // se app/ukesmeny/lagrede/page.tsx og SavedWeeklyMenusList.tsx.
+  "savedWeeklyMenusPage.metaTitle": { no: "Lagrede ukesmenyer", en: "Saved weekly menus" },
+  "savedWeeklyMenusPage.heading": { no: "Lagrede ukesmenyer", en: "Saved weekly menus" },
+  "savedWeeklyMenusPage.intro": {
+    no: "Ukesmenyene du har lagret, samlet på ett sted.",
+    en: "The weekly menus you've saved, all in one place.",
+  },
+  "savedWeeklyMenusPage.empty": {
+    no: "Du har ikke lagret noen ukesmenyer ennå.",
+    en: "You haven't saved any weekly menus yet.",
+  },
+  "savedWeeklyMenusPage.noDishes": { no: "Ingen retter i denne uken lenger", en: "No dishes left in this week" },
+  "savedWeeklyMenusPage.useAgain": { no: "Bruk denne uken igjen", en: "Use this week again" },
+  // Fjerner kun fra den lagrede lista (useSavedWeeklyMenus().removeMenu) –
+  // ingen bekreftelsesdialog, samme direkte "fjern"-mønster som
+  // savedMealsPage.removeButton over.
+  "savedWeeklyMenusPage.removeButton": { no: "Fjern ukesmenyen", en: "Remove weekly menu" },
+
   // Menynivå-vin (Fase 5 – Experience, 5.6) – se
   // components/meal/MealWineSection.tsx og getMealWineRecommendation i
   // lib/actions/ai.ts. Gjenbruker de generiske "wine.vinmonopolet*"-nøklene
@@ -1360,6 +1384,13 @@ const DICT = {
   "weeklyMenu.style.litt_ekstra": { no: "Litt ekstra", en: "A little extra" },
   "weeklyMenu.swap": { no: "Bytt ut", en: "Swap" },
   "weeklyMenu.swapAria": { no: "Bytt ut retten for {day}", en: "Swap the dish for {day}" },
+  // "Lagre ukesmeny" + "Se lagrede ukesmenyer" (28.09.2026, Henrik: "jeg
+  // mener også å ha en 'lagre ukesmeny' og 'se lagrede ukesmenyer'") –
+  // speiler mealPage.saveButton/savedLabel og recipesPage.savedMealsLink,
+  // se lib/hooks/useSavedWeeklyMenus.ts for hele bakgrunnen.
+  "weeklyMenu.save": { no: "Lagre ukesmenyen", en: "Save the weekly menu" },
+  "weeklyMenu.savedLabel": { no: "Lagret", en: "Saved" },
+  "weeklyMenu.savedMenusLink": { no: "Se lagrede ukesmenyer", en: "View saved weekly menus" },
 
   // Hel-meny-timeline (Fase 5 – Experience, 5.8) – se
   // components/meal/MealTimelineSection.tsx og computeMealTimeline i

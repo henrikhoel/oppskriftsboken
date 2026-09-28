@@ -74,7 +74,7 @@ export default async function RecipePage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { slug } = await params;
-  const { fromMealId } = await searchParams;
+  const { fromMealId, fromWeeklyMenu } = await searchParams;
   const [recipe, user, lang] = await Promise.all([getRecipeBySlug(slug), getCurrentUserFast(), getLang()]);
 
   if (!recipe) notFound();
@@ -91,10 +91,27 @@ export default async function RecipePage({
   // MealSession lever kun i besøkendes egen nettleser (localStorage, se
   // filheaderen i MealView.tsx) – denne siden er fortsatt en server-
   // komponent og trenger ikke lese selve menyen, kun bygge riktig lenke.
-  const backHref = typeof fromMealId === "string" && fromMealId.trim() ? `/meny/${fromMealId}` : "/oppskrifter";
+  //
+  // (28.09.2026) Samme mønster utvidet til ukesmenyen – Henrik: "når man
+  // trykker på en av oppskriftene i ukesmenyen, så er det ikke en
+  // tilbakeknapp tilbake til ukesmenyen [...] man må kunne gå tilbake til
+  // ukesmenyen". WeeklyMenuView.tsx legger nå ved ?fromWeeklyMenu=1 på
+  // enhver lenke fra en ukesmeny-dag til en oppskrift. Til forskjell fra
+  // fromMealId trengs ingen id i selve param-verdien – det finnes kun ÉN
+  // AKTIV ukesmeny om gangen (sessionStorage, se useActiveWeeklyMenu.ts),
+  // ikke flere adresserbare menyer som /meny/<id>. fromMealId sjekkes
+  // FØRST og vinner dersom (helt usannsynlig) begge skulle være satt
+  // samtidig – vilkårlig, men konsekvent, prioritering.
+  const cameFromMeal = typeof fromMealId === "string" && fromMealId.trim().length > 0;
+  const cameFromWeeklyMenu = typeof fromWeeklyMenu === "string" && fromWeeklyMenu.trim().length > 0;
+  const backHref = cameFromMeal ? `/meny/${fromMealId}` : cameFromWeeklyMenu ? "/ukesmeny" : "/oppskrifter";
   const backLabel = t(
     lang,
-    typeof fromMealId === "string" && fromMealId.trim() ? "recipeDetail.backToMealLink" : "recipeDetail.allRecipesLink",
+    cameFromMeal
+      ? "recipeDetail.backToMealLink"
+      : cameFromWeeklyMenu
+        ? "recipeDetail.backToWeeklyMenuLink"
+        : "recipeDetail.allRecipesLink",
   );
 
   // (27.09.2026) Henrik: "man skal kunne trykke inn på alt på siden, men at
