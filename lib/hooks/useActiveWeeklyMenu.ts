@@ -1,18 +1,8 @@
 "use client";
 
-import { useSessionStorage } from "@/lib/hooks/useSessionStorage";
+import { useEffect, useState } from "react";
 import type { WeeklyMenuChoice } from "@/lib/kitchen-intelligence/weekly-menu-styles";
 
-/**
- * Nøkkelen for DEN AKTIVE ukesmenyen (28.09.2026) – eksportert (ikke bare
- * brukt inni denne filen) fordi SavedWeeklyMenusList.tsx sin "Bruk denne
- * uken igjen"-handling skriver rett til denne nøkkelen (via
- * window.sessionStorage direkte, FØR den navigerer til /ukesmeny) i stedet
- * for å gå via selve hooken under – de to komponentene er aldri montert
- * samtidig (å trykke "Bruk denne uken igjen" navigerer bort fra siden med
- * lista), så det finnes ingen synk-instans å holde oppdatert, kun én
- * skriving som WeeklyMenuView.tsx leser inn ved neste mount.
- */
 export const ACTIVE_WEEKLY_MENU_KEY = "oppskriftsboken:ukesmeny:aktiv-uke";
 
 export interface ActiveWeeklyMenuState {
@@ -23,12 +13,66 @@ export interface ActiveWeeklyMenuState {
 const EMPTY_ACTIVE_STATE: ActiveWeeklyMenuState = { style: null, recipeIds: [] };
 
 /**
- * Se filheaderen i useSessionStorage.ts for hele bakgrunnen: den AKTIVE
- * ukesmenyen lever i sessionStorage (overlever "trykk inn på en rett og
- * kom tilbake", men IKKE en helt ny fane/økt) – atskilt fra de EKSPLISITT
- * LAGREDE ukesmenyene (lib/hooks/useSavedWeeklyMenus.ts), som lever i ekte
- * localStorage til brukeren selv fjerner dem.
+ * Skriver et "returøyeblikksbilde" til sessionStorage – kalles RETT FØR man
+ * navigerer BORT fra /ukesmeny (til en oppskrift, se onClick på hver dags
+ * lenke i WeeklyMenuView.tsx) eller INN mot /ukesmeny fra en lagret uke (se
+ * SavedWeeklyMenusList.tsx sin "Bruk denne uken igjen"). Se filheaderen ved
+ * useActiveWeeklyMenu() under for hvorfor dette IKKE er en løpende synket
+ * verdi, men et bevisst "skriv kun ved avreise"-kall.
+ */
+export function stashActiveWeeklyMenu(state: ActiveWeeklyMenuState) {
+  try {
+    window.sessionStorage.setItem(ACTIVE_WEEKLY_MENU_KEY, JSON.stringify(state));
+  } catch {
+    // Lagring feilet (privat modus o.l.) – ingenting å gjøre, "tilbake"-
+    // lenken faller da bare tilbake til en tom side, samme som i dag.
+  }
+}
+
+/**
+ * FEILRETTET (28.09.2026) – Henrik: "nå gjør den jo det du sa ikke skulle
+ * skje, den husker ukesmenyen om jeg går ut til forsiden og inn igjen på
+ * ukesmeny". Første versjon (se git-historikken, samme dag) holdt den
+ * AKTIVE uken løpende synket mot sessionStorage (skrev ved HVER endring,
+ * leste ved HVER mount) – det løste "tilbake fra en oppskrift"-behovet,
+ * men sessionStorage lever i hele fanens levetid, ikke bare én navigering,
+ * så uken ble værende gjennom ALL navigering innenfor samme fane (forsiden
+ * og inn igjen, ikke bare oppskrift-og-tilbake) – akkurat den "gjenåpner
+ * automatisk"-følelsen Henrik opprinnelig ba om å fjerne (se filheaderen i
+ * WeeklyMenuView.tsx, 30.09.2026-redesignet).
+ *
+ * Løsningen er nå "KONSUMERES ÉN GANG, ikke løpende synk": selve uken
+ * lever i vanlig React-state (som før 30.09.2026-redesignet, nullstilles
+ * ved enhver ny sidevisning). sessionStorage brukes KUN som en ett-skudds
+ * "budbringer" for ÉN spesifikk retur-reise – stashActiveWeeklyMenu() over
+ * skrives eksplisitt RETT FØR man navigerer bort via en oppskrift-lenke
+ * (eller inn fra en lagret uke), og denne hooken LESER OG SLETTER verdien
+ * med det samme ved mount. Effekten: naviger til en oppskrift og trykk
+ * "tilbake" → uken er der. Naviger til forsiden (ingen stash skjedde der)
+ * og inn på /ukesmeny igjen → tom side, som forventet.
  */
 export function useActiveWeeklyMenu() {
-  return useSessionStorage<ActiveWeeklyMenuState>(ACTIVE_WEEKLY_MENU_KEY, EMPTY_ACTIVE_STATE);
+  const [state, setState] = useState<ActiveWeeklyMenuState>(EMPTY_ACTIVE_STATE);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(ACTIVE_WEEKLY_MENU_KEY);
+      if (raw != null) {
+        // Fjernes UMIDDELBART (konsumeres) – en senere, ny sidevisning av
+        // /ukesmeny (uten en ny stashActiveWeeklyMenu()-skriving imellom)
+        // skal IKKE finne denne verdien igjen, se filheaderen over.
+        window.sessionStorage.removeItem(ACTIVE_WEEKLY_MENU_KEY);
+        setState(JSON.parse(raw) as ActiveWeeklyMenuState);
+      }
+    } catch {
+      // Korrupt data eller sessionStorage utilgjengelig (privat modus o.l.)
+      // – fortsett bare med den tomme starttilstanden.
+    } finally {
+      setHydrated(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return [state, setState, hydrated] as const;
 }

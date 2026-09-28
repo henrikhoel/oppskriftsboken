@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { useSavedWeeklyMenus, type SavedWeeklyMenu } from "@/lib/hooks/useSavedWeeklyMenus";
-import { ACTIVE_WEEKLY_MENU_KEY } from "@/lib/hooks/useActiveWeeklyMenu";
+import { stashActiveWeeklyMenu } from "@/lib/hooks/useActiveWeeklyMenu";
 import { VARIED_CHOICE } from "@/lib/kitchen-intelligence/weekly-menu-styles";
 import { localizedTitle } from "@/lib/utils/format";
 import { Button } from "@/components/ui/Button";
@@ -28,20 +28,12 @@ export function SavedWeeklyMenusList({ recipes, lang }: { recipes: SearchableRec
   const byId = useMemo(() => new Map(recipes.map((r) => [r.id, r])), [recipes]);
 
   function handleUseAgain(menu: SavedWeeklyMenu) {
-    // Skriver rett til sessionStorage-nøkkelen useActiveWeeklyMenu.ts eier
-    // (i stedet for å gå via selve hooken) – denne komponenten og
-    // WeeklyMenuView.tsx er aldri montert samtidig, se merknaden ved
-    // ACTIVE_WEEKLY_MENU_KEY sin eksport. WeeklyMenuView.tsx leser inn
-    // denne verdien ved sin egen mount rett etter navigeringen under.
-    try {
-      window.sessionStorage.setItem(
-        ACTIVE_WEEKLY_MENU_KEY,
-        JSON.stringify({ style: menu.style, recipeIds: menu.recipeIds }),
-      );
-    } catch {
-      // Lagring feilet (privat modus o.l.) – naviger uansett, WeeklyMenuView
-      // faller da bare tilbake til en tom side, samme som i dag.
-    }
+    // Samme ett-skudds "returøyeblikksbilde"-mekanisme som "tilbake til
+    // ukesmenyen" fra en oppskrift (se filheaderen i
+    // useActiveWeeklyMenu.ts) – stashActiveWeeklyMenu() skriver, og
+    // WeeklyMenuView.tsx leser OG SLETTER med det samme ved sin egen mount
+    // rett etter navigeringen under.
+    stashActiveWeeklyMenu({ style: menu.style, recipeIds: menu.recipeIds });
     router.push("/ukesmeny");
   }
 

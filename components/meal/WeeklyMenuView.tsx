@@ -18,18 +18,22 @@
  *   markering bygget direkte her i stedet: dag-label → bilde → oppskrift
  *   (serif) → tid → bytt ut, ingen kort-boks/border/skygge rundt.
  *
- * AKTIV UKE I sessionStorage, IKKE lenger ren React-state (28.09.2026,
- * se filheaderen i lib/hooks/useSessionStorage.ts for hele bakgrunnen) –
- * Henrik: "når jeg trykker på en av oppskriftene i ukesmenyen, så er det
- * ikke en tilbakeknapp tilbake til ukesmenyen [...] man må kunne gå
- * tilbake til ukesmenyen". Ren React-state overlevde ikke en navigering
- * til en oppskriftsside og tilbake (Next.js sin App Router monterer denne
- * siden helt på nytt), så en "tilbake"-lenke ville uansett bare vist en
- * tom side. sessionStorage løser akkurat dette (overlever navigeringen,
- * men tømmes når fanen lukkes) UTEN å gjeninnføre v1/v1.1 sin forkastede
- * "gjenåpner forrige ukes meny automatisk neste gang du åpner nettsiden"-
- * oppførsel (localStorage) – se useActiveWeeklyMenu.ts for hele
- * resonnementet, bekreftet med Henrik som en eksplisitt avveining.
+ * AKTIV UKE, MED ETT-SKUDDS "TILBAKE"-STØTTE (28.09.2026, se filheaderen
+ * i lib/hooks/useActiveWeeklyMenu.ts for hele resonnementet + en runde 2
+ * med feilretting) – Henrik: "når jeg trykker på en av oppskriftene i
+ * ukesmenyen, så er det ikke en tilbakeknapp tilbake til ukesmenyen [...]
+ * man må kunne gå tilbake til ukesmenyen". Selve uken lever FORTSATT i
+ * vanlig React-state (nullstilles ved enhver ny sidevisning, akkurat som i
+ * det opprinnelige 30.09.2026-redesignet) – MEN rett før man navigerer
+ * bort via en oppskrift-lenke (onClick under) skrives et
+ * "returøyeblikksbilde" til sessionStorage, som denne siden leser OG
+ * SLETTER med det samme ved neste mount. Første forsøk (samme dag) holdt
+ * uken løpende synket mot sessionStorage i stedet – Henrik oppdaget at det
+ * gjeninnførte akkurat den "gjenåpner forrige uke automatisk"-følelsen han
+ * opprinnelig ba om å fjerne, bare nå trigget av ALL navigering innenfor
+ * samme fane (også forsiden og inn igjen), ikke bare oppskrift-og-tilbake.
+ * Ett-skudds-konsumering løser dette presist: uken er der KUN rett etter
+ * en tilbake-reise, ikke ved noen annen senere sidevisning.
  *
  * "LAGRE UKESMENY" + "SE LAGREDE UKESMENYER" (28.09.2026, Henrik: "jeg
  * mener også å ha en 'lagre ukesmeny' og 'se lagrede ukesmenyer'") –
@@ -44,7 +48,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
-import { useActiveWeeklyMenu } from "@/lib/hooks/useActiveWeeklyMenu";
+import { useActiveWeeklyMenu, stashActiveWeeklyMenu } from "@/lib/hooks/useActiveWeeklyMenu";
 import { useSavedWeeklyMenus } from "@/lib/hooks/useSavedWeeklyMenus";
 import { getMealShoppingIngredients } from "@/lib/actions/meal-shopping-list";
 import { formatMinutes, localizedTitle } from "@/lib/utils/format";
@@ -323,8 +327,20 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
                       den generelle "Alle oppskrifter". Ukesmenyen trenger
                       ingen id i selve param-verdien (kun én AKTIV uke om
                       gangen, se useActiveWeeklyMenu.ts), derfor holder et
-                      enkelt flagg. */}
-                  <Link href={`/oppskrifter/${recipe.slug}?fromWeeklyMenu=1`} className="group mt-3 block">
+                      enkelt flagg.
+                      onClick={stashActiveWeeklyMenu(...)} (28.09.2026,
+                      runde 2 – se filheaderen øverst i denne filen og i
+                      useActiveWeeklyMenu.ts) – skriver ETT-SKUDDS
+                      returøyeblikksbildet RETT FØR selve navigeringen til
+                      oppskriften skjer, i stedet for å holde uken løpende
+                      synket mot sessionStorage (det ga en uheldig
+                      bieffekt: uken ble husket ved ALL navigering i samme
+                      fane, ikke bare denne ene tilbake-reisen). */}
+                  <Link
+                    href={`/oppskrifter/${recipe.slug}?fromWeeklyMenu=1`}
+                    onClick={() => stashActiveWeeklyMenu(activeWeek)}
+                    className="group mt-3 block"
+                  >
                     <div className="relative aspect-[4/3] w-full overflow-hidden bg-cream-dark">
                       {recipe.heroImageUrl && (
                         <Image
