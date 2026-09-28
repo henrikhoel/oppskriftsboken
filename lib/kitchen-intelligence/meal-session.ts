@@ -265,17 +265,46 @@ export const ALL_MEAL_OCCASIONS: MealOccasion[] = ["hverdag", "fredagskveld", "d
  * ellers antas "main" – en feilklassifisert "forrett" som blir stående som
  * hovedrett er et langt mindre synlig feilgrep enn f.eks. en faktisk
  * hovedrett (f.eks. en gryterett i kategorien "Middag") som feilaktig
- * havner som forrett. */
+ * havner som forrett.
+ *
+ * BUG (28.09.2026, Henrik: "Gjør det til en kveld" på "Pannestekt torsk...",
+ * kategori "Fisk", ble satt som DESSERT i stedet for hovedrett) – den
+ * opprinnelige sjekken brukte `normalized.includes(word)` på HELE
+ * kategori-strengen, altså rått delstreng-søk. "Fisk" inneholder bokstav-
+ * følgen "is" midt i ordet (f-IS-k), og "is" står i DESSERT_CATEGORY_WORDS
+ * (fra "iskrem"/"is" som dessert) – ren tilfeldighet i bokstavene, ikke et
+ * faktisk forekomst av ordet "is". Løsningen deler nå kategorinavnet opp i
+ * ENKELTORD (splitt på alt som ikke er bokstaver) og sjekker hvert ord for
+ * seg med startsWith/endsWith mot nøkkelordet, i stedet for delstreng-søk
+ * på tvers av ordgrenser. Det bevarer fortsatt bøyningsformer ("saus" ⊂
+ * "sauser") og sammensatte ord ("kake" ⊂ "sjokoladekake"), men et kort
+ * nøkkelord som "is" kan ikke lenger tilfeldigvis treffe midt inni et
+ * urelatert ord som "fisk". */
 const DESSERT_CATEGORY_WORDS = ["dessert", "kake", "is", "søt", "sjokolade", "bakst", "bakverk"];
 const SIDE_CATEGORY_WORDS = ["tilbehør", "saus", "dressing", "siderett"];
 const STARTER_CATEGORY_WORDS = ["forrett", "suppe", "salat"];
 
+/** Splitter en kategori-streng i enkeltord (på alt som ikke er bokstaver,
+ * inkludert æ/ø/å) – se BUG-kommentaren over for hvorfor dette brukes i
+ * stedet for rått delstreng-søk på hele strengen. */
+function toWords(normalized: string): string[] {
+  return normalized.split(/[^\p{L}]+/u).filter(Boolean);
+}
+
+/** Matcher `word` (f.eks. "is") mot ett enkeltord fra kategorinavnet
+ * (f.eks. "fisk") kun når ordet faktisk STARTER eller SLUTTER på
+ * nøkkelordet – ikke bare inneholder bokstavrekkefølgen et sted midt i
+ * ordet. */
+function wordMatches(categoryWord: string, keyword: string): boolean {
+  return categoryWord.startsWith(keyword) || categoryWord.endsWith(keyword);
+}
+
 export function inferCourseRoleFromCategory(categoryName: string | null): MealCourseRole {
   if (!categoryName) return "main";
-  const normalized = categoryName.toLowerCase();
-  if (DESSERT_CATEGORY_WORDS.some((word) => normalized.includes(word))) return "dessert";
-  if (SIDE_CATEGORY_WORDS.some((word) => normalized.includes(word))) return "side";
-  if (STARTER_CATEGORY_WORDS.some((word) => normalized.includes(word))) return "starter";
+  const words = toWords(categoryName.toLowerCase());
+  if (DESSERT_CATEGORY_WORDS.some((keyword) => words.some((w) => wordMatches(w, keyword)))) return "dessert";
+  if (SIDE_CATEGORY_WORDS.some((keyword) => words.some((w) => wordMatches(w, keyword)))) return "side";
+  if (STARTER_CATEGORY_WORDS.some((keyword) => words.some((w) => wordMatches(w, keyword)))) return "starter";
   return "main";
 }
 
