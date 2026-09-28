@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { getSearchableRecipes } from "@/lib/data/recipes";
 import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
@@ -29,6 +30,29 @@ export async function generateMetadata(): Promise<Metadata> {
  * ytre ramme (max-w-5xl) for selve ukesmeny-spredningen under – bevisst
  * editorial-magasin-teknikk (smal tekst, bred visuell del), fremfor å la
  * hele siden dele samme smale bredde.
+ *
+ * BAKGRUNNSBILDE (30.09.2026, Henrik: "det er viktig at hele bildet alltid
+ * er der, sånn at når man genererer en meny, og siden blir større, så
+ * ligger fortsatt bildet naturlig i bakgrunnen") – `public/images/weekly-menu.jpg`
+ * (råvarer i mørkt, redaksjonelt lys, mest sort/negativ plass med
+ * komposisjonen samlet øverst til høyre). Lagt som et EGET, `fixed`
+ * lag (IKKE en vanlig `bg-cover`-bakgrunn på selve sideelementet, og
+ * IKKE `background-attachment: fixed` på et scrollende element – begge
+ * ville enten strukket/klippet bildet annerledes etter hvert som
+ * dokumentet vokser når en uke genereres, eller er notorisk upålitelig på
+ * iOS Safari). Et `fixed inset-0`-lag dekker alltid nøyaktig
+ * VIEWPORTET, helt uavhengig av hvor høyt selve dokumentet blir –
+ * bildet "ligger fortsatt naturlig i bakgrunnen" akkurat slik Henrik ba
+ * om, uansett om fem retter er generert under eller ikke. Samme
+ * fast-bakgrunn-prinsipp kunne vært gjort med ren CSS
+ * (`background-position/size` på et element), men next/image sin `fill`
+ * gir automatisk responsiv `srcset`/optimalisering for et bilde som
+ * uansett alltid fyller hele skjermen, uansett skjermstørrelse. Ingen
+ * mørkt overlegg lagt oppå (til forskjell fra f.eks. MoodModeSection.tsx
+ * sitt forsidebilde) – bildet er allerede nesten helt sort i seg selv
+ * (samme tone som --color-cream), og introteksten står i venstre kolonne
+ * et godt stykke unna råvare-komposisjonen øverst til høyre, så
+ * lesbarheten er uansett god uten et ekstra lag.
  */
 export default async function WeeklyMenuPage() {
   const [allRecipes, lang, user] = await Promise.all([
@@ -39,23 +63,37 @@ export default async function WeeklyMenuPage() {
   const eligible = allRecipes.filter((r) => !r.weeklyMenuExcluded);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-      <div className="max-w-xl">
-        <h1 className="font-serif text-4xl text-ink sm:text-5xl">{t(lang, "weeklyMenu.title")}</h1>
-        <p className="mt-3 font-serif text-lg text-clay-dark sm:text-xl">{t(lang, "weeklyMenu.tagline")}</p>
-        <p className="mt-4 text-ink-soft">{t(lang, "weeklyMenu.description")}</p>
+    <div className="relative">
+      <div className="fixed inset-0 -z-10" aria-hidden="true">
+        <Image
+          src="/images/weekly-menu.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+          style={{ objectPosition: "right top" }}
+        />
       </div>
 
-      <div className="mt-12">
-        {user ? (
-          <WeeklyMenuView recipes={eligible} lang={lang} />
-        ) : (
-          <LockedPanel
-            message={t(lang, "featureLocked.weeklyMenuMessage")}
-            ctaLabel={t(lang, "featureLocked.cta")}
-            nextPath="/ukesmeny"
-          />
-        )}
+      <div className="relative z-10 mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="max-w-xl">
+          <h1 className="font-serif text-4xl text-ink sm:text-5xl">{t(lang, "weeklyMenu.title")}</h1>
+          <p className="mt-3 font-serif text-lg text-clay-dark sm:text-xl">{t(lang, "weeklyMenu.tagline")}</p>
+          <p className="mt-4 text-ink-soft">{t(lang, "weeklyMenu.description")}</p>
+        </div>
+
+        <div className="mt-12">
+          {user ? (
+            <WeeklyMenuView recipes={eligible} lang={lang} />
+          ) : (
+            <LockedPanel
+              message={t(lang, "featureLocked.weeklyMenuMessage")}
+              ctaLabel={t(lang, "featureLocked.cta")}
+              nextPath="/ukesmeny"
+            />
+          )}
+        </div>
       </div>
     </div>
   );
