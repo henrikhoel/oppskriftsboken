@@ -269,14 +269,29 @@ export function CookModeTutorialOverlay({
     function update() {
       const primary = Array.isArray(step.target) ? measureUnion(step.target) : measureOne(step.target!);
       if (!primary) {
-        // Se `optional`-kommentaren over TutorialStep – finnes ikke
-        // elementet (f.eks. talestyring i en nettleser uten støtte), hopp
-        // rett videre i stedet for å stå fast med et tomt oppslag.
         if (step.optional) {
+          // Se `optional`-kommentaren over TutorialStep – finnes ikke
+          // elementet (f.eks. talestyring i en nettleser uten støtte), hopp
+          // rett videre i stedet for å stå fast med et tomt oppslag.
           setIndex((i) => Math.min(i + 1, STEPS.length - 1));
+          setRect(null);
+          setRings([]);
         }
-        setRect(null);
-        setRings([]);
+        // IKKE tøm rect/rings her for andre steg (f.eks. "timer"-steget,
+        // som peker på "sett timer"-knappen CookMode kun viser for det
+        // TVUNGNE demo-steget, se forcedRecipeStepId). Selve steget her har
+        // allerede byttet (dette effekt-kallet kjører), men den tvungne
+        // step-endringen i CookMode selv skjer via en state-oppdatering i
+        // foreldrekomponenten (onForcedStepChange) – det er én React-runde
+        // FORSINKET, så "timer"-knappen finnes ikke i DOM-en ennå akkurat
+        // her. Tømmes rings til [] nå, unmountes selve ring-diven, og når
+        // settleTimeout under finner den 60ms senere monteres en HELT NY
+        // div uten forrige posisjon å gli fra – ringen popper bare inn i
+        // stedet for å animere seg dit (Henrik, 28.09.2026: "det mangler en
+        // animasjon for når sirkelen går ned til 'sett timer 4 min'"). Ved
+        // heller å beholde forrige rects urørt her, fanger settleTimeout
+        // opp riktig posisjon rett etterpå, og den ALLEREDE monterte
+        // ring-diven glir dit via CSS-transisjonen som normalt.
         return;
       }
       setRect(primary);
