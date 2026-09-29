@@ -28,9 +28,19 @@ const nextConfig: NextConfig = {
   // resizes/komprimeres allerede klient-side til maks 1280px JPEG
   // (lib/utils/image.ts) før de sendes, så selv mange skjermbilder holder
   // seg godt under dette i praksis.
+  //
+  // HEVET til 12 MB (29.09.2026, Henrik: "sett maks grense for opplastning
+  // av bilde på hver rett til 10 mb og ikke 8") – uploadRecipeImage
+  // (lib/actions/upload.ts) sitt eget 10 MB-filtak deler denne samme
+  // Server Action-grensen (selve hovedbildet sendes som FormData, samme
+  // vei som skjermbildene over). 12 MB gir nødvendig margin OVER den nye
+  // 10 MB-filgrensen til multipart-overheaden rundt selve filen (grenser,
+  // feltnavn osv.) – uten margin ville en fil helt oppunder 10 MB kunne bli
+  // avvist av selve Server Action-grensen FØR den i det hele tatt når
+  // uploadRecipeImage sin egen, mer beskrivende feilmelding.
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      bodySizeLimit: "12mb",
     },
   },
   // Next.js 15.3+ blokkerer som standard forespørsler til dev-serveren fra

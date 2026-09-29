@@ -4,7 +4,11 @@ import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "recipe-images";
-const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+// 10 MB (hevet fra 8 MB, 29.09.2026, Henrik) – selve filen sendes som
+// FormData til denne Server Action-en, så next.config.ts sin
+// `serverActions.bodySizeLimit` må ha nok margin OVER denne grensen (hevet
+// til 12 MB i samme slag) til å romme multipart-overheaden rundt filen.
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
 export interface UploadResult {
@@ -25,7 +29,7 @@ export async function uploadRecipeImage(formData: FormData): Promise<UploadResul
     return { success: false, error: "Ugyldig filtype. Bruk JPG, PNG, WebP eller AVIF." };
   }
   if (file.size > MAX_BYTES) {
-    return { success: false, error: "Bildet er for stort (maks 8 MB)." };
+    return { success: false, error: "Bildet er for stort (maks 10 MB)." };
   }
 
   const supabase = await createClient();
