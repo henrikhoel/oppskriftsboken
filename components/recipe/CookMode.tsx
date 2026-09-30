@@ -524,7 +524,6 @@ export function CookMode({
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <p className="text-sm font-medium uppercase tracking-wider text-clay">
             {t(lang, "cookMode.stepOf", { current: currentIndex + 1, total: steps.length })}
-            {currentStep.groupTitle ? ` · ${currentStep.groupTitle}` : ""}
           </p>
           {currentStepTimelineEntry && (
             <p className="text-sm font-medium text-clay-dark">
@@ -535,6 +534,22 @@ export function CookMode({
         </div>
 
         <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center py-8">
+          {/* Delsteg-gruppe (30.09.2026, Henrik: "delsteg-gruppe i
+           * fremgangsmåten kommer ikke opp i cook mode", presisert til "vil
+           * ha den som litt mindre og elegant tekst rett over selve steget
+           * som vises") – sto tidligere klemt inn i "Steg X av Y"-linjen
+           * over (" · {groupTitle}"), lett å overse der. Egen, rolig linje
+           * her i stedet, rett over selve stegteksten, samme
+           * uppercase/tracking-wide-stil som groupTitle allerede har i den
+           * vanlige fremgangsmåte-listen utenfor Cook Mode (se
+           * RecipeInteractive.tsx). IKKE en del av
+           * data-cookmode-target="step-text" under – tutorial-ringen skal
+           * fortsatt kun omslutte selve stegteksten, se kommentaren der. */}
+          {currentStep.groupTitle && (
+            <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-clay sm:mb-3 sm:text-sm">
+              {currentStep.groupTitle}
+            </p>
+          )}
           {/* data-cookmode-target satt på selve <p>-en, IKKE wrapper-diven
            * over: den er flex-1 og strekker seg over all ledig høyde i
            * innholdsområdet, så en tutorial-ring rundt DEN ble en enorm
