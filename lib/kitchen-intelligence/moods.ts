@@ -1,6 +1,6 @@
 /**
- * Delt register for "Stemningsvelger" (Mood Mode, Fase 4 – Smak). Fem faste
- * stemninger – IKKE fritekst.
+ * Delt register for "Stemningsvelger" (Mood Mode, Fase 4 – Smak). Seks
+ * faste stemninger – IKKE fritekst.
  *
  * OMLAGT 26.09.2026 (se migrasjon 0020_recipe_mood.sql sin filheader for
  * hele bakgrunnen): var opprinnelig AI-matchet og cachet PER STEMNING, men
@@ -20,6 +20,11 @@ export const MOOD_DEFINITIONS = [
   { id: "impress", labelKey: "moodMode.impress" },
   { id: "crowd", labelKey: "moodMode.crowd" },
   { id: "healthy", labelKey: "moodMode.healthy" },
+  // Lagt til 30.09.2026, Henrik: "vi trenger ett humør til! 'Noe digg'" –
+  // se migrasjon 0026_recipe_mood_tasty.sql for CHECK-constrainten denne
+  // nye verdien må holdes manuelt i synk med (Henrik må kjøre den selv,
+  // som vanlig).
+  { id: "tasty", labelKey: "moodMode.tasty" },
 ] as const;
 
 export type MoodId = (typeof MOOD_DEFINITIONS)[number]["id"];

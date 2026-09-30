@@ -194,6 +194,7 @@ const DICT = {
   "moodMode.impress": { no: "Imponer gjestene", en: "Impress guests" },
   "moodMode.crowd": { no: "Lage til mange", en: "Feeding a crowd" },
   "moodMode.healthy": { no: "Sunt og lett", en: "Healthy & light" },
+  "moodMode.tasty": { no: "Noe digg", en: "Something tasty" },
   "moodMode.loading": { no: "Finner oppskrifter …", en: "Finding recipes …" },
   "moodMode.error": {
     no: "Klarte ikke å finne forslag akkurat nå. Prøv igjen.",

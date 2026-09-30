@@ -25,7 +25,15 @@ import { clsx } from "clsx";
 import type { RecipeSummary } from "@/lib/types";
 import { addRecipeToMood, removeRecipeFromMood } from "@/lib/actions/recipes";
 import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
-import { ClockIcon, HeartIcon, StarIcon, UsersIcon, GaugeIcon, SearchIcon } from "@/components/ui/icons";
+import {
+  ClockIcon,
+  HeartIcon,
+  StarIcon,
+  UsersIcon,
+  GaugeIcon,
+  SparklesIcon,
+  SearchIcon,
+} from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 // Samme ikonvalg som components/home/MoodModeSection.tsx – se kommentaren
@@ -36,6 +44,7 @@ const MOOD_ICONS = {
   impress: StarIcon,
   crowd: UsersIcon,
   healthy: GaugeIcon,
+  tasty: SparklesIcon,
 } as const;
 
 function Thumb({ recipe }: { recipe: RecipeSummary }) {
@@ -60,7 +69,7 @@ export function MoodPicker({ recipes, lang }: { recipes: RecipeSummary[]; lang: 
   const router = useRouter();
 
   const counts = useMemo(() => {
-    const c: Record<MoodId, number> = { quick: 0, cozy: 0, impress: 0, crowd: 0, healthy: 0 };
+    const c: Record<MoodId, number> = { quick: 0, cozy: 0, impress: 0, crowd: 0, healthy: 0, tasty: 0 };
     for (const recipe of recipes) {
       for (const mood of recipe.moods ?? []) {
         if (mood in c) c[mood as MoodId] += 1;

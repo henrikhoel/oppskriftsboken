@@ -6,7 +6,7 @@ import { getRecipesByMood } from "@/lib/actions/recipes";
 import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
 import type { RecipeSummary } from "@/lib/types";
 import { RecipeGrid } from "@/components/recipe/RecipeGrid";
-import { ClockIcon, HeartIcon, StarIcon, UsersIcon, GaugeIcon } from "@/components/ui/icons";
+import { ClockIcon, HeartIcon, StarIcon, UsersIcon, GaugeIcon, SparklesIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 // Ingen eksplisitt Record<MoodId, ...>-typeannotasjon her – IconProps er
@@ -19,12 +19,16 @@ const MOOD_ICONS = {
   impress: StarIcon,
   crowd: UsersIcon,
   healthy: GaugeIcon,
+  // "Noe digg" (30.09.2026) – ingen av de andre ikonene (klokke/hjerte/
+  // stjerne/folk/måler) passet en ren "dette er rett og slett digg"-følelse,
+  // SparklesIcon var ledig og uttrykker det greit.
+  tasty: SparklesIcon,
 } as const;
 
 /**
  * "Hva passer humøret ditt?" (Fase 4 – Smak) – forsideseksjon, samme
  * redaksjonelle stil som WinePairing/SeasonTeaser/ClosingQuoteSection over.
- * Fem faste stemninger (se lib/kitchen-intelligence/moods.ts sin filheader
+ * Seks faste stemninger (se lib/kitchen-intelligence/moods.ts sin filheader
  * for hvorfor de er faste, ikke fritekst).
  *
  * OMLAGT 26.09.2026 (Henrik: "jeg tror kanskje dette bør være noe jeg
