@@ -33,7 +33,12 @@ export function SavedWeeklyMenusList({ recipes, lang }: { recipes: SearchableRec
     // useActiveWeeklyMenu.ts) – stashActiveWeeklyMenu() skriver, og
     // WeeklyMenuView.tsx leser OG SLETTER med det samme ved sin egen mount
     // rett etter navigeringen under.
-    stashActiveWeeklyMenu({ style: menu.style, recipeIds: menu.recipeIds });
+    // vegetarianOnly nullstilles bevisst til false her – "Kun vegetar" er et
+    // live-filter for ØYEBLIKKETS utvalg, ikke en egenskap ved selve den
+    // lagrede uken (menu.recipeIds er allerede fastlåst uansett filterstatus
+    // da uken opprinnelig ble lagret, se filheaderen i
+    // lib/hooks/useActiveWeeklyMenu.ts).
+    stashActiveWeeklyMenu({ style: menu.style, recipeIds: menu.recipeIds, vegetarianOnly: false });
     router.push("/ukesmeny");
   }
 

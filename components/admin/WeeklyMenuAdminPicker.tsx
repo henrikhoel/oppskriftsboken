@@ -2,7 +2,7 @@
 
 /**
  * "Ukesmeny" – admin-styring for /ukesmeny (30.09.2026). ÉN kombinert
- * liste (ikke to separate sider) for de to admin-innstillingene som hører
+ * liste (ikke flere separate sider) for admin-innstillingene som hører
  * sammen her:
  *
  * 1. "Utelatt" – enkelt boolsk felt (weekly_menu_excluded, migrasjon
@@ -10,18 +10,24 @@
  *    velger. Samme "opt-out fremfor opt-in"-begrunnelse som
  *    favorited_by_admin: standard er "med", Henrik trenger kun å merke
  *    unntakene (helgemat, store prosjekter).
- * 2. Fire stil-ikoner (weekly_menu_styles, migrasjon 0025) – samme
+ * 2. "Vegetar" – enkelt boolsk felt (is_vegetarian, migrasjon 0027, lagt
+ *    til 01.10.2026, Henrik: "på ukesmeny bør man egentlig ha en knapp
+ *    'Kun vegetar'"). Samme "eksplisitt admin-bryter fremfor fri
+ *    tekst/AI-gjetting"-begrunnelse som moods/courses/weekly_menu_styles.
+ *    Standard AV (opt-in, motsatt av "utelatt") – de fleste oppskriftene
+ *    er ikke vegetar, så Henrik merker kun de som faktisk er det.
+ * 3. Fire stil-ikoner (weekly_menu_styles, migrasjon 0025) – samme
  *    array-mønster som moods/courses, en oppskrift kan stå i flere stiler
  *    samtidig. "Variert" (Henriks standardvalg på selve /ukesmeny) er
  *    BEVISST ikke en av disse fire knappene – den filtrerer ikke på
  *    weekly_menu_styles i det hele tatt, se filheaderen i
  *    lib/kitchen-intelligence/weekly-menu-styles.ts.
  *
- * Bygget som ÉN rad per oppskrift (utelatt-knapp + fire stil-ikoner ved
- * siden av hverandre) fremfor to separate lister, av samme grunn som
- * RolePicker.tsx: Henrik vil typisk vurdere begge tingene for en
- * oppskrift i samme øyeblikk ("passer denne på en hverdag, og i så fall
- * hvilken(e) stil(er)?").
+ * Bygget som ÉN rad per oppskrift (utelatt-knapp + vegetar-knapp + fire
+ * stil-ikoner ved siden av hverandre) fremfor flere separate lister,
+ * samme grunn som RolePicker.tsx: Henrik vil typisk vurdere flere av
+ * disse tingene for en oppskrift i samme øyeblikk ("passer denne på en
+ * hverdag, er den vegetar, og i så fall hvilken(e) stil(er)?").
  */
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -30,6 +36,7 @@ import { clsx } from "clsx";
 import type { RecipeSummary } from "@/lib/types";
 import {
   setWeeklyMenuExclusion,
+  setRecipeVegetarian,
   addRecipeToWeeklyMenuStyle,
   removeRecipeFromWeeklyMenuStyle,
 } from "@/lib/actions/recipes";
@@ -76,6 +83,19 @@ export function WeeklyMenuAdminPicker({ recipes, lang }: { recipes: RecipeSummar
     startTransition(async () => {
       try {
         await setWeeklyMenuExclusion(recipe.id, !recipe.weeklyMenuExcluded);
+        router.refresh();
+      } finally {
+        setPendingKey(null);
+      }
+    });
+  }
+
+  function handleToggleVegetarian(recipe: RecipeSummary) {
+    const key = `${recipe.id}:vegetarian`;
+    setPendingKey(key);
+    startTransition(async () => {
+      try {
+        await setRecipeVegetarian(recipe.id, !recipe.isVegetarian);
         router.refresh();
       } finally {
         setPendingKey(null);
@@ -149,6 +169,22 @@ export function WeeklyMenuAdminPicker({ recipes, lang }: { recipes: RecipeSummar
                 >
                   {included ? <CheckIcon className="h-3.5 w-3.5" /> : <XIcon className="h-3.5 w-3.5" />}
                   {included ? "I ukesmenyen" : "Utelatt"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleVegetarian(recipe)}
+                  disabled={isPending && pendingKey === `${recipe.id}:vegetarian`}
+                  aria-pressed={recipe.isVegetarian}
+                  className={clsx(
+                    "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-40",
+                    recipe.isVegetarian
+                      ? "border-olive bg-olive-light text-olive-dark"
+                      : "border-line-strong bg-cream text-ink-faint hover:bg-cream-dark",
+                  )}
+                >
+                  <LeafIcon className="h-3.5 w-3.5" />
+                  Vegetar
                 </button>
 
                 <div className="flex shrink-0 flex-wrap gap-1.5 border-l border-line pl-3">

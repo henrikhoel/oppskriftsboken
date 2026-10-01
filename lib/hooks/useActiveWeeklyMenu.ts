@@ -8,9 +8,15 @@ export const ACTIVE_WEEKLY_MENU_KEY = "oppskriftsboken:ukesmeny:aktiv-uke";
 export interface ActiveWeeklyMenuState {
   style: WeeklyMenuChoice | null;
   recipeIds: string[];
+  /** "Kun vegetar"-filteret (01.10.2026, Henrik: "på ukesmeny bør man
+   * egentlig ha en knapp 'Kun vegetar'") – lever i samme state som style/
+   * recipeIds slik at det også overlever ETT-SKUDDS "tilbake"-reisen (se
+   * filheaderen ved useActiveWeeklyMenu() under), akkurat som stilvalget
+   * allerede gjorde. */
+  vegetarianOnly: boolean;
 }
 
-const EMPTY_ACTIVE_STATE: ActiveWeeklyMenuState = { style: null, recipeIds: [] };
+const EMPTY_ACTIVE_STATE: ActiveWeeklyMenuState = { style: null, recipeIds: [], vegetarianOnly: false };
 
 /**
  * Skriver et "returøyeblikksbilde" til sessionStorage – kalles RETT FØR man

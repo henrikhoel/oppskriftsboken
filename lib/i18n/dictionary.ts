@@ -1383,6 +1383,10 @@ const DICT = {
   "weeklyMenu.style.rask": { no: "Rask uke", en: "Quick week" },
   "weeklyMenu.style.familievennlig": { no: "Familievennlig", en: "Family-friendly" },
   "weeklyMenu.style.litt_ekstra": { no: "Litt ekstra", en: "A little extra" },
+  // "Kun vegetar" (01.10.2026, Henrik: "på ukesmeny bør man egentlig ha en
+  // knapp 'Kun vegetar'") – egen pille ved siden av stil-pillene, se
+  // computePool() i WeeklyMenuView.tsx.
+  "weeklyMenu.vegetarianOnly": { no: "Kun vegetar", en: "Vegetarian only" },
   "weeklyMenu.swap": { no: "Bytt ut", en: "Swap" },
   "weeklyMenu.swapAria": { no: "Bytt ut retten for {day}", en: "Swap the dish for {day}" },
   // "Lagre ukesmeny" + "Se lagrede ukesmenyer" (28.09.2026, Henrik: "jeg

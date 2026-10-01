@@ -117,6 +117,9 @@ export interface Database {
           favorited_by_admin: boolean;
           weekly_menu_excluded: boolean;
           weekly_menu_styles: string[];
+          // Admin-satt "er denne oppskriften vegetar?"-bryter – se migrasjon
+          // 0027_recipe_is_vegetarian.sql. NOT NULL DEFAULT false.
+          is_vegetarian: boolean;
           // Delmengde av "quick" | "cozy" | "impress" | "crowd" | "healthy"
           // – se migrasjon 0020_recipe_mood.sql. Holdt som `string[]` her
           // (ikke MoodId[]) siden denne fila er en håndskrevet speiling av
@@ -172,6 +175,7 @@ export interface Database {
           favorited_by_admin?: boolean;
           weekly_menu_excluded?: boolean;
           weekly_menu_styles?: string[];
+          is_vegetarian?: boolean;
           moods?: string[];
           courses?: string[];
           wine_pairing?: string | null;

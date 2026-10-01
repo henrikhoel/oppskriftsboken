@@ -366,6 +366,17 @@ export interface Recipe {
    * filtrerer på dette feltet). Valgfritt her av samme grunn som
    * moods/courses (ikke satt i demo-data). */
   weeklyMenuStyles?: WeeklyMenuStyleId[];
+  /** true = oppskriften er vegetar – admin-satt bryter, se migrasjon
+   * 0027. Styres fra /admin/ukesmeny (samme rad som "utelatt"/stilene),
+   * brukt av "Kun vegetar"-filteret på selve /ukesmeny (WeeklyMenuView.tsx,
+   * 01.10.2026, Henrik: "på ukesmeny bør man egentlig ha en knapp 'Kun
+   * vegetar'"). Standard false – admin krysser aktivt av de vegetar-
+   * oppskriftene som faktisk finnes, samme "eksplisitt admin-kategori
+   * fremfor AI-gjetting/fri tekst"-begrunnelse som moods/courses/
+   * weeklyMenuStyles (se filheaderen i lib/kitchen-intelligence/moods.ts
+   * for hvorfor upålitelig fritekst-/AI-matching tidligere ble forkastet
+   * for akkurat denne typen kategorisering). */
+  isVegetarian: boolean;
   /** Sum av alle stjernevurderinger (1-5). Snitt = ratingSum / ratingCount. */
   ratingSum: number;
   ratingCount: number;
@@ -393,6 +404,7 @@ export type RecipeSummary = Pick<
   | "favoritedByAdmin"
   | "weeklyMenuExcluded"
   | "weeklyMenuStyles"
+  | "isVegetarian"
   | "moods"
   | "courses"
   | "createdAt"

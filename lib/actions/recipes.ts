@@ -1783,6 +1783,26 @@ export async function setWeeklyMenuExclusion(recipeId: string, excluded: boolean
 }
 
 /**
+ * "Kun vegetar"-filteret på /ukesmeny (01.10.2026, se migrasjon
+ * 0027_recipe_is_vegetarian.sql for hele bakgrunnen) – admin-satt bryter
+ * for om en oppskrift er vegetar. Samme enkle boolsk-kolonne-mønster som
+ * setWeeklyMenuExclusion rett over (ikke et array), satt i samme rad i
+ * WeeklyMenuAdminPicker.tsx.
+ */
+export async function setRecipeVegetarian(recipeId: string, isVegetarian: boolean): Promise<void> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("recipes")
+    .update({ is_vegetarian: isVegetarian })
+    .eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke oppdatere vegetar-status: ${error.message}`);
+  }
+  revalidatePath("/admin/ukesmeny");
+}
+
+/**
  * "Ukesmeny-stiler" (30.09.2026, se migrasjon
  * 0025_recipe_weekly_menu_styles.sql for hele bakgrunnen) – HELT samme
  * legg-til/fjern-mønster som addRecipeToMood/removeRecipeFromMood, kun for

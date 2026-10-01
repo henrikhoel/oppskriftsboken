@@ -81,6 +81,25 @@ const STYLE_ICONS: Partial<Record<WeeklyMenuChoice, typeof ClockIcon>> = {
   litt_ekstra: SparklesIcon,
 };
 
+// "Kun vegetar" (01.10.2026, Henrik: "på ukesmeny bør man egentlig ha en
+// knapp 'Kun vegetar'") – delt ut i en egen funksjon fremfor å duplisere
+// stil-filtreringen inline to steder (pool-useMemo og handlePickStyle under),
+// slik moods/courses-filtrering andre steder på siten allerede gjør det.
+// Filtrerer på isVegetarian (admin-satt bryter, migrasjon 0027, se
+// WeeklyMenuAdminPicker.tsx) OVENPÅ stil-filtreringen, ikke i stedet for den
+// – "Kun vegetar" er ment å kunne kombineres med enhver stil, inkludert
+// "Variert".
+function computePool(
+  recipes: SearchableRecipe[],
+  style: WeeklyMenuChoice | null,
+  vegetarianOnly: boolean,
+): SearchableRecipe[] {
+  if (style === null) return [];
+  const styleFiltered =
+    style === VARIED_CHOICE ? recipes : recipes.filter((r) => (r.weeklyMenuStyles ?? []).includes(style));
+  return vegetarianOnly ? styleFiltered.filter((r) => r.isVegetarian) : styleFiltered;
+}
+
 function pickRandomWeek(pool: SearchableRecipe[], excludeIds: string[] = []): string[] {
   const candidates = pool.filter((r) => !excludeIds.includes(r.id));
   const shuffled = [...candidates];
@@ -97,7 +116,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
   // (er choice.id den VALGTE stilen) – to helt ulike ting som tilfeldigvis
   // begge naturlig heter "active".
   const [activeWeek, setActiveWeek] = useActiveWeeklyMenu();
-  const { style, recipeIds } = activeWeek;
+  const { style, recipeIds, vegetarianOnly } = activeWeek;
   const { addFromRecipe } = useShoppingList();
   const { saveMenu } = useSavedWeeklyMenus();
   const [loading, setLoading] = useState(false);
@@ -115,10 +134,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
 
   const byId = useMemo(() => new Map(recipes.map((r) => [r.id, r])), [recipes]);
 
-  const pool = useMemo(() => {
-    if (style === null) return [];
-    return style === VARIED_CHOICE ? recipes : recipes.filter((r) => (r.weeklyMenuStyles ?? []).includes(style));
-  }, [recipes, style]);
+  const pool = useMemo(() => computePool(recipes, style, vegetarianOnly), [recipes, style, vegetarianOnly]);
 
   const hasEnoughRecipes = style !== null && pool.length >= MIN_RECIPES;
   const generated = recipeIds.length > 0;
@@ -127,27 +143,38 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
     if (next === style) return;
     setAdded(false);
     setSavedJustNow(false);
-    const nextPool = next === VARIED_CHOICE ? recipes : recipes.filter((r) => (r.weeklyMenuStyles ?? []).includes(next));
+    const nextPool = computePool(recipes, next, vegetarianOnly);
     // Kun regenerer AUTOMATISK ved stil-bytte hvis besøkende allerede har
     // generert en uke denne økten (da forventer man at "bytt type" faktisk
     // bytter ut det man ser). Har man IKKE trykket "Lag ukesmenyen" ennå,
     // skal det fortsatt kreve et eksplisitt trykk – se filheaderen.
     const nextRecipeIds = generated ? (nextPool.length >= MIN_RECIPES ? pickRandomWeek(nextPool) : []) : recipeIds;
-    setActiveWeek({ style: next, recipeIds: nextRecipeIds });
+    setActiveWeek({ style: next, recipeIds: nextRecipeIds, vegetarianOnly });
+  }
+
+  // "Kun vegetar" (01.10.2026) – samme "regenerer kun hvis man allerede har
+  // generert en uke"-logikk som handlePickStyle over, se kommentaren der.
+  function handleToggleVegetarianOnly() {
+    const next = !vegetarianOnly;
+    setAdded(false);
+    setSavedJustNow(false);
+    const nextPool = computePool(recipes, style, next);
+    const nextRecipeIds = generated ? (nextPool.length >= MIN_RECIPES ? pickRandomWeek(nextPool) : []) : recipeIds;
+    setActiveWeek({ style, recipeIds: nextRecipeIds, vegetarianOnly: next });
   }
 
   function handleGenerate() {
     if (!hasEnoughRecipes) return;
     setAdded(false);
     setSavedJustNow(false);
-    setActiveWeek({ style, recipeIds: pickRandomWeek(pool) });
+    setActiveWeek({ style, recipeIds: pickRandomWeek(pool), vegetarianOnly });
   }
 
   function handleRegenerate() {
     if (!hasEnoughRecipes) return;
     setAdded(false);
     setSavedJustNow(false);
-    setActiveWeek({ style, recipeIds: pickRandomWeek(pool) });
+    setActiveWeek({ style, recipeIds: pickRandomWeek(pool), vegetarianOnly });
   }
 
   function handleSwapDay(index: number) {
@@ -158,7 +185,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
     nextIds[index] = replacement.id;
     setAdded(false);
     setSavedJustNow(false);
-    setActiveWeek({ style, recipeIds: nextIds });
+    setActiveWeek({ style, recipeIds: nextIds, vegetarianOnly });
   }
 
   function handleSaveMenu() {
@@ -232,6 +259,27 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
             );
           })}
         </div>
+
+        {/* "Kun vegetar" (01.10.2026, Henrik: "på ukesmeny bør man egentlig
+            ha en knapp 'Kun vegetar'") – egen olivenfarget pille, bevisst
+            adskilt fra de klay-fargede stil-pillene over (den kombineres MED
+            en stil, erstatter ikke en) – se computePool() over. Filtrerer på
+            isVegetarian (admin-satt bryter, migrasjon 0027). */}
+        <button
+          type="button"
+          onClick={handleToggleVegetarianOnly}
+          aria-pressed={vegetarianOnly}
+          className={clsx(
+            "flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+            vegetarianOnly
+              ? "border-olive bg-olive-light text-olive-dark"
+              : "border-line text-ink-soft hover:border-line-strong hover:text-ink",
+          )}
+        >
+          <LeafIcon className="h-3.5 w-3.5" />
+          {t(lang, "weeklyMenu.vegetarianOnly")}
+        </button>
+
         <Link
           href="/ukesmeny/lagrede"
           className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
