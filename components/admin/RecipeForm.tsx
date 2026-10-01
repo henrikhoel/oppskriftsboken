@@ -238,12 +238,20 @@ export function RecipeForm({
   const [isFeatured, setIsFeatured] = useState(recipe?.isFeatured ?? false);
   // To uavhengige synlighetsbrytere lagt til 11.09.2026 – se
   // recipeInputSchema/migrasjon 0018 for begrunnelse (passer ikke for alle
-  // oppskrifter, f.eks. cookies/rundstykker). Default true for nye
-  // oppskrifter (recipe er da undefined/null).
+  // oppskrifter, f.eks. cookies/rundstykker). Begge kolonnene er NOT NULL
+  // DEFAULT true i databasen (migrasjon 0018), så `recipe?.x ?? …`-fallbacken
+  // under rammer KUN nye oppskrifter (recipe er da undefined) – en
+  // eksisterende oppskrift har alltid en ekte lagret verdi og er uberørt.
+  //
+  // RETTET (01.10.2026, Henrik: "gjør sånn at 'passer denne' og 'gjøre
+  // denne til en kveld' ikke er krysset av som standard når man oppretter
+  // oppskrifter") – default var opprinnelig true for NYE oppskrifter også;
+  // nå false, så admin aktivt må skru dem PÅ per oppskrift i stedet for
+  // aktivt å måtte skru dem AV for unntakene.
   const [showBeverageMatchChecker, setShowBeverageMatchChecker] = useState(
-    recipe?.showBeverageMatchChecker ?? true,
+    recipe?.showBeverageMatchChecker ?? false,
   );
-  const [showMealBuilder, setShowMealBuilder] = useState(recipe?.showMealBuilder ?? true);
+  const [showMealBuilder, setShowMealBuilder] = useState(recipe?.showMealBuilder ?? false);
 
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -2925,11 +2933,17 @@ export function RecipeForm({
           mening å sjekke ut en vin til cookies liksom", og "gjør det til en
           kveld" passer heller ikke til cookies eller rundstykker). Egen
           seksjon (ikke i publiseringsraden over) med en kort forklarende
-          tekst, siden begge default er PÅ og admin sjelden trenger å tenke
-          på dem – kun for oppskrifter som åpenbart ikke er en middagsrett. */}
+          tekst.
+          RETTET (01.10.2026, Henrik: "gjør sånn at 'passer denne' og
+          'gjøre denne til en kveld' ikke er krysset av som standard når
+          man oppretter oppskrifter") – begge default nå AV for nye
+          oppskrifter (se useState-defaultene over), så admin aktivt må
+          skru dem PÅ for de oppskriftene der de faktisk passer, i stedet
+          for aktivt å måtte huske å skru dem av for unntakene. */}
       <section className="flex flex-col gap-3 rounded-card border border-line bg-paper p-5 sm:p-6">
         <p className="text-sm text-ink-soft">
-          Skru av det som ikke gir mening for denne oppskriften (f.eks. cookies, rundstykker eller annet bakverk).
+          Skru på det som gir mening for denne oppskriften (f.eks. ikke for cookies, rundstykker eller annet
+          bakverk).
         </p>
         <label className="flex items-center gap-2 text-sm text-ink">
           <input
