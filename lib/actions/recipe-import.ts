@@ -676,6 +676,18 @@ async function parseCaptionToDraft(
         "et eget tips-avsnitt (f.eks. under en overskrift som \"Tips\") eller en advarsel/ting å passe på " +
         "(f.eks. \"Pass på\", \"NB\") – ta dette med ORDRETT i hhv. tips- og warnings-feltene, med admins egne " +
         "ord. IKKE finn på tips eller advarsler som ikke faktisk står i teksten – bruk null der de mangler. " +
+        "Vær EKSTRA nøye med delsteg-grupper (groupTitle) i fremgangsmåten, siden ChatGPT og lignende kilder " +
+        "ofte skriver dette mønsteret: et tall etterfulgt av en KORT, tittel-aktig frase uten punktum på slutten " +
+        "(f.eks. \"1. Lag sausen\" eller \"**Lag sausen**\"), og SÅ kommer selve steginstruksen som egen " +
+        "tekst/avsnitt rett under eller rett etter – ikke på samme linje. Den korte frasen er IKKE selve steget, " +
+        "den er OVERSKRIFTEN for delsteget/delstegene som følger – den skal altså plasseres i \"groupTitle\", og " +
+        "den fullstendige instruksen som faktisk følger (ikke den korte frasen) skal være \"text\" for steget. " +
+        "Kjennetegn på at noe er en slik gruppetittel og ikke selve steget: den er kort (typisk 2–5 ord), mangler " +
+        "konkrete handlinger/mengder/tider, og en lengre, fullstendig setning følger rett etter. Et nytt tall " +
+        "eller en ny slik tittel markerer starten på en ny gruppe; steg uten egen ny tittel beholder samme " +
+        "groupTitle som gruppen de står under, helt til neste gruppetittel dukker opp. Dersom fremgangsmåten " +
+        "derimot IKKE har noen slike gruppetitler i det hele tatt – bare en rett frem nummerert liste med fulle " +
+        "steginstruksjoner – skal groupTitle være null på alle steg, ikke diktes opp. " +
         "Foreslå vanskelighetsgrad, opptil 5 norske emneknagger, og en kategori KUN dersom en av de oppgitte " +
         `passer eksakt. Svar KUN med gyldig JSON i dette skjemaet: ${RECIPE_OUTPUT_SCHEMA}`
       : textKind === "handwritten"
