@@ -13,6 +13,31 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-haiku-4-5-20251001";
 const ANTHROPIC_VERSION = "2023-06-01";
 
+/**
+ * (01.10.2026, Henrik: "tekst som genereres med ai inne på siden skal
+ * aldri bruke '-'", presisert: "både korte og lange bindestreker") – lagt
+ * til i SYSTEM-prompten i alle fire funksjonene under som faktisk sender
+ * en forespørsel til Anthropic (callClaude, callClaudeWebSearchJSON,
+ * callClaudeToolJSON, callClaudeMultiImageVisionJSON), slik at DENNE
+ * ene instruksen dekker all AI-generert tekst på siden – fra
+ * vinanbefaling/vegetarvariant (lib/actions/ai.ts) til "Lim inn en
+ * oppskrift" (lib/actions/recipe-import.ts) og guide-/humør-/
+ * ukesmeny-relatert AI-bruk – uten å måtte legge samme instruks inn i
+ * hver enkelt av de mange system-promptene rundt om i lib/actions/.
+ * Retter seg mot bindestrek/tankestrek brukt som SKILLETEGN i løpende
+ * tekst (den klassiske "AI-tonen": "dette er godt - men ikke perfekt"),
+ * ikke mot et ekte bindestrek-ord (f.eks. "sous-vide") eller tall/
+ * intervaller AI-en er bedt om å gjengi ORDRETT fra kildetekst andre
+ * steder (f.eks. mengde-intervaller som "2-3" i recipe-import.ts) – de
+ * er en annen bruk av tegnet enn det Henrik reagerte på.
+ */
+const NO_DASH_PUNCTUATION_INSTRUCTION =
+  "Bruk ALDRI tankestrek eller bindestrek (kort «-», kort tankestrek «–», eller lang tankestrek " +
+  "«—») som skilletegn for å knytte sammen to deler av en setning (f.eks. «dette er godt - men " +
+  "ikke perfekt»). Skriv i stedet om setningen med komma, punktum, eller et bindeord som «men»/" +
+  "«og»/«fordi». Dette gjelder uansett hvilket språk du svarer på, og uavhengig av om resten av " +
+  "systempromptet er på norsk eller engelsk.";
+
 interface AnthropicContentBlock {
   type: string;
   text?: string;
@@ -72,7 +97,7 @@ export async function callClaude(
       model: MODEL,
       max_tokens: maxTokens,
       ...(temperature !== undefined ? { temperature } : {}),
-      system,
+      system: `${system}\n\n${NO_DASH_PUNCTUATION_INSTRUCTION}`,
       messages: [{ role: "user", content: userPrompt }],
     }),
   });
@@ -258,7 +283,7 @@ export async function callClaudeWebSearchJSON<T>(
     );
   }
 
-  const fullSystem = `${system}\n\nNår du er ferdig med eventuelle søk, kall "submit_result"-verktøyet med det endelige, strukturerte resultatet – ikke skriv resultatet som vanlig tekst.`;
+  const fullSystem = `${system}\n\nNår du er ferdig med eventuelle søk, kall "submit_result"-verktøyet med det endelige, strukturerte resultatet – ikke skriv resultatet som vanlig tekst.\n\n${NO_DASH_PUNCTUATION_INSTRUCTION}`;
 
   const res = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
@@ -363,7 +388,7 @@ export async function callClaudeToolJSON<T>(
     );
   }
 
-  const fullSystem = `${system}\n\nKall "submit_result"-verktøyet med det endelige, strukturerte resultatet – ikke skriv resultatet som vanlig tekst.`;
+  const fullSystem = `${system}\n\nKall "submit_result"-verktøyet med det endelige, strukturerte resultatet – ikke skriv resultatet som vanlig tekst.\n\n${NO_DASH_PUNCTUATION_INSTRUCTION}`;
 
   const res = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
@@ -469,7 +494,7 @@ export async function callClaudeMultiImageVisionJSON<T>(
     throw new Error("Ingen bilder å sende.");
   }
 
-  const fullSystem = `${system}\n\nSvar KUN med gyldig JSON – ingen markdown-kodeblokk, ingen forklaringstekst før eller etter.`;
+  const fullSystem = `${system}\n\nSvar KUN med gyldig JSON – ingen markdown-kodeblokk, ingen forklaringstekst før eller etter.\n\n${NO_DASH_PUNCTUATION_INSTRUCTION}`;
 
   const res = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
