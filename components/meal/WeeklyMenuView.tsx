@@ -260,34 +260,6 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
           })}
         </div>
 
-        {/* "Kun vegetar" (01.10.2026, Henrik: "på ukesmeny bør man egentlig
-            ha en knapp 'Kun vegetar' [...] litt utenfor, så man kan få
-            retter i de andre kategoriene fortsatt, men som er vegetar") –
-            egen olivenfarget pille, satt i en EGEN gruppe med en
-            skille-strek til venstre (samme "border-l border-line
-            pl-3"-mønster som skiller utelatt/vegetar-knappene fra
-            stil-ikonene i WeeklyMenuAdminPicker.tsx), for tydelig å vise at
-            dette IKKE er en femte stil-kategori – den kombineres MED en
-            valgt stil (inkl. "Variert"), erstatter den aldri, se
-            computePool() over. Filtrerer på isVegetarian (admin-satt
-            bryter, migrasjon 0027). */}
-        <div className="flex border-l border-line pl-4">
-          <button
-            type="button"
-            onClick={handleToggleVegetarianOnly}
-            aria-pressed={vegetarianOnly}
-            className={clsx(
-              "flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-              vegetarianOnly
-                ? "border-olive bg-olive-light text-olive-dark"
-                : "border-line text-ink-soft hover:border-line-strong hover:text-ink",
-            )}
-          >
-            <LeafIcon className="h-3.5 w-3.5" />
-            {t(lang, "weeklyMenu.vegetarianOnly")}
-          </button>
-        </div>
-
         <Link
           href="/ukesmeny/lagrede"
           className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
@@ -295,6 +267,40 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
           {t(lang, "weeklyMenu.savedMenusLink")}
         </Link>
       </div>
+
+      {/* "Kun vegetar" (01.10.2026, Henrik: "på ukesmeny bør man egentlig ha
+          en knapp 'Kun vegetar' [...] litt utenfor, så man kan få retter i
+          de andre kategoriene fortsatt, men som er vegetar"). FEILRETTET
+          (01.10.2026, runde 2) – første forsøk satte den som en pille RETT
+          VED stil-pillene over, bare skilt med en loddrett strek. Henrik:
+          "det ser ut som en egen stil når den er rett ved de andre" – en
+          strek alene holdt ikke når formen (rund pille) var identisk med
+          stil-knappene. Flyttet derfor til en HELT EGEN linje under
+          stilvalget, OG byttet til en helt annen visuell form (en
+          avkrysningsboks, ikke en pille-knapp), slik at den ikke kan
+          forveksles med et sjette stilvalg uansett skjermbredde. Filtrerer
+          på isVegetarian (admin-satt bryter, migrasjon 0027) OVENPÅ den
+          valgte stilen (inkl. "Variert"), erstatter den aldri – se
+          computePool() over. */}
+      <label className="mt-4 inline-flex w-fit cursor-pointer items-center gap-2 text-sm text-ink-soft transition-colors hover:text-ink">
+        <input
+          type="checkbox"
+          checked={vegetarianOnly}
+          onChange={handleToggleVegetarianOnly}
+          className="sr-only"
+        />
+        <span
+          aria-hidden="true"
+          className={clsx(
+            "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors",
+            vegetarianOnly ? "border-olive bg-olive text-cream" : "border-line-strong bg-cream text-transparent",
+          )}
+        >
+          <CheckIcon className="h-3 w-3" />
+        </span>
+        <LeafIcon className="h-3.5 w-3.5 text-olive" />
+        {t(lang, "weeklyMenu.vegetarianOnly")}
+      </label>
 
       {/* TOM STARTTILSTAND – ingen retter, ingen tomme kort. Kun knappen
           (deaktivert til en stil er valgt), eller en melding hvis den
