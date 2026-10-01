@@ -261,24 +261,32 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
         </div>
 
         {/* "Kun vegetar" (01.10.2026, Henrik: "på ukesmeny bør man egentlig
-            ha en knapp 'Kun vegetar'") – egen olivenfarget pille, bevisst
-            adskilt fra de klay-fargede stil-pillene over (den kombineres MED
-            en stil, erstatter ikke en) – se computePool() over. Filtrerer på
-            isVegetarian (admin-satt bryter, migrasjon 0027). */}
-        <button
-          type="button"
-          onClick={handleToggleVegetarianOnly}
-          aria-pressed={vegetarianOnly}
-          className={clsx(
-            "flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-            vegetarianOnly
-              ? "border-olive bg-olive-light text-olive-dark"
-              : "border-line text-ink-soft hover:border-line-strong hover:text-ink",
-          )}
-        >
-          <LeafIcon className="h-3.5 w-3.5" />
-          {t(lang, "weeklyMenu.vegetarianOnly")}
-        </button>
+            ha en knapp 'Kun vegetar' [...] litt utenfor, så man kan få
+            retter i de andre kategoriene fortsatt, men som er vegetar") –
+            egen olivenfarget pille, satt i en EGEN gruppe med en
+            skille-strek til venstre (samme "border-l border-line
+            pl-3"-mønster som skiller utelatt/vegetar-knappene fra
+            stil-ikonene i WeeklyMenuAdminPicker.tsx), for tydelig å vise at
+            dette IKKE er en femte stil-kategori – den kombineres MED en
+            valgt stil (inkl. "Variert"), erstatter den aldri, se
+            computePool() over. Filtrerer på isVegetarian (admin-satt
+            bryter, migrasjon 0027). */}
+        <div className="flex border-l border-line pl-4">
+          <button
+            type="button"
+            onClick={handleToggleVegetarianOnly}
+            aria-pressed={vegetarianOnly}
+            className={clsx(
+              "flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+              vegetarianOnly
+                ? "border-olive bg-olive-light text-olive-dark"
+                : "border-line text-ink-soft hover:border-line-strong hover:text-ink",
+            )}
+          >
+            <LeafIcon className="h-3.5 w-3.5" />
+            {t(lang, "weeklyMenu.vegetarianOnly")}
+          </button>
+        </div>
 
         <Link
           href="/ukesmeny/lagrede"
