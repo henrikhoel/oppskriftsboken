@@ -7,6 +7,7 @@ import {
   createCategory,
   deleteCategory,
   generateEnglishCategoryName,
+  renameCategory,
   saveEnglishCategoryName,
 } from "@/lib/actions/categories";
 import { slugify } from "@/lib/utils/slug";
@@ -34,6 +35,37 @@ function CategoryRow({
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
+
+  // Norsk visningsnavn (01.10.2026, Henrik: "jeg har ikke mulighet til å
+  // endre navnet på eksisterende kategorier [...] frokost til frokost &
+  // lunsj") – eget frittstående mini-skjema, samme "lagrer seg selv"-mønster
+  // som det engelske navnet over, men en EGEN notice/error/isSaving-trio
+  // (ikke delt), slik at man kan lagre norsk og engelsk navn uavhengig av
+  // hverandre uten at den ene knappens "Lagrer …"/feilmelding smitter over
+  // på den andre. Endrer BEVISST ikke slug-en, se renameCategory().
+  const [name, setName] = useState(category.name);
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [nameNotice, setNameNotice] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  async function handleSaveName() {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === category.name) return;
+    setNameError(null);
+    setNameNotice(null);
+    setIsSavingName(true);
+    try {
+      const result = await renameCategory(category.id, trimmed);
+      if (!result.success) {
+        setNameError(result.error ?? "Kunne ikke lagre navnet.");
+        return;
+      }
+      setName(trimmed);
+      setNameNotice("Lagret.");
+    } finally {
+      setIsSavingName(false);
+    }
+  }
 
   async function handleGenerate() {
     setRowError(null);
@@ -70,9 +102,29 @@ function CategoryRow({
 
   return (
     <li className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
-        <p className="font-medium text-ink">{category.name}</p>
-        <p className="text-xs text-ink-faint">/kategori/{category.slug}</p>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            aria-label={`Navn på kategorien ${category.name}`}
+            // text-base på mobil, ikke text-sm – unngår iOS Safari sin
+            // automatiske innzooming ved fokus (samme begrunnelse som det
+            // engelske navn-feltet under).
+            className="w-44 min-w-0 rounded-lg border border-line-strong bg-cream px-2.5 py-1.5 text-base font-medium text-ink focus:outline-none sm:w-48 sm:text-sm"
+          />
+          <button
+            type="button"
+            onClick={handleSaveName}
+            disabled={isSavingName || !name.trim() || name.trim() === category.name}
+            className="shrink-0 rounded-full border border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-cream-dark disabled:opacity-50"
+          >
+            {isSavingName ? "Lagrer …" : "Lagre navn"}
+          </button>
+          {nameNotice && <span className="text-xs text-ink-faint">{nameNotice}</span>}
+        </div>
+        {nameError && <p className="mt-1 text-xs text-clay-dark">{nameError}</p>}
+        <p className="mt-1.5 text-xs text-ink-faint">/kategori/{category.slug}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 sm:shrink-0">

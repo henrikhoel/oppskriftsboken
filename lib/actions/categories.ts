@@ -46,6 +46,36 @@ export async function createCategory(input: {
   return { success: true };
 }
 
+/** Endrer det norske visningsnavnet på en EKSISTERENDE kategori (01.10.2026,
+ * Henrik: "jeg har ikke mulighet til å endre navnet på eksisterende
+ * kategorier. jeg vil endre frokost til frokost & lunsj") – frem til nå
+ * kunne man kun SETTE navn ved opprettelse (createCategory over), ikke
+ * endre det igjen etterpå. Endrer BEVISST kun categories.name, ALDRI
+ * categories.slug (brukt i URL-en /kategori/{slug}) – en ren navnebytte
+ * skal ikke knekke eksisterende lenker/bokmerker til kategorisiden, selv
+ * om visningsnavnet endres (samme begrunnelse som at man kan endre en
+ * oppskrifts tittel uten at slug-en endres, se RecipeForm.tsx). */
+export async function renameCategory(id: string, name: string): Promise<CategoryActionResult> {
+  await requireAdmin();
+
+  const parsed = categoryInputSchema.shape.name.safeParse(name);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Ugyldig navn" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("categories").update({ name: parsed.data }).eq("id", id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin/kategorier");
+  revalidatePath("/oppskrifter");
+  revalidatePath("/");
+  return { success: true };
+}
+
 export interface EnglishCategoryNameResult {
   success: boolean;
   nameEn?: string;
