@@ -27,14 +27,15 @@ export async function generateMetadata(): Promise<Metadata> {
  * app/ukesmeny/page.tsx (fast høyde, `absolute`-forankret til toppen av
  * SIDENS egen wrapper, ikke viewportet, med en nedtoning mot
  * --color-cream nederst), kun med lavere høydetall og public/images/
- * evening-table.jpg (valgt av Henrik 03.10.2026 – allerede brukt på
- * /meny/[id] sin "Gjør det til en kveld"-opplevelse, men gjenbruk av
- * stemningsbilder på tvers av sider er et etablert mønster i CONVITE, se
- * f.eks. weekly-menu.jpg). Bildet er i seg selv nesten helt sort (et
- * nattbord med stearinlys), så INGEN ekstra mørkt overlegg er lagt til
- * (samme resonnement som weekly-menu.jpg sin kommentar i
- * app/ukesmeny/page.tsx) – kun selve nedtonings-gradienten nederst for en
- * myk overgang til sidens vanlige bakgrunn.
+ * weekend-table.jpg (Henrik sendte dette bildet 03.10.2026 som erstatning
+ * for det opprinnelige valget evening-table.jpg – samme stemning med
+ * stearinlys og vinglass i mørket, men mer diagonal komposisjon). To
+ * overlegg oppå bildet: (1) en mørk gradient FRA VENSTRE
+ * (`to right, svart → transparent`), eksplisitt bedt om av Henrik for å gi
+ * god lesbarhet på tittel/tagline/beskrivelse som ligger i venstre del av
+ * heroen, og (2) nedtonings-gradienten nederst mot --color-cream (samme
+ * teknikk som app/ukesmeny/page.tsx) for en myk overgang til sidens
+ * vanlige bakgrunn.
  *
  * Filterraden (Alle/Fredagskveld/Date night/Venner på middag/Familie/
  * Feiring), "Utvalgt"-seksjonen og rutenettet under er ALLE samlet i én
@@ -52,7 +53,11 @@ export default async function WeekendGuestsPage() {
         className="absolute inset-x-0 top-0 -z-10 h-[360px] overflow-hidden sm:h-[440px] lg:h-[520px]"
         aria-hidden="true"
       >
-        <Image src="/images/evening-table.jpg" alt="" fill priority sizes="100vw" className="object-cover" />
+        <Image src="/images/weekend-table.jpg" alt="" fill priority sizes="100vw" className="object-cover" />
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 45%, transparent 75%)" }}
+        />
         <div
           className="absolute inset-0"
           style={{ background: "linear-gradient(to bottom, transparent 35%, var(--color-cream) 100%)" }}
