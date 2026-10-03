@@ -47,18 +47,22 @@ export function AdminRecipeRow({ recipe }: { recipe: RecipeSummary }) {
           den forrige unoptimized <Image> lastet ned hele originalbildet
           for en 56px-visning på HVER rad i hele oppskriftslisten). Erstattet
           med et rent ikon (ingen nettverkskall i det hele tatt) som i
-          tillegg FARGES etter om oppskriften mangler bilde – Henrik: "sett
+          tillegg markerer om oppskriften mangler bilde – Henrik: "sett
           inn et placeholder bilde på oppskriftene som viser at oppskriftene
-          har et bilde, sånn at jeg ikke glemmer å legge til det". Nøytral
-          gråtone når heroImageUrl finnes, tydelig leire-farget "mangler
-          bilde"-varsel når den ikke gjør det – lett å få øye på i en lang
-          liste uten å måtte åpne hver enkelt oppskrift.
-          "Trykk for å åpne den faktiske, publiserte oppskriftssiden"
-          -funksjonen (ønsket av Henrik 26.08.2026, for å raskt sjekke
-          hvordan nylige endringer faktisk ser ut) er beholdt som selve
-          klikkmålet på denne boksen – samme fane (IKKE target="_blank" –
-          testet og meldt tilbake at det ikke var ønsket), atskilt fra
-          "Rediger"-lenken, som fortsatt går til admin-redigeringssiden. */}
+          har et bilde, sånn at jeg ikke glemmer å legge til det".
+          FØRSTE versjon (samme dag) farget "mangler bilde" med
+          bg-clay-light/text-clay-dark – men det er NØYAKTIG samme
+          fargekombinasjon som Badge tone="clay" bruker for positive/
+          fremhevede ting (og "Utvalgt"-badgen under bruker den nærstående
+          mustard-tonen), så gull leste som "fremhevet/bra" i stedet for
+          "varsel" (Henrik: "de med gult ikon her er jo de uten bilde, det
+          ser jo motsatt ut"). Appens palett har ingen egen rød/
+          "danger"-farge å ty til i stedet, så løsningen her er å ikke bruke
+          farge for å signalisere "mangler" i det hele tatt – i stedet en
+          stiplet kant (en vanlig, fargeuavhengig "tom plassholder"-
+          konvensjon), nøytral i ro, med et svakt gull-hint KUN på hover som
+          en invitasjon til å trykke og fikse det. Boksen med ekte bilde
+          forblir en vanlig, utfylt, nøytral boks ("allerede i orden"). */}
       <Link
         href={`/oppskrifter/${recipe.slug}`}
         aria-label={`Se "${recipe.title}" på nettsiden${recipe.heroImageUrl ? "" : " (mangler bilde)"}`}
@@ -67,7 +71,7 @@ export function AdminRecipeRow({ recipe }: { recipe: RecipeSummary }) {
           "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-colors",
           recipe.heroImageUrl
             ? "bg-cream-dark text-ink-faint hover:text-ink"
-            : "bg-clay-light text-clay-dark hover:bg-clay-light/70",
+            : "border-2 border-dashed border-line-strong text-ink-faint hover:border-clay hover:text-clay",
         )}
       >
         <ImageIcon className="h-5 w-5" />
