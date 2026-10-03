@@ -124,9 +124,41 @@ export async function getFeaturedRecipes(limit = 3): Promise<RecipeSummary[]> {
     .slice(0, limit);
 }
 
+/** Sammenligningsfunksjon for displayOrder (høyest vises først) – se
+ * displayOrder sin filheader i lib/types.ts og migrasjon 0029. Delt av
+ * getBrowseRecipeSummaries og getNewestRecipes under, de TO ENESTE
+ * stedene i hele appen som sorterer på dette feltet (alt annet som bruker
+ * getPublishedRecipeSummaries/getSearchableRecipes – søk, kjøkken-AI,
+ * vinmatching, sesongsidene, /ukesmeny, ALLE admin-sidene – fortsetter
+ * uendret på den opprinnelige created_at-rekkefølgen, bevisst IKKE rørt
+ * her). `?? 0` dekker demo-data, der feltet aldri settes. */
+function byDisplayOrderDesc(a: { displayOrder?: number }, b: { displayOrder?: number }): number {
+  return (b.displayOrder ?? 0) - (a.displayOrder ?? 0);
+}
+
+/**
+ * Samme underliggende, delte oppskriftsliste som getSearchableRecipes
+ * (ingen ekstra spørring/cache-oppføring – kun en ren in-memory
+ * omsortering av den allerede hentede/cachede arrayen), men sortert på
+ * displayOrder i stedet for created_at. Brukt KUN av /oppskrifter
+ * (app/oppskrifter/page.tsx → BrowseRecipesClient) – se filheaderen ved
+ * byDisplayOrderDesc over for hvorfor ingen andre forbrukere er endret.
+ */
+export async function getBrowseRecipeSummaries(): Promise<SearchableRecipe[]> {
+  const all = await getSearchableRecipes();
+  return [...all].sort(byDisplayOrderDesc);
+}
+
+/** "Nyeste oppskrifter" på forsiden – sorterer SAMME delte liste på
+ * displayOrder (se byDisplayOrderDesc over), ikke lenger direkte på
+ * created_at-rekkefølgen arrayen allerede har fra getPublishedRecipeRows.
+ * Henrik, da "Miks rekkefølgen"-knappen ble bedt om (03.10.2026):
+ * "rekkefølgen vil også påvirke det som står under 'nyeste oppskrifter'
+ * på forsiden" – eksplisitt ønsket koblet sammen med /oppskrifter sin
+ * rekkefølge, i motsetning til alle admin-listene (se samme filhode). */
 export async function getNewestRecipes(limit = 6): Promise<RecipeSummary[]> {
   const all = await getPublishedRecipeSummaries();
-  return all.slice(0, limit);
+  return [...all].sort(byDisplayOrderDesc).slice(0, limit);
 }
 
 export async function getAdminFavoriteRecipes(): Promise<RecipeSummary[]> {

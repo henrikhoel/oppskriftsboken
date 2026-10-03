@@ -145,6 +145,10 @@ export interface Database {
           rating_count: number;
           created_at: string;
           updated_at: string;
+          // Admin-styrt visningsrekkefølge for /oppskrifter + "Nyeste
+          // oppskrifter" – se migrasjon 0029_recipe_display_order.sql.
+          // NOT NULL DEFAULT extract(epoch from now()).
+          display_order: number;
         };
         Insert: {
           id?: string;
@@ -191,6 +195,7 @@ export interface Database {
           rating_count?: number;
           created_at?: string;
           updated_at?: string;
+          display_order?: number;
         };
         Update: Partial<Database["public"]["Tables"]["recipes"]["Insert"]>;
         Relationships: [

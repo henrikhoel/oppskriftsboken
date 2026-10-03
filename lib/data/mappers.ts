@@ -242,6 +242,7 @@ export function toSummary(recipe: Recipe): RecipeSummary {
     weeklyMenuStyles: recipe.weeklyMenuStyles,
     isVegetarian: recipe.isVegetarian,
     createdAt: recipe.createdAt,
+    displayOrder: recipe.displayOrder,
     isPublished: recipe.isPublished,
     ratingSum: recipe.ratingSum,
     ratingCount: recipe.ratingCount,
@@ -306,6 +307,9 @@ export interface RawRecipeListRow {
   rating_sum: number;
   rating_count: number;
   created_at: string;
+  // Se displayOrder sin filheader i lib/types.ts og migrasjon 0029 – KUN
+  // brukt til å sortere /oppskrifter + "Nyeste oppskrifter" på forsiden.
+  display_order: number;
   category: RawRecipeRow["category"];
   recipe_tags: RawRecipeRow["recipe_tags"];
   ingredient_groups: { ingredient_items: { name: string }[] | null }[] | null;
@@ -316,7 +320,7 @@ export const RECIPE_LIST_SELECT = `
   total_time_minutes, difficulty, spice_level,
   is_published, is_featured, moods, courses, featured_sort_order, favorited_by_admin, weekly_menu_excluded, weekly_menu_styles, is_vegetarian,
   rating_sum, rating_count,
-  created_at,
+  created_at, display_order,
   category:categories(id, slug, name, name_en, sort_order),
   recipe_tags(tags(id, slug, name)),
   ingredient_groups(ingredient_items(name))
@@ -346,6 +350,7 @@ export function mapRecipeListRow(raw: RawRecipeListRow): SearchableRecipe {
     weeklyMenuStyles: raw.weekly_menu_styles as RecipeSummary["weeklyMenuStyles"],
     isVegetarian: raw.is_vegetarian,
     createdAt: raw.created_at,
+    displayOrder: raw.display_order,
     isPublished: raw.is_published,
     ratingSum: raw.rating_sum,
     ratingCount: raw.rating_count,

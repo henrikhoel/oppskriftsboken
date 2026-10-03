@@ -399,6 +399,15 @@ export interface Recipe {
   ratingCount: number;
   createdAt: string;
   updatedAt: string;
+  /** Admin-styrt visningsrekkefølge for KUN /oppskrifter og "Nyeste
+   * oppskrifter" på forsiden – satt fra "Miks rekkefølgen"-knappen
+   * (components/admin/ShuffleOrderButton.tsx), se migrasjon 0029 sin
+   * filheader for hele bakgrunnen og hvorfor IKKE created_at gjenbrukes.
+   * Høyere tall vises først. Valgfri av samme "ikke satt i demo-data"-
+   * grunn som weeklyMenuStyles over – kun populert via mapRecipeListRow
+   * (listevisninger), ikke mapRecipeRow (selve oppskriftssiden trenger
+   * den ikke). */
+  displayOrder?: number;
 }
 
 /** Lettvekts-variant brukt i kort/lister der vi ikke trenger hele oppskriften. */
@@ -432,6 +441,7 @@ export type RecipeSummary = Pick<
   | "isPublished"
   | "ratingSum"
   | "ratingCount"
+  | "displayOrder"
   // Lagt til 27.08.2026 for "Hva skal vi spise?"
   // (lib/kitchen-intelligence/what-to-eat.ts) sin gjeste-nærhet-bonus –
   // ren utvidelse av Pick-lista, INGEN ny migrasjon eller spørring

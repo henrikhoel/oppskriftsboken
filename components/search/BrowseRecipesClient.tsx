@@ -7,6 +7,7 @@ import type { SearchableRecipe } from "@/lib/utils/search";
 import { filterRecipes } from "@/lib/utils/search";
 import { FilterPanel } from "@/components/search/FilterPanel";
 import { RecipeGrid } from "@/components/recipe/RecipeGrid";
+import { ShuffleOrderButton } from "@/components/admin/ShuffleOrderButton";
 import { useAccountFavorites } from "@/lib/hooks/useAccountFavorites";
 import { recipeCountLabel, type Lang } from "@/lib/i18n";
 
@@ -79,7 +80,13 @@ export function BrowseRecipesClient({
         />
       </aside>
       <div>
-        <p className="mb-4 text-sm text-ink-faint">{recipeCountLabel(lang, filtered.length)}</p>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-ink-faint">{recipeCountLabel(lang, filtered.length)}</p>
+          {/* Kun admin – se ShuffleOrderButton.tsx sin filheader. Plassert her
+              (ikke i FilterPanel) siden den styrer selve RESULTATREKKEFØLGEN,
+              ikke et filter. */}
+          {isAdmin && <ShuffleOrderButton />}
+        </div>
         <RecipeGrid recipes={filtered} isAdmin={isAdmin} isLoggedIn={isLoggedIn} lang={lang} />
       </div>
     </div>

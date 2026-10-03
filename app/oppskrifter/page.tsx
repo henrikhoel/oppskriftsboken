@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { getSearchableRecipes } from "@/lib/data/recipes";
+import { getBrowseRecipeSummaries } from "@/lib/data/recipes";
 import { getAllCategories } from "@/lib/data/categories";
 import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RecipesPage() {
   const [recipes, categories, user, lang] = await Promise.all([
-    getSearchableRecipes(),
+    getBrowseRecipeSummaries(),
     getAllCategories(),
     getCurrentUserFast(),
     getLang(),

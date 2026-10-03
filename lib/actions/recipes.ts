@@ -7,6 +7,7 @@ import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods"
 import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
 import { WEEKLY_MENU_STYLE_DEFINITIONS, type WeeklyMenuStyleId } from "@/lib/kitchen-intelligence/weekly-menu-styles";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database.types";
 import {
   getAllRecipeSlugsForCollisionCheck,
   getPublishedRecipeSummaries,
@@ -1563,6 +1564,59 @@ export async function moveFeatured(recipeId: string, direction: "up" | "down"): 
   }
   revalidateRecipePaths();
   revalidatePath("/admin/utvalg");
+}
+
+/**
+ * "Miks rekkefølgen" (03.10.2026, se migrasjon 0029_recipe_display_order
+ * sin filheader for hele bakgrunnen) – admin-knapp på /oppskrifter
+ * (ShuffleOrderButton.tsx, rendret fra BrowseRecipesClient.tsx) som gir
+ * ALLE oppskrifter (også upubliserte – spiller ingen rolle, feltet
+ * brukes uansett kun til å sortere PUBLISERTE rader i
+ * getBrowseRecipeSummaries/getNewestRecipes) en ny, tilfeldig
+ * display_order.
+ *
+ * Verdiene trekkes bevisst fra et lite intervall (0–1 000 000) – langt
+ * under et ekte epoch-sekund-tall (~1,7 milliarder nå) – slik at en NY
+ * oppskrift som opprettes etter miksingen (default extract(epoch from
+ * now()) på selve kolonnen, se migrasjonen) fortsatt alltid havner øverst
+ * som "nyest", akkurat som created_at ga automatisk før denne endringen.
+ *
+ * Ett upsert-kall for alle radene (samme mønster som scripts/seed.ts)
+ * fremfor N enkelt-oppdateringer – ved ~290 oppskrifter ville det vært
+ * ~290 separate rundturer mot Supabase ellers. onConflict: "id" + kun
+ * id/display_order i hvert objekt gjør dette til en ren UPDATE per rad
+ * (ON CONFLICT DO UPDATE), ikke en risiko for å nullstille andre felt.
+ *
+ * Rører KUN display_order – IKKE created_at, og dermed heller ikke
+ * admin-dashbordets egne lister (getAllRecipesForAdmin, humør, ukesmeny,
+ * utvalg, roller), som alle fortsatt sorterer på created_at, helt
+ * uendret. Se samme presisering i migrasjonens filheader.
+ */
+export async function shuffleRecipeDisplayOrder(): Promise<void> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: rows, error: fetchError } = await supabase.from("recipes").select("id");
+  if (fetchError || !rows) {
+    throw new Error(fetchError?.message ?? "Kunne ikke hente oppskrifter");
+  }
+
+  const updates = rows.map((row) => ({ id: row.id as string, display_order: Math.random() * 1_000_000 }));
+
+  // `as unknown as ...[]` under: @supabase/supabase-js sin .upsert()-typing
+  // krever ALLE påkrevde felt fra recipes sin Insert-type (slug, title …) i
+  // hvert objekt, siden upsert i prinsippet KAN sette inn en helt ny rad.
+  // Her sender vi bevisst kun id+display_order – ON CONFLICT (id) DO UPDATE
+  // gjør dette til en ren UPDATE per rad, aldri en reell INSERT, siden hver
+  // id kommer fra en nettopp utført select("id") på nøyaktig samme tabell
+  // og dermed garantert finnes.
+  const { error } = await supabase
+    .from("recipes")
+    .upsert(updates as unknown as Database["public"]["Tables"]["recipes"]["Insert"][], { onConflict: "id" });
+  if (error) {
+    throw new Error(`Kunne ikke mikse rekkefølgen: ${error.message}`);
+  }
+  revalidateRecipePaths();
 }
 
 /**
