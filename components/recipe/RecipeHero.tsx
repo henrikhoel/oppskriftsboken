@@ -195,14 +195,19 @@ export function RecipeHero({
                 // Fargetone per nivå (grønn/oransj/rød), se SPICE_LEVEL_CLASSES
                 // sin filheader i lib/config.ts for hele bakgrunnen – erstatter
                 // 03.10.2026 en rad med håndtegnede chili-ikoner, se
-                // git-historikken for components/ui/icons.tsx.
+                // git-historikken for components/ui/icons.tsx. KUN selve
+                // nivå-ordet synlig ("Mild", ikke "Sterkhet: Mild") – Henrik:
+                // "folk skjønner det" ut fra fargen+ordet alene. spicyLabel
+                // ("Sterkhet"/"Spice level") brukes likevel som aria-label,
+                // så skjermlesere fortsatt får forklart HVA badgen betyr.
                 <span
                   className={clsx(
                     "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium tracking-wide",
                     SPICE_LEVEL_CLASSES[spiceLevel as SpiceLevel],
                   )}
+                  aria-label={`${spicyLabel}: ${spiceLevelText}`}
                 >
-                  {spicyLabel}: {spiceLevelText}
+                  {spiceLevelText}
                 </span>
               ) : null}
               {isDraft && <Badge tone="mustard">{draftLabel}</Badge>}
