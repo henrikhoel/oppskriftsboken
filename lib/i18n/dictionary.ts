@@ -1403,7 +1403,7 @@ const DICT = {
     en: "No dishes have been added under this occasion yet.",
   },
   "weekendGuests.emptyGeneral": {
-    no: "Henrik har ikke lagt til noen retter i Helg & gjester ennå.",
+    no: "Vi har ikke lagt til noen retter i Helg & gjester ennå.",
     en: "No dishes have been added to Weekend & guests yet.",
   },
 
