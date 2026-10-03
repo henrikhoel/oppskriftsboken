@@ -43,50 +43,32 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
  * gull-aksenten her – se --color-chili i app/globals.css og bruken av
  * `text-chili` på kallstedene; chilien skal lyse rød når den er valgt.
  *
- * Flere runder før denne satt, hver med et referanse-ikon fra Henrik
- * (ingen av dem kopiert direkte inn – betalte/ukjent-lisensierte
- * lager-ikoner, men gode å style etter): (1) frihåndstegnet pod så ikke
- * ut som chili i det hele tatt, (2) tapret pod + tynn strek-stilk
- * manglet synlig stilk, (3) pod+stilk som to like store klumper med tynn
- * hals mellom så ut som en beinknokkel, (4) en vannrett, krøllet stilk
- * (for å ligne et liggende referanse-ikon) endte opp som en fugl – halsen
- * + krøllen leste som hode/nebb, (5) et tredje referanse-ikon viste en
- * tydelig LUFTE/avstand mellom stilk og pod i stedet for at de glir
- * sammen, (6) et fjerde referanse-ikon viste samme type sving, men
- * MOTSATT vei ("du må speile den og endre vinkelen") – podens "buk" lå
- * på feil side av stilk-til-tupp-linjen, (7) den rette strek-stilken fra
- * forrige runde (bevisst rett for å unngå "fugl"-effekten i punkt 4) så i
- * praksis ut som en stiv, rettvinklet planke ved siden av referansens
- * butte, buede stilk ("se forskjellen, hva skjedde med stilken?"), (8) en
- * påfølgende versjon rettet opp kurven, men krummet i tillegg litt
- * TILBAKE mot tuppen på slutten (en liten ekstra S-sving) – Henrik: "bare
- * fjern den ekstra buen" – fjernet, kurver nå kun én vei. (9) Den rettede
- * stilken fikk en liten spiss, kantete flik helt ytterst (det flate
- * "snittet" der konturen bare stopper brått på tvers av kurveretningen) –
- * Henrik viste et nærbilde og ba om at den biten fjernes og gjøres rund.
- * Løst med en ordentlig halvsirkel-avrunding i enden i stedet for det
- * flate tverrsnittet.
- *
- * Endelig geometri: kurvet senterlinje + normalvektorer langs den (som i
- * alle rundene), stilk øverst til høyre, spiss tupp nederst til venstre,
- * med kontrollpunktene speilet slik at buken buler ut på motsatt side av
- * senterlinjen sammenlignet med runden før (et speilbilde av selve
- * krumningen, ikke bare en venstre-høyre-flipp av koordinatene – det
- * hadde bare flyttet stilk/tupp til feil hjørner igjen). Ikke-monoton
- * radiusfunksjon for buken (smal hals → bred buk → spiss tupp). Stilken
- * er én enkel, jevn bue (egne kontrollpunkter som avviker fra en rett
- * linje mellom endepunktene, så den faktisk krummer – ikke tre nesten-
- * kollineære punkter), uten tilbakekrumming, og med en avrundet
- * halvsirkel-kapp i den ytterste enden i stedet for et flatt tverrsnitt –
- * satt med luft til podens skulder i stedet for å overlappe den.
- * Verifisert med Playwright-skjermbilder i de faktiske bruksstørrelsene
- * (28px i RecipeForm.tsx, 16px i RecipeHero.tsx) og en zoomet nærkontroll
- * av selve stilktuppen, ikke bare i stort format. */
+ * Ni runder før denne satt (hver med et referanse-ikon fra Henrik – de
+ * fleste betalte/ukjent-lisensierte lager-ikoner, ikke kopiert direkte
+ * inn, bare brukt som stilreferanse) landet til slutt på en form Henrik
+ * var fornøyd med BORTSETT FRA stilken (for rett/planke-aktig, flat spiss
+ * i enden – se git-historikken for components/ui/icons.tsx for detaljene
+ * runde for runde om det trengs). Denne runden (10.) fikk vi endelig et
+ * referanse-ikon UTEN lisensusikkerhet – Henrik: "DENNE har jeg tegnet
+ * selv med ChatGPT" – og podens form og proporsjoner er derfor for
+ * første gang modellert direkte og tett etter selve referansebildet i
+ * stedet for en abstrakt "senterlinje som så fornuftig ut": brede,
+ * avrundede skuldre rett under stilken (podens radiusfunksjon rampes
+ * raskt opp fra ~0 i stedet for å starte i full bredde, så skulderen blir
+ * rund i stedet for et flatt, kantete "dolk"-tverrsnitt – det var
+ * problemet i første forsøk denne runden), bred buk som holder bredden
+ * gjennom det meste av lengden, og skarp avsmalning først helt mot
+ * slutten. Stilken er nå tykk og kort (ikke en tynn, avlang hals som i
+ * runde 4 sin fugl-effekt) som krummer ut og hekter tilbake, med samme
+ * halvsirkel-avrundede tupp-kapp som runde 9 innførte. Luft mellom stilk
+ * og pod (runde 5) beholdt. Verifisert med Playwright-skjermbilder i de
+ * faktiske bruksstørrelsene (28px i RecipeForm.tsx, 16px i
+ * RecipeHero.tsx), ikke bare i stort format. */
 export function ChiliIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
   return (
     <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
-      <path d="M15.54,5.39 L15.76,5.7 L15.91,6.04 L16,6.39 L16.02,6.75 L16,7.1 L15.92,7.44 L15.82,7.76 L15.69,8.06 L15.55,8.35 L15.4,8.64 L15.26,8.93 L15.12,9.23 L14.99,9.55 L14.87,9.9 L14.72,10.28 L14.56,10.69 L14.38,11.13 L14.16,11.59 L13.9,12.08 L13.61,12.6 L13.27,13.13 L12.88,13.67 L12.44,14.22 L11.95,14.78 L11.4,15.35 L10.8,15.9 L10.14,16.45 L9.42,16.99 L8.64,17.51 L7.81,18 L6.91,18.47 L5.96,18.91 L6.04,19.09 L7.01,18.68 L7.94,18.28 L8.85,17.89 L9.72,17.51 L10.55,17.14 L11.36,16.77 L12.14,16.4 L12.88,16.03 L13.59,15.65 L14.27,15.26 L14.92,14.85 L15.53,14.44 L16.1,14 L16.63,13.54 L17.12,13.06 L17.56,12.56 L17.95,12.04 L18.27,11.49 L18.54,10.92 L18.73,10.33 L18.83,9.74 L18.85,9.14 L18.79,8.56 L18.67,8 L18.49,7.47 L18.26,6.98 L17.99,6.52 L17.7,6.09 L17.4,5.7 L17.08,5.33 L16.77,4.97 L16.46,4.61 Z" />
-      <path d="M15.92,4.74 L16.27,4.47 L16.6,4.19 L16.91,3.9 L17.2,3.61 L17.46,3.32 L17.7,3.02 L17.92,2.72 L18.12,2.42 L18.3,2.12 L18.46,1.82 L18.59,1.53 L18.7,1.23 L18.79,0.95 L18.85,0.66 L18.86,0.56 L18.82,0.47 L18.75,0.39 L18.66,0.35 L18.56,0.34 L18.47,0.38 L18.39,0.45 L18.35,0.54 L18.26,0.77 L18.16,1.02 L18.03,1.26 L17.89,1.51 L17.72,1.76 L17.54,2.02 L17.34,2.27 L17.11,2.52 L16.87,2.77 L16.61,3.02 L16.33,3.26 L16.03,3.5 L15.71,3.73 L15.38,3.96 Z" />
+      <path d="M16.25,7.54 L15.78,7.46 L14.88,7.12 L13.99,6.79 L13.53,6.76 L13.42,6.95 L13.3,7.15 L13.18,7.35 L13.06,7.57 L12.94,7.8 L12.81,8.03 L12.68,8.28 L12.55,8.53 L12.4,8.79 L12.25,9.06 L12.09,9.34 L11.92,9.62 L11.74,9.91 L11.55,10.21 L11.35,10.51 L11.13,10.82 L10.9,11.13 L10.65,11.45 L10.39,11.77 L10.11,12.1 L9.82,12.44 L9.54,12.8 L9.28,13.2 L9.01,13.62 L8.75,14.06 L8.49,14.53 L8.22,15.01 L7.94,15.52 L7.65,16.03 L7.34,16.56 L7.02,17.1 L6.68,17.65 L6.31,18.2 L5.92,18.75 L5.5,19.29 L5.05,19.83 L4.57,20.37 L4.05,20.89 L3.5,21.39 L2.91,21.88 L3.09,22.12 L3.71,21.66 L4.33,21.23 L4.95,20.82 L5.56,20.45 L6.18,20.09 L6.79,19.75 L7.4,19.43 L8,19.12 L8.59,18.82 L9.17,18.53 L9.74,18.24 L10.29,17.95 L10.83,17.66 L11.34,17.37 L11.83,17.07 L12.3,16.76 L12.73,16.45 L13.14,16.12 L13.51,15.78 L13.85,15.42 L14.16,15.07 L14.48,14.72 L14.78,14.39 L15.08,14.07 L15.36,13.76 L15.65,13.45 L15.92,13.16 L16.18,12.87 L16.44,12.6 L16.68,12.33 L16.92,12.06 L17.15,11.81 L17.36,11.56 L17.57,11.32 L17.77,11.09 L17.95,10.86 L18.12,10.65 L18.28,10.43 L18.43,10.23 L18.57,10.03 L18.35,9.62 L17.69,8.94 L17.01,8.26 L16.75,7.86 Z" />
+      <path d="M17.11,8.39 L17.64,7.93 L18.12,7.45 L18.55,6.96 L18.92,6.45 L19.25,5.93 L19.51,5.4 L19.72,4.86 L19.87,4.31 L19.96,3.76 L19.97,3.2 L19.91,2.65 L19.77,2.11 L19.54,1.6 L19.24,1.13 L18.87,0.71 L18.43,0.35 L18.1,0.17 L17.73,0.1 L17.36,0.15 L17.02,0.31 L16.75,0.57 L16.57,0.9 L16.5,1.27 L16.55,1.64 L16.71,1.98 L16.97,2.25 L17.12,2.41 L17.22,2.56 L17.29,2.71 L17.33,2.87 L17.35,3.04 L17.35,3.22 L17.31,3.43 L17.25,3.66 L17.15,3.92 L17.02,4.19 L16.84,4.48 L16.62,4.78 L16.35,5.09 L16.04,5.4 L15.69,5.71 L15.29,6.01 Z" />
     </svg>
   );
 }
