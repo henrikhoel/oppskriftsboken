@@ -52,22 +52,27 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
  * (for å ligne et liggende referanse-ikon) endte opp som en fugl – halsen
  * + krøllen leste som hode/nebb, (5) et tredje referanse-ikon viste en
  * tydelig LUFTE/avstand mellom stilk og pod i stedet for at de glir
- * sammen.
+ * sammen, (6) et fjerde referanse-ikon viste samme type sving, men
+ * MOTSATT vei ("du må speile den og endre vinkelen") – podens "buk" lå
+ * på feil side av stilk-til-tupp-linjen.
  *
  * Endelig geometri: kurvet senterlinje + normalvektorer langs den (som i
- * alle rundene), podens senterlinje loddrett/diagonal igjen (stilk øverst
- * til høyre, spiss tupp nederst til venstre), ikke-monoton radiusfunksjon
- * for buken (smal hals → bred buk → spiss tupp), og stilken en enkel rett
- * kurve satt LITT UNNA podens skulder i stedet for å overlappe den – gir
- * en tydelig, ren atskillelse mellom de to formene uten den krøllede
- * "fugl"-effekten. Verifisert med Playwright-skjermbilder i de faktiske
+ * alle rundene), stilk øverst til høyre, spiss tupp nederst til venstre,
+ * men kontrollpunktene speilet slik at buken buler ut på motsatt side av
+ * senterlinjen sammenlignet med forrige runde (samme speiling som et
+ * speilbilde av hele podens krumning, ikke bare en enkel venstre-høyre-
+ * flipp av koordinatene – det ville bare flyttet stilk/tupp til feil
+ * hjørner igjen). Ikke-monoton radiusfunksjon for buken (smal hals → bred
+ * buk → spiss tupp), og stilken en enkel rett kurve (ingen krøll – se
+ * punkt 4 over) satt LITT UNNA podens skulder i stedet for å overlappe
+ * den. Verifisert med Playwright-skjermbilder i de faktiske
  * bruksstørrelsene (28px i RecipeForm.tsx, 16px i RecipeHero.tsx), ikke
  * bare i stort format. */
 export function ChiliIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
   return (
     <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
-      <path d="M15.15,5.42 L14.71,5.3 L14.27,5.16 L13.81,5.01 L13.31,4.87 L12.79,4.75 L12.23,4.68 L11.66,4.65 L11.07,4.69 L10.48,4.8 L9.91,4.99 L9.37,5.28 L8.88,5.65 L8.42,6.07 L7.99,6.54 L7.61,7.05 L7.26,7.6 L6.96,8.19 L6.69,8.8 L6.47,9.43 L6.28,10.09 L6.13,10.76 L6.02,11.44 L5.94,12.14 L5.89,12.85 L5.88,13.57 L5.89,14.31 L5.92,15.05 L5.98,15.81 L6.06,16.58 L6.15,17.37 L6.27,18.18 L6.4,19.02 L6.6,18.98 L6.49,18.15 L6.46,17.35 L6.48,16.57 L6.56,15.82 L6.7,15.11 L6.88,14.44 L7.11,13.8 L7.37,13.21 L7.66,12.66 L7.98,12.15 L8.32,11.68 L8.67,11.25 L9.03,10.86 L9.39,10.51 L9.75,10.19 L10.11,9.9 L10.46,9.63 L10.8,9.39 L11.13,9.17 L11.44,8.96 L11.73,8.75 L12,8.53 L12.24,8.27 L12.48,8 L12.72,7.72 L12.97,7.44 L13.24,7.17 L13.54,6.93 L13.85,6.74 L14.18,6.61 L14.52,6.55 L14.85,6.58 Z" />
-      <path d="M14.73,4.86 L14.98,4.41 L15.22,3.98 L15.45,3.57 L15.67,3.18 L15.89,2.8 L16.09,2.45 L16.28,2.12 L16.45,1.81 L16.61,1.52 L16.75,1.26 L16.25,0.94 L16.07,1.18 L15.88,1.44 L15.67,1.73 L15.45,2.04 L15.21,2.37 L14.96,2.73 L14.7,3.1 L14.44,3.49 L14.16,3.91 L13.87,4.34 Z" />
+      <path d="M15.54,5.39 L15.76,5.7 L15.91,6.04 L16,6.39 L16.02,6.75 L16,7.1 L15.92,7.44 L15.82,7.76 L15.69,8.06 L15.55,8.35 L15.4,8.64 L15.26,8.93 L15.12,9.23 L14.99,9.55 L14.87,9.9 L14.72,10.28 L14.56,10.69 L14.38,11.13 L14.16,11.59 L13.9,12.08 L13.61,12.6 L13.27,13.13 L12.88,13.67 L12.44,14.22 L11.95,14.78 L11.4,15.35 L10.8,15.9 L10.14,16.45 L9.42,16.99 L8.64,17.51 L7.81,18 L6.91,18.47 L5.96,18.91 L6.04,19.09 L7.01,18.68 L7.94,18.28 L8.85,17.89 L9.72,17.51 L10.55,17.14 L11.36,16.77 L12.14,16.4 L12.88,16.03 L13.59,15.65 L14.27,15.26 L14.92,14.85 L15.53,14.44 L16.1,14 L16.63,13.54 L17.12,13.06 L17.56,12.56 L17.95,12.04 L18.27,11.49 L18.54,10.92 L18.73,10.33 L18.83,9.74 L18.85,9.14 L18.79,8.56 L18.67,8 L18.49,7.47 L18.26,6.98 L17.99,6.52 L17.7,6.09 L17.4,5.7 L17.08,5.33 L16.77,4.97 L16.46,4.61 Z" />
+      <path d="M16.01,4.39 L16.34,3.88 L16.66,3.39 L16.96,2.93 L17.23,2.5 L17.49,2.09 L17.73,1.71 L17.94,1.35 L18.14,1.03 L18.31,0.73 L18.45,0.46 L17.95,0.14 L17.77,0.38 L17.57,0.65 L17.35,0.95 L17.1,1.28 L16.83,1.64 L16.54,2.02 L16.24,2.43 L15.91,2.86 L15.56,3.33 L15.19,3.81 Z" />
     </svg>
   );
 }
