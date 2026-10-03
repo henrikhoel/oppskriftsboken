@@ -31,23 +31,21 @@ export default async function RecipesPage() {
       <h1 className="font-serif text-3xl text-ink sm:text-4xl">{t(lang, "recipesPage.title")}</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">{t(lang, "recipesPage.description")}</p>
 
-      {/* Rolig tekstlenke til den nye manuelle menybyggeren (10.09.2026) –
-          bevisst en lenke her, IKKE et nytt punkt i hovednavigasjonen, se
-          filheaderen til ManualMealBuilder.tsx. Plassert rett under
-          introteksten, siden det er her folk uansett blar i retter.
-          Lenken til /mine-menyer (27.09.2026, ønsket av Henrik: "en knapp
-          til lagrede menyer må også være ved siden av 'bygg en meny
-          selv'") lagt til rett ved siden av, samme rad/stil. Vises for
-          ALLE, også ikke-innloggede (samme "kan klikke seg inn overalt,
-          men funksjonen er låst"-mønster som resten av siden) – selve
-          /mine-menyer-siden viser LockedPanel for dem. */}
-      <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <Link
-          href="/meny/ny"
-          className="text-sm font-medium text-clay underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
-        >
-          {t(lang, "recipesPage.buildMealLink")}
-        </Link>
+      {/* Rolig tekstlenke til "Dine menyer" (27.09.2026, ønsket av Henrik:
+          "en knapp til lagrede menyer må også være ved siden av 'bygg en
+          meny selv'") – bevisst en lenke her, IKKE et nytt punkt i
+          hovednavigasjonen. Plassert rett under introteksten, siden det er
+          her folk uansett blar i retter. Vises for ALLE, også
+          ikke-innloggede (samme "kan klikke seg inn overalt, men funksjonen
+          er låst"-mønster som resten av siden) – selve /mine-menyer-siden
+          viser LockedPanel for dem.
+          (03.10.2026) Søsterlenken til den manuelle menybyggeren
+          (/meny/ny, "Bygg en meny selv") er fjernet herfra – hele den
+          funksjonen er slettet, se ManualMealBuilder.tsx sin git-historikk
+          (Henrik: "det er bare overflødig når man egentlig kan gjøre det
+          via oppskrifter uansett"). Menyer bygges nå kun via "Gjør det til
+          en kveld" på den enkelte oppskriftssiden (MealBuilder.tsx). */}
+      <p className="mt-3">
         <Link
           href="/mine-menyer"
           className="text-sm font-medium text-clay underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"

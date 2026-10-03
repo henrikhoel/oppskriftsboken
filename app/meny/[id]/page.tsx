@@ -35,10 +35,9 @@ export default async function MealPage({ params }: { params: Promise<{ id: strin
   // isAdmin i app/oppskrifter/[slug]/page.tsx), IKKE bare skjult med CSS.
   const user = await getCurrentUserFast();
 
-  // (27.09.2026) "Bygg din egen meny"/"Gjør det til en kveld" er
-  // kontoeksklusiv – se favoritter/page.tsx for samme resonnement. Gjelder
-  // også visning av en allerede bygget meny her, ikke bare selve
-  // byggingen i app/meny/ny/page.tsx.
+  // (27.09.2026) "Gjør det til en kveld" er kontoeksklusiv – se
+  // favoritter/page.tsx for samme resonnement. Gjelder visning av en
+  // allerede bygget meny her, uansett hvilken menybygger den ble til i.
   if (!user) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">

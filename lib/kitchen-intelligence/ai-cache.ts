@@ -24,9 +24,10 @@ import type { AiCacheFeature } from "@/lib/kitchen-intelligence/types";
  * det blir bare litt tregere/dyrere den ene gangen, aldri en brukervendt feil.
  *
  * `recipeId` er `null` for et FÅTALL sidevidte funksjoner som ikke gjelder
- * én bestemt oppskrift (i dag: evening_curation, manual_meal_fit – tidligere
- * også mood_mode, fjernet 26.09.2026 da "Hva passer humøret ditt?" sluttet
- * å være AI-basert, se AI_CACHE_FEATURES i types.ts) – se migrasjon 0007.
+ * én bestemt oppskrift (i dag: evening_curation – tidligere også mood_mode, fjernet 26.09.2026 da
+ * "Hva passer humøret ditt?" sluttet å være AI-basert, og manual_meal_fit,
+ * fjernet 03.10.2026 da den manuelle menybyggeren ble fjernet; se
+ * AI_CACHE_FEATURES i types.ts) – se migrasjon 0007.
  * Postgres' unik-constraint (recipe_id, feature, cache_key) skiller ALDRI to
  * NULL-rader fra hverandre, så ON CONFLICT/upsert ville bare stablet opp nye
  * rader i det tilfellet i stedet for å oppdatere – NULL-veien under slår

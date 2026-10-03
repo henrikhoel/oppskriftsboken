@@ -638,7 +638,7 @@ function MenuServingsControl({
  * sammenlignet med forrige versjon: alle statustekster (Retten du
  * startet med / Finnes i oppskriftsboken / Nytt forslag – selve
  * dictionary-nøklene lever videre, kun IKKE lenger brukt her, se
- * MealView.tsx/ManualMealBuilder.tsx for deres fortsatte bruk),
+ * MealView.tsx for dens fortsatte bruk),
  * beskrivelse/notat under retten, og selve porsjonsfeltet (flyttet til
  * ÉN felles kontroll for hele menyen, se setAllServings i MealBuilder
  * over). "Fjern fra menyen" er også fjernet fra denne permanente

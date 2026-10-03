@@ -13,10 +13,15 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * "Dine menyer" (27.09.2026, ønsket av Henrik: "da må den legge seg et
  * eget sted for lagrede menyer") – oversikt over ALLE menyer denne
- * besøkende har laget, enten via den AI-baserte menybyggeren
- * (MealBuilder.tsx, fra én oppskrift) eller den manuelle
- * (ManualMealBuilder.tsx, /meny/ny). Lenket til fra /oppskrifter, rett ved
- * siden av "Bygg en meny selv" (se recipesPage.savedMealsLink der).
+ * besøkende har laget via den AI-baserte menybyggeren (MealBuilder.tsx,
+ * "Gjør det til en kveld" fra én oppskrift). Lenket til fra /oppskrifter
+ * (se recipesPage.savedMealsLink der).
+ *
+ * (03.10.2026) Den manuelle menybyggeren (ManualMealBuilder.tsx, /meny/ny)
+ * som tidligere også fylte denne listen, er fjernet (Henrik: "det er bare
+ * overflødig når man egentlig kan gjøre det via oppskrifter uansett") –
+ * denne siden og selve MealSession-infrastrukturen (/meny/[id] osv.) er
+ * UENDRET, siden de fortsatt er i bruk av MealBuilder.tsx.
  *
  * Menyer lever KUN i localStorage (se app/meny/[id]/page.tsx sin
  * filheader for samme resonnement) – denne siden er derfor, som den, en
@@ -24,10 +29,9 @@ export async function generateMetadata(): Promise<Metadata> {
  * (useMealSessionIndex + én useMealSession per meny) leses klientside i
  * SavedMealsList.tsx.
  *
- * Kontoeksklusiv, samme begrunnelse som /meny/ny og /meny/[id] (se
- * favoritter/page.tsx): "Bygg din egen meny" ble gjort kontoeksklusivt
- * 27.09.2026, og en oversikt over de samme menyene skal naturligvis
- * følge akkurat samme regel.
+ * Kontoeksklusiv, samme begrunnelse som /meny/[id] (se favoritter/page.tsx):
+ * menybyggeren ble gjort kontoeksklusiv 27.09.2026, og en oversikt over de
+ * samme menyene skal naturligvis følge akkurat samme regel.
  */
 export default async function SavedMealsPage() {
   const [lang, user] = await Promise.all([getLang(), getCurrentUserFast()]);

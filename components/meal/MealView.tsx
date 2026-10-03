@@ -19,7 +19,7 @@ import { t, type Lang } from "@/lib/i18n";
 
 /**
  * Viser/redigerer én bygget MealSession – landingssiden en besøkende havner
- * på etter "Gå videre" i MealBuilder.tsx/ManualMealBuilder.tsx (se der for
+ * på etter "Gå videre" i MealBuilder.tsx (se der for
  * hvordan en meny faktisk blir til). Rent klientside/localStorage, samme
  * som resten av Kitchen Intelligence-fundamentet – ingen database involvert.
  *

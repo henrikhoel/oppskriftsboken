@@ -312,13 +312,13 @@ const DICT = {
     no: "Prøv et annet søkeord eller nullstill filtrene.",
     en: "Try a different search term or reset the filters.",
   },
-  // Lenke inn til den nye manuelle menybyggeren (10.09.2026) – bevisst plassert
-  // her og ikke i hovednavigasjonen, rett under introteksten på /oppskrifter,
-  // siden det er der folk uansett blar i retter. Peker til /meny/ny.
-  "recipesPage.buildMealLink": { no: "Bygg en meny selv", en: "Build a menu yourself" },
-  // Peker til /mine-menyer (27.09.2026, ønsket av Henrik: "en knapp til
-  // lagrede menyer må også være ved siden av 'bygg en meny selv'") – samme
-  // plassering/stil som buildMealLink over, kun i tillegg.
+  // Lenke til /mine-menyer (27.09.2026, ønsket av Henrik: "en knapp til
+  // lagrede menyer må også være ved siden av 'bygg en meny selv'") –
+  // bevisst plassert her og ikke i hovednavigasjonen, rett under
+  // introteksten på /oppskrifter, siden det er der folk uansett blar i
+  // retter. (03.10.2026) Søsterlenken "recipesPage.buildMealLink" til den
+  // manuelle menybyggeren (/meny/ny) er fjernet sammen med hele den
+  // funksjonen – denne lenken står nå alene.
   "recipesPage.savedMealsLink": { no: "Dine lagrede menyer", en: "Your saved menus" },
 
   "favoritesPage.title": { no: "Favoritter", en: "Favorites" },
@@ -1085,8 +1085,8 @@ const DICT = {
   // mealBuilder.remove/.removed er ORPHANED i MealBuilder.tsx selv siden
   // 30.09.2026 (samme brief – "fjern «fjern fra menyen» fra den permanente
   // visningen", se CourseRow-filheaderen i MealBuilder.tsx). Fortsatt i
-  // aktiv bruk i MealView.tsx og ManualMealBuilder.tsx – IKKE endre denne
-  // teksten, kun MealBuilder.tsx sin egen bruk av nøkkelen er fjernet.
+  // aktiv bruk i MealView.tsx – IKKE endre denne teksten, kun
+  // MealBuilder.tsx sin egen bruk av nøkkelen er fjernet.
   "mealBuilder.remove": { no: "Fjern fra menyen", en: "Remove from menu" },
   "mealBuilder.removed": {
     no: "Fjernet fra menyen.",
@@ -1117,44 +1117,12 @@ const DICT = {
   // som del av opprydningen av den genererte menyvisningen.
   "mealBuilder.reset": { no: "Begynn på nytt", en: "Start over" },
 
-  // Manuell menybygger (10.09.2026) – components/meal/ManualMealBuilder.tsx,
-  // app/meny/ny/page.tsx. Egen inngang der brukeren velger ALLE rettene selv
-  // (kun ekte, publiserte oppskrifter), i motsetning til mealBuilder.* over
-  // som starter fra én ankerrett og lar AI-en fylle resten. Gjenbruker bevisst
-  // mealBuilder.role.*/mealBuilder.titleLabel/mealBuilder.save/
-  // mealBuilder.saving/mealBuilder.saveError/mealBuilder.remove direkte i
-  // stedet for å duplisere dem – samme tekst, samme funksjon.
-  "manualMeal.heading": { no: "Bygg en meny selv", en: "Build a menu yourself" },
-  "manualMeal.intro": {
-    no: "Velg rettene du vil ha fra oppskriftsboken. Vi kan si noe om hvor godt de passer sammen, og foreslå flere fra samlingen til plassene du ikke har fylt ennå.",
-    en: "Choose the dishes you want from your cookbook. We can tell you how well they fit together, and suggest more from the collection for the spots you haven't filled yet.",
-  },
-  "manualMeal.emptySlot": { no: "Ingen rett valgt ennå", en: "No dish chosen yet" },
-  "manualMeal.pickButton": { no: "Velg en rett", en: "Choose a dish" },
-  // Fjerner HELE rollen/kurset fra menyen (10.09.2026, ønsket av Henrik – "hvis
-  // man ikke ønsker tilbehør feks så må man kunne fjerne det i starten") –
-  // ANNET enn mealBuilder.remove, som kun tømmer en allerede valgt rett og
-  // lar selve plassen (og dermed forslags-vurderingen) stå igjen tom.
-  "manualMeal.removeRoleButton": { no: "Ikke ha med", en: "Don't include" },
-  "manualMeal.addRoleHeading": { no: "Legg til en rett til", en: "Add another course" },
-  // {role} settes inn med en av mealBuilder.role.*-etikettene.
-  "manualMeal.pickerTitle": { no: "Velg {role}", en: "Choose a {role}" },
-  "manualMeal.closePickerAria": { no: "Lukk velgeren", en: "Close the picker" },
-  "manualMeal.searchPlaceholder": { no: "Søk etter en rett …", en: "Search for a dish …" },
-  "manualMeal.noResults": { no: "Fant ingen retter", en: "No dishes found" },
-  "manualMeal.selectButton": { no: "Velg", en: "Choose" },
-  "manualMeal.evaluateButton": {
-    no: "Se hvor godt dette passer sammen",
-    en: "See how well this fits together",
-  },
-  "manualMeal.evaluating": { no: "Vurderer menyen …", en: "Evaluating the menu …" },
-  "manualMeal.evaluateError": {
-    no: "Klarte ikke å vurdere menyen akkurat nå. Prøv igjen.",
-    en: "Couldn't evaluate the menu right now. Please try again.",
-  },
-  "manualMeal.fitScoreLabel": { no: "Hvor godt det passer sammen", en: "How well it fits together" },
-  "manualMeal.suggestionsHeading": { no: "Kan også passe", en: "Could also fit" },
-  "manualMeal.addSuggestion": { no: "Legg til", en: "Add" },
+  // (03.10.2026) manualMeal.*-nøklene (components/meal/ManualMealBuilder.tsx,
+  // app/meny/ny/page.tsx – "Bygg en meny selv", der brukeren valgte ALLE
+  // rettene selv) er fjernet herfra – hele den manuelle menybyggeren er
+  // slettet (Henrik: "det er bare overflødig når man egentlig kan gjøre det
+  // via oppskrifter uansett"). mealBuilder.* over er UENDRET og brukes
+  // fortsatt av den AI-baserte menybyggeren (MealBuilder.tsx).
 
   // "Vinen din" – manuelt lagt til vin (10.09.2026), skilt fra AI-ens egen
   // vinSTIL-forslag for hele menyen (allerede live via EveningExperience.tsx/
@@ -1253,9 +1221,11 @@ const DICT = {
   // må den legge seg et eget sted for lagrede menyer"). Leser
   // useMealSessionIndex() (samme "mealIds"-register som allerede fantes,
   // se filheaderen der – bygget for akkurat dette, men aldri koblet inn i
-  // noe UI før nå), rent lokalt/localStorage, ingen database. Fanger
-  // BEGGE menybyggerne (den AI-baserte MealBuilder.tsx OG den manuelle
-  // ManualMealBuilder.tsx) – begge kaller addToIndex ved lagring.
+  // noe UI før nå), rent lokalt/localStorage, ingen database. Fylles av
+  // den AI-baserte menybyggeren (MealBuilder.tsx), som kaller addToIndex
+  // ved lagring. (03.10.2026) Den manuelle menybyggeren
+  // (ManualMealBuilder.tsx), som tidligere også fylte denne listen, er
+  // fjernet.
   "savedMealsPage.metaTitle": { no: "Dine menyer", en: "Your menus" },
   "savedMealsPage.heading": { no: "Dine menyer", en: "Your menus" },
   "savedMealsPage.intro": {
@@ -1272,8 +1242,7 @@ const DICT = {
   "savedMealsPage.noDishes": { no: "Ingen retter lagt til ennå", en: "No dishes added yet" },
   // Fjerner KUN fra indeksen (useMealSessionIndex().removeFromIndex) – ikke
   // en bekreftelsesdialog, samme direkte "fjern"-mønster som
-  // mealBuilder.remove/manualMeal.removeRoleButton andre steder i
-  // menybyggeren.
+  // mealBuilder.remove andre steder i menybyggeren.
   "savedMealsPage.removeButton": { no: "Fjern menyen", en: "Remove menu" },
 
   // "Se lagrede ukesmenyer" (28.09.2026) – speiler savedMealsPage.* over,

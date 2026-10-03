@@ -9,10 +9,8 @@ import {
   createEmptyMealSession,
   markSuggestionConverted,
   removeSlot,
-  removeSlotsForRole,
   renameMeal,
   replaceSlotContent,
-  setExistingSlotForRole,
   setMealAnchorRecipeId,
   setMealDescription,
   setMealDesiredReadyAt,
@@ -132,21 +130,6 @@ export function useMealSession(mealId: string, initialTitle: string) {
 
   const remove = useCallback((slotId: string) => touch((prev) => removeSlot(prev, slotId)), [touch]);
 
-  /** Se setExistingSlotForRole/removeSlotsForRole sin filheader i
-   * meal-session.ts (03.10.2026) – rolle-baserte varianter av
-   * addExisting/remove over, laget for ManualMealBuilder.tsx sitt
-   * fortløpende skriv-mens-du-bygger-behov. */
-  const setExistingForRole = useCallback(
-    (role: MealCourseRole, recipe: { id: string; slug: string; title: string }, servings: number) =>
-      touch((prev) => setExistingSlotForRole(prev, role, recipe, servings)),
-    [touch],
-  );
-
-  const removeRoleSlot = useCallback(
-    (role: MealCourseRole) => touch((prev) => removeSlotsForRole(prev, role)),
-    [touch],
-  );
-
   const replaceContent = useCallback(
     (
       slotId: string,
@@ -191,8 +174,6 @@ export function useMealSession(mealId: string, initialTitle: string) {
     addExisting,
     addSuggested,
     remove,
-    setExistingForRole,
-    removeRoleSlot,
     replaceContent,
     setServings,
     markConverted,

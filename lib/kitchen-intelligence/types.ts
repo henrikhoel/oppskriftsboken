@@ -174,9 +174,9 @@ export const AI_CACHE_FEATURES = [
   // "evening_curation" (Fase 5-finale, 5.9–5.11/5.14): getEveningCuration i
   // lib/actions/kitchen-intelligence.ts – strukturert vin/bord/stemning/
   // musikk(+servering) for HELE menyen under ett, brukt av
-  // EveningExperience.tsx. recipeId er alltid null her (samme presedens som
-  // "manual_meal_fit" lenger ned) – gjelder en sammensatt meny, ikke én
-  // bestemt oppskrift; cache-nøkkelen bærer i stedet anledning+rettene selv.
+  // EveningExperience.tsx. recipeId er alltid null her – gjelder en
+  // sammensatt meny, ikke én bestemt oppskrift; cache-nøkkelen bærer i
+  // stedet anledning+rettene selv.
   // UTVIDET 26.08.2026 med "hvorfor?"-begrunnelser og en ordforklarings-
   // liste (se EveningCuration i kitchen-intelligence.ts) – BEVISST en RENT
   // ADDITIV utvidelse av samme feature/cache-nøkkelrom (ingen ny feature-
@@ -234,18 +234,12 @@ export const AI_CACHE_FEATURES = [
   // den seksjonen leser nå i stedet rett fra recipes.drink_pairing (se
   // getRecipeDrinkPairingById i lib/actions/recipes.ts), samme kilde som
   // "Drikke til" over.
-  // "manual_meal_fit" (10.09.2026): evaluateManualMeal i
-  // lib/actions/kitchen-intelligence.ts – "Bygg en meny selv" (/meny/ny,
-  // ManualMealBuilder.tsx). Motsatt retning av "meal_plan": her har
-  // BRUKEREN allerede valgt de(n) faste retten/rettene selv (ingen
-  // ankerrett generert av AI), og AI-en (a) vurderer kun hvor godt HELE
-  // kombinasjonen henger sammen (en 0-100 "fit score" + begrunnelse), og
-  // (b) foreslår retter KUN fra katalogen (aldri oppdiktet, i motsetning
-  // til "meal_plan"s "suggested"-mulighet) til de rollene brukeren ikke
-  // har valgt noe til ennå. recipeId er alltid null her (samme presedens
-  // som "evening_curation" over) – gjelder brukerens frie kombinasjon av
-  // flere retter, ikke én bestemt oppskrift.
-  "manual_meal_fit",
+  // MERK: "manual_meal_fit" er BEVISST ikke lenger her – evaluateManualMeal
+  // hørte til den manuelle menybyggeren (ManualMealBuilder.tsx, /meny/ny,
+  // "Bygg en meny selv"), som er fjernet 03.10.2026 (Henrik: "det er bare
+  // overflødig når man egentlig kan gjøre det via oppskrifter uansett").
+  // Gamle cache-rader med feature="manual_meal_fit" kan trygt ligge urørt/
+  // slettes manuelt i ai_suggestion_cache – de leses ikke av noe lenger.
 ] as const;
 
 export type AiCacheFeature = (typeof AI_CACHE_FEATURES)[number];

@@ -33,9 +33,16 @@ export function SavedMealsList({ lang }: { lang: Lang }) {
       ) : mealIds.length === 0 ? (
         <div className="mt-8 rounded-card border border-line bg-cream-dark/40 p-6 text-center">
           <p className="text-sm text-ink-faint">{t(lang, "savedMealsPage.empty")}</p>
+          {/* Pekte tidligere til /meny/ny ("Bygg en meny selv") – den
+              manuelle menybyggeren er fjernet 03.10.2026 (Henrik: "det er
+              bare overflødig når man egentlig kan gjøre det via oppskrifter
+              uansett"). Menyer bygges nå kun via "Gjør det til en kveld" på
+              den enkelte oppskriftssiden, så CTA-en herfra peker i stedet
+              til /oppskrifter – naturlig startpunkt for å finne en rett å
+              bygge videre fra. */}
           <div className="mt-4">
-            <Button href="/meny/ny" variant="primary" size="sm">
-              {t(lang, "recipesPage.buildMealLink")}
+            <Button href="/oppskrifter" variant="primary" size="sm">
+              {t(lang, "nav.recipes")}
             </Button>
           </div>
         </div>

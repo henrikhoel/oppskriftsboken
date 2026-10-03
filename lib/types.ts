@@ -315,9 +315,7 @@ export interface Recipe {
    */
   moods?: MoodId[];
   /** Admin-satte menyroller (forrett/hovedrett/tilbehør/dessert, se
-   * MealCourseRole i lib/kitchen-intelligence/types.ts) – styrer hvilke
-   * oppskrifter som vises som VALG for en gitt rolle i den manuelle
-   * menybyggeren (components/meal/ManualMealBuilder.tsx), satt fra
+   * MealCourseRole i lib/kitchen-intelligence/types.ts) – satt fra
    * /admin/roller (se RolePicker.tsx) – migrasjon 0022. Bygget 27.09.2026
    * som en direkte parallell til moods over, etter ønske fra Henrik: "da
    * må dette også være noe jeg som admin kan velge, på lik måte som
@@ -325,14 +323,25 @@ export interface Recipe {
    * kategorier, så samme utforming som humør tror jeg er bra her". En
    * oppskrift kan stå i FLERE roller samtidig (f.eks. en salat som både
    * forrett og tilbehør), derfor en liste. Tom liste/valgfritt = ikke
-   * plassert i noen rolle ennå, dukker da ikke opp som valg for noen av
-   * dem i den manuelle menybyggeren – helt bevisst, samme begrunnelse som
-   * moods. Valgfritt her av samme grunn som moods (ikke satt i
-   * demo-data) – ikke fordi listen kan mangle i en ekte, lagret oppskrift
-   * (NOT NULL DEFAULT '{}' i databasen). Helt separat fra
-   * inferCourseRoleFromCategory (meal-session.ts), som fortsatt brukes
-   * uendret for ankerretten i den AI-baserte menybyggeren
-   * (MealBuilder.tsx).
+   * plassert i noen rolle ennå.
+   *
+   * Brukt av menybyggeren (MealBuilder.tsx, "Gjør det til en kveld",
+   * generateMealPlan/regenerateMealPlanCourse i
+   * lib/actions/kitchen-intelligence.ts) som en HARD begrensning
+   * (03.10.2026, Henrik: "roller må bli brukt på menybyggeren inne på
+   * oppskriften også, sånn at man ikke får dessert til forrett feks") – en
+   * rolletagget oppskrift kan KUN foreslås til én av sine egne roller.
+   * Utagget (tom liste) er IKKE begrenset – kan fortsatt foreslås til
+   * hvilken som helst rolle, basert på AI-ens egen vurdering. Valgfritt
+   * her av samme grunn som moods (ikke satt i demo-data) – ikke fordi
+   * listen kan mangle i en ekte, lagret oppskrift (NOT NULL DEFAULT '{}' i
+   * databasen). Helt separat fra inferCourseRoleFromCategory
+   * (meal-session.ts), som fortsatt brukes uendret for å avgjøre
+   * ANKERRETTENS egen rolle.
+   *
+   * (03.10.2026) Ble tidligere også brukt til å filtrere velgeren i den
+   * manuelle menybyggeren (components/meal/ManualMealBuilder.tsx), som nå
+   * er fjernet.
    */
   courses?: MealCourseRole[];
   source: string | null;

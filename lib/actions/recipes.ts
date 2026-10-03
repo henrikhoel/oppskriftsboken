@@ -1718,11 +1718,16 @@ export async function getRecipesByMood(moodId: MoodId): Promise<RecipeSummary[]>
  * 0022_recipe_meal_roles.sql sin filheader for hele bakgrunnen) – egen
  * admin-side (/admin/roller, RolePicker.tsx), HELT samme
  * legg-til/fjern-mønster som addRecipeToMood/removeRecipeFromMood over,
- * kun for et annet array-felt (courses i stedet for moods). Styrer
- * hvilke oppskrifter som vises som VALG for en gitt rolle i den manuelle
- * menybyggeren (ManualMealBuilder.tsx) – ikke selve ankerrett-plasseringen
- * i den AI-baserte menybyggeren, som fortsatt bruker
- * inferCourseRoleFromCategory uendret.
+ * kun for et annet array-felt (courses i stedet for moods).
+ *
+ * (03.10.2026) Brukt av menybyggeren på oppskriftssiden (MealBuilder.tsx,
+ * "Gjør det til en kveld") som en HARD begrensning på hvilke eksisterende
+ * oppskrifter som kan foreslås til en gitt rolle – se validateRawCourse i
+ * lib/actions/kitchen-intelligence.ts (Henrik: "roller må bli brukt på
+ * menybyggeren inne på oppskriften også, sånn at man ikke får dessert til
+ * forrett feks"). Ankerrettens EGEN rolle avgjøres fortsatt separat, via
+ * inferCourseRoleFromCategory, uendret. Tidligere kun brukt av den
+ * manuelle menybyggeren (ManualMealBuilder.tsx), som er fjernet.
  */
 export async function addRecipeToCourse(recipeId: string, role: MealCourseRole): Promise<void> {
   await requireAdmin();
@@ -1895,14 +1900,14 @@ export async function removeRecipeFromWeeklyMenuStyle(recipeId: string, styleId:
 }
 
 /**
- * Leseside til "Roller" – brukt av ManualMealBuilder.tsx sin
- * retteVELGER for å filtrere bort oppskrifter som ikke er plassert i den
- * aktuelle rollen (Henrik: "det kun er oppskrifter i de kategoriene som
- * kommer opp, så man ikke kan velge brownie til forrett"). I praksis
- * kalles ikke denne direkte fra ManualMealBuilder.tsx (som allerede har
- * hele katalogen som SearchableRecipe[] og filtrerer klient-side på
- * recipe.courses), men tilbys som samme leseside-mønster som
- * getRecipesByMood for konsistens og gjenbruk andre steder.
+ * Leseside til "Roller" – filtrerer til oppskrifter plassert i en gitt
+ * rolle (Henrik: "det kun er oppskrifter i de kategoriene som kommer opp,
+ * så man ikke kan velge brownie til forrett"). Menybyggeren
+ * (generateMealPlan/regenerateMealPlanCourse i
+ * lib/actions/kitchen-intelligence.ts) filtrerer selv client-side på
+ * recipe.courses i stedet for å kalle denne direkte, men den tilbys som
+ * samme leseside-mønster som getRecipesByMood for konsistens og gjenbruk
+ * andre steder.
  */
 export async function getRecipesByCourse(role: MealCourseRole): Promise<RecipeSummary[]> {
   const recipes = await getPublishedRecipeSummaries();

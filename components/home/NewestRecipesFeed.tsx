@@ -119,10 +119,19 @@ function FeatureBeat({ recipe, number, lang }: { recipe: RecipeSummary; number: 
   const description = localizedDescription(recipe, lang);
   return (
     <Link href={`/oppskrifter/${recipe.slug}`} className="group block">
+      {/* Mindre ekstremt beskåret enn FØR 03.10.2026 (var lg:aspect-[21/9])
+          – Henrik: "jeg liker ikke at første bildet er så utrolig stort og
+          zooma inn". Den svært brede 21:9-boksen beskar bort mesteparten av
+          fotoets høyde (object-cover), som i praksis virket som et tett,
+          zoomet utsnitt midt i bildet uansett hvor mye luft originalfotoet
+          faktisk hadde rundt retten. Topper nå på 16:9 (samme som sm) i
+          stedet for å bli enda bredere/kortere på store skjermer – viser
+          dermed mer av det faktiske fotoet, ikke bare en smal stripe
+          gjennom midten av det. */}
       <EditorialImage
         recipe={recipe}
         lang={lang}
-        aspect="aspect-[4/3] sm:aspect-[16/9] lg:aspect-[21/9]"
+        aspect="aspect-[4/3] sm:aspect-[16/9]"
         sizes="(min-width: 1024px) 90vw, 100vw"
         priority
       />

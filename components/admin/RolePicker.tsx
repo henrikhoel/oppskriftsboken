@@ -26,9 +26,9 @@
  *
  * Rolletekstene (forrett/hovedrett/tilbehør/dessert) hentes fra de samme
  * `mealBuilder.role.*`-nøklene som allerede brukes i den offentlige
- * menybyggeren (ManualMealBuilder.tsx/MealBuilder.tsx) – IKKE nye
- * dictionary-nøkler – siden dette er nøyaktig samme rollebegrep, bare
- * administrert her i stedet for kun vist der.
+ * menybyggeren (MealBuilder.tsx) – IKKE nye dictionary-nøkler – siden
+ * dette er nøyaktig samme rollebegrep, bare administrert her i stedet for
+ * kun vist der.
  */
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";

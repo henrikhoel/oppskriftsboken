@@ -474,13 +474,27 @@ interface CachedMealPlan {
 
 /** Validerer/renser AI-ens rå JSON-svar for ÉN rolle-plass ned til en
  * cachbar form, eller null dersom svaret ikke kan brukes (ukjent/duplisert
- * rolle, en oppdiktet recipeId, eller et tomt "suggested"-forslag). Delt
+ * rolle, en oppdiktet recipeId, et "existing"-forslag som strider mot
+ * oppskriftens egen Roller-tagging, eller et tomt "suggested"-forslag). Delt
  * mellom generateMealPlan (flere plasser samtidig) og
- * regenerateMealPlanCourse (én plass om gangen), se under. */
+ * regenerateMealPlanCourse (én plass om gangen), se under.
+ *
+ * (03.10.2026) Roller (recipes.courses, satt i /admin/roller) brukes nå som
+ * en HARD begrensning her – Henrik: "roller må bli brukt på menybyggeren
+ * inne på oppskriften også, sånn at man ikke får dessert til forrett feks".
+ * En oppskrift som ER eksplisitt rolletagget kan KUN foreslås til én av
+ * sine egne roller, uansett hva AI-en selv foreslo – treffer AI-en feil her
+ * forkastes bare den ene plassen (samme fallback som et ukjent/oppdiktet
+ * recipeId), resten av menyen er upåvirket. Oppskrifter UTEN noen rolle satt
+ * (courses tom/ikke satt) er IKKE begrenset – de kan fortsatt foreslås til
+ * hvilken som helst rolle, basert på AI-ens egen vurdering, akkurat som før
+ * Roller fantes. Dette hindrer nettopp "dessert til forrett"-tilfellet uten
+ * å kreve at samtlige oppskrifter rolletagges først. */
 function validateRawCourse(
   raw: RawMealPlanCourse,
   allowedRoles: Set<MealCourseRole>,
   validRecipeIds: Set<string>,
+  byId: Map<string, RecipeSummary>,
 ): CachedMealPlanCourse | null {
   const role = raw.role as MealCourseRole;
   if (!allowedRoles.has(role)) return null;
@@ -488,6 +502,8 @@ function validateRawCourse(
   if (raw.source === "existing") {
     const recipeId = raw.recipeId ?? "";
     if (!validRecipeIds.has(recipeId)) return null;
+    const assignedRoles = byId.get(recipeId)?.courses ?? [];
+    if (assignedRoles.length > 0 && !assignedRoles.includes(role)) return null;
     return {
       role,
       source: "existing",
@@ -607,9 +623,21 @@ export async function generateMealPlan(
   if (!plan) {
     const roleLabel = (role: MealCourseRole) => t(lang, ROLE_LABEL_KEYS[role]);
     const otherRoleList = otherRoles.map((role) => `"${role}" (${roleLabel(role)})`).join(", ");
+    // Rolle-hint (03.10.2026, se validateRawCourse sin filheader) – kun
+    // satt for oppskrifter admin faktisk har rolletagget i /admin/roller.
+    // Hinten er bare et forsøk på å unngå at AI-en kaster bort et forslag
+    // den likevel får forkastet server-side (den faktiske HÅNDHEVELSEN
+    // skjer i validateRawCourse, ikke her) – utaggede oppskrifter får ingen
+    // hint og kan fortsatt foreslås til hvilken som helst rolle.
     const candidateList = others
       .slice(0, 120)
-      .map((r) => `(id: ${r.id}) ${r.title}${r.category ? ` – ${r.category.name}` : ""}`)
+      .map((r) => {
+        const roleHint =
+          r.courses && r.courses.length > 0
+            ? ` [${lang === "en" ? "role" : "rolle"}: ${r.courses.map((c) => roleLabel(c)).join("/")}]`
+            : "";
+        return `(id: ${r.id}) ${r.title}${r.category ? ` – ${r.category.name}` : ""}${roleHint}`;
+      })
       .join("\n");
 
     const system =
@@ -623,9 +651,11 @@ export async function generateMealPlan(
           "worse menu, not a better one. Starter and dessert are usually still worth suggesting for a proper meal, " +
           "but skip them too if truly nothing fits well. For each role you DO include, either (a) pick the " +
           "best-fitting EXISTING recipe from the candidate list (by id), or (b) if nothing in the list genuinely " +
-          "fits well, invent a plausible NEW dish suggestion (title + short description) for that role. Prefer " +
-          "existing recipes when something actually fits – the point is to help the user discover dishes they " +
-          "already have, not to always invent something new. Aim for real variety across the whole menu (don't " +
+          "fits well, invent a plausible NEW dish suggestion (title + short description) for that role. A candidate " +
+          "marked with a '[role: ...]' tag may ONLY be picked for one of those listed roles – never assign it to a " +
+          "different one; a candidate with no tag has no such restriction. Prefer existing recipes when something " +
+          "actually fits – the point is to help the user discover dishes they already have, not to always invent " +
+          "something new. Aim for real variety across the whole menu (don't " +
           "repeat the anchor dish's main ingredient/style unnecessarily) – and specifically avoid always defaulting " +
           "to the single most generic, \"safe\" starter or dessert. Different anchor dishes should genuinely lead " +
           "to different starter/dessert choices, not the same go-to pick every time. Respond with ONLY JSON: " +
@@ -644,8 +674,10 @@ export async function generateMealPlan(
           "også dem hvis virkelig ingenting passer godt. For HVER rolle du VELGER å inkludere, enten (a) velg den " +
           "best passende EKSISTERENDE oppskriften fra kandidatlisten (oppgi id-en), eller (b) hvis ingenting i " +
           "listen genuint passer godt, finn opp et plausibelt NYTT rett-forslag (tittel + kort beskrivelse) for den " +
-          "rollen. Prioriter eksisterende oppskrifter når noe faktisk passer – poenget er å hjelpe brukeren oppdage " +
-          "retter de allerede har, ikke å alltid finne opp noe nytt. Sikt mot ekte variasjon i hele menyen (ikke " +
+          "rollen. En kandidat merket med en '[rolle: ...]'-tag kan KUN velges til én av de rollene som er listet – " +
+          "tildel den aldri en annen rolle; en kandidat uten tag har ingen slik begrensning. Prioriter eksisterende " +
+          "oppskrifter når noe faktisk passer – poenget er å hjelpe brukeren oppdage retter de allerede har, ikke å " +
+          "alltid finne opp noe nytt. Sikt mot ekte variasjon i hele menyen (ikke " +
           "gjenta ankerrettens hovedingrediens/stil unødig) – og unngå spesielt å alltid falle tilbake på den ene " +
           "mest generiske, \"trygge\" forretten eller desserten. Ulike ankerretter bør genuint gi ulike " +
           "forrett-/dessertvalg, ikke det samme faste svaret hver gang. Svar KUN med JSON: {\"menuTitle\": \"kort, " +
@@ -672,7 +704,7 @@ export async function generateMealPlan(
     const seenRoles = new Set<MealCourseRole>();
     const courses: CachedMealPlanCourse[] = [];
     for (const rawCourse of result.courses ?? []) {
-      const validated = validateRawCourse(rawCourse, allowedRoles, validIds);
+      const validated = validateRawCourse(rawCourse, allowedRoles, validIds, byId);
       if (!validated || seenRoles.has(validated.role)) continue;
       seenRoles.add(validated.role);
       courses.push(validated);
@@ -713,7 +745,15 @@ export async function regenerateMealPlanCourse(
   const byId = new Map(others.map((r) => [r.id, r]));
   const roleLabel = t(lang, ROLE_LABEL_KEYS[role]);
 
-  const candidateList = others
+  // Roller (03.10.2026, se validateRawCourse sin filheader) – filtrert FØR
+  // AI-en i det hele tatt ser listen (i motsetning til generateMealPlan,
+  // som viser én delt liste for flere roller samtidig og derfor bruker en
+  // tekst-hint + etterfølgende hard validering i stedet): her er rollen
+  // allerede kjent på forhånd, så en oppskrift som ER rolletagget til noe
+  // ANNET enn `role` kan rett og slett utelates fra kandidatlisten.
+  // Utaggede oppskrifter (courses tom/ikke satt) er fortsatt med.
+  const eligible = others.filter((r) => !r.courses || r.courses.length === 0 || r.courses.includes(role));
+  const candidateList = eligible
     .slice(0, 120)
     .map((r) => `(id: ${r.id}) ${r.title}${r.category ? ` – ${r.category.name}` : ""}`)
     .join("\n");
@@ -740,7 +780,7 @@ export async function regenerateMealPlanCourse(
       : `Ankerrett: ${anchor.title}\n${anchor.description}\n\nAndre tilgjengelige oppskrifter:\n${candidateList}`;
 
   const result = await callClaudeJSON<RawMealPlanCourse>(system, prompt, 400, 0.5);
-  const validated = validateRawCourse({ ...result, role }, new Set([role]), validIds);
+  const validated = validateRawCourse({ ...result, role }, new Set([role]), validIds, byId);
 
   if (!validated) {
     // AI-en klarte ikke å gi et brukbart svar (ugyldig/tomt) – faller
@@ -775,179 +815,14 @@ export async function regenerateMealPlanCourse(
   };
 }
 
-/** Rått, cachet svar for evaluateManualMeal under – lagrer kun
- * indeks-referanser (via recipeId, ikke ferske RecipeSummary-felter), på
- * samme "cache referansen, slå opp ferske data ved lesing"-prinsipp som
- * CachedMealPlanCourse over (se resolveCourse) – en oppskrift som blir
- * avpublisert etter caching skal falle bort, ikke vise avleirede data. */
-interface CachedManualMealFit {
-  fitScore: number;
-  fitReasoning: string;
-  suggestions: Partial<Record<MealCourseRole, { recipeId: string; reasoning: string }[]>>;
-}
-
-export interface ManualMealFitSuggestion {
-  recipe: RecipeSummary;
-  reasoning: string;
-}
-
-export interface ManualMealFitResult {
-  fitScore: number;
-  fitReasoning: string;
-  suggestions: Partial<Record<MealCourseRole, ManualMealFitSuggestion[]>>;
-}
-
-const MAX_MANUAL_FIT_CANDIDATES = 120;
-const MAX_SUGGESTIONS_PER_ROLE = 2;
-
-/**
- * "BYGG EN MENY SELV" – KOMPATIBILITETSVURDERING (10.09.2026, se
- * ManualMealBuilder.tsx). MOTSATT av generateMealPlan over: her har
- * BRUKEREN allerede valgt de(n) faste retten/rettene selv (`filled` –
- * ALDRI foreslått byttet ut, se filheaderen til "manual_meal_fit" i
- * lib/kitchen-intelligence/types.ts), og AI-en får to, klart atskilte
- * oppgaver: (a) vurdere hvor godt HELE den valgte kombinasjonen henger
- * sammen som meny (0-100 "fit score" + kort begrunnelse), og (b) for hver
- * TOM rolle i `emptyRoles`, foreslå inntil to retter FRA KATALOGEN (aldri
- * oppdiktet – i motsetning til generateMealPlan/regenerateMealPlanCourse,
- * som begge kan finne på en ny rett når ingenting passer godt nok).
- *
- * Samme "nummerert kandidatliste"-teknikk som matchWineToRecipesFromImage
- * i lib/actions/wine-match.ts (unngår tittel-transkripsjonsfeil – modellen
- * oppgir NUMMERET, aldri selve tittelen).
- */
-export async function evaluateManualMeal(
-  filled: {
-    role: MealCourseRole;
-    recipeId: string;
-    title: string;
-    description: string;
-    categoryName: string | null;
-  }[],
-  emptyRoles: MealCourseRole[],
-  lang: Lang = "no",
-): Promise<ManualMealFitResult> {
-  if (filled.length === 0) {
-    throw new Error(lang === "en" ? "Add at least one dish first." : "Legg til minst én rett først.");
-  }
-
-  const filledIds = new Set(filled.map((f) => f.recipeId));
-  const candidates = await getPublishedRecipeSummaries();
-  const others = candidates.filter((r) => !filledIds.has(r.id));
-  const validIds = new Set(others.map((r) => r.id));
-  const byId = new Map(others.map((r) => [r.id, r]));
-
-  // Sortert FØR sammenslåing til nøkkel – samme meny valgt i en annen
-  // rekkefølge (f.eks. dessert lagt til før forrett) skal treffe samme
-  // cache-rad, ikke generere en ny AI-forespørsel for noe AI-en allerede
-  // har svart på.
-  const filledKey = [...filled].map((f) => `${f.role}:${f.recipeId}`).sort().join(",");
-  const emptyKey = [...emptyRoles].sort().join(",");
-  const cacheKey = `${lang}:${filledKey}:${emptyKey}`;
-
-  let cached = await getCachedAiSuggestion<CachedManualMealFit>(null, "manual_meal_fit", cacheKey);
-
-  if (!cached) {
-    const roleLabel = (role: MealCourseRole) => t(lang, ROLE_LABEL_KEYS[role]);
-    const filledList = filled
-      .map((f) => `- ${roleLabel(f.role)}: ${f.title}${f.description ? ` – ${f.description}` : ""}`)
-      .join("\n");
-    const emptyRoleList = emptyRoles.map((r) => `"${r}" (${roleLabel(r)})`).join(", ") || "none";
-    // Kandidatene refereres til modellen via LØPENUMMER (1-basert),
-    // ikke selve id-en, av samme grunn som matchWineToRecipesFromImage –
-    // et løpenummer er en langt tryggere oppgave for modellen å gjengi
-    // korrekt enn å skrive av en uuid-streng bokstav for bokstav.
-    const numberedCandidateList = others
-      .slice(0, MAX_MANUAL_FIT_CANDIDATES)
-      .map((r, i) => `${i + 1}. ${r.title}${r.category ? ` (${r.category.name})` : ""}`)
-      .join("\n");
-
-    const system =
-      lang === "en"
-        ? "You help a home cook who has ALREADY chosen one or more dishes themselves for a menu (listed below, by " +
-          "course role) – these are their FIXED, final choices. Do NOT suggest replacing, dropping, or improving " +
-          "any of these already-chosen dishes; only comment on the combination as a whole. Your two jobs: (1) rate " +
-          "how well the chosen dishes actually work TOGETHER as a menu – flavor, texture, weight/richness, and " +
-          "style balance across courses – with a genuinely discriminating 0-100 fit score (do not default to a " +
-          "safe middling number; a poor combination should score clearly low, a great one clearly high) and a " +
-          "short, concrete reason (1-2 sentences, mention what works or what clashes, not generic praise); (2) for " +
-          "EACH empty course role listed, pick up to 2 of the best-fitting dishes from the NUMBERED candidate list " +
-          "– by number only, NEVER invent a dish that isn't in the list, and never repeat a dish across roles. If " +
-          "truly nothing in the list fits a given empty role well, it is fine to suggest none for it. Respond with " +
-          'ONLY JSON: {"fitScore": 0-100, "fitReasoning": "1-2 sentences in English", "suggestions": [{"role": ' +
-          '"one of the empty roles listed", "index": 4, "reasoning": "max 1 sentence in English"}]}.'
-        : "Du hjelper en hjemmekokk som ALLEREDE har valgt én eller flere retter selv til en meny (listet under, " +
-          "per rolle) – dette er deres FASTE, endelige valg. IKKE foreslå at noen av disse allerede-valgte rettene " +
-          "byttes ut, fjernes eller forbedres; kommenter kun kombinasjonen som helhet. To oppgaver: (1) vurder hvor " +
-          "godt de valgte rettene faktisk fungerer SAMMEN som meny – smak, tekstur, tyngde, og stilmessig balanse " +
-          "på tvers av rettene – med en reelt differensiert fit-score fra 0-100 (ikke fall tilbake på et trygt, " +
-          "midt-på-treet tall – en dårlig kombinasjon skal score tydelig lavt, en god tydelig høyt) og en kort, " +
-          "konkret begrunnelse (1-2 setninger, nevn hva som fungerer eller skurrer, ikke generisk skryt); (2) for " +
-          "HVER tom rolle listet under, plukk inntil 2 av de best passende rettene fra den NUMMERERTE " +
-          "kandidatlisten – kun ved nummer, ALDRI dikt opp en rett som ikke står i listen, og gjenta aldri samme " +
-          "rett på tvers av roller. Hvis virkelig ingenting i listen passer godt til en gitt tom rolle, er det helt " +
-          'greit å ikke foreslå noe for den. Svar KUN med JSON: {"fitScore": 0-100, "fitReasoning": "1-2 setninger ' +
-          'på norsk", "suggestions": [{"role": "én av de tomme rollene listet", "index": 4, "reasoning": "maks 1 ' +
-          'setning på norsk"}]}.';
-
-    const prompt =
-      lang === "en"
-        ? `Already chosen dishes:\n${filledList}\n\nEmpty roles needing suggestions: ${emptyRoleList}\n\nCandidate dishes:\n${numberedCandidateList}`
-        : `Allerede valgte retter:\n${filledList}\n\nTomme roller som trenger forslag: ${emptyRoleList}\n\nKandidatretter:\n${numberedCandidateList}`;
-
-    const raw = await callClaudeJSON<{
-      fitScore?: unknown;
-      fitReasoning?: unknown;
-      suggestions?: unknown;
-    }>(system, prompt, 900, 0.4);
-
-    const fitScoreNum = Number(raw.fitScore);
-    const fitScore = Number.isFinite(fitScoreNum) ? Math.max(0, Math.min(100, Math.round(fitScoreNum))) : 50;
-    const fitReasoning = typeof raw.fitReasoning === "string" ? raw.fitReasoning.slice(0, 300) : "";
-
-    const allowedEmptyRoles = new Set(emptyRoles);
-    const numberedRecipeIds = others.slice(0, MAX_MANUAL_FIT_CANDIDATES).map((r) => r.id);
-    const suggestions: CachedManualMealFit["suggestions"] = {};
-
-    if (Array.isArray(raw.suggestions)) {
-      for (const entry of raw.suggestions as unknown[]) {
-        const item = entry as Record<string, unknown>;
-        const role = item.role as MealCourseRole;
-        if (!allowedEmptyRoles.has(role)) continue;
-        const indexNum = Number(item.index);
-        const recipeId = Number.isInteger(indexNum) ? numberedRecipeIds[indexNum - 1] : undefined;
-        if (!recipeId || !validIds.has(recipeId)) continue;
-        const existing = suggestions[role] ?? [];
-        if (existing.some((s) => s.recipeId === recipeId)) continue;
-        if (existing.length >= MAX_SUGGESTIONS_PER_ROLE) continue;
-        const reasoning = typeof item.reasoning === "string" ? item.reasoning.slice(0, 200) : "";
-        suggestions[role] = [...existing, { recipeId, reasoning }];
-      }
-    }
-
-    cached = { fitScore, fitReasoning, suggestions };
-    await setCachedAiSuggestion(null, "manual_meal_fit", cacheKey, cached);
-  }
-
-  const resolvedSuggestions: ManualMealFitResult["suggestions"] = {};
-  for (const role of ALL_MEAL_COURSE_ROLES) {
-    const entries = cached.suggestions[role];
-    if (!entries || entries.length === 0) continue;
-    const resolved = entries
-      .map((s) => {
-        const recipe = byId.get(s.recipeId);
-        return recipe ? { recipe, reasoning: s.reasoning } : null;
-      })
-      .filter((s): s is ManualMealFitSuggestion => s !== null);
-    if (resolved.length > 0) resolvedSuggestions[role] = resolved;
-  }
-
-  return {
-    fitScore: cached.fitScore,
-    fitReasoning: cached.fitReasoning,
-    suggestions: resolvedSuggestions,
-  };
-}
+// (03.10.2026) evaluateManualMeal (og dens hjelpetyper/-konstanter
+// CachedManualMealFit/ManualMealFitSuggestion/ManualMealFitResult/
+// MAX_MANUAL_FIT_CANDIDATES/MAX_SUGGESTIONS_PER_ROLE) er fjernet herfra –
+// "BYGG EN MENY SELV"-kompatibilitetsvurderingen hørte til den manuelle
+// menybyggeren (ManualMealBuilder.tsx, /meny/ny), som er fjernet (Henrik:
+// "det er bare overflødig når man egentlig kan gjøre det via oppskrifter
+// uansett"). Se AI_CACHE_FEATURES i lib/kitchen-intelligence/types.ts for
+// samme "manual_meal_fit"-opprydning i cache-feature-registeret.
 
 /**
  * "GJØR DET TIL EN KVELD" – KURATERT KVELD (Fase 5-finale, 5.9–5.11/5.14).
