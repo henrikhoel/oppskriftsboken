@@ -1545,6 +1545,42 @@ export async function setPublished(recipeId: string, isPublished: boolean): Prom
 }
 
 /**
+ * Setter hovedbildet direkte, uten en tur om hele RecipeForm.tsx/
+ * updateRecipe()-skjemaet. Brukt av AdminRecipeRow.tsx sin "mangler
+ * bilde"-boks i /admin-oppskriftslisten (03.10.2026) – filen er allerede
+ * lastet opp til Storage via uploadRecipeImage() i lib/actions/upload.ts
+ * når denne kalles, denne funksjonen gjør kun selve databaseoppdateringen.
+ * Henrik testet først en variant som linket boksen til admin-
+ * redigeringssiden med et #hovedbilde-anker, men ba om noe mer direkte
+ * ("jeg mente mer rett hit") – rett opplasting fra listeraden, uten å
+ * navigere bort i det hele tatt. Alltid `hero_image_is_ai_generated: false`
+ * siden dette alltid er et ekte, admin-opplastet foto (samme logikk som
+ * ImageUploadField.tsx sin handleFileChange).
+ */
+export async function setRecipeHeroImage(
+  recipeId: string,
+  heroImageUrl: string,
+  heroImageAlt: string,
+): Promise<void> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { data: recipeRow, error } = await supabase
+    .from("recipes")
+    .update({
+      hero_image_url: heroImageUrl,
+      hero_image_alt: heroImageAlt || null,
+      hero_image_is_ai_generated: false,
+    })
+    .eq("id", recipeId)
+    .select("slug")
+    .single();
+  if (error) {
+    throw new Error(`Kunne ikke lagre hovedbildet: ${error.message}`);
+  }
+  revalidateRecipePaths(recipeRow?.slug);
+}
+
+/**
  * "Ukens utvalg"-styring fra /admin/utvalg (ønsket av Henrik 26.08.2026 – en
  * enkel, EKSPLISITT måte å velge/rekkefølge forsidens utvalgte oppskrifter
  * på, helt atskilt fra hjerte-/favoritt-systemet). De tre under er bevisst

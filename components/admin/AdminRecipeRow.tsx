@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { RecipeSummary } from "@/lib/types";
-import { setPublished, deleteRecipe } from "@/lib/actions/recipes";
+import { setPublished, setRecipeHeroImage, deleteRecipe } from "@/lib/actions/recipes";
+import { uploadRecipeImage } from "@/lib/actions/upload";
 import { formatDateNorwegian } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/Badge";
 import { ImageIcon, TrashIcon } from "@/components/ui/icons";
@@ -15,6 +16,15 @@ export function AdminRecipeRow({ recipe }: { recipe: RecipeSummary }) {
   const [isPending, startTransition] = useTransition();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const router = useRouter();
+
+  // Lokal speiling av heroImageUrl (samme mønster som isPublished over) –
+  // slik at boksen bytter fra "mangler bilde" til vanlig miniatyr-boks med
+  // ÉN gang etter en vellykket opplasting, uten å vente på at
+  // router.refresh() henter oppskriftslisten på nytt fra serveren.
+  const [heroImageUrl, setHeroImageUrl] = useState(recipe.heroImageUrl);
+  const [isUploadingImage, startImageUpload] = useTransition();
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleTogglePublish() {
     const next = !isPublished;
@@ -36,6 +46,31 @@ export function AdminRecipeRow({ recipe }: { recipe: RecipeSummary }) {
     }
     startTransition(async () => {
       await deleteRecipe(recipe.id);
+    });
+  }
+
+  function handleImageFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setImageUploadError(null);
+    const formData = new FormData();
+    formData.set("file", file);
+
+    startImageUpload(async () => {
+      const uploadResult = await uploadRecipeImage(formData);
+      if (!uploadResult.success || !uploadResult.url) {
+        setImageUploadError(uploadResult.error ?? "Opplasting feilet");
+        return;
+      }
+      try {
+        await setRecipeHeroImage(recipe.id, uploadResult.url, "");
+        setHeroImageUrl(uploadResult.url);
+        router.refresh();
+      } catch {
+        setImageUploadError("Bildet ble lastet opp, men kunne ikke lagres på oppskriften");
+      }
     });
   }
 
@@ -63,35 +98,54 @@ export function AdminRecipeRow({ recipe }: { recipe: RecipeSummary }) {
           konvensjon), nøytral i ro, med et svakt gull-hint KUN på hover som
           en invitasjon til å trykke og fikse det. Boksen med ekte bilde
           forblir en vanlig, utfylt, nøytral boks ("allerede i orden").
-          KLIKKMÅLET er også ulikt per tilstand (samme dag, Henrik: "jeg vil
-          at jeg kommer rett til at jeg kan laste opp bilde"): har bildet
-          allerede, går boksen fortsatt til den offentlige, publiserte
-          oppskriftssiden (uendret, ønsket 26.08.2026 for å sjekke hvordan
-          endringer ser ut); mangler bildet, går boksen i stedet rett til
-          hovedbilde-opplastingsfeltet i admin-redigeringssiden
-          (RecipeForm.tsx, #hovedbilde-ankeret) – ett trykk fra liste til
-          "Last opp"-knapp, i stedet for en omvei via den offentlige siden. */}
-      <Link
-        href={
-          recipe.heroImageUrl
-            ? `/oppskrifter/${recipe.slug}`
-            : `/admin/oppskrifter/${recipe.id}#hovedbilde`
-        }
-        aria-label={
-          recipe.heroImageUrl
-            ? `Se "${recipe.title}" på nettsiden`
-            : `Last opp bilde for "${recipe.title}"`
-        }
-        title={recipe.heroImageUrl ? "Se på nettsiden" : "Mangler bilde – last opp her"}
-        className={clsx(
-          "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-colors",
-          recipe.heroImageUrl
-            ? "bg-cream-dark text-ink-faint hover:text-ink"
-            : "border-2 border-dashed border-line-strong text-ink-faint hover:border-clay hover:text-clay",
-        )}
-      >
-        <ImageIcon className="h-5 w-5" />
-      </Link>
+          KLIKKMÅLET er også ulikt per tilstand, og ble justert TO ganger
+          samme dag: først en lenke til den offentlige oppskriftssiden for
+          begge tilstander (original), så en lenke til admin-
+          redigeringssiden sitt hovedbilde-felt for "mangler bilde"
+          (forkastet – Henrik: "jeg mente mer rett hit, fordi tittelen tar
+          meg uansett til redigeringssiden"), og til slutt DENNE varianten:
+          "mangler bilde"-boksen laster opp bildet DIREKTE fra selve raden
+          (åpner filvelgeren med en skjult <input type="file">, laster opp
+          via uploadRecipeImage() i lib/actions/upload.ts, og lagrer det på
+          oppskriften via setRecipeHeroImage() i lib/actions/recipes.ts) –
+          ingen navigering i det hele tatt. Boksen med ekte bilde er
+          uendret og går fortsatt til den offentlige siden (ønsket
+          26.08.2026 for å sjekke hvordan endringer ser ut). */}
+      {heroImageUrl ? (
+        <Link
+          href={`/oppskrifter/${recipe.slug}`}
+          aria-label={`Se "${recipe.title}" på nettsiden`}
+          title="Se på nettsiden"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-cream-dark text-ink-faint transition-colors hover:text-ink"
+        >
+          <ImageIcon className="h-5 w-5" />
+        </Link>
+      ) : (
+        <div className="shrink-0">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploadingImage}
+            aria-label={`Last opp bilde for "${recipe.title}"`}
+            title={imageUploadError ?? "Mangler bilde – trykk for å laste opp"}
+            className={clsx(
+              "flex h-14 w-14 items-center justify-center rounded-xl border-2 border-dashed transition-colors disabled:opacity-50",
+              imageUploadError
+                ? "border-clay text-clay-dark"
+                : "border-line-strong text-ink-faint hover:border-clay hover:text-clay",
+            )}
+          >
+            <ImageIcon className="h-5 w-5" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            className="sr-only"
+            onChange={handleImageFileChange}
+          />
+        </div>
+      )}
 
       <div className="min-w-0 flex-1">
         <Link
