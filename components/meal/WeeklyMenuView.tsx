@@ -100,14 +100,63 @@ function computePool(
   return vegetarianOnly ? styleFiltered.filter((r) => r.isVegetarian) : styleFiltered;
 }
 
-function pickRandomWeek(pool: SearchableRecipe[], excludeIds: string[] = []): string[] {
-  const candidates = pool.filter((r) => !excludeIds.includes(r.id));
-  const shuffled = [...candidates];
+// Fisher-Yates – brukt BÅDE til å stokke rekkefølgen på kategoriene og til
+// å stokke hver kategoris egen liste i pickRandomWeek under, se filheaderen
+// der for hvorfor dette er trukket ut som sin egen, gjenbrukbare funksjon.
+function shuffle<T>(items: T[]): T[] {
+  const shuffled = [...items];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  return shuffled.slice(0, MIN_RECIPES).map((r) => r.id);
+  return shuffled;
+}
+
+// Kategori-spredning i ukesmenyen (03.10.2026, Henrik: "fikk jeg en
+// vegetar, og FIRE fiskeretter [...] den MÅ velge mer ut i fra kategori så
+// den ikke velger 4 i den samme kategorien"). Ren tilfeldig shuffle+slice
+// (den opprinnelige implementasjonen) tar ikke hensyn til at poolen typisk
+// har noen få oppskrift-kategorier (Fisk, Kjøtt, Vegetar, osv.) representert
+// med svært ulikt antall oppskrifter – med nok ren flaks/uflaks endte man
+// opp med fire-fem retter fra samme kategori på én uke.
+//
+// Løsningen er en runde-robin over KATEGORIER i stedet for over enkelt-
+// oppskrifter: grupper poolen på recipe.category?.id (oppskrifter uten
+// kategori havner i en egen "uncategorized"-bøtte, ikke utelatt), stokk
+// BÅDE rekkefølgen på kategoriene og hver kategoris egen liste, og plukk så
+// maks ÉN rett per kategori per runde før noen kategori får lov til en ny.
+// Det gir maksimal spredning når poolen har nok kategorier til å dekke
+// MIN_RECIPES uten gjentakelse, og faller naturlig tilbake til en ny runde
+// (og dermed en reell gjentakelse) KUN når poolen rett og slett ikke har
+// nok ulike kategorier – man får uansett alltid MIN_RECIPES retter tilbake
+// så lenge poolen selv har nok oppskrifter totalt, akkurat som før.
+function pickRandomWeek(pool: SearchableRecipe[], excludeIds: string[] = []): string[] {
+  const candidates = pool.filter((r) => !excludeIds.includes(r.id));
+
+  const byCategory = new Map<string, SearchableRecipe[]>();
+  for (const recipe of candidates) {
+    const key = recipe.category?.id ?? "uncategorized";
+    const bucket = byCategory.get(key);
+    if (bucket) bucket.push(recipe);
+    else byCategory.set(key, [recipe]);
+  }
+  const categoryBuckets = shuffle([...byCategory.values()]).map((bucket) => shuffle(bucket));
+
+  const picked: SearchableRecipe[] = [];
+  let pickedSomethingThisRound = true;
+  while (picked.length < MIN_RECIPES && pickedSomethingThisRound) {
+    pickedSomethingThisRound = false;
+    for (const bucket of categoryBuckets) {
+      if (picked.length >= MIN_RECIPES) break;
+      const next = bucket.shift();
+      if (next) {
+        picked.push(next);
+        pickedSomethingThisRound = true;
+      }
+    }
+  }
+
+  return picked.map((r) => r.id);
 }
 
 export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[]; lang: Lang }) {
