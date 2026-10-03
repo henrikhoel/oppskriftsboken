@@ -13,6 +13,8 @@ const DICT = {
   "nav.recipes": { no: "Oppskrifter", en: "Recipes" },
   "nav.favorites": { no: "Favoritter", en: "Favorites" },
   "nav.weeklyMenu": { no: "Ukesmeny", en: "Weekly menu" },
+  // "Helg & gjester" (03.10.2026) – se app/helg-og-gjester/page.tsx.
+  "nav.weekendGuests": { no: "Helg & gjester", en: "Weekend & guests" },
   "nav.shoppingList": { no: "Handleliste", en: "Shopping list" },
   "nav.search": { no: "Søk", en: "Search" },
   "nav.admin": { no: "Admin", en: "Admin" },
@@ -156,6 +158,9 @@ const DICT = {
   "footer.allRecipes": { no: "Alle oppskrifter", en: "All recipes" },
   "footer.favorites": { no: "Favoritter", en: "Favorites" },
   "footer.shoppingList": { no: "Handleliste", en: "Shopping list" },
+  // (03.10.2026) Guider-lenken flyttet hit fra Header.tsx, se Footer.tsx
+  // sin egen kommentar.
+  "footer.guides": { no: "Guider", en: "Guides" },
   "footer.admin": { no: "Admin", en: "Admin" },
   "footer.ariaLabel": { no: "Bunntekst", en: "Footer" },
   "footer.backToTop": { no: "Til toppen", en: "Back to top" },
@@ -1363,6 +1368,44 @@ const DICT = {
   "weeklyMenu.save": { no: "Lagre ukesmenyen", en: "Save the weekly menu" },
   "weeklyMenu.savedLabel": { no: "Lagret", en: "Saved" },
   "weeklyMenu.savedMenusLink": { no: "Se lagrede ukesmenyer", en: "View saved weekly menus" },
+
+  // "HELG & GJESTER" (03.10.2026) – kuratert inspirasjonsside, se
+  // app/helg-og-gjester/page.tsx og WeekendGuestsClient.tsx. Bevisst EGEN
+  // nøkkelfamilie fra weeklyMenu.* over, selv om de to sidene ligger ved
+  // siden av hverandre i hovednavigasjonen – Henrik var eksplisitt på at
+  // dette IKKE skal fungere/føles som Ukesmeny (ingen generering, kun et
+  // kuratert, filtrerbart utvalg).
+  "weekendGuests.title": { no: "Helg & gjester", en: "Weekend & guests" },
+  "weekendGuests.tagline": { no: "Noen måltider fortjener litt mer.", en: "Some meals deserve a little more." },
+  "weekendGuests.description": {
+    no: "Retter for lange middager, gode glass og folk du har lyst til å bli sittende med.",
+    en: "Dishes for long dinners, good glasses, and people you want to linger with.",
+  },
+  // "Alle" + de fem faste anledningene – se WEEKEND_GUESTS_OCCASION_DEFINITIONS
+  // i lib/kitchen-intelligence/weekend-guests.ts. Pille-filterrad rett under
+  // introen, "Alle" valgt som standard, ingen bekreft-knapp (filtrerer
+  // direkte ved valg, se WeekendGuestsClient.tsx).
+  "weekendGuests.occasion.alle": { no: "Alle", en: "All" },
+  "weekendGuests.occasion.fredagskveld": { no: "Fredagskveld", en: "Friday night" },
+  "weekendGuests.occasion.date_night": { no: "Date night", en: "Date night" },
+  "weekendGuests.occasion.venner_pa_middag": { no: "Venner på middag", en: "Friends for dinner" },
+  "weekendGuests.occasion.familie": { no: "Familie", en: "Family" },
+  "weekendGuests.occasion.feiring": { no: "Feiring", en: "Celebration" },
+  // Liten eyebrow-heading over den store, editorielle enkelt-retten rett
+  // under hero/filterområdet – se WeekendGuestsFeatured.tsx.
+  "weekendGuests.featuredEyebrow": { no: "Utvalgt", en: "Featured" },
+  "weekendGuests.viewRecipe": { no: "Se oppskriften →", en: "View the recipe →" },
+  "weekendGuests.makeItANight": { no: "Gjør det til en kveld →", en: "Make it a night →" },
+  // Overskrift for rutenettet under den featured-retten.
+  "weekendGuests.gridHeading": { no: "Retter for helg & gjester", en: "Dishes for weekends & guests" },
+  "weekendGuests.emptyForOccasion": {
+    no: "Ingen retter er lagt til under denne anledningen ennå.",
+    en: "No dishes have been added under this occasion yet.",
+  },
+  "weekendGuests.emptyGeneral": {
+    no: "Henrik har ikke lagt til noen retter i Helg & gjester ennå.",
+    en: "No dishes have been added to Weekend & guests yet.",
+  },
 
   // Hel-meny-timeline (Fase 5 – Experience, 5.8) – se
   // components/meal/MealTimelineSection.tsx og computeMealTimeline i

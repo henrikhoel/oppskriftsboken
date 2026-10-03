@@ -167,6 +167,26 @@ export async function getAdminFavoriteRecipes(): Promise<RecipeSummary[]> {
 }
 
 /**
+ * "Helg & gjester" (/helg-og-gjester, 03.10.2026) – det kuraterte utvalget
+ * admin har merket med weekend_guests (se migrasjon
+ * 0030_recipe_weekend_guests.sql og WeekendGuestsAdminPicker.tsx). Samme
+ * "ingen ekstra spørring"-mønster som getAdminFavoriteRecipes/
+ * getRecipesByCategory over – et rent in-memory filter på den allerede
+ * hentede/cachede getPublishedRecipeSummaries()-listen. Siden sortering/
+ * anledningsfiltrering (Alle/Fredagskveld/Date night/...) skjer helt
+ * klientsidig i WeekendGuestsClient.tsx (ingen reload ved filterbytte, se
+ * Henriks spesifikasjon), returneres hele det kuraterte settet ferdig
+ * sortert på displayOrder (samme rekkefølge som /oppskrifter) – IKKE
+ * created_at-rekkefølgen arrayen ellers har – slik at "featured"-valget
+ * (høyeste displayOrder i det aktive filteret) er deterministisk og
+ * fortsatt følger "Miks rekkefølgen"-knappen på /oppskrifter.
+ */
+export async function getWeekendGuestsRecipes(): Promise<RecipeSummary[]> {
+  const all = await getPublishedRecipeSummaries();
+  return all.filter((r) => r.weekendGuests).sort(byDisplayOrderDesc);
+}
+
+/**
  * Kontobaserte favoritter (27.09.2026, steg 1 av "kontolagring på tvers av
  * enheter" – se prosjektnotatet). Erstatter den tidligere localStorage-
  * varianten (lib/hooks/useFavorites.ts) for INNLOGGEDE, ikke-admin

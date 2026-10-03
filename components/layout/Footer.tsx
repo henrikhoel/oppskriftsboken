@@ -44,6 +44,14 @@ export function Footer({ lang }: { lang: Lang }) {
             <Link href="/handleliste" className="text-ink-soft hover:text-ink">
               {t(lang, "footer.shoppingList")}
             </Link>
+            {/* (03.10.2026) Flyttet hit fra Header.tsx for å gjøre plass til
+             * den nye "Helg & gjester"-lenken i hovednavigasjonen – se
+             * kommentaren ved nav-lenkene i Header.tsx for hele
+             * bakgrunnen. Selve guide-siden (/hvordan-gjor-jeg-det) er
+             * uendret, kun inngangen fra hovednavigasjonen er flyttet. */}
+            <Link href="/hvordan-gjor-jeg-det" className="text-ink-soft hover:text-ink">
+              {t(lang, "footer.guides")}
+            </Link>
             <Link href="/admin/login" className="text-ink-soft hover:text-ink">
               {t(lang, "footer.admin")}
             </Link>

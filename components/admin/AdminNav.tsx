@@ -59,6 +59,12 @@ export function AdminNav({ userEmail }: { userEmail: string | null }) {
             >
               Ukesmeny
             </Link>
+            <Link
+              href="/admin/helg-og-gjester"
+              className="rounded-full px-3 py-1.5 font-medium text-ink-soft hover:bg-cream-dark hover:text-ink"
+            >
+              Helg &amp; gjester
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm text-ink-faint">

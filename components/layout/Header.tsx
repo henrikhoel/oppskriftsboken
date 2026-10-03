@@ -12,11 +12,11 @@ import {
   CalendarIcon,
   CameraIcon,
   HeartIcon,
-  HelpCircleIcon,
   LeafIcon,
   SearchIcon,
   ShoppingBagIcon,
   UserIcon,
+  UsersIcon,
 } from "@/components/ui/icons";
 
 /* Admin-lenken i toppmenyen er fjernet etter ønske – den finnes fortsatt
@@ -51,7 +51,15 @@ import {
    vanlige skrivebordsbredder (1024–1500px), og NO/EN, som siste element,
    ble skjøvet helt utenfor synlig område i stedet for å brytes til ny linje
    (Henrik: "NO/EN ligger utenfor" / "du kan godt legge NO/EN nede på siden
-   i stedet for"). Se Footer.tsx sin egen kommentar for hele forklaringen. */
+   i stedet for"). Se Footer.tsx sin egen kommentar for hele forklaringen.
+
+   (03.10.2026) "Guider" er flyttet ut herfra og ligger nå kun i
+   Footer.tsx, til fordel for den nye "Helg & gjester"-lenken (se
+   app/helg-og-gjester/page.tsx) – et bevisst 1:1-bytte, ikke en ren
+   utvidelse: antall md:flex-tekstlenker i denne raden er UENDRET (fortsatt
+   fem: Oppskrifter/Ukesmeny/Helg & gjester/I kjøleskapet/Favoritter, pluss
+   den lg-only "I sesong"), så bredde-/overflow-balansen fra
+   NO/EN-flyttingen over er ikke rørt. */
 export async function Header() {
   const lang = await getLang();
   // getCurrentUserFast (ikke getCurrentUser) – Header rendres på HVER eneste
@@ -102,11 +110,14 @@ export async function Header() {
             (allerede `flex-1`/`min-w-0` via SearchBar) som krymper når
             plassen blir trang, ikke navigasjonsteksten som brekker. */}
         <nav aria-label={t(lang, "nav.mainNav")} className="ml-auto flex items-center gap-1 sm:gap-2">
-          {/* Rekkefølge (28.09.2026, Henrik): Oppskrifter → Ukesmeny →
-              I kjøleskapet → Guider → I sesong → Favoritter. "I sesong" er
-              fortsatt lg-only (se egen kommentar ved den lenken under) – de
-              tre først-viste md:flex-lenkene over den er dermed Oppskrifter,
-              Ukesmeny og I kjøleskapet, ikke fire som før omrokkeringen. */}
+          {/* Rekkefølge (03.10.2026, Henrik): Oppskrifter → Ukesmeny →
+              Helg & gjester → I kjøleskapet → I sesong → Favoritter.
+              "Guider" (tidligere her, mellom I kjøleskapet og I sesong) er
+              flyttet til Footer.tsx for å gjøre plass, se kommentaren over.
+              "I sesong" er fortsatt lg-only (se egen kommentar ved den
+              lenken under) – de fire først-viste md:flex-lenkene over den
+              er dermed Oppskrifter, Ukesmeny, Helg & gjester og
+              I kjøleskapet. */}
           <Link
             href="/oppskrifter"
             className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
@@ -121,6 +132,18 @@ export async function Header() {
             <CalendarIcon className="h-4 w-4" />
             {t(lang, "nav.weeklyMenu")}
           </Link>
+          {/* "Helg & gjester" (03.10.2026) – ny kuratert inspirasjonsside,
+              se app/helg-og-gjester/page.tsx. Bevisst IKKE en automatisk
+              generator som Ukesmeny – egen ikon (UsersIcon, "gjester")
+              fremfor CalendarIcon (som allerede er Ukesmeny sitt) for å
+              ikke lese som "enda en kalenderfunksjon". */}
+          <Link
+            href="/helg-og-gjester"
+            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
+          >
+            <UsersIcon className="h-4 w-4" />
+            {t(lang, "nav.weekendGuests")}
+          </Link>
           <Link
             href="/hva-kan-jeg-lage"
             className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
@@ -128,14 +151,7 @@ export async function Header() {
             <CameraIcon className="h-4 w-4" />
             {t(lang, "nav.pantry")}
           </Link>
-          <Link
-            href="/hvordan-gjor-jeg-det"
-            className="hidden items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink md:flex"
-          >
-            <HelpCircleIcon className="h-4 w-4" />
-            {t(lang, "nav.guidesShort")}
-          </Link>
-          {/* Kun fra lg og opp (ikke md, som de tre lenkene over) – "Hva
+          {/* Kun fra lg og opp (ikke md, som de lenkene over) – "Hva
               skal vi spise?"-lenken som sto her ved siden av er fjernet
               26.09.2026 (hele funksjonen fjernet, se
               lib/actions/what-to-eat.ts sin git-historikk), så dette er nå

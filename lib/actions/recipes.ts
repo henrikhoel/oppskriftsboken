@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
 import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
 import { WEEKLY_MENU_STYLE_DEFINITIONS, type WeeklyMenuStyleId } from "@/lib/kitchen-intelligence/weekly-menu-styles";
+import { WEEKEND_GUESTS_OCCASION_DEFINITIONS, type WeekendGuestsOccasionId } from "@/lib/kitchen-intelligence/weekend-guests";
 import { createClient } from "@/lib/supabase/server";
 import {
   getAllRecipeSlugsForCollisionCheck,
@@ -1899,6 +1900,103 @@ export async function removeRecipeFromWeeklyMenuStyle(recipeId: string, styleId:
   }
   revalidatePath("/admin/ukesmeny");
   // Se kommentaren i setWeeklyMenuExclusion over.
+  updateTag(RECIPES_TAG);
+}
+
+/**
+ * "Helg & gjester" (03.10.2026, se migrasjon
+ * 0030_recipe_weekend_guests.sql for hele bakgrunnen) – av/på-bryteren for
+ * den kuraterte /helg-og-gjester-siden. Samme enkle boolsk-kolonne-mønster
+ * som setRecipeVegetarian/setWeeklyMenuExclusion over, satt fra
+ * WeekendGuestsAdminPicker.tsx. Revaliderer BÅDE admin-siden og selve den
+ * offentlige /helg-og-gjester-siden (til forskjell fra f.eks.
+ * setRecipeVegetarian, som kun revaliderer /admin/ukesmeny – det feltet
+ * leses der kun via RECIPES_TAG-cachen på selve /ukesmeny, men
+ * /helg-og-gjester er en vanlig server-rendret side som også trenger sin
+ * egen revalidatePath for å vise endringen umiddelbart).
+ */
+export async function setRecipeWeekendGuests(recipeId: string, enabled: boolean): Promise<void> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.from("recipes").update({ weekend_guests: enabled }).eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke oppdatere Helg & gjester-status: ${error.message}`);
+  }
+  revalidatePath("/admin/helg-og-gjester");
+  revalidatePath("/helg-og-gjester");
+  updateTag(RECIPES_TAG);
+}
+
+/**
+ * "Helg & gjester"-anledninger (03.10.2026, se migrasjon
+ * 0030_recipe_weekend_guests.sql) – HELT samme legg-til/fjern-mønster som
+ * addRecipeToWeeklyMenuStyle/removeRecipeFromWeeklyMenuStyle over, kun for
+ * et annet array-felt (weekend_guests_occasions). Styrer hvilke
+ * oppskrifter som vises når en besøkende velger en spesifikk anledning
+ * (Fredagskveld/Date night/Venner på middag/Familie/Feiring) på
+ * /helg-og-gjester – "Alle" filtrerer ikke på dette feltet i det hele tatt,
+ * se ALL_OCCASIONS_FILTER i weekend-guests.ts.
+ */
+export async function addRecipeToWeekendGuestsOccasion(
+  recipeId: string,
+  occasionId: WeekendGuestsOccasionId,
+): Promise<void> {
+  await requireAdmin();
+  if (!WEEKEND_GUESTS_OCCASION_DEFINITIONS.some((o) => o.id === occasionId)) {
+    throw new Error("Ukjent anledning");
+  }
+  const supabase = await createClient();
+
+  const { data: row, error: fetchError } = await supabase
+    .from("recipes")
+    .select("weekend_guests_occasions")
+    .eq("id", recipeId)
+    .single();
+  if (fetchError || !row) {
+    throw new Error(fetchError?.message ?? "Fant ikke oppskriften");
+  }
+
+  const current = row.weekend_guests_occasions ?? [];
+  if (current.includes(occasionId)) return;
+
+  const { error } = await supabase
+    .from("recipes")
+    .update({ weekend_guests_occasions: [...current, occasionId] })
+    .eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke legge til anledning: ${error.message}`);
+  }
+  revalidatePath("/admin/helg-og-gjester");
+  revalidatePath("/helg-og-gjester");
+  updateTag(RECIPES_TAG);
+}
+
+export async function removeRecipeFromWeekendGuestsOccasion(
+  recipeId: string,
+  occasionId: WeekendGuestsOccasionId,
+): Promise<void> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: row, error: fetchError } = await supabase
+    .from("recipes")
+    .select("weekend_guests_occasions")
+    .eq("id", recipeId)
+    .single();
+  if (fetchError || !row) {
+    throw new Error(fetchError?.message ?? "Fant ikke oppskriften");
+  }
+
+  const current = row.weekend_guests_occasions ?? [];
+  const { error } = await supabase
+    .from("recipes")
+    .update({ weekend_guests_occasions: current.filter((o: string) => o !== occasionId) })
+    .eq("id", recipeId);
+  if (error) {
+    throw new Error(`Kunne ikke fjerne anledning: ${error.message}`);
+  }
+  revalidatePath("/admin/helg-og-gjester");
+  revalidatePath("/helg-og-gjester");
   updateTag(RECIPES_TAG);
 }
 

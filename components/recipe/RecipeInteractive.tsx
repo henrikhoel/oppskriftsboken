@@ -854,9 +854,19 @@ export function RecipeInteractive({
           nå som seksjonen under selv har et bilde å vise frem). Deretter
           strammet ytterligere inn KUN på mobil (mt-4, samme runde,
           oppfølgingsbeskjed: "flytt også seksjonen litt lenger opp på
-          telefon") – sm:mt-10 (desktop) er uendret fra forrige justering. */}
+          telefon") – sm:mt-10 (desktop) er uendret fra forrige justering.
+
+          id="gjor-det-til-en-kveld" + scroll-mt-24 (03.10.2026) – lar
+          "Gjør det til en kveld →"-lenkene på /helg-og-gjester
+          (WeekendGuestsFeatured.tsx/WeekendGuestsCard.tsx) hoppe DIREKTE
+          til denne seksjonen (#gjor-det-til-en-kveld) i stedet for bare
+          toppen av oppskriftssiden – gjenbruker den eksisterende
+          MealBuilder-flyten uendret, bygger ingen ny parallell versjon
+          (Henrik sin eksplisitte instruks for den siden). scroll-mt-24
+          kompenserer for den sticky headeren (Header.tsx), slik at
+          seksjonen ikke havner skjult bak den ved et ankerhopp. */}
       {recipe.showMealBuilder && (
-        <div className="mt-4 sm:mt-10">
+        <div id="gjor-det-til-en-kveld" className="mt-4 scroll-mt-24 sm:mt-10">
           <MealBuilder
             recipe={{
               id: recipe.id,

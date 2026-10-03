@@ -68,6 +68,10 @@ export interface RawRecipeRow {
   weekly_menu_excluded: boolean;
   weekly_menu_styles: string[];
   is_vegetarian: boolean;
+  // Se Recipe["weekendGuests"]/["weekendGuestsOccasions"] i lib/types.ts –
+  // migrasjon 0030_recipe_weekend_guests.sql.
+  weekend_guests: boolean;
+  weekend_guests_occasions: string[];
   rating_sum: number;
   rating_count: number;
   created_at: string;
@@ -198,6 +202,8 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
     weeklyMenuExcluded: raw.weekly_menu_excluded,
     weeklyMenuStyles: raw.weekly_menu_styles as Recipe["weeklyMenuStyles"],
     isVegetarian: raw.is_vegetarian,
+    weekendGuests: raw.weekend_guests,
+    weekendGuestsOccasions: raw.weekend_guests_occasions as Recipe["weekendGuestsOccasions"],
     ratingSum: raw.rating_sum,
     ratingCount: raw.rating_count,
     createdAt: raw.created_at,
@@ -208,7 +214,7 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
 export const RECIPE_SELECT = `
   id, slug, title, description, title_en, description_en, nutrition_info, drink_pairing, vegetarian_variant, hero_image_url, hero_image_alt, hero_image_is_ai_generated, servings,
   prep_time_minutes, cook_time_minutes, cook_time_minutes_max, total_time_minutes, difficulty, spice_level,
-  notes, tips, warnings, source, is_published, is_featured, moods, courses, show_beverage_match_checker, show_meal_builder, featured_sort_order, favorited_by_admin, weekly_menu_excluded, weekly_menu_styles, is_vegetarian,
+  notes, tips, warnings, source, is_published, is_featured, moods, courses, show_beverage_match_checker, show_meal_builder, featured_sort_order, favorited_by_admin, weekly_menu_excluded, weekly_menu_styles, is_vegetarian, weekend_guests, weekend_guests_occasions,
   rating_sum, rating_count,
   created_at, updated_at,
   category:categories(id, slug, name, name_en, sort_order),
@@ -241,6 +247,8 @@ export function toSummary(recipe: Recipe): RecipeSummary {
     weeklyMenuExcluded: recipe.weeklyMenuExcluded,
     weeklyMenuStyles: recipe.weeklyMenuStyles,
     isVegetarian: recipe.isVegetarian,
+    weekendGuests: recipe.weekendGuests,
+    weekendGuestsOccasions: recipe.weekendGuestsOccasions,
     createdAt: recipe.createdAt,
     displayOrder: recipe.displayOrder,
     isPublished: recipe.isPublished,
@@ -304,6 +312,13 @@ export interface RawRecipeListRow {
   weekly_menu_excluded: boolean;
   weekly_menu_styles: string[];
   is_vegetarian: boolean;
+  // Se Recipe["weekendGuests"]/["weekendGuestsOccasions"] i lib/types.ts –
+  // migrasjon 0030_recipe_weekend_guests.sql. Må være med i listevisningen
+  // (ikke kun RECIPE_SELECT) siden /helg-og-gjester henter sitt utvalg fra
+  // samme delte, cachede liste som /oppskrifter (se getWeekendGuestsRecipes
+  // i lib/data/recipes.ts).
+  weekend_guests: boolean;
+  weekend_guests_occasions: string[];
   rating_sum: number;
   rating_count: number;
   created_at: string;
@@ -318,7 +333,7 @@ export interface RawRecipeListRow {
 export const RECIPE_LIST_SELECT = `
   id, slug, title, description, title_en, description_en, hero_image_url, hero_image_alt, servings,
   total_time_minutes, difficulty, spice_level,
-  is_published, is_featured, moods, courses, featured_sort_order, favorited_by_admin, weekly_menu_excluded, weekly_menu_styles, is_vegetarian,
+  is_published, is_featured, moods, courses, featured_sort_order, favorited_by_admin, weekly_menu_excluded, weekly_menu_styles, is_vegetarian, weekend_guests, weekend_guests_occasions,
   rating_sum, rating_count,
   created_at, display_order,
   category:categories(id, slug, name, name_en, sort_order),
@@ -349,6 +364,8 @@ export function mapRecipeListRow(raw: RawRecipeListRow): SearchableRecipe {
     weeklyMenuExcluded: raw.weekly_menu_excluded,
     weeklyMenuStyles: raw.weekly_menu_styles as RecipeSummary["weeklyMenuStyles"],
     isVegetarian: raw.is_vegetarian,
+    weekendGuests: raw.weekend_guests,
+    weekendGuestsOccasions: raw.weekend_guests_occasions as RecipeSummary["weekendGuestsOccasions"],
     createdAt: raw.created_at,
     displayOrder: raw.display_order,
     isPublished: raw.is_published,

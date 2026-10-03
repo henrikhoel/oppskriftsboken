@@ -3,6 +3,7 @@ import type { NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
 import type { DrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
 import type { MoodId } from "@/lib/kitchen-intelligence/moods";
 import type { WeeklyMenuStyleId } from "@/lib/kitchen-intelligence/weekly-menu-styles";
+import type { WeekendGuestsOccasionId } from "@/lib/kitchen-intelligence/weekend-guests";
 import type { MealCourseRole } from "@/lib/kitchen-intelligence/types";
 
 /**
@@ -394,6 +395,25 @@ export interface Recipe {
    * for hvorfor upålitelig fritekst-/AI-matching tidligere ble forkastet
    * for akkurat denne typen kategorisering). */
   isVegetarian: boolean;
+  /** Admin-satt av/på-bryter for den kuraterte "Helg & gjester"-siden
+   * (/helg-og-gjester) – migrasjon 0030. Styres fra /admin/helg-og-gjester
+   * (se WeekendGuestsAdminPicker.tsx). Standard false (opt-in) – Henrik
+   * merker aktivt de oppskriftene han vil ha med, samme
+   * "eksplisitt admin-kategori"-begrunnelse som isVegetarian/moods/courses.
+   * Bevisst UKOBLET fra weeklyMenuExcluded og showMealBuilder (Henrik:
+   * "Ikke koble dette automatisk til Ukesmeny... Ikke koble Helg & gjester
+   * teknisk til 'Gjør det til en kveld'. Jeg styrer selv begge
+   * togglene") – en oppskrift kan ha enhver kombinasjon av disse tre. */
+  weekendGuests: boolean;
+  /** Admin-satte "Helg & gjester"-anledninger (Fredagskveld/Date night/
+   * Venner på middag/Familie/Feiring), se WEEKEND_GUESTS_OCCASION_DEFINITIONS
+   * i lib/kitchen-intelligence/weekend-guests.ts – migrasjon 0030. En
+   * oppskrift kan stå i flere anledninger samtidig, samme mønster som
+   * moods/courses/weeklyMenuStyles over. Tom liste/valgfritt = kun med
+   * under "Alle" på /helg-og-gjester, ikke under noen spesifikk anledning.
+   * Valgfritt her av samme grunn som weeklyMenuStyles (ikke satt i
+   * demo-data). */
+  weekendGuestsOccasions?: WeekendGuestsOccasionId[];
   /** Sum av alle stjernevurderinger (1-5). Snitt = ratingSum / ratingCount. */
   ratingSum: number;
   ratingCount: number;
@@ -437,6 +457,8 @@ export type RecipeSummary = Pick<
   | "isVegetarian"
   | "moods"
   | "courses"
+  | "weekendGuests"
+  | "weekendGuestsOccasions"
   | "createdAt"
   | "isPublished"
   | "ratingSum"

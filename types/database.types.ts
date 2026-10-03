@@ -123,6 +123,16 @@ export interface Database {
           // Admin-satt "er denne oppskriften vegetar?"-bryter – se migrasjon
           // 0027_recipe_is_vegetarian.sql. NOT NULL DEFAULT false.
           is_vegetarian: boolean;
+          // Admin-satt av/på-bryter for "Helg & gjester" (/helg-og-gjester)
+          // – se migrasjon 0030_recipe_weekend_guests.sql. NOT NULL DEFAULT
+          // false.
+          weekend_guests: boolean;
+          // Delmengde av "fredagskveld" | "date_night" | "venner_pa_middag" |
+          // "familie" | "feiring" – se migrasjon
+          // 0030_recipe_weekend_guests.sql. Samme string[]-fremfor-egen-
+          // type-begrunnelse som moods/courses/weekly_menu_styles. NOT NULL
+          // DEFAULT '{}' i databasen – aldri null, kan være en tom liste.
+          weekend_guests_occasions: string[];
           // Delmengde av "quick" | "cozy" | "impress" | "crowd" | "healthy"
           // – se migrasjon 0020_recipe_mood.sql. Holdt som `string[]` her
           // (ikke MoodId[]) siden denne fila er en håndskrevet speiling av
@@ -184,6 +194,8 @@ export interface Database {
           weekly_menu_excluded?: boolean;
           weekly_menu_styles?: string[];
           is_vegetarian?: boolean;
+          weekend_guests?: boolean;
+          weekend_guests_occasions?: string[];
           moods?: string[];
           courses?: string[];
           wine_pairing?: string | null;
