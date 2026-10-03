@@ -62,11 +62,27 @@ export function AdminRecipeRow({ recipe }: { recipe: RecipeSummary }) {
           stiplet kant (en vanlig, fargeuavhengig "tom plassholder"-
           konvensjon), nøytral i ro, med et svakt gull-hint KUN på hover som
           en invitasjon til å trykke og fikse det. Boksen med ekte bilde
-          forblir en vanlig, utfylt, nøytral boks ("allerede i orden"). */}
+          forblir en vanlig, utfylt, nøytral boks ("allerede i orden").
+          KLIKKMÅLET er også ulikt per tilstand (samme dag, Henrik: "jeg vil
+          at jeg kommer rett til at jeg kan laste opp bilde"): har bildet
+          allerede, går boksen fortsatt til den offentlige, publiserte
+          oppskriftssiden (uendret, ønsket 26.08.2026 for å sjekke hvordan
+          endringer ser ut); mangler bildet, går boksen i stedet rett til
+          hovedbilde-opplastingsfeltet i admin-redigeringssiden
+          (RecipeForm.tsx, #hovedbilde-ankeret) – ett trykk fra liste til
+          "Last opp"-knapp, i stedet for en omvei via den offentlige siden. */}
       <Link
-        href={`/oppskrifter/${recipe.slug}`}
-        aria-label={`Se "${recipe.title}" på nettsiden${recipe.heroImageUrl ? "" : " (mangler bilde)"}`}
-        title={recipe.heroImageUrl ? "Se på nettsiden" : "Mangler bilde – se på nettsiden"}
+        href={
+          recipe.heroImageUrl
+            ? `/oppskrifter/${recipe.slug}`
+            : `/admin/oppskrifter/${recipe.id}#hovedbilde`
+        }
+        aria-label={
+          recipe.heroImageUrl
+            ? `Se "${recipe.title}" på nettsiden`
+            : `Last opp bilde for "${recipe.title}"`
+        }
+        title={recipe.heroImageUrl ? "Se på nettsiden" : "Mangler bilde – last opp her"}
         className={clsx(
           "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-colors",
           recipe.heroImageUrl

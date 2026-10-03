@@ -2027,7 +2027,13 @@ export function RecipeForm({
         </div>
         {descriptionGenerateError && <p className="text-sm text-clay-dark">{descriptionGenerateError}</p>}
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        {/* id="hovedbilde" – ankerpunkt for admin-oppskriftslistens
+            "mangler bilde"-boks (AdminRecipeRow.tsx), som lenker hit med
+            #hovedbilde i stedet for til den offentlige oppskriftssiden når
+            heroImageUrl er tom, slik at man kommer rett til
+            opplastingsknappen (Henrik 03.10.2026: "jeg vil at jeg kommer
+            rett til at jeg kan laste opp bilde"). */}
+        <div id="hovedbilde" className="grid gap-4 sm:grid-cols-2">
           <ImageUploadField
             label="Hovedbilde"
             value={heroImage}
