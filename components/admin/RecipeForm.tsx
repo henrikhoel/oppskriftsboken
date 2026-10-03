@@ -2648,7 +2648,7 @@ export function RecipeForm({
                       spiceLevel >= level ? "text-clay-dark" : "text-line-strong hover:text-clay",
                     )}
                   >
-                    <ChiliIcon filled={spiceLevel >= level} className="h-5 w-5" />
+                    <ChiliIcon filled={spiceLevel >= level} className="h-7 w-7" />
                   </button>
                 ))}
               </div>

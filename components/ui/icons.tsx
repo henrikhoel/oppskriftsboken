@@ -39,12 +39,30 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
  * components/admin/RecipeForm.tsx og RecipeHero.tsx), lagt til 03.10.2026
  * som erstatning for den tidligere AI-genererte smaksprofilen. Samme
  * `filled`-mønster som HeartIcon over – fylt chili for "aktiv/valgt" grad,
- * kun omriss for en ledig/ufylt. */
+ * kun omriss for en ledig/ufylt.
+ *
+ * Selve pod-formen (det lange, avsmalnende "path" under) er IKKE
+ * frihåndstegnet som de andre ikonene her – TO frihåndsforsøk på rad så
+ * ikke ut som en chili i det hele tatt (Henrik, med Google-bilder av en
+ * ekte chili ved siden av: "det der er ikke chili ... jeg mente mer sånn
+ * her"). Generert i stedet ved å ta en enkel kurvet senterlinje (fra
+ * stilken, rundt en myk "C"-sving, ned til en spiss tupp) og bygge en
+ * ordentlig AVSMALNENDE kontur rundt den (bred ved stilken, smal mot
+ * spissen, med normalvektorer langs kurven), så selve geometrien
+ * garantert smalner av riktig i stedet for å gjettes frihånds – verifisert
+ * ved faktisk å rendre den (Playwright-skjermbilde) i flere størrelser før
+ * den ble satt inn her. Leselig som en tydelig krummet chili fra ca.
+ * 28px og oppover (se størrelsene på bruksstedene – RecipeForm.tsx/
+ * RecipeHero.tsx bruker bevisst IKKE den minste tenkelige ikonstørrelsen,
+ * nettopp for at krummingen/avsmalningen skal være synlig). Stilken (den
+ * lille korte kurven øverst) er fortsatt bare en enkel, kort strek. */
 export function ChiliIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
   return (
     <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
-      <path d="M8.5 4.5c.6-1.2 1.9-1.7 2.9-1 .8.5 1 1.6.6 2.5" />
-      <path d="M9.8 5.6c3.2-.9 6.4 1.4 6.4 5.2 0 5-4 10.2-8.1 10.2-3 0-5.5-2.8-5.5-6.4 0-4.4 3-8.2 7.2-9Z" />
+      <path d="M16 5c.5-1.2 1.9-1.6 2.8-.9" fill="none" />
+      <path
+        d="M15.44,8.35 L15.78,8.23 L16.08,8.13 L16.35,8.05 L16.6,8 L16.84,7.98 L17.07,7.99 L17.3,8.04 L17.52,8.15 L17.73,8.33 L17.92,8.57 L18.08,8.88 L18.19,9.25 L18.25,9.68 L18.25,10.16 L18.18,10.68 L18.04,11.24 L17.84,11.82 L17.56,12.43 L17.21,13.05 L16.78,13.68 L16.28,14.31 L15.71,14.94 L15.06,15.56 L14.34,16.18 L13.55,16.78 L12.68,17.36 L11.74,17.93 L10.73,18.46 L11.27,19.54 L12.33,18.98 L13.33,18.41 L14.26,17.82 L15.14,17.23 L15.95,16.62 L16.71,16 L17.4,15.38 L18.04,14.75 L18.63,14.11 L19.16,13.47 L19.64,12.83 L20.07,12.17 L20.44,11.51 L20.75,10.84 L21.01,10.16 L21.21,9.46 L21.34,8.75 L21.39,8.02 L21.36,7.28 L21.24,6.52 L21.01,5.77 L20.67,5.03 L20.22,4.32 L19.67,3.66 L19.02,3.05 L18.27,2.51 L17.45,2.04 L16.56,1.65 Z"
+      />
     </svg>
   );
 }
