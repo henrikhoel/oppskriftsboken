@@ -479,6 +479,14 @@ export interface RecipeFilters {
   maxTotalTime?: number;
   favoritesOnly?: boolean;
   ingredient?: string;
+  /** Humør-filter på /oppskrifter (03.10.2026, Henrik: "legg inn humør som
+   * en filter inne på Alle oppskrifter") – samme admin-satte
+   * recipes.moods-feltet som den fristilte "Hva passer humøret ditt?"-
+   * seksjonen på forsiden (MoodModeSection.tsx) alt filtrerer deterministisk
+   * på, se filterRecipes i lib/utils/search.ts. Forhåndsutfylles fra
+   * URL-en (?mood=<id>) i BrowseRecipesClient.tsx, slik at "Se alle →" fra
+   * forsiden kan lenke rett inn hit med riktig humør allerede valgt. */
+  mood?: MoodId;
 }
 
 /** Presis sporbarhet til ÉN oppskrift-bidrag på en handlelistelinje (Fase 5

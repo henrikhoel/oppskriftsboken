@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { clsx } from "clsx";
 import { getRecipesByMood } from "@/lib/actions/recipes";
 import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
 import type { RecipeSummary } from "@/lib/types";
 import { RecipeGrid } from "@/components/recipe/RecipeGrid";
-import { ClockIcon, HeartIcon, StarIcon, UsersIcon, GaugeIcon, SparklesIcon } from "@/components/ui/icons";
+import { ClockIcon, HeartIcon, StarIcon, UsersIcon, GaugeIcon, SparklesIcon, ChevronRightIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 // Ingen eksplisitt Record<MoodId, ...>-typeannotasjon her – IconProps er
@@ -67,7 +68,22 @@ const MOOD_ICONS = {
  * overlegget ligger fargen fortsatt nær sidens egen bg-cream (#0b0b0a), så
  * oppskriftskortene (designet for en mørk bakgrunn) leser fint uansett
  * hvor mange rader resultatet vokser til.
+ *
+ * BEGRENSET FORHÅNDSVISNING + "SE ALLE" TIL /oppskrifter (03.10.2026,
+ * Henrik: "når man velger 'hva passer humøret ditt' og velger ett humør,
+ * så kommer ALLE rettene opp, og man må scrolle og scrolle"). Et første
+ * forsøk la til en "last inn flere"-knapp RETT HER på forsiden – Henrik
+ * tenkte videre og ba i stedet om at humør ble et ekte filter på
+ * /oppskrifter (se RecipeFilters.mood sin filheader i lib/types.ts og
+ * filterRecipes i lib/utils/search.ts), slik at forsiden kun trenger å
+ * vise en smakebit: maks MOOD_PREVIEW_COUNT retter, med en "Se alle →"-
+ * lenke til `/oppskrifter?mood=<id>` når treff-lista er lengre enn det.
+ * BrowseRecipesClient.tsx leser denne URL-parameteren og forhåndsutfyller
+ * humør-filteret i FilterPanel.tsx – ingen egen "mood-resultatside" bygget
+ * her, kun lenket videre til den allerede eksisterende oppskrift-browseren.
  */
+const MOOD_PREVIEW_COUNT = 6;
+
 export function MoodModeSection({ lang, isLoggedIn = false }: { lang: Lang; isLoggedIn?: boolean }) {
   const [activeMood, setActiveMood] = useState<MoodId | null>(null);
   const [recipes, setRecipes] = useState<RecipeSummary[] | null>(null);
@@ -100,6 +116,9 @@ export function MoodModeSection({ lang, isLoggedIn = false }: { lang: Lang; isLo
       setLoading(false);
     }
   }
+
+  const visibleRecipes = recipes?.slice(0, MOOD_PREVIEW_COUNT) ?? null;
+  const hasMore = recipes ? recipes.length > MOOD_PREVIEW_COUNT : false;
 
   return (
     <section className="relative isolate overflow-hidden bg-cream-dark py-28 sm:py-36 lg:py-40">
@@ -158,8 +177,21 @@ export function MoodModeSection({ lang, isLoggedIn = false }: { lang: Lang; isLo
             {!loading && recipes && recipes.length === 0 && (
               <p className="text-center text-sm text-ink-faint">{t(lang, "moodMode.none")}</p>
             )}
-            {!loading && recipes && recipes.length > 0 && (
-              <RecipeGrid recipes={recipes} isLoggedIn={isLoggedIn} lang={lang} />
+            {!loading && visibleRecipes && visibleRecipes.length > 0 && (
+              <>
+                <RecipeGrid recipes={visibleRecipes} isLoggedIn={isLoggedIn} lang={lang} />
+                {hasMore && (
+                  <div className="mt-8 text-center">
+                    <Link
+                      href={`/oppskrifter?mood=${activeMood}`}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-clay transition-colors hover:text-clay-dark"
+                    >
+                      {t(lang, "moodMode.seeAll")}
+                      <ChevronRightIcon className="h-4 w-4" />
+                    </Link>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

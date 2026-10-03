@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { Category, RecipeFilters } from "@/lib/types";
 import type { SearchableRecipe } from "@/lib/utils/search";
 import { filterRecipes } from "@/lib/utils/search";
+import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
 import { FilterPanel } from "@/components/search/FilterPanel";
 import { RecipeGrid } from "@/components/recipe/RecipeGrid";
 import { ShuffleOrderButton } from "@/components/admin/ShuffleOrderButton";
@@ -29,9 +30,18 @@ export function BrowseRecipesClient({
 }) {
   const searchParams = useSearchParams();
   const queryParam = searchParams.get("q") ?? "";
+  // "Se alle" fra "Hva passer humøret ditt?" på forsiden (03.10.2026,
+  // Henrik: "kan man trykke 'se alle' og da kommer man inn på 'Alle
+  // oppskrifter' siden hvor humøret allerede er valgt som filter") – leser
+  // ?mood=<id> fra URL-en, se MoodModeSection.tsx sin lenke. Validerer mot
+  // MOOD_DEFINITIONS (ikke bare `as MoodId`) siden URL-en i prinsippet kan
+  // inneholde hva som helst – en ukjent/skrevet-feil verdi blir da ganske
+  // enkelt "ingen humør valgt" i stedet for en krasjende filtrering.
+  const moodParam = searchParams.get("mood");
+  const initialMood = MOOD_DEFINITIONS.some((m) => m.id === moodParam) ? (moodParam as MoodId) : undefined;
   const { favoriteIds: accountFavoriteIds, hydrated: accountHydrated } = useAccountFavorites();
 
-  const [filters, setFilters] = useState<RecipeFilters>({ query: queryParam });
+  const [filters, setFilters] = useState<RecipeFilters>({ query: queryParam, mood: initialMood });
 
   // (27.09.2026, Henrik: "når jeg er inne på 'oppskrifter' og prøver å søke
   // med feltet øverst, så skjer det ingenting. det fungerer på de andre
@@ -48,6 +58,15 @@ export function BrowseRecipesClient({
   useEffect(() => {
     setFilters((prev) => (prev.query === queryParam ? prev : { ...prev, query: queryParam }));
   }, [queryParam]);
+
+  // Samme mount-vs-samme-rute-problem som queryParam over gjelder i
+  // prinsippet også ?mood= – usannsynlig i praksis (man kommer typisk til
+  // /oppskrifter?mood=X fra en ANNEN side, forsiden), men koster ingenting
+  // å synkronisere på samme måte for konsistens/fremtidssikring.
+  useEffect(() => {
+    const next = MOOD_DEFINITIONS.some((m) => m.id === moodParam) ? (moodParam as MoodId) : undefined;
+    setFilters((prev) => (prev.mood === next ? prev : { ...prev, mood: next }));
+  }, [moodParam]);
 
   // Overlag kontoens EGEN favorittliste inn i favoritedByAdmin-feltet, kun
   // for "vis kun favoritter"-filteret (filters.favoritesOnly) sin del –

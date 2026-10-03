@@ -54,6 +54,10 @@ export function filterRecipes(
       return false;
     }
 
+    if (filters.mood && !(recipe.moods ?? []).includes(filters.mood)) {
+      return false;
+    }
+
     if (
       filters.maxTotalTime &&
       recipe.totalTimeMinutes != null &&

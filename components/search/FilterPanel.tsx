@@ -4,9 +4,24 @@ import type { ReactNode } from "react";
 import { clsx } from "clsx";
 import { DIFFICULTY_LEVELS, type Difficulty } from "@/lib/config";
 import type { Category, RecipeFilters } from "@/lib/types";
-import { FilterIcon, HeartIcon } from "@/components/ui/icons";
+import { MOOD_DEFINITIONS } from "@/lib/kitchen-intelligence/moods";
+import { FilterIcon, HeartIcon, ClockIcon, StarIcon, UsersIcon, GaugeIcon, SparklesIcon } from "@/components/ui/icons";
 import { difficultyLabel, localizedCategoryName } from "@/lib/utils/format";
 import { t, type Lang } from "@/lib/i18n";
+
+// Samme ikonsett/mønster som MOOD_ICONS i MoodModeSection.tsx (forsiden) –
+// duplisert her fremfor delt, samme "små ikonkart dupliseres per
+// komponent"-konvensjon som STYLE_ICONS/OCCASION_ICONS andre steder i
+// appen. HeartIcon er allerede importert over (brukes også av "vis kun
+// favoritter"-knappen under), gjenbrukt her for "cozy".
+const MOOD_ICONS = {
+  quick: ClockIcon,
+  cozy: HeartIcon,
+  impress: StarIcon,
+  crowd: UsersIcon,
+  healthy: GaugeIcon,
+  tasty: SparklesIcon,
+} as const;
 
 const TIME_OPTIONS = [
   { key: "filter.all" as const, value: undefined },
@@ -100,6 +115,39 @@ export function FilterPanel({
                 {difficultyLabel(level, lang)}
               </FilterPill>
             ))}
+          </div>
+        </div>
+
+        <div>
+          {/* Humør-filter (03.10.2026, Henrik: "legg inn humør som en
+              filter inne på Alle oppskrifter [...] kan trykke 'se alle' og
+              da kommer man inn på 'Alle oppskrifter' siden hvor humøret
+              allerede er valgt som filter") – se RecipeFilters.mood sin
+              filheader i lib/types.ts og "Se alle"-lenken i
+              MoodModeSection.tsx som forhåndsutfyller nettopp dette
+              filteret via ?mood=<id> i URL-en. */}
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+            {t(lang, "filter.mood")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <FilterPill active={!filters.mood} onClick={() => onChange({ ...filters, mood: undefined })}>
+              {t(lang, "filter.all")}
+            </FilterPill>
+            {MOOD_DEFINITIONS.map((mood) => {
+              const Icon = MOOD_ICONS[mood.id];
+              return (
+                <FilterPill
+                  key={mood.id}
+                  active={filters.mood === mood.id}
+                  onClick={() => onChange({ ...filters, mood: mood.id })}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon className="h-3.5 w-3.5" />
+                    {t(lang, mood.labelKey)}
+                  </span>
+                </FilterPill>
+              );
+            })}
           </div>
         </div>
 

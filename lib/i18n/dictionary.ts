@@ -209,6 +209,15 @@ const DICT = {
     no: "Fant ingen gode treff akkurat nå. Prøv en annen stemning.",
     en: "No good matches right now. Try a different mood.",
   },
+  // "Se alle →" (03.10.2026, Henrik, etter et første forsøk med en "last
+  // inn flere"-knapp her på forsiden: "legg inn humør som en filter inne
+  // på Alle oppskrifter [...] kan trykke 'se alle' og da kommer man inn på
+  // 'Alle oppskrifter' siden hvor humøret allerede er valgt som filter") –
+  // vises under de første MOOD_PREVIEW_COUNT rettene i MoodModeSection.tsx
+  // når treff-lista er lengre enn det, og lenker til
+  // /oppskrifter?mood=<id> (humøret forhåndsutfylt som filter der, se
+  // RecipeFilters.mood sin filheader i lib/types.ts).
+  "moodMode.seeAll": { no: "Se alle", en: "See all" },
 
   // --- Redesignet forside under hero: editorial utvalg-seksjon ---
   // Omdøpt fra "Ukens utvalg" 26.08.2026 (Henrik: trengte ikke lenger et
@@ -522,6 +531,12 @@ const DICT = {
   "filter.timeUnder45": { no: "Under 45 min", en: "Under 45 min" },
   "filter.timeUnder60": { no: "Under 60 min", en: "Under 60 min" },
   "filter.difficulty": { no: "Vanskelighetsgrad", en: "Difficulty" },
+  // Humør-filter (03.10.2026) – se RecipeFilters.mood sin filheader i
+  // lib/types.ts. Selve alternativene bruker MOOD_DEFINITIONS sine
+  // EKSISTERENDE moodMode.*-nøkler over (quick/cozy/impress/crowd/healthy/
+  // tasty) – ingen egne dupliserte tekster, kun denne ene nye
+  // seksjonsoverskriften.
+  "filter.mood": { no: "Humør", en: "Mood" },
   "filter.ingredient": { no: "Ingrediens", en: "Ingredient" },
   "filter.ingredientPlaceholder": { no: "F.eks. kylling", en: "E.g. chicken" },
   "filter.ingredientAria": { no: "Filtrer på ingrediens", en: "Filter by ingredient" },
