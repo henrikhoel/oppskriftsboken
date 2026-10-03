@@ -10,6 +10,22 @@ const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "recipe-images
 // til 12 MB i samme slag) til å romme multipart-overheaden rundt filen.
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+// Supabase-varsel (02.10.2026): "org Henriks matside exceeded its usage
+// quota" – gratiskvoten for CACHED EGRESS BANDWIDTH (5,5 GB) ble sprengt.
+// Uten en eksplisitt cacheControl-verdi setter Supabase Storage standard
+// Cache-Control: max-age=3600 (KUN 1 TIME) på hver opplastet fil – det
+// betyr at CDN-en/nettleseren til en besøkende må hente den samme
+// råfilen fra Supabase på nytt (og bruke av egress-kvoten) hvert eneste
+// klokketime det fortsatt er trafikk på bildet, akkurat samme problem
+// som Next.js sin egen `images.minimumCacheTTL` i next.config.ts allerede
+// er satt opp for å unngå (se kommentaren der, 28.09.2026-episoden med
+// Vercel sin bilde-transformasjonskvote). Oppskriftsbilder endres så
+// godt som aldri etter opplasting (samme begrunnelse som der), så 31
+// dager (2 678 400 sekunder) er trygt her også. MERK: dette påvirker kun
+// FILER LASTET OPP ETTER denne endringen – eksisterende bilder i bøtta
+// beholder sin opprinnelige 1-times Cache-Control til de evt. lastes opp
+// på nytt.
+const STORAGE_CACHE_CONTROL = "2678400";
 
 export interface UploadResult {
   success: boolean;
@@ -39,6 +55,7 @@ export async function uploadRecipeImage(formData: FormData): Promise<UploadResul
   const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
     contentType: file.type,
     upsert: false,
+    cacheControl: STORAGE_CACHE_CONTROL,
   });
 
   if (error) {
@@ -72,6 +89,7 @@ export async function uploadGeneratedRecipeImage(
   const { error } = await supabase.storage.from(BUCKET).upload(path, bytes, {
     contentType,
     upsert: false,
+    cacheControl: STORAGE_CACHE_CONTROL,
   });
 
   if (error) {
