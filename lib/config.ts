@@ -75,9 +75,13 @@ export const SPICE_LEVEL_LABELS: Record<SpiceLevel, string> = {
  * components/ui/Badge.tsx, men med chili i stedet for et badge-tone-navn
  * siden Badge-komponenten ikke har noen rød tone (og chili bevisst kun
  * brukes til dette ene formålet, se kommentaren ved --color-chili i
- * app/globals.css). */
+ * app/globals.css). Medium bruker text-mustard (IKKE text-clay-dark, som
+ * Badge.tsx sin "mustard"-tone ellers låner) – clay-dark ER appens
+ * vanlige gull-aksentfarge andre steder, og ville gjort "medium" se gull
+ * ut i stedet for distinkt oransj, verifisert visuelt side om side før
+ * dette ble valgt. */
 export const SPICE_LEVEL_CLASSES: Record<SpiceLevel, string> = {
   1: "bg-olive-light text-olive-dark",
-  2: "bg-mustard-light text-clay-dark",
+  2: "bg-mustard-light text-mustard",
   3: "bg-chili/15 text-chili",
 };
