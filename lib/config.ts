@@ -45,3 +45,39 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 
 /** Standard porsjonsvalg vist i skaleringsvelgeren på oppskriftssiden. */
 export const SERVING_OPTIONS = [1, 2, 3, 4, 6, 8, 10, 12] as const;
+
+/**
+ * Styrkegrad for sterk mat (1 = mild, 2 = medium, 3 = sterk) – satt i
+ * "Sterk mat"-feltet i components/admin/RecipeForm.tsx, vist som en
+ * fargetone-badge på oppskriftssiden (components/recipe/RecipeHero.tsx).
+ * Erstattet 03.10.2026 et håndtegnet chili-ikon (se den lange runde-for-
+ * runde-historikken i git-loggen for components/ui/icons.tsx, som aldri
+ * klarte å treffe referansebildene godt nok) med ren tekst + farge –
+ * Henrik, etter siste forsøk: "det ser helt feil ut, hvorfor må du tegne
+ * det?", og deretter: "dropper symbol og bare tar sirkler" → "eller:
+ * Sterkhet, også står det 'mild' 'medium' eller 'sterk'" → "Mild i grønn,
+ * medium i oransj, og sterk i rød". Tre ulike eksisterende paletttokens
+ * i stedet for én skalert farge, samme "jo sterkere jo mer alvorlig
+ * farge"-logikk som et trafikklys: grønn (olive) for mild, oransj
+ * (mustard) for medium, rød (chili) for sterk.
+ */
+export const SPICE_LEVELS = [1, 2, 3] as const;
+export type SpiceLevel = (typeof SPICE_LEVELS)[number];
+
+export const SPICE_LEVEL_LABELS: Record<SpiceLevel, string> = {
+  1: "Mild",
+  2: "Medium",
+  3: "Sterk",
+};
+
+/** Tailwind-klasser for fargetonen per styrkegrad, se filheaderen over.
+ * Samme bg-lys/text-mørk-par-mønster som toneClasses i
+ * components/ui/Badge.tsx, men med chili i stedet for et badge-tone-navn
+ * siden Badge-komponenten ikke har noen rød tone (og chili bevisst kun
+ * brukes til dette ene formålet, se kommentaren ved --color-chili i
+ * app/globals.css). */
+export const SPICE_LEVEL_CLASSES: Record<SpiceLevel, string> = {
+  1: "bg-olive-light text-olive-dark",
+  2: "bg-mustard-light text-clay-dark",
+  3: "bg-chili/15 text-chili",
+};

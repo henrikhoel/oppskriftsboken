@@ -24,14 +24,14 @@ import { RatingStars } from "@/components/recipe/RatingStars";
 import { RecipeMeta } from "@/components/recipe/RecipeMeta";
 import { Button } from "@/components/ui/Button";
 import { CheckIcon, PlayIcon, ShoppingBagIcon } from "@/components/ui/icons";
-import { siteConfig } from "@/lib/config";
+import { siteConfig, type SpiceLevel } from "@/lib/config";
 import { scaleAmount } from "@/lib/utils/scale";
 import { convertAmountToUs, type UnitSystem } from "@/lib/utils/units";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
 import { useCookModeState } from "@/lib/hooks/useCookModeState";
 import { getEnglishVariant, getUsMeasurementsVariant } from "@/lib/actions/ai";
 import { getIngredientSubstitution, type SubstitutionSuggestion } from "@/lib/actions/kitchen-intelligence";
-import { localizedCategoryName } from "@/lib/utils/format";
+import { localizedCategoryName, spiceLevelLabel } from "@/lib/utils/format";
 import { t, type Lang } from "@/lib/i18n";
 
 /** Gir AI-svarets JSON-innhold (uten id/sortOrder) samme form som de vanlige
@@ -426,6 +426,7 @@ export function RecipeInteractive({
         categoryLabel={recipe.category ? localizedCategoryName(recipe.category, lang) : null}
         tags={recipe.tags}
         spiceLevel={recipe.spiceLevel ?? null}
+        spiceLevelText={recipe.spiceLevel ? spiceLevelLabel(recipe.spiceLevel as SpiceLevel, lang) : null}
         spicyLabel={t(lang, "recipeDetail.spicy")}
         isDraft={!recipe.isPublished}
         draftLabel={t(lang, "recipeDetail.draft")}

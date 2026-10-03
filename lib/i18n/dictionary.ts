@@ -951,15 +951,19 @@ const DICT = {
   },
   "recipeDetail.substituteRetry": { no: "Prøv igjen", en: "Try again" },
 
-  // "Sterk mat"-badgen i heroen (1-3 chili, se RecipeHero.tsx) – admin-satt
-  // styrkegrad, lagt til 03.10.2026 som erstatning for den tidligere
-  // "Smaksprofil"-seksjonen (hele tasteProfile.*-blokken som sto her, samt
-  // components/recipe/TasteProfileDisplay.tsx og
+  // "Sterkhet"-badgen i heroen (se RecipeHero.tsx) – admin-satt styrkegrad
+  // (1-3, vist som mild/medium/sterk via spiceLevelLabel() i
+  // lib/utils/format.ts), lagt til 03.10.2026 som erstatning for den
+  // tidligere "Smaksprofil"-seksjonen (hele tasteProfile.*-blokken som sto
+  // her, samt components/recipe/TasteProfileDisplay.tsx og
   // lib/kitchen-intelligence/taste.ts, er fjernet – Henrik: "jeg tror vi
   // kan fjerne 'smaksprofil' den gir ingenting", se MERK-kommentaren i
-  // lib/actions/recipes.ts). Kun til aria-label/title på selve
-  // chili-ikonrekken, ikke en synlig tekstlabel.
-  "recipeDetail.spicy": { no: "Sterk mat", en: "Spicy" },
+  // lib/actions/recipes.ts). Opprinnelig et håndtegnet chili-ikon (se
+  // git-historikken for components/ui/icons.tsx) – erstattet samme dag
+  // med ren tekst + fargetone per nivå etter Henriks tilbakemelding om at
+  // ikonet "ser helt feil ut". Nå en SYNLIG tekstlabel foran selve
+  // nivå-ordet ("Sterkhet: Sterk"), ikke lenger bare aria-label/title.
+  "recipeDetail.spicy": { no: "Sterkhet", en: "Spice level" },
 
   // Næringsinnhold (kalori-/makro-oversikt) – se
   // components/recipe/NutritionPanel.tsx og lib/kitchen-intelligence/nutrition.ts.

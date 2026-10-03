@@ -239,17 +239,21 @@ export interface Recipe {
    * ikke går via databasen). */
   titleEn?: string | null;
   descriptionEn?: string | null;
-  /** Admin-satt styrkegrad for sterk mat – 1, 2 eller 3 chili, satt fra
-   * "Sterk mat"-avkrysningsboksen + chili-velgeren i
+  /** Admin-satt styrkegrad for sterk mat – 1 (mild), 2 (medium) eller 3
+   * (sterk), satt fra "Sterk mat"-avkrysningsboksen + ord-velgeren i
    * components/admin/RecipeForm.tsx, lagret direkte på oppskrift-raden
    * (recipes.spice_level) – migrasjon 0028. Null/undefined = ikke
-   * sterk/ikke satt (vis da INGEN chili-indikator). Erstatter (03.10.2026,
-   * Henrik: "jeg tror vi kan fjerne 'smaksprofil' den gir ingenting") den
-   * tidligere AI-genererte "spicy"-dimensjonen i den nå fjernede
-   * smaksprofilen (recipes.taste_profile, se MERK-kommentaren i
-   * lib/actions/recipes.ts) – et enkelt, pålitelig admin-valg i stedet for
-   * en AI-gjetning. Samme "eksplisitt admin-kategori fremfor AI-gjetting"-
-   * begrunnelse som moods/courses/isVegetarian over. */
+   * sterk/ikke satt (vis da INGEN sterkhets-badge). Vist på
+   * oppskriftssiden som fargetone-tekst (grønn/oransj/rød, se
+   * SPICE_LEVEL_LABELS/SPICE_LEVEL_CLASSES i lib/config.ts) – IKKE lenger
+   * håndtegnede chili-ikoner (fjernet 03.10.2026, se git-historikken for
+   * components/ui/icons.tsx). Erstatter (03.10.2026, Henrik: "jeg tror vi
+   * kan fjerne 'smaksprofil' den gir ingenting") den tidligere AI-
+   * genererte "spicy"-dimensjonen i den nå fjernede smaksprofilen
+   * (recipes.taste_profile, se MERK-kommentaren i lib/actions/recipes.ts)
+   * – et enkelt, pålitelig admin-valg i stedet for en AI-gjetning. Samme
+   * "eksplisitt admin-kategori fremfor AI-gjetting"-begrunnelse som
+   * moods/courses/isVegetarian over. */
   spiceLevel?: number | null;
   /** Forhåndsgenerert kalori-/makro-oversikt (admin -> "Generer
    * næringsinnhold", se lib/actions/recipes.ts -> generateNutritionInfo).
@@ -413,7 +417,7 @@ export type RecipeSummary = Pick<
   | "totalTimeMinutes"
   | "difficulty"
   // Lagt til 03.10.2026 slik at kort/lister (ikke bare selve
-  // oppskriftssiden) kan vise en liten chili-indikator – se spiceLevel sin
+  // oppskriftssiden) kan vise en liten sterkhets-badge – se spiceLevel sin
   // filheader lenger opp.
   | "spiceLevel"
   | "isFeatured"

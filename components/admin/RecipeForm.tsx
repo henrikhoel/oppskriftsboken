@@ -4,7 +4,15 @@ import { useEffect, useRef, useState, useTransition, type FormEvent, type Keyboa
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import type { Category, Recipe } from "@/lib/types";
-import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, type Difficulty } from "@/lib/config";
+import {
+  DIFFICULTY_LEVELS,
+  DIFFICULTY_LABELS,
+  SPICE_LEVELS,
+  SPICE_LEVEL_LABELS,
+  SPICE_LEVEL_CLASSES,
+  type Difficulty,
+  type SpiceLevel,
+} from "@/lib/config";
 import {
   createRecipe,
   updateRecipe,
@@ -61,7 +69,6 @@ import { StepsEditor } from "@/components/admin/StepsEditor";
 import { ImageUploadField, type ImageValue } from "@/components/admin/ImageUploadField";
 import { TagInput } from "@/components/admin/TagInput";
 import { Button } from "@/components/ui/Button";
-import { ChiliIcon } from "@/components/ui/icons";
 import { useMealSession } from "@/lib/hooks/useMealSession";
 
 function recipeToFormGroups(recipe?: Recipe | null): FormIngredientGroup[] {
@@ -1047,15 +1054,18 @@ export function RecipeForm({
     }
   }
 
-  // "Sterk mat" – admin-satt styrkegrad (1-3 chili), erstatter den tidligere
+  // "Sterk mat" – admin-satt styrkegrad (1-3, Mild/Medium/Sterk, se
+  // SPICE_LEVEL_LABELS i lib/config.ts), erstatter den tidligere
   // AI-genererte "Smaksprofil" (03.10.2026, Henrik: "jeg tror vi kan fjerne
   // 'smaksprofil' den gir ingenting ... legge til en checkboks ... om den
-  // er spicy, og evt hvor spicy. 1-3 chili symboler"). I MOTSETNING til
-  // smaksprofilen (eget "Generer"-AI-kall, lagret umiddelbart i databasen
-  // via en egen server action) er dette et HELT VANLIG skjemafelt, akkurat
-  // som Vanskelighetsgrad rett ved siden av – inngår i payload i
-  // handleSubmit under og lagres først når hele skjemaet lagres/opprettes.
-  // null = ikke sterk/ikke satt (avkrysningsboksen av); 1-3 = antall chili.
+  // er spicy, og evt hvor spicy. 1-3 chili symboler" – opprinnelig 1-3
+  // håndtegnede chili-ikoner, erstattet samme dag med ord-knapper, se
+  // Field-blokken lenger ned). I MOTSETNING til smaksprofilen (eget
+  // "Generer"-AI-kall, lagret umiddelbart i databasen via en egen server
+  // action) er dette et HELT VANLIG skjemafelt, akkurat som
+  // Vanskelighetsgrad rett ved siden av – inngår i payload i handleSubmit
+  // under og lagres først når hele skjemaet lagres/opprettes.
+  // null = ikke sterk/ikke satt (avkrysningsboksen av); 1-3 = styrkegrad.
   const [spiceLevel, setSpiceLevel] = useState<number | null>(recipe?.spiceLevel ?? null);
 
   // Næringsinnhold (kalori-/makro-oversikt) – et eget "Generer"-AI-kall,
@@ -2123,7 +2133,8 @@ export function RecipeForm({
           er fjernet herfra (03.10.2026, Henrik: "jeg tror vi kan fjerne
           'smaksprofil' den gir ingenting") – se MERK-kommentaren i
           lib/actions/recipes.ts. Erstattet av "Sterk mat"-feltet (avkrysning
-          + 1-3 chili) rett ved Vanskelighetsgrad lenger opp i skjemaet. */}
+          + Mild/Medium/Sterk-velger) rett ved Vanskelighetsgrad lenger opp
+          i skjemaet. */}
 
       <section className="space-y-4 rounded-card border border-line bg-paper p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2618,10 +2629,23 @@ export function RecipeForm({
             (03.10.2026, Henrik: "jeg tror vi kan fjerne 'smaksprofil' den
             gir ingenting ... legge til en checkboks ... om den er spicy, og
             evt hvor spicy. 1-3 chili symboler"). Avkrysningsboksen av/på
-            styrer om spiceLevel er null eller satt; chili-velgeren vises
-            kun når boksen er krysset av og setter selve graden (1-3), samme
-            "klikk for å sette, ikke en slider"-interaksjon som en vanlig
-            stjernevurdering. */}
+            styrer om spiceLevel er null eller satt; styrke-velgeren vises
+            kun når boksen er krysset av og setter selve graden (1-3).
+
+            Opprinnelig 1-3 håndtegnede chili-ikoner (stjernevurdering-
+            mønster, "fyll opp til valgt nivå") – etter en lang runde med
+            forsøk på å få ikonet til å ligne en faktisk chili (se
+            git-historikken for components/ui/icons.tsx) konkluderte
+            Henrik: "det ser helt feil ut, hvorfor må du tegne det? ...
+            da tror jeg vi dropper symbol og bare tar sirkler ... eller:
+            Sterkhet, også står det 'mild' 'medium' eller 'sterk' ...
+            Mild i grønn, medium i oransj, og sterk i rød". Derfor nå tre
+            ORD-knapper (Mild/Medium/Sterk, se SPICE_LEVEL_LABELS i
+            lib/config.ts) i stedet for ikoner/sirkler – ett eksakt valg
+            (spiceLevel === level), IKKE kumulativt "fyll opp" som før,
+            siden ord ikke kan "fylles delvis" slik et ikon kan. Samme
+            fargetoner (grønn/oransj/rød) som vises til brukeren på selve
+            oppskriftssiden, se SPICE_LEVEL_CLASSES og RecipeHero.tsx. */}
         <Field label="Sterk mat" htmlFor="spicy">
           <div className="flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 text-sm text-ink">
@@ -2635,26 +2659,21 @@ export function RecipeForm({
               Er den sterk/spicy?
             </label>
             {spiceLevel !== null && (
-              <div className="flex items-center gap-1" role="radiogroup" aria-label="Styrkegrad, 1 til 3 chili">
-                {[1, 2, 3].map((level) => (
+              <div className="flex items-center gap-1.5" role="radiogroup" aria-label="Styrkegrad">
+                {SPICE_LEVELS.map((level) => (
                   <button
                     key={level}
                     type="button"
                     onClick={() => setSpiceLevel(level)}
-                    aria-pressed={spiceLevel >= level}
-                    aria-label={`${level} av 3 chili`}
+                    aria-pressed={spiceLevel === level}
                     className={clsx(
-                      "transition-colors",
-                      // Rød ved valgt grad (Henrik: "fargen må være rød når man
-                      // trykker på den") – IKKE gull som resten av UI-ets
-                      // aksenter, se --color-chili i app/globals.css. Hover på en
-                      // ufylt chili varsler med samme røde i stedet for det
-                      // vanlige gull-hover-mønsteret, så fargen ikke hopper
-                      // overraskende fra gull til rødt idet man klikker.
-                      spiceLevel >= level ? "text-chili" : "text-line-strong hover:text-chili",
+                      "rounded-full border px-3 py-1 text-sm font-medium transition-colors",
+                      spiceLevel === level
+                        ? clsx("border-transparent", SPICE_LEVEL_CLASSES[level as SpiceLevel])
+                        : "border-line-strong text-ink-faint hover:text-ink",
                     )}
                   >
-                    <ChiliIcon filled={spiceLevel >= level} className="h-7 w-7" />
+                    {SPICE_LEVEL_LABELS[level as SpiceLevel]}
                   </button>
                 ))}
               </div>

@@ -1,5 +1,5 @@
-import { DIFFICULTY_LABELS } from "@/lib/config";
-import type { Difficulty } from "@/lib/config";
+import { DIFFICULTY_LABELS, SPICE_LEVEL_LABELS } from "@/lib/config";
+import type { Difficulty, SpiceLevel } from "@/lib/config";
 import type {
   DrinkPairing,
   DrinkPairingOption,
@@ -107,6 +107,21 @@ const DIFFICULTY_LABELS_EN: Record<Difficulty, string> = {
 export function difficultyLabel(difficulty: Difficulty, lang: "no" | "en" = "no"): string {
   if (lang === "en") return DIFFICULTY_LABELS_EN[difficulty] ?? difficulty;
   return DIFFICULTY_LABELS[difficulty] ?? difficulty;
+}
+
+/** Samme "no/en-oppslag med norsk som sannhetskilde"-mønster som
+ * difficultyLabel over, for styrkegrad (se SPICE_LEVEL_LABELS sin
+ * filheader i lib/config.ts). "Hot" i stedet for en direkte oversettelse
+ * av "Sterk" på engelsk – mer naturlig/gjenkjennelig ord for sterk mat. */
+const SPICE_LEVEL_LABELS_EN: Record<SpiceLevel, string> = {
+  1: "Mild",
+  2: "Medium",
+  3: "Hot",
+};
+
+export function spiceLevelLabel(level: SpiceLevel, lang: "no" | "en" = "no"): string {
+  if (lang === "en") return SPICE_LEVEL_LABELS_EN[level] ?? String(level);
+  return SPICE_LEVEL_LABELS[level] ?? String(level);
 }
 
 export function formatDateNorwegian(iso: string): string {

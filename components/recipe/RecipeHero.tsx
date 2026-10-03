@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { clsx } from "clsx";
 import { Badge } from "@/components/ui/Badge";
-import { EditIcon, ChiliIcon } from "@/components/ui/icons";
+import { EditIcon } from "@/components/ui/icons";
+import { SPICE_LEVEL_CLASSES, type SpiceLevel } from "@/lib/config";
 
 /**
  * Oppskriftssidens hero – redesignet 31.08.2026 (spesifikasjonens punkt 1,
@@ -66,6 +68,7 @@ export function RecipeHero({
   categoryLabel,
   tags,
   spiceLevel,
+  spiceLevelText,
   spicyLabel,
   isDraft,
   draftLabel,
@@ -89,7 +92,7 @@ export function RecipeHero({
   imagePendingLabel: string;
   categoryLabel?: string | null;
   tags: { id: string; name: string }[];
-  // Admin-satt styrkegrad (1-3 chili), se spiceLevel sin filheader i
+  // Admin-satt styrkegrad (1-3), se spiceLevel sin filheader i
   // lib/types.ts – lagt til 03.10.2026 som erstatning for den tidligere
   // "Smaksprofil"-seksjonen lenger ned på siden (fjernet, se MERK-
   // kommentaren i lib/actions/recipes.ts). Plassert her, i den samme
@@ -98,8 +101,18 @@ export function RecipeHero({
   // den raden er bevisst matematisk balansert for akkurat fem kolonner
   // (se filheaderen der), og tåler ikke en sjette uten samme runde
   // finjustering på nytt. null/undefined = ikke sterk/ikke satt, vis
-  // ingen chili-badge.
+  // ingen sterkhets-badge. Vist som FARGET TEKST (grønn/oransj/rød etter
+  // nivå, se SPICE_LEVEL_CLASSES i lib/config.ts), ikke lenger som
+  // håndtegnede chili-ikoner – se git-historikken for components/ui/
+  // icons.tsx for hele den (lange) runden som ble forkastet 03.10.2026
+  // etter Henrik: "det ser helt feil ut, hvorfor må du tegne det?".
   spiceLevel?: number | null;
+  // Det oversatte nivå-ordet ("Mild"/"Medium"/"Sterk" eller engelsk
+  // variant), beregnet av forelderen via spiceLevelLabel() i
+  // lib/utils/format.ts (som trenger `lang`, ikke tilgjengelig her) –
+  // samme "beregn i forelder, vis her"-mønster som spicyLabel under.
+  // Kun brukt når spiceLevel er satt.
+  spiceLevelText?: string | null;
   spicyLabel: string;
   isDraft: boolean;
   draftLabel: string;
@@ -178,17 +191,18 @@ export function RecipeHero({
                   {tag.name}
                 </Badge>
               ))}
-              {spiceLevel ? (
+              {spiceLevel && spiceLevelText ? (
+                // Fargetone per nivå (grønn/oransj/rød), se SPICE_LEVEL_CLASSES
+                // sin filheader i lib/config.ts for hele bakgrunnen – erstatter
+                // 03.10.2026 en rad med håndtegnede chili-ikoner, se
+                // git-historikken for components/ui/icons.tsx.
                 <span
-                  className="inline-flex items-center gap-0.5 rounded-full border border-line-strong bg-paper px-2.5 py-1"
-                  title={spicyLabel}
-                  aria-label={spicyLabel}
+                  className={clsx(
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium tracking-wide",
+                    SPICE_LEVEL_CLASSES[spiceLevel as SpiceLevel],
+                  )}
                 >
-                  {Array.from({ length: spiceLevel }).map((_, i) => (
-                    // Rød, ikke gull – se --color-chili i app/globals.css og
-                    // samme fargevalg i chili-velgeren i RecipeForm.tsx.
-                    <ChiliIcon key={i} filled className="h-4 w-4 text-chili" aria-hidden="true" />
-                  ))}
+                  {spicyLabel}: {spiceLevelText}
                 </span>
               ) : null}
               {isDraft && <Badge tone="mustard">{draftLabel}</Badge>}

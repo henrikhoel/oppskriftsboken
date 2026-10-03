@@ -35,43 +35,16 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
   );
 }
 
-/** Chili – brukt av "Sterk mat" (1-3 chili, admin-satt styrkegrad, se
- * components/admin/RecipeForm.tsx og RecipeHero.tsx), lagt til 03.10.2026
- * som erstatning for den tidligere AI-genererte smaksprofilen. Samme
- * `filled`-mønster som HeartIcon over – fylt chili for "aktiv/valgt" grad,
- * kun omriss for en ledig/ufylt. Fylt farge er IKKE currentColor-arv fra
- * gull-aksenten her – se --color-chili i app/globals.css og bruken av
- * `text-chili` på kallstedene; chilien skal lyse rød når den er valgt.
- *
- * Ni runder før denne satt (hver med et referanse-ikon fra Henrik – de
- * fleste betalte/ukjent-lisensierte lager-ikoner, ikke kopiert direkte
- * inn, bare brukt som stilreferanse) landet til slutt på en form Henrik
- * var fornøyd med BORTSETT FRA stilken (for rett/planke-aktig, flat spiss
- * i enden – se git-historikken for components/ui/icons.tsx for detaljene
- * runde for runde om det trengs). Denne runden (10.) fikk vi endelig et
- * referanse-ikon UTEN lisensusikkerhet – Henrik: "DENNE har jeg tegnet
- * selv med ChatGPT" – og podens form og proporsjoner er derfor for
- * første gang modellert direkte og tett etter selve referansebildet i
- * stedet for en abstrakt "senterlinje som så fornuftig ut": brede,
- * avrundede skuldre rett under stilken (podens radiusfunksjon rampes
- * raskt opp fra ~0 i stedet for å starte i full bredde, så skulderen blir
- * rund i stedet for et flatt, kantete "dolk"-tverrsnitt – det var
- * problemet i første forsøk denne runden), bred buk som holder bredden
- * gjennom det meste av lengden, og skarp avsmalning først helt mot
- * slutten. Stilken er nå tykk og kort (ikke en tynn, avlang hals som i
- * runde 4 sin fugl-effekt) som krummer ut og hekter tilbake, med samme
- * halvsirkel-avrundede tupp-kapp som runde 9 innførte. Luft mellom stilk
- * og pod (runde 5) beholdt. Verifisert med Playwright-skjermbilder i de
- * faktiske bruksstørrelsene (28px i RecipeForm.tsx, 16px i
- * RecipeHero.tsx), ikke bare i stort format. */
-export function ChiliIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
-  return (
-    <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
-      <path d="M16.25,7.54 L15.78,7.46 L14.88,7.12 L13.99,6.79 L13.53,6.76 L13.42,6.95 L13.3,7.15 L13.18,7.35 L13.06,7.57 L12.94,7.8 L12.81,8.03 L12.68,8.28 L12.55,8.53 L12.4,8.79 L12.25,9.06 L12.09,9.34 L11.92,9.62 L11.74,9.91 L11.55,10.21 L11.35,10.51 L11.13,10.82 L10.9,11.13 L10.65,11.45 L10.39,11.77 L10.11,12.1 L9.82,12.44 L9.54,12.8 L9.28,13.2 L9.01,13.62 L8.75,14.06 L8.49,14.53 L8.22,15.01 L7.94,15.52 L7.65,16.03 L7.34,16.56 L7.02,17.1 L6.68,17.65 L6.31,18.2 L5.92,18.75 L5.5,19.29 L5.05,19.83 L4.57,20.37 L4.05,20.89 L3.5,21.39 L2.91,21.88 L3.09,22.12 L3.71,21.66 L4.33,21.23 L4.95,20.82 L5.56,20.45 L6.18,20.09 L6.79,19.75 L7.4,19.43 L8,19.12 L8.59,18.82 L9.17,18.53 L9.74,18.24 L10.29,17.95 L10.83,17.66 L11.34,17.37 L11.83,17.07 L12.3,16.76 L12.73,16.45 L13.14,16.12 L13.51,15.78 L13.85,15.42 L14.16,15.07 L14.48,14.72 L14.78,14.39 L15.08,14.07 L15.36,13.76 L15.65,13.45 L15.92,13.16 L16.18,12.87 L16.44,12.6 L16.68,12.33 L16.92,12.06 L17.15,11.81 L17.36,11.56 L17.57,11.32 L17.77,11.09 L17.95,10.86 L18.12,10.65 L18.28,10.43 L18.43,10.23 L18.57,10.03 L18.35,9.62 L17.69,8.94 L17.01,8.26 L16.75,7.86 Z" />
-      <path d="M17.11,8.39 L17.64,7.93 L18.12,7.45 L18.55,6.96 L18.92,6.45 L19.25,5.93 L19.51,5.4 L19.72,4.86 L19.87,4.31 L19.96,3.76 L19.97,3.2 L19.91,2.65 L19.77,2.11 L19.54,1.6 L19.24,1.13 L18.87,0.71 L18.43,0.35 L18.1,0.17 L17.73,0.1 L17.36,0.15 L17.02,0.31 L16.75,0.57 L16.57,0.9 L16.5,1.27 L16.55,1.64 L16.71,1.98 L16.97,2.25 L17.12,2.41 L17.22,2.56 L17.29,2.71 L17.33,2.87 L17.35,3.04 L17.35,3.22 L17.31,3.43 L17.25,3.66 L17.15,3.92 L17.02,4.19 L16.84,4.48 L16.62,4.78 L16.35,5.09 L16.04,5.4 L15.69,5.71 L15.29,6.01 Z" />
-    </svg>
-  );
-}
+/** Chili-ikonet som tidligere lå her (brukt av "Sterk mat"-styrkegraden,
+ * se components/admin/RecipeForm.tsx og RecipeHero.tsx) er FJERNET
+ * 03.10.2026 etter en lang runde (10 forsøk) med å håndtegne en SVG som
+ * skulle ligne en faktisk chili – se git-historikken for denne filen for
+ * hele den runden hvis den trengs igjen. Henrik, etter siste forsøk (som
+ * faktisk var modellert tett etter et referansebilde han selv hadde
+ * tegnet): "det ser helt feil ut, hvorfor må du tegne det? ... da tror
+ * jeg vi dropper symbol". Styrkegraden vises nå som ren tekst
+ * (Mild/Medium/Sterk) i en fargetone-badge i stedet for et ikon – se
+ * SPICE_LEVEL_LABELS/SPICE_LEVEL_CLASSES i lib/config.ts. */
 
 export function ClockIcon(props: IconProps) {
   return (
