@@ -1389,7 +1389,7 @@ const DICT = {
   "weekendGuests.occasion.fredagskveld": { no: "Fredagskveld", en: "Friday night" },
   "weekendGuests.occasion.date_night": { no: "Date night", en: "Date night" },
   "weekendGuests.occasion.venner_pa_middag": { no: "Venner på middag", en: "Friends for dinner" },
-  "weekendGuests.occasion.familie": { no: "Familie", en: "Family" },
+  "weekendGuests.occasion.sondagsmiddag": { no: "Søndagsmiddag", en: "Sunday dinner" },
   "weekendGuests.occasion.feiring": { no: "Feiring", en: "Celebration" },
   // Liten eyebrow-heading over den store, editorielle enkelt-retten rett
   // under hero/filterområdet – se WeekendGuestsFeatured.tsx.

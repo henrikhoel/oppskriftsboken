@@ -128,8 +128,10 @@ export interface Database {
           // false.
           weekend_guests: boolean;
           // Delmengde av "fredagskveld" | "date_night" | "venner_pa_middag" |
-          // "familie" | "feiring" – se migrasjon
-          // 0030_recipe_weekend_guests.sql. Samme string[]-fremfor-egen-
+          // "sondagsmiddag" | "feiring" – se migrasjon
+          // 0030_recipe_weekend_guests.sql ("familie" opprinnelig) og
+          // 0031_recipe_weekend_guests_rename_familie_to_sondagsmiddag.sql
+          // (omdøpt til "sondagsmiddag"). Samme string[]-fremfor-egen-
           // type-begrunnelse som moods/courses/weekly_menu_styles. NOT NULL
           // DEFAULT '{}' i databasen – aldri null, kan være en tom liste.
           weekend_guests_occasions: string[];

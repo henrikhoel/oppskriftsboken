@@ -1,7 +1,8 @@
 /**
  * Delt register for "Helg & gjester" (03.10.2026) – en kuratert
  * inspirasjonsside for retter man gjør litt mer ut av (helg, date night,
- * venner på middag, familie, feiring), IKKE en generator som Ukesmeny.
+ * venner på middag, søndagsmiddag, feiring), IKKE en generator som
+ * Ukesmeny.
  * Henrik, i spesifikasjonen for siden: "Dette skal IKKE fungere som
  * Ukesmeny. Det skal ikke genereres noe. Brukeren skal lande direkte i et
  * kuratert utvalg av retter og kunne filtrere dem etter anledning."
@@ -20,13 +21,18 @@
  * uavhengig av hvilke(n) anledning(er) de i tillegg måtte ha. Se migrasjon
  * 0030_recipe_weekend_guests.sql for selve databasekolonnene denne lista
  * speiler (CHECK-constrainten der holdes manuelt i synk med id-ene under).
+ *
+ * "familie" ble erstattet med "sondagsmiddag" (visningsnavn "Søndagsmiddag")
+ * 03.10.2026 på Henriks forespørsel – se migrasjon
+ * 0031_recipe_weekend_guests_rename_familie_to_sondagsmiddag.sql for
+ * CHECK-constrainten og datamigreringen av allerede-tagg­ede oppskrifter.
  */
 
 export const WEEKEND_GUESTS_OCCASION_DEFINITIONS = [
   { id: "fredagskveld", labelKey: "weekendGuests.occasion.fredagskveld" },
   { id: "date_night", labelKey: "weekendGuests.occasion.date_night" },
   { id: "venner_pa_middag", labelKey: "weekendGuests.occasion.venner_pa_middag" },
-  { id: "familie", labelKey: "weekendGuests.occasion.familie" },
+  { id: "sondagsmiddag", labelKey: "weekendGuests.occasion.sondagsmiddag" },
   { id: "feiring", labelKey: "weekendGuests.occasion.feiring" },
 ] as const;
 

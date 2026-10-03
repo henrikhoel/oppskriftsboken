@@ -52,7 +52,7 @@ const OCCASION_ICONS = {
   fredagskveld: CalendarIcon,
   date_night: HeartIcon,
   venner_pa_middag: UsersIcon,
-  familie: HomeIcon,
+  sondagsmiddag: HomeIcon,
   feiring: SparklesIcon,
 } as const;
 
