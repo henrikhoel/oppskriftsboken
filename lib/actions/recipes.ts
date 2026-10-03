@@ -7,7 +7,6 @@ import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods"
 import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
 import { WEEKLY_MENU_STYLE_DEFINITIONS, type WeeklyMenuStyleId } from "@/lib/kitchen-intelligence/weekly-menu-styles";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database.types";
 import {
   getAllRecipeSlugsForCollisionCheck,
   getPublishedRecipeSummaries,
@@ -1581,11 +1580,20 @@ export async function moveFeatured(recipeId: string, direction: "up" | "down"): 
  * now()) på selve kolonnen, se migrasjonen) fortsatt alltid havner øverst
  * som "nyest", akkurat som created_at ga automatisk før denne endringen.
  *
- * Ett upsert-kall for alle radene (samme mønster som scripts/seed.ts)
- * fremfor N enkelt-oppdateringer – ved ~290 oppskrifter ville det vært
- * ~290 separate rundturer mot Supabase ellers. onConflict: "id" + kun
- * id/display_order i hvert objekt gjør dette til en ren UPDATE per rad
- * (ON CONFLICT DO UPDATE), ikke en risiko for å nullstille andre felt.
+ * FØRSTE forsøk brukte ett upsert-kall for alle radene (samme mønster som
+ * scripts/seed.ts, med kun id+display_order i hvert objekt) – det feilet i
+ * praksis med en NOT NULL-feil ("Kunne ikke mikse rekkefølgen. Prøv
+ * igjen."), selv om hver id garantert fantes fra før. Årsak: Postgres sin
+ * `INSERT ... ON CONFLICT DO UPDATE` bygger og validerer HELE
+ * insert-tuppelet (inkl. NOT NULL-sjekk på slug/title, ingen av dem med
+ * default) FØR den i det hele tatt sjekker om raden kolliderer – det
+ * spiller altså ingen rolle at alle radene uansett skulle endt i
+ * DO UPDATE-grenen; et upsert-kall som ikke oppgir slug/title feiler
+ * likevel. Egne `.update(...).eq("id", ...)`-kall under har ikke dette
+ * problemet (ingen ny rad bygges i det hele tatt), i batcher av
+ * BATCH_SIZE om gangen (ikke 290 kall helt parallelt, og ikke 290 kall
+ * helt sekvensielt – et kompromiss mellom rask og skånsom mot Supabase sin
+ * tilkoblingspool).
  *
  * Rører KUN display_order – IKKE created_at, og dermed heller ikke
  * admin-dashbordets egne lister (getAllRecipesForAdmin, humør, ukesmeny,
@@ -1601,21 +1609,23 @@ export async function shuffleRecipeDisplayOrder(): Promise<void> {
     throw new Error(fetchError?.message ?? "Kunne ikke hente oppskrifter");
   }
 
-  const updates = rows.map((row) => ({ id: row.id as string, display_order: Math.random() * 1_000_000 }));
-
-  // `as unknown as ...[]` under: @supabase/supabase-js sin .upsert()-typing
-  // krever ALLE påkrevde felt fra recipes sin Insert-type (slug, title …) i
-  // hvert objekt, siden upsert i prinsippet KAN sette inn en helt ny rad.
-  // Her sender vi bevisst kun id+display_order – ON CONFLICT (id) DO UPDATE
-  // gjør dette til en ren UPDATE per rad, aldri en reell INSERT, siden hver
-  // id kommer fra en nettopp utført select("id") på nøyaktig samme tabell
-  // og dermed garantert finnes.
-  const { error } = await supabase
-    .from("recipes")
-    .upsert(updates as unknown as Database["public"]["Tables"]["recipes"]["Insert"][], { onConflict: "id" });
-  if (error) {
-    throw new Error(`Kunne ikke mikse rekkefølgen: ${error.message}`);
+  const BATCH_SIZE = 25;
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map((row) =>
+        supabase
+          .from("recipes")
+          .update({ display_order: Math.random() * 1_000_000 })
+          .eq("id", row.id),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) {
+      throw new Error(`Kunne ikke mikse rekkefølgen: ${failed.error.message}`);
+    }
   }
+
   revalidateRecipePaths();
 }
 
