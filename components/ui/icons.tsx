@@ -54,25 +54,30 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
  * tydelig LUFTE/avstand mellom stilk og pod i stedet for at de glir
  * sammen, (6) et fjerde referanse-ikon viste samme type sving, men
  * MOTSATT vei ("du må speile den og endre vinkelen") – podens "buk" lå
- * på feil side av stilk-til-tupp-linjen.
+ * på feil side av stilk-til-tupp-linjen, (7) den rette strek-stilken fra
+ * forrige runde (bevisst rett for å unngå "fugl"-effekten i punkt 4) så i
+ * praksis ut som en stiv, rettvinklet planke ved siden av referansens
+ * butte, buede stilk ("se forskjellen, hva skjedde med stilken?").
  *
  * Endelig geometri: kurvet senterlinje + normalvektorer langs den (som i
  * alle rundene), stilk øverst til høyre, spiss tupp nederst til venstre,
- * men kontrollpunktene speilet slik at buken buler ut på motsatt side av
- * senterlinjen sammenlignet med forrige runde (samme speiling som et
- * speilbilde av hele podens krumning, ikke bare en enkel venstre-høyre-
- * flipp av koordinatene – det ville bare flyttet stilk/tupp til feil
- * hjørner igjen). Ikke-monoton radiusfunksjon for buken (smal hals → bred
- * buk → spiss tupp), og stilken en enkel rett kurve (ingen krøll – se
- * punkt 4 over) satt LITT UNNA podens skulder i stedet for å overlappe
- * den. Verifisert med Playwright-skjermbilder i de faktiske
- * bruksstørrelsene (28px i RecipeForm.tsx, 16px i RecipeHero.tsx), ikke
- * bare i stort format. */
+ * med kontrollpunktene speilet slik at buken buler ut på motsatt side av
+ * senterlinjen sammenlignet med runden før (et speilbilde av selve
+ * krumningen, ikke bare en venstre-høyre-flipp av koordinatene – det
+ * hadde bare flyttet stilk/tupp til feil hjørner igjen). Ikke-monoton
+ * radiusfunksjon for buken (smal hals → bred buk → spiss tupp). Stilken
+ * er nå en EGEN buet kurve (egne kontrollpunkter som faktisk avviker fra
+ * en rett linje mellom endepunktene, ikke tre nesten-kollineære punkter
+ * slik forrige runde utilsiktet ble) som bøyer seg og krummer lett
+ * tilbake mot tuppen, fortsatt satt med luft til podens skulder i stedet
+ * for å overlappe den. Verifisert med Playwright-skjermbilder i de
+ * faktiske bruksstørrelsene (28px i RecipeForm.tsx, 16px i
+ * RecipeHero.tsx), ikke bare i stort format. */
 export function ChiliIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
   return (
     <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
       <path d="M15.54,5.39 L15.76,5.7 L15.91,6.04 L16,6.39 L16.02,6.75 L16,7.1 L15.92,7.44 L15.82,7.76 L15.69,8.06 L15.55,8.35 L15.4,8.64 L15.26,8.93 L15.12,9.23 L14.99,9.55 L14.87,9.9 L14.72,10.28 L14.56,10.69 L14.38,11.13 L14.16,11.59 L13.9,12.08 L13.61,12.6 L13.27,13.13 L12.88,13.67 L12.44,14.22 L11.95,14.78 L11.4,15.35 L10.8,15.9 L10.14,16.45 L9.42,16.99 L8.64,17.51 L7.81,18 L6.91,18.47 L5.96,18.91 L6.04,19.09 L7.01,18.68 L7.94,18.28 L8.85,17.89 L9.72,17.51 L10.55,17.14 L11.36,16.77 L12.14,16.4 L12.88,16.03 L13.59,15.65 L14.27,15.26 L14.92,14.85 L15.53,14.44 L16.1,14 L16.63,13.54 L17.12,13.06 L17.56,12.56 L17.95,12.04 L18.27,11.49 L18.54,10.92 L18.73,10.33 L18.83,9.74 L18.85,9.14 L18.79,8.56 L18.67,8 L18.49,7.47 L18.26,6.98 L17.99,6.52 L17.7,6.09 L17.4,5.7 L17.08,5.33 L16.77,4.97 L16.46,4.61 Z" />
-      <path d="M16.01,4.39 L16.34,3.88 L16.66,3.39 L16.96,2.93 L17.23,2.5 L17.49,2.09 L17.73,1.71 L17.94,1.35 L18.14,1.03 L18.31,0.73 L18.45,0.46 L17.95,0.14 L17.77,0.38 L17.57,0.65 L17.35,0.95 L17.1,1.28 L16.83,1.64 L16.54,2.02 L16.24,2.43 L15.91,2.86 L15.56,3.33 L15.19,3.81 Z" />
+      <path d="M15.92,4.75 L16.32,4.44 L16.68,4.12 L17.01,3.79 L17.3,3.45 L17.55,3.11 L17.77,2.76 L17.94,2.42 L18.07,2.08 L18.15,1.74 L18.17,1.41 L18.14,1.09 L18.05,0.8 L17.89,0.53 L17.67,0.31 L17.33,0.69 L17.44,0.84 L17.51,1 L17.54,1.18 L17.53,1.38 L17.48,1.6 L17.4,1.84 L17.27,2.09 L17.11,2.36 L16.91,2.63 L16.67,2.91 L16.39,3.18 L16.09,3.45 L15.75,3.71 L15.38,3.95 Z" />
     </svg>
   );
 }
