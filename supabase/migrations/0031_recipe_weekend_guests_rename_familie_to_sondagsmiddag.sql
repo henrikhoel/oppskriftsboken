@@ -4,16 +4,19 @@
 -- denne (denne migrasjonen forutsetter at weekend_guests_occasions-kolonnen
 -- og dens CHECK-constraint allerede finnes).
 --
--- Rekkefølge: (1) flytt ev. allerede-taggede oppskrifter fra "familie" til
--- "sondagsmiddag" FØR constrainten strammes inn igjen, slik at ingen
--- eksisterende rad kan bryte den nye CHECK-en midlertidig, (2) bytt ut
--- constrainten.
+-- Rekkefølge er viktig: den GAMLE constrainten tillater kun "familie", ikke
+-- "sondagsmiddag" – så den må droppes FØR update-setningen under, ellers
+-- feiler selve oppdateringen (satt i feil rekkefølge i en tidligere versjon
+-- av denne fila, se "new row ... violates check constraint"-feilen Henrik
+-- fikk 03.10.2026). (1) drop gammel constraint, (2) flytt ev.
+-- allerede-taggede oppskrifter fra "familie" til "sondagsmiddag", (3) legg
+-- på ny, innstrammet constraint igjen.
+
+alter table public.recipes drop constraint if exists recipes_weekend_guests_occasions_check;
 
 update public.recipes
 set weekend_guests_occasions = array_replace(weekend_guests_occasions, 'familie', 'sondagsmiddag')
 where 'familie' = any(weekend_guests_occasions);
-
-alter table public.recipes drop constraint if exists recipes_weekend_guests_occasions_check;
 
 alter table public.recipes add constraint recipes_weekend_guests_occasions_check
   check (weekend_guests_occasions <@ array['fredagskveld', 'date_night', 'venner_pa_middag', 'sondagsmiddag', 'feiring']::text[]);
