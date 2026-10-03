@@ -57,7 +57,15 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
  * på feil side av stilk-til-tupp-linjen, (7) den rette strek-stilken fra
  * forrige runde (bevisst rett for å unngå "fugl"-effekten i punkt 4) så i
  * praksis ut som en stiv, rettvinklet planke ved siden av referansens
- * butte, buede stilk ("se forskjellen, hva skjedde med stilken?").
+ * butte, buede stilk ("se forskjellen, hva skjedde med stilken?"), (8) en
+ * påfølgende versjon rettet opp kurven, men krummet i tillegg litt
+ * TILBAKE mot tuppen på slutten (en liten ekstra S-sving) – Henrik: "bare
+ * fjern den ekstra buen" – fjernet, kurver nå kun én vei. (9) Den rettede
+ * stilken fikk en liten spiss, kantete flik helt ytterst (det flate
+ * "snittet" der konturen bare stopper brått på tvers av kurveretningen) –
+ * Henrik viste et nærbilde og ba om at den biten fjernes og gjøres rund.
+ * Løst med en ordentlig halvsirkel-avrunding i enden i stedet for det
+ * flate tverrsnittet.
  *
  * Endelig geometri: kurvet senterlinje + normalvektorer langs den (som i
  * alle rundene), stilk øverst til høyre, spiss tupp nederst til venstre,
@@ -66,18 +74,19 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
  * krumningen, ikke bare en venstre-høyre-flipp av koordinatene – det
  * hadde bare flyttet stilk/tupp til feil hjørner igjen). Ikke-monoton
  * radiusfunksjon for buken (smal hals → bred buk → spiss tupp). Stilken
- * er nå en EGEN buet kurve (egne kontrollpunkter som faktisk avviker fra
- * en rett linje mellom endepunktene, ikke tre nesten-kollineære punkter
- * slik forrige runde utilsiktet ble) som bøyer seg og krummer lett
- * tilbake mot tuppen, fortsatt satt med luft til podens skulder i stedet
- * for å overlappe den. Verifisert med Playwright-skjermbilder i de
- * faktiske bruksstørrelsene (28px i RecipeForm.tsx, 16px i
- * RecipeHero.tsx), ikke bare i stort format. */
+ * er én enkel, jevn bue (egne kontrollpunkter som avviker fra en rett
+ * linje mellom endepunktene, så den faktisk krummer – ikke tre nesten-
+ * kollineære punkter), uten tilbakekrumming, og med en avrundet
+ * halvsirkel-kapp i den ytterste enden i stedet for et flatt tverrsnitt –
+ * satt med luft til podens skulder i stedet for å overlappe den.
+ * Verifisert med Playwright-skjermbilder i de faktiske bruksstørrelsene
+ * (28px i RecipeForm.tsx, 16px i RecipeHero.tsx) og en zoomet nærkontroll
+ * av selve stilktuppen, ikke bare i stort format. */
 export function ChiliIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
   return (
     <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
       <path d="M15.54,5.39 L15.76,5.7 L15.91,6.04 L16,6.39 L16.02,6.75 L16,7.1 L15.92,7.44 L15.82,7.76 L15.69,8.06 L15.55,8.35 L15.4,8.64 L15.26,8.93 L15.12,9.23 L14.99,9.55 L14.87,9.9 L14.72,10.28 L14.56,10.69 L14.38,11.13 L14.16,11.59 L13.9,12.08 L13.61,12.6 L13.27,13.13 L12.88,13.67 L12.44,14.22 L11.95,14.78 L11.4,15.35 L10.8,15.9 L10.14,16.45 L9.42,16.99 L8.64,17.51 L7.81,18 L6.91,18.47 L5.96,18.91 L6.04,19.09 L7.01,18.68 L7.94,18.28 L8.85,17.89 L9.72,17.51 L10.55,17.14 L11.36,16.77 L12.14,16.4 L12.88,16.03 L13.59,15.65 L14.27,15.26 L14.92,14.85 L15.53,14.44 L16.1,14 L16.63,13.54 L17.12,13.06 L17.56,12.56 L17.95,12.04 L18.27,11.49 L18.54,10.92 L18.73,10.33 L18.83,9.74 L18.85,9.14 L18.79,8.56 L18.67,8 L18.49,7.47 L18.26,6.98 L17.99,6.52 L17.7,6.09 L17.4,5.7 L17.08,5.33 L16.77,4.97 L16.46,4.61 Z" />
-      <path d="M15.92,4.75 L16.32,4.44 L16.68,4.12 L17.01,3.79 L17.3,3.45 L17.55,3.11 L17.77,2.76 L17.94,2.42 L18.07,2.08 L18.15,1.74 L18.17,1.41 L18.14,1.09 L18.05,0.8 L17.89,0.53 L17.67,0.31 L17.33,0.69 L17.44,0.84 L17.51,1 L17.54,1.18 L17.53,1.38 L17.48,1.6 L17.4,1.84 L17.27,2.09 L17.11,2.36 L16.91,2.63 L16.67,2.91 L16.39,3.18 L16.09,3.45 L15.75,3.71 L15.38,3.95 Z" />
+      <path d="M15.92,4.74 L16.27,4.47 L16.6,4.19 L16.91,3.9 L17.2,3.61 L17.46,3.32 L17.7,3.02 L17.92,2.72 L18.12,2.42 L18.3,2.12 L18.46,1.82 L18.59,1.53 L18.7,1.23 L18.79,0.95 L18.85,0.66 L18.86,0.56 L18.82,0.47 L18.75,0.39 L18.66,0.35 L18.56,0.34 L18.47,0.38 L18.39,0.45 L18.35,0.54 L18.26,0.77 L18.16,1.02 L18.03,1.26 L17.89,1.51 L17.72,1.76 L17.54,2.02 L17.34,2.27 L17.11,2.52 L16.87,2.77 L16.61,3.02 L16.33,3.26 L16.03,3.5 L15.71,3.73 L15.38,3.96 Z" />
     </svg>
   );
 }
