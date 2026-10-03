@@ -5,7 +5,6 @@ import { getAllCategories } from "@/lib/data/categories";
 import { getCurrentUserFast } from "@/lib/auth";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
-import Link from "next/link";
 import { BrowseRecipesClient } from "@/components/search/BrowseRecipesClient";
 import { SearchBar } from "@/components/search/SearchBar";
 import { RecipeCardSkeleton } from "@/components/ui/Skeleton";
@@ -31,28 +30,13 @@ export default async function RecipesPage() {
       <h1 className="font-serif text-3xl text-ink sm:text-4xl">{t(lang, "recipesPage.title")}</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">{t(lang, "recipesPage.description")}</p>
 
-      {/* Rolig tekstlenke til "Dine menyer" (27.09.2026, ønsket av Henrik:
-          "en knapp til lagrede menyer må også være ved siden av 'bygg en
-          meny selv'") – bevisst en lenke her, IKKE et nytt punkt i
-          hovednavigasjonen. Plassert rett under introteksten, siden det er
-          her folk uansett blar i retter. Vises for ALLE, også
-          ikke-innloggede (samme "kan klikke seg inn overalt, men funksjonen
-          er låst"-mønster som resten av siden) – selve /mine-menyer-siden
-          viser LockedPanel for dem.
-          (03.10.2026) Søsterlenken til den manuelle menybyggeren
-          (/meny/ny, "Bygg en meny selv") er fjernet herfra – hele den
-          funksjonen er slettet, se ManualMealBuilder.tsx sin git-historikk
-          (Henrik: "det er bare overflødig når man egentlig kan gjøre det
-          via oppskrifter uansett"). Menyer bygges nå kun via "Gjør det til
-          en kveld" på den enkelte oppskriftssiden (MealBuilder.tsx). */}
-      <p className="mt-3">
-        <Link
-          href="/mine-menyer"
-          className="text-sm font-medium text-clay underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
-        >
-          {t(lang, "recipesPage.savedMealsLink")}
-        </Link>
-      </p>
+      {/* (03.10.2026) Tekstlenken til "Dine menyer" (/mine-menyer), som sto
+          her rett under introteksten, er fjernet – etter at søsterlenken
+          til den manuelle menybyggeren ("Bygg en meny selv") ble slettet
+          samme dag, sto denne ene lenken igjen alene og føltes malplassert
+          (Henrik). Selve /mine-menyer-siden og "Lagre menyen"-knappen i
+          MealBuilder.tsx ("Gjør det til en kveld") er UENDRET – lagrede
+          menyer finnes fortsatt, bare ikke lenket til herfra lenger. */}
 
       {/* Søkefeltet i toppmenyen (HeaderSearchSlot.tsx) er skjult på mobil
           (md:hidden der), og mobilens søkeknapp i Header.tsx sender rett

@@ -3,13 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { clsx } from "clsx";
 import type { RecipeSummary } from "@/lib/types";
 import { setPublished, deleteRecipe } from "@/lib/actions/recipes";
 import { formatDateNorwegian } from "@/lib/utils/format";
 import { Badge } from "@/components/ui/Badge";
-import { TrashIcon } from "@/components/ui/icons";
+import { ImageIcon, TrashIcon } from "@/components/ui/icons";
 
 export function AdminRecipeRow({ recipe }: { recipe: RecipeSummary }) {
   const [isPublished, setIsPublished] = useState(recipe.isPublished);
@@ -42,33 +41,36 @@ export function AdminRecipeRow({ recipe }: { recipe: RecipeSummary }) {
 
   return (
     <div className="flex flex-wrap items-center gap-4 border-b border-line px-4 py-4 last:border-b-0 sm:px-5">
-      {/* Trykk på bildet for å åpne den FAKTISKE, publiserte oppskriftssiden
-          – for å raskt kunne sjekke hvordan nylige endringer faktisk ser ut
-          (ønsket av Henrik 26.08.2026). Samme fane (IKKE target="_blank" –
-          testet og meldt tilbake at det ikke var ønsket); vanlig
-          tilbake-navigering i nettleseren fører deg tilbake til denne
-          listen. Egen lenke, atskilt fra "Rediger"-lenken på
-          tittelen/knappen, som fortsatt går til admin-redigeringssiden. */}
+      {/* Selve FOTOET i denne boksen er fjernet (03.10.2026, samme
+          Supabase-kvote-begrunnelse som de andre admin-listene denne dagen
+          – se f.eks. FeaturedPicker.tsx/RolePicker.tsx sine filheadere –
+          den forrige unoptimized <Image> lastet ned hele originalbildet
+          for en 56px-visning på HVER rad i hele oppskriftslisten). Erstattet
+          med et rent ikon (ingen nettverkskall i det hele tatt) som i
+          tillegg FARGES etter om oppskriften mangler bilde – Henrik: "sett
+          inn et placeholder bilde på oppskriftene som viser at oppskriftene
+          har et bilde, sånn at jeg ikke glemmer å legge til det". Nøytral
+          gråtone når heroImageUrl finnes, tydelig leire-farget "mangler
+          bilde"-varsel når den ikke gjør det – lett å få øye på i en lang
+          liste uten å måtte åpne hver enkelt oppskrift.
+          "Trykk for å åpne den faktiske, publiserte oppskriftssiden"
+          -funksjonen (ønsket av Henrik 26.08.2026, for å raskt sjekke
+          hvordan nylige endringer faktisk ser ut) er beholdt som selve
+          klikkmålet på denne boksen – samme fane (IKKE target="_blank" –
+          testet og meldt tilbake at det ikke var ønsket), atskilt fra
+          "Rediger"-lenken, som fortsatt går til admin-redigeringssiden. */}
       <Link
         href={`/oppskrifter/${recipe.slug}`}
-        aria-label={`Se "${recipe.title}" på nettsiden`}
-        title="Se på nettsiden"
-        className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream-dark"
-      >
-        {recipe.heroImageUrl && (
-          // (29.09.2026, Henrik: "hopper over de som faktisk ikke trenger
-          // responsiv skalering") – fast 56px admin-listeminiatyr, kun til
-          // gjenkjenning. unoptimized dropper Vercels bilde-transformasjon
-          // (se next.config.ts sin kommentar om 5000/mnd-kvoten).
-          <Image
-            src={recipe.heroImageUrl}
-            alt=""
-            fill
-            unoptimized
-            sizes="56px"
-            className="object-cover transition-transform duration-300 ease-out group-hover:scale-110"
-          />
+        aria-label={`Se "${recipe.title}" på nettsiden${recipe.heroImageUrl ? "" : " (mangler bilde)"}`}
+        title={recipe.heroImageUrl ? "Se på nettsiden" : "Mangler bilde – se på nettsiden"}
+        className={clsx(
+          "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-colors",
+          recipe.heroImageUrl
+            ? "bg-cream-dark text-ink-faint hover:text-ink"
+            : "bg-clay-light text-clay-dark hover:bg-clay-light/70",
         )}
+      >
+        <ImageIcon className="h-5 w-5" />
       </Link>
 
       <div className="min-w-0 flex-1">
