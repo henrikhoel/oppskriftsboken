@@ -256,3 +256,99 @@ export function toSearchable(recipe: Recipe): SearchableRecipe {
     ingredientNames: recipe.ingredientGroups.flatMap((g) => g.items.map((i) => i.name)),
   };
 }
+
+/**
+ * Lett radform KUN for listevisninger (forsiden/oppskrift-oversikten/søk/
+ * ukesmeny m.fl., se getPublishedRecipeRows i lib/data/recipes.ts) – fikser
+ * en runtime-feil fra 03.10.2026: "Failed to set Next.js data cache for
+ * unstable_cache ..., items over 2MB can not be cached (2258302 bytes)".
+ *
+ * Årsaken var at getPublishedRecipeRows cachet den FULLE RawRecipeRow (hele
+ * fremgangsmåten, AI-genererte smaksprofil/næringsinnhold/drikkeparring-
+ * blobs, alle bilder, hver ingrediens' mengde/enhet/notat osv.) for ALLE
+ * ~270+ publiserte oppskrifter i ÉN cache-oppføring – selv om
+ * RecipeSummary/SearchableRecipe (alt getPublishedRecipeSummaries og
+ * getSearchableRecipes faktisk bruker) kun trenger en brøkdel av feltene.
+ * Next.js sin innebygde data-cache har en hard, ukonfigurerbar 2MB-grense
+ * per oppføring. RawRecipeListRow/RECIPE_LIST_SELECT/mapRecipeListRow
+ * dropper derfor alt listevisningene uansett ikke bruker – recipe_steps
+ * (hele fremgangsmåten), taste_profile/nutrition_info/drink_pairing/
+ * vegetarian_variant (jsonb-blobs), recipe_images (full liste – kun
+ * hero-bildet trengs), prep/cook-tidsfelter (kun total_time_minutes),
+ * notes/tips/warnings/source, show_beverage_match_checker/
+ * show_meal_builder, updated_at, og det meste av ingredient_groups (kun
+ * ingrediensNAVNET beholdes, til søk – ikke mengde/enhet/notat/
+ * sortering/gruppetittel). Samme gevinst som tidligere fiks av
+ * `unoptimized`-miniatyrene i admin-listene: mindre payload per spørring,
+ * ikke bare et cache-problem løst.
+ */
+export interface RawRecipeListRow {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  title_en: string | null;
+  description_en: string | null;
+  hero_image_url: string | null;
+  hero_image_alt: string | null;
+  servings: number;
+  total_time_minutes: number | null;
+  difficulty: Difficulty;
+  is_published: boolean;
+  is_featured: boolean;
+  moods: string[];
+  courses: string[];
+  featured_sort_order: number | null;
+  favorited_by_admin: boolean;
+  weekly_menu_excluded: boolean;
+  weekly_menu_styles: string[];
+  is_vegetarian: boolean;
+  rating_sum: number;
+  rating_count: number;
+  created_at: string;
+  category: RawRecipeRow["category"];
+  recipe_tags: RawRecipeRow["recipe_tags"];
+  ingredient_groups: { ingredient_items: { name: string }[] | null }[] | null;
+}
+
+export const RECIPE_LIST_SELECT = `
+  id, slug, title, description, title_en, description_en, hero_image_url, hero_image_alt, servings,
+  total_time_minutes, difficulty,
+  is_published, is_featured, moods, courses, featured_sort_order, favorited_by_admin, weekly_menu_excluded, weekly_menu_styles, is_vegetarian,
+  rating_sum, rating_count,
+  created_at,
+  category:categories(id, slug, name, name_en, sort_order),
+  recipe_tags(tags(id, slug, name)),
+  ingredient_groups(ingredient_items(name))
+`;
+
+export function mapRecipeListRow(raw: RawRecipeListRow): SearchableRecipe {
+  return {
+    id: raw.id,
+    slug: raw.slug,
+    title: raw.title,
+    description: raw.description,
+    titleEn: raw.title_en,
+    descriptionEn: raw.description_en,
+    heroImageUrl: raw.hero_image_url,
+    heroImageAlt: raw.hero_image_alt,
+    category: mapCategory(raw.category),
+    tags: mapTags(raw.recipe_tags),
+    totalTimeMinutes: raw.total_time_minutes,
+    difficulty: raw.difficulty,
+    isFeatured: raw.is_featured,
+    featuredSortOrder: raw.featured_sort_order,
+    moods: raw.moods as RecipeSummary["moods"],
+    courses: raw.courses as RecipeSummary["courses"],
+    favoritedByAdmin: raw.favorited_by_admin,
+    weeklyMenuExcluded: raw.weekly_menu_excluded,
+    weeklyMenuStyles: raw.weekly_menu_styles as RecipeSummary["weeklyMenuStyles"],
+    isVegetarian: raw.is_vegetarian,
+    createdAt: raw.created_at,
+    isPublished: raw.is_published,
+    ratingSum: raw.rating_sum,
+    ratingCount: raw.rating_count,
+    servings: raw.servings,
+    ingredientNames: (raw.ingredient_groups ?? []).flatMap((g) => (g.ingredient_items ?? []).map((i) => i.name)),
+  };
+}

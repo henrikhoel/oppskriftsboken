@@ -4,8 +4,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 import { createClient } from "@/lib/supabase/server";
 import { createStaticClient } from "@/lib/supabase/static";
 import { demoRecipes, findDemoRecipe } from "@/lib/demo-data/recipes";
-import { mapRecipeRow, RECIPE_SELECT, toSearchable, toSummary } from "@/lib/data/mappers";
-import type { RawRecipeRow } from "@/lib/data/mappers";
+import { mapRecipeListRow, mapRecipeRow, RECIPE_LIST_SELECT, RECIPE_SELECT, toSearchable, toSummary } from "@/lib/data/mappers";
+import type { RawRecipeListRow, RawRecipeRow } from "@/lib/data/mappers";
 import type { Recipe, RecipeSummary } from "@/lib/types";
 import type { SearchableRecipe } from "@/lib/utils/search";
 
@@ -67,17 +67,23 @@ const RECIPES_REVALIDATE_SECONDS = 120;
  * resonnement som getRecipeBySlug (det offentlige, includeUnpublished:
  * false-tilfellet) og getAllCategories i lib/data/categories.ts allerede
  * bruker denne klienten for.
+ *
+ * Henter/cacher BEVISST kun RECIPE_LIST_SELECT (ikke den fulle RECIPE_SELECT)
+ * og returnerer SearchableRecipe (RecipeSummary + ingrediensnavn), ikke hele
+ * Recipe – se mapRecipeListRow sin filheader i lib/data/mappers.ts for hele
+ * bakgrunnen (03.10.2026): den fulle varianten traff Next.js sin harde
+ * 2MB-grense per cache-oppføring med ~270 publiserte oppskrifter.
  */
 const getPublishedRecipeRows = unstable_cache(
-  async (): Promise<Recipe[]> => {
+  async (): Promise<SearchableRecipe[]> => {
     if (!isSupabaseConfigured) {
-      return getPublishedDemoRecipes();
+      return (await getPublishedDemoRecipes()).map(toSearchable);
     }
 
     const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("recipes")
-      .select(RECIPE_SELECT)
+      .select(RECIPE_LIST_SELECT)
       .eq("is_published", true)
       .order("created_at", { ascending: false });
 
@@ -86,9 +92,9 @@ const getPublishedRecipeRows = unstable_cache(
       return [];
     }
 
-    return ((data ?? []) as unknown as RawRecipeRow[]).map(mapRecipeRow);
+    return ((data ?? []) as unknown as RawRecipeListRow[]).map(mapRecipeListRow);
   },
-  ["published-recipe-rows"],
+  ["published-recipe-rows-v2"],
   { tags: [RECIPES_TAG], revalidate: RECIPES_REVALIDATE_SECONDS },
 );
 
@@ -100,16 +106,14 @@ const getPublishedRecipeRows = unstable_cache(
 // alle går via denne) ikke trenger tre separate runder gjennom
 // unstable_cache() sin egen oppslagslogikk heller.
 export const getPublishedRecipeSummaries = cache(async (): Promise<RecipeSummary[]> => {
-  const recipes = await getPublishedRecipeRows();
-  return recipes.map(toSummary);
+  return getPublishedRecipeRows();
 });
 
 /** Full søkbar liste (inkl. ingrediensnavn) over publiserte oppskrifter. Deler
  * samme cachede råhenting som getPublishedRecipeSummaries over, se
  * getPublishedRecipeRows sin filheader. */
 export async function getSearchableRecipes(): Promise<SearchableRecipe[]> {
-  const recipes = await getPublishedRecipeRows();
-  return recipes.map(toSearchable);
+  return getPublishedRecipeRows();
 }
 
 export async function getFeaturedRecipes(limit = 3): Promise<RecipeSummary[]> {
