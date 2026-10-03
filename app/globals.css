@@ -152,6 +152,50 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* (28.09.2026, forenklet i visuell redesign samme dag)
+   * CookModeTutorialOverlay.tsx sin gull-ring rundt hvert pekt-ut Cook
+   * Mode-element – Henrik prøvde først et bevisst droppet forslag om en
+   * beregnet, håndtegnet-aktig pil fra forklaringsboblen til målet, men den
+   * måtte gitt god geometri på tvers av 8 svært ulike mål-former (en liten
+   * sirkel oppe til venstre, en full-bredde stolpe nederst, ikoner klynget
+   * oppe til høyre), og var for risikabelt å treffe pent på uten å kunne se
+   * resultatet visuelt selv. En myk, jevn puls på selve ringen løser
+   * "jeg slet med å finne denne" like påfallende, men uten den geometriske
+   * risikoen.
+   *
+   * Nedtoningen av resten av skjermen lå TIDLIGERE som et tredje,
+   * 9999px-stort box-shadow-lag her på selve ringen (én flate gjorde både
+   * "vis ring" og "demp bakgrunn"). Etter redesignet (kamera-fokus-følelsen,
+   * se filheaderen i CookModeTutorialOverlay.tsx) er nedtoning/fokus flyttet
+   * til et eget backdrop-blur+clip-path-lag – denne animasjonen trenger
+   * derfor bare de to lagene som faktisk hører til RINGEN (kant + gløde),
+   * ikke lenger noen bakgrunnsskygge. Fortsatt VIKTIG (samme lærdom som
+   * tidligere): alle keyframe-steg må ha nøyaktig samme antall
+   * box-shadow-lag i samme rekkefølge, ellers glatter nettleseren
+   * overgangen mellom lag på ulik POSISJON i listen i stedet for
+   * tilsvarende lag. */
+  .cookmode-tutorial-pulse {
+    animation: cookmode-tutorial-pulse 1.8s ease-in-out infinite;
+  }
+}
+
+/* (28.09.2026, dempet i to omganger – Henrik: "pulseringen er litt for
+ * intens" og deretter "gløden kan skrus ned enda litt til") Kanten vokser
+ * kun 2px -> 3px, og gløden er nå både mindre spredt og svakere
+ * (8px/2px – var først 16px/3px, så 12px/2px). */
+@keyframes cookmode-tutorial-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--color-clay),
+      0 0 0 0 rgba(230, 195, 79, 0);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px var(--color-clay),
+      0 0 8px 2px var(--color-clay-dark);
+  }
 }
 
 /* Rundere, mer sjenerøs sidemarg for de utskriftsvennlige menyvisningene
