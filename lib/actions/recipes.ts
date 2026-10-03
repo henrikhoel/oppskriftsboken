@@ -32,7 +32,6 @@ import {
   type IngredientGroupingSuggestion,
 } from "@/lib/actions/ai";
 import { callClaudeJSON } from "@/lib/ai/anthropic";
-import { clampTasteValue, type TasteDimensionId, type TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import { clampNutritionValue, type NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
 import {
   cleanDrinkPairingOption,
@@ -247,6 +246,7 @@ export async function createRecipe(rawInput: unknown): Promise<RecipeActionResul
       cook_time_minutes_max: input.cookTimeMinutesMax,
       total_time_minutes: input.totalTimeMinutes,
       difficulty: input.difficulty,
+      spice_level: input.spiceLevel,
       notes: input.notes,
       tips: input.tips,
       warnings: input.warnings,
@@ -306,6 +306,7 @@ export async function updateRecipe(
       cook_time_minutes_max: input.cookTimeMinutesMax,
       total_time_minutes: input.totalTimeMinutes,
       difficulty: input.difficulty,
+      spice_level: input.spiceLevel,
       notes: input.notes,
       tips: input.tips,
       warnings: input.warnings,
@@ -409,113 +410,18 @@ export async function saveEnglishTitleDescription(
   return { success: true, titleEn: input.titleEn, descriptionEn: input.descriptionEn };
 }
 
-export interface TasteProfileActionResult {
-  success: boolean;
-  tasteProfile?: TasteProfile;
-  error?: string;
-}
-
-/**
- * Genererer en smaksprofil med AI og lagrer den fast i
- * recipes.taste_profile – brukt av "Generer smaksprofil"-knappen i
- * admin-skjemaet (se components/admin/RecipeForm.tsx). I MOTSETNING til de
- * fleste andre kjøkkenintelligens-AI-kallene er dette BEVISST ikke en live,
- * per-besøk beregning: smaksprofilen er en redaksjonell, forhåndsgenerert
- * egenskap ved oppskriften (samme mønster som titleEn/descriptionEn under
- * generateEnglishTitleDescription over), ikke noe som skal regnes ut på
- * nytt for hver besøkende. Genererer både norsk og engelsk oppsummering i
- * samme kall, se TasteProfile sin filheader i
- * lib/kitchen-intelligence/taste.ts for hvorfor kun oppsummeringen (ikke
- * selve 0-5-tallene) trenger en egen engelsk variant.
- */
-export async function generateTasteProfile(
-  recipeId: string,
-  input: { title: string; description: string; ingredientNames: string[] },
-): Promise<TasteProfileActionResult> {
-  await requireAdmin();
-
-  if (!input.title.trim()) {
-    return { success: false, error: "Legg inn en tittel før du genererer smaksprofil." };
-  }
-  if (input.ingredientNames.length === 0) {
-    return { success: false, error: "Legg inn minst én ingrediens før du genererer smaksprofil." };
-  }
-
-  try {
-    const system =
-      "Du er en erfaren kokk som beskriver SMAKSPROFILEN til en rett for noen som vurderer om de skal lage den. " +
-      'Svar KUN med JSON: {"dimensions": {"sweet": 0-5, "salty": 0-5, "sour": 0-5, "bitter": 0-5, "umami": 0-5, ' +
-      '"spicy": 0-5}, "summary": "én kort setning på norsk som oppsummerer smaksbildet", "summaryEn": "samme ' +
-      'setning på engelsk"}. 0 = ikke til stede i det hele tatt, 5 = en dominerende, definerende egenskap. De ' +
-      "fleste retter bør ha flere lave/null-verdier – ikke bland opp alle dimensjonene.";
-
-    const prompt = `Rett: ${input.title}\n${input.description}\nIngredienser: ${input.ingredientNames.join(", ")}`;
-
-    const result = await callClaudeJSON<{
-      dimensions?: Partial<Record<TasteDimensionId, number>>;
-      summary?: string;
-      summaryEn?: string;
-    }>(system, prompt, 400, 0.3);
-
-    const tasteProfile: TasteProfile = {
-      dimensions: {
-        sweet: clampTasteValue(result.dimensions?.sweet),
-        salty: clampTasteValue(result.dimensions?.salty),
-        sour: clampTasteValue(result.dimensions?.sour),
-        bitter: clampTasteValue(result.dimensions?.bitter),
-        umami: clampTasteValue(result.dimensions?.umami),
-        spicy: clampTasteValue(result.dimensions?.spicy),
-      },
-      summary: (result.summary ?? "").trim().slice(0, 200),
-      summaryEn: (result.summaryEn ?? "").trim().slice(0, 200),
-    };
-
-    const supabase = await createClient();
-    const { data: recipeRow, error } = await supabase
-      .from("recipes")
-      .update({ taste_profile: tasteProfile as unknown })
-      .eq("id", recipeId)
-      .select("slug")
-      .single();
-
-    if (error || !recipeRow) {
-      return { success: false, error: error?.message ?? "Kunne ikke lagre smaksprofilen." };
-    }
-
-    revalidateRecipePaths(recipeRow.slug);
-    return { success: true, tasteProfile };
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Kunne ikke generere smaksprofil. Prøv igjen.",
-    };
-  }
-}
-
-/** Fjerner en lagret smaksprofil helt (tilbake til "ingen smaksprofil
- * generert ennå") – for de som genererte den og ombestemte seg, samme
- * "fjern det man ikke vil ha likevel"-mønster som clearVegetarianVariant
- * lenger ned i denne filen (ønsket av Henrik 26.08.2026, for smaksprofil OG
- * næringsinnhold begge). */
-export async function clearTasteProfile(recipeId: string): Promise<RecipeActionResult> {
-  await requireAdmin();
-
-  const supabase = await createClient();
-  const { data: recipeRow, error } = await supabase
-    .from("recipes")
-    .update({ taste_profile: null })
-    .eq("id", recipeId)
-    .select("slug")
-    .single();
-
-  if (error || !recipeRow) {
-    return { success: false, error: error?.message ?? "Kunne ikke fjerne smaksprofilen." };
-  }
-
-  revalidatePath(`/admin/oppskrifter/${recipeId}`);
-  revalidateRecipePaths(recipeRow.slug);
-  return { success: true, slug: recipeRow.slug };
-}
+// MERK (03.10.2026): "Smaksprofil" (generateTasteProfile/clearTasteProfile,
+// recipes.taste_profile) er fjernet herfra – Henrik: "jeg tror vi kan
+// fjerne 'smaksprofil' den gir ingenting". Erstattet av et enkelt,
+// admin-satt spice_level-felt (1-3 chili, se recipeInputSchema i
+// lib/validation/recipe-schema.ts og "Sterk mat"-feltet i
+// components/admin/RecipeForm.tsx) i stedet for en AI-gjetning ingen av
+// de seks smaksdimensjonene ga reell verdi for. taste_profile-kolonnen er
+// BEVISST ikke droppet fra databasen (se migrasjon
+// 0028_recipe_spice_level.sql) – samme "la foreldreløse kolonner ligge
+// urørt"-konvensjon som resten av prosjektet (sammenlign MERK-kommentarene
+// i lib/kitchen-intelligence/types.ts). lib/kitchen-intelligence/taste.ts
+// og components/recipe/TasteProfileDisplay.tsx er slettet i samme slag.
 
 export interface NutritionActionResult {
   success: boolean;
@@ -624,7 +530,9 @@ export async function generateNutritionInfo(
 }
 
 /** Fjerner et lagret næringsinnhold helt (tilbake til "ingen næringsinnhold
- * generert ennå") – se kommentaren på clearTasteProfile over. */
+ * generert ennå") – for de som genererte det og ombestemte seg (samme
+ * "fjern det man ikke vil ha likevel"-mønster som den tidligere
+ * clearTasteProfile hadde, nå fjernet – se MERK-kommentaren over). */
 export async function clearNutritionInfo(recipeId: string): Promise<RecipeActionResult> {
   await requireAdmin();
 
@@ -671,10 +579,13 @@ export interface DrinkPairingActionResult {
  *
  * Genererer BEGGE språk (style/styleEn, detail/detailEn, note/noteEn) for
  * alle tre kategoriene i ÉTT AI-kall – se DrinkPairingOption sin filheader i
- * lib/kitchen-intelligence/drink-pairing.ts for hvorfor (i motsetning til
- * TasteProfile, der kun oppsummeringen er tospråklig) HVERT felt her er
- * tospråklig. recipe.tasteProfile sendes med som en EKSTRA, presis hint når
- * den finnes – fungerer helt fint uten den også.
+ * lib/kitchen-intelligence/drink-pairing.ts for hvorfor HVERT felt her er
+ * tospråklig. Sendte tidligere med recipe.tasteProfile som en ekstra hint
+ * (smaksdimensjonene som tall) når den fantes – smaksprofilen er fjernet
+ * (03.10.2026, se MERK-kommentaren over generateTasteProfile sitt gamle sted
+ * lenger opp i filen), så prompten resonnerer nå rundt smak/styrke kun ut
+ * fra tittel/beskrivelse/ingredienser, slik den uansett gjorde når ingen
+ * smaksprofil var generert ennå.
  */
 export async function generateDrinkPairing(
   recipeId: string,
@@ -682,7 +593,6 @@ export async function generateDrinkPairing(
     title: string;
     description: string;
     ingredientNames: string[];
-    tasteProfile?: TasteProfile | null;
   },
 ): Promise<DrinkPairingActionResult> {
   await requireAdmin();
@@ -720,17 +630,9 @@ export async function generateDrinkPairing(
       '"..." eller null, "detailEn": "..." eller null, "note": "...", "noteEn": "..."}, "beer": {...samme ' +
       'felt...}, "nonAlcoholic": {...samme felt...}}.';
 
-    const dims = input.tasteProfile?.dimensions;
-    const tasteLine = dims
-      ? `\nKjent smaksprofil (skala 0-5): søtt ${dims.sweet}/5, salt ${dims.salty}/5, syrlig ${dims.sour}/5, ` +
-        `bittert ${dims.bitter}/5, umami ${dims.umami}/5, sterkt/chili ${dims.spicy}/5. Oppsummering: ` +
-        `"${input.tasteProfile?.summary}"`
-      : "";
-
     const prompt =
       `Rett: ${input.title}\nBeskrivelse: ${input.description || "(ingen beskrivelse)"}\n` +
-      `Hovedingredienser: ${input.ingredientNames.slice(0, 15).join(", ") || "(ukjent)"}` +
-      tasteLine;
+      `Hovedingredienser: ${input.ingredientNames.slice(0, 15).join(", ") || "(ukjent)"}`;
 
     const result = await callClaudeJSON<{
       wine?: {
@@ -981,8 +883,9 @@ export async function savePinnedWineProduct(
 
 /** Fjerner et lagret drikkeforslag helt (tilbake til "ingen drikkeforslag
  * generert ennå"), INKLUDERT et eventuelt pinnet Vinmonopolet-produkt – hele
- * kolonnen nullstilles, se kommentaren på clearTasteProfile/
- * clearNutritionInfo over. For å fjerne KUN det pinnede produktet uten å
+ * kolonnen nullstilles, se kommentaren på clearNutritionInfo over (samme
+ * "fjern det man ikke vil ha likevel"-mønster som den tidligere
+ * clearTasteProfile hadde). For å fjerne KUN det pinnede produktet uten å
  * røre teksten, se savePinnedWineProduct over i stedet. */
 export async function clearDrinkPairing(recipeId: string): Promise<RecipeActionResult> {
   await requireAdmin();

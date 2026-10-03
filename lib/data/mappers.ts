@@ -10,7 +10,6 @@ import type {
 } from "@/lib/types";
 import type { Difficulty } from "@/lib/config";
 import type { SearchableRecipe } from "@/lib/utils/search";
-import type { TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import type { NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
 import type { DrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
 
@@ -28,19 +27,16 @@ export interface RawRecipeRow {
   description: string;
   title_en: string | null;
   description_en: string | null;
-  // jsonb – se lib/kitchen-intelligence/taste.ts. `unknown` her (ikke
-  // TasteProfile direkte) siden PostgREST/Supabase ikke kan garantere formen
+  // jsonb – se lib/kitchen-intelligence/nutrition.ts. `unknown` her (ikke
+  // NutritionInfo direkte) siden PostgREST/Supabase ikke kan garantere formen
   // på en jsonb-kolonne på typenivå; mapRecipeRow gjør den faktiske castingen,
   // samme prinsipp som ai-cache.ts sin payload.
-  taste_profile: unknown | null;
-  // jsonb – se lib/kitchen-intelligence/nutrition.ts. Samme
-  // unknown-frem-for-NutritionInfo-begrunnelse som taste_profile over.
   nutrition_info: unknown | null;
   // jsonb – se lib/kitchen-intelligence/drink-pairing.ts. Samme
-  // unknown-frem-for-egen-type-begrunnelse som taste_profile/nutrition_info over.
+  // unknown-frem-for-egen-type-begrunnelse som nutrition_info over.
   drink_pairing: unknown | null;
   // jsonb – se VegetarianVariant i lib/types.ts. Samme
-  // unknown-frem-for-egen-type-begrunnelse som taste_profile/nutrition_info over.
+  // unknown-frem-for-egen-type-begrunnelse som nutrition_info over.
   vegetarian_variant: unknown | null;
   hero_image_url: string | null;
   hero_image_alt: string | null;
@@ -51,6 +47,8 @@ export interface RawRecipeRow {
   cook_time_minutes_max: number | null;
   total_time_minutes: number | null;
   difficulty: Difficulty;
+  // smallint, 1-3 eller null – se spiceLevel sin filheader i lib/types.ts.
+  spice_level: number | null;
   notes: string | null;
   tips: string | null;
   warnings: string | null;
@@ -167,7 +165,6 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
     description: raw.description,
     titleEn: raw.title_en,
     descriptionEn: raw.description_en,
-    tasteProfile: raw.taste_profile as TasteProfile | null,
     nutritionInfo: raw.nutrition_info as NutritionInfo | null,
     drinkPairing: raw.drink_pairing as DrinkPairing | null,
     vegetarianVariant: raw.vegetarian_variant as VegetarianVariant | null,
@@ -183,6 +180,7 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
     cookTimeMinutesMax: raw.cook_time_minutes_max,
     totalTimeMinutes: raw.total_time_minutes,
     difficulty: raw.difficulty,
+    spiceLevel: raw.spice_level,
     ingredientGroups: mapIngredientGroups(raw.ingredient_groups),
     steps: mapSteps(raw.recipe_steps),
     notes: raw.notes,
@@ -208,8 +206,8 @@ export function mapRecipeRow(raw: RawRecipeRow): Recipe {
 }
 
 export const RECIPE_SELECT = `
-  id, slug, title, description, title_en, description_en, taste_profile, nutrition_info, drink_pairing, vegetarian_variant, hero_image_url, hero_image_alt, hero_image_is_ai_generated, servings,
-  prep_time_minutes, cook_time_minutes, cook_time_minutes_max, total_time_minutes, difficulty,
+  id, slug, title, description, title_en, description_en, nutrition_info, drink_pairing, vegetarian_variant, hero_image_url, hero_image_alt, hero_image_is_ai_generated, servings,
+  prep_time_minutes, cook_time_minutes, cook_time_minutes_max, total_time_minutes, difficulty, spice_level,
   notes, tips, warnings, source, is_published, is_featured, moods, courses, show_beverage_match_checker, show_meal_builder, featured_sort_order, favorited_by_admin, weekly_menu_excluded, weekly_menu_styles, is_vegetarian,
   rating_sum, rating_count,
   created_at, updated_at,
@@ -234,6 +232,7 @@ export function toSummary(recipe: Recipe): RecipeSummary {
     tags: recipe.tags,
     totalTimeMinutes: recipe.totalTimeMinutes,
     difficulty: recipe.difficulty,
+    spiceLevel: recipe.spiceLevel,
     isFeatured: recipe.isFeatured,
     featuredSortOrder: recipe.featuredSortOrder,
     moods: recipe.moods,
@@ -272,8 +271,8 @@ export function toSearchable(recipe: Recipe): SearchableRecipe {
  * Next.js sin innebygde data-cache har en hard, ukonfigurerbar 2MB-grense
  * per oppføring. RawRecipeListRow/RECIPE_LIST_SELECT/mapRecipeListRow
  * dropper derfor alt listevisningene uansett ikke bruker – recipe_steps
- * (hele fremgangsmåten), taste_profile/nutrition_info/drink_pairing/
- * vegetarian_variant (jsonb-blobs), recipe_images (full liste – kun
+ * (hele fremgangsmåten), nutrition_info/drink_pairing/vegetarian_variant
+ * (jsonb-blobs), recipe_images (full liste – kun
  * hero-bildet trengs), prep/cook-tidsfelter (kun total_time_minutes),
  * notes/tips/warnings/source, show_beverage_match_checker/
  * show_meal_builder, updated_at, og det meste av ingredient_groups (kun
@@ -294,6 +293,7 @@ export interface RawRecipeListRow {
   servings: number;
   total_time_minutes: number | null;
   difficulty: Difficulty;
+  spice_level: number | null;
   is_published: boolean;
   is_featured: boolean;
   moods: string[];
@@ -313,7 +313,7 @@ export interface RawRecipeListRow {
 
 export const RECIPE_LIST_SELECT = `
   id, slug, title, description, title_en, description_en, hero_image_url, hero_image_alt, servings,
-  total_time_minutes, difficulty,
+  total_time_minutes, difficulty, spice_level,
   is_published, is_featured, moods, courses, featured_sort_order, favorited_by_admin, weekly_menu_excluded, weekly_menu_styles, is_vegetarian,
   rating_sum, rating_count,
   created_at,
@@ -336,6 +336,7 @@ export function mapRecipeListRow(raw: RawRecipeListRow): SearchableRecipe {
     tags: mapTags(raw.recipe_tags),
     totalTimeMinutes: raw.total_time_minutes,
     difficulty: raw.difficulty,
+    spiceLevel: raw.spice_level,
     isFeatured: raw.is_featured,
     featuredSortOrder: raw.featured_sort_order,
     moods: raw.moods as RecipeSummary["moods"],

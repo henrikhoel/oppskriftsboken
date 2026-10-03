@@ -105,6 +105,9 @@ export interface Database {
           cook_time_minutes_max: number | null;
           total_time_minutes: number | null;
           difficulty: Difficulty;
+          // Admin-satt styrkegrad for sterk mat (1-3 chili) – se migrasjon
+          // 0028_recipe_spice_level.sql. NULL = ikke sterk/ikke satt.
+          spice_level: number | null;
           notes: string | null;
           tips: string | null;
           warnings: string | null;
@@ -163,6 +166,7 @@ export interface Database {
           cook_time_minutes_max?: number | null;
           total_time_minutes?: number | null;
           difficulty?: Difficulty;
+          spice_level?: number | null;
           notes?: string | null;
           tips?: string | null;
           warnings?: string | null;

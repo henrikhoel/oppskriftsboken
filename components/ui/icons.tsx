@@ -35,6 +35,20 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
   );
 }
 
+/** Chili – brukt av "Sterk mat" (1-3 chili, admin-satt styrkegrad, se
+ * components/admin/RecipeForm.tsx og RecipeHero.tsx), lagt til 03.10.2026
+ * som erstatning for den tidligere AI-genererte smaksprofilen. Samme
+ * `filled`-mønster som HeartIcon over – fylt chili for "aktiv/valgt" grad,
+ * kun omriss for en ledig/ufylt. */
+export function ChiliIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
+  return (
+    <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
+      <path d="M8.5 4.5c.6-1.2 1.9-1.7 2.9-1 .8.5 1 1.6.6 2.5" />
+      <path d="M9.8 5.6c3.2-.9 6.4 1.4 6.4 5.2 0 5-4 10.2-8.1 10.2-3 0-5.5-2.8-5.5-6.4 0-4.4 3-8.2 7.2-9Z" />
+    </svg>
+  );
+}
+
 export function ClockIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>

@@ -56,6 +56,11 @@ export const recipeInputSchema = z.object({
   cookTimeMinutesMax: z.coerce.number().int().min(0).max(2000).nullable(),
   totalTimeMinutes: z.coerce.number().int().min(0).max(4000).nullable(),
   difficulty: z.enum(["enkel", "middels", "avansert"]),
+  // Admin-satt styrkegrad for sterk mat (1-3 chili), erstatter den tidligere
+  // AI-genererte smaksprofilen (03.10.2026, Henrik: "jeg tror vi kan fjerne
+  // 'smaksprofil' den gir ingenting") – se spiceLevel sin filheader i
+  // lib/types.ts. Null = ikke sterk/ikke satt (avkrysningsboksen av).
+  spiceLevel: z.number().int().min(1).max(3).nullable(),
   ingredientGroups: z.array(ingredientGroupSchema).min(1, "Legg til minst én ingrediensgruppe"),
   steps: z.array(stepSchema).min(1, "Legg til minst ett steg"),
   notes: z.string().trim().max(2000).nullable(),

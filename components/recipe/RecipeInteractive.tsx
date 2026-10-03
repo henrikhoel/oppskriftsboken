@@ -10,7 +10,6 @@ import { UnitSystemSwitcher } from "@/components/recipe/UnitSystemSwitcher";
 import { CookMode } from "@/components/recipe/CookMode";
 import { CookModeTutorial } from "@/components/cook-mode-tutorial/CookModeTutorial";
 import { CookingTimelinePanel } from "@/components/recipe/CookingTimelinePanel";
-import { TasteProfileDisplay } from "@/components/recipe/TasteProfileDisplay";
 import { NutritionPanel } from "@/components/recipe/NutritionPanel";
 import { MealBuilder } from "@/components/recipe/MealBuilder";
 import { ParallelTaskBadge } from "@/components/recipe/ParallelTaskBadge";
@@ -426,6 +425,8 @@ export function RecipeInteractive({
         imagePendingLabel={t(lang, "recipeDetail.imagePending")}
         categoryLabel={recipe.category ? localizedCategoryName(recipe.category, lang) : null}
         tags={recipe.tags}
+        spiceLevel={recipe.spiceLevel ?? null}
+        spicyLabel={t(lang, "recipeDetail.spicy")}
         isDraft={!recipe.isPublished}
         draftLabel={t(lang, "recipeDetail.draft")}
         title={displayTitle}
@@ -777,17 +778,18 @@ export function RecipeInteractive({
           alltid komme først, "oppdages" før man ruller videre til dette).
           Rekkefølge finjustert 31.08.2026: Lurer du på noe (rett under
           selve oppskriften – mest direkte knyttet til det man nettopp
-          leste) → Smaksprofil + Næringsinnhold (kombinert i ÉN rad side
-          om side – de tok for mye plass hver sin fulle rad) → Drikke
-          til/Passer denne → "Gjør det til en kveld" (MealBuilder) helt
-          nederst, som en større, mer fortjent avslutning. Delt av tynne
+          leste) → Næringsinnhold → Drikke til/Passer denne → "Gjør det til
+          en kveld" (MealBuilder) helt nederst, som en større, mer fortjent
+          avslutning. ("Smaksprofil" lå tidligere side om side med
+          Næringsinnhold her – fjernet 03.10.2026, se MERK-kommentaren i
+          lib/actions/recipes.ts; "Sterk mat" (chili) vises nå i stedet
+          oppe i selve heroen, se RecipeHero.tsx.) Delt av tynne
           skillelinjer (divide-y) i stedet for at hver seksjon er sin egen
           heldekkende, avrundede boks – reduserer "stabel av ensartede
           bokser"-følelsen (punkt 9) og gir én sammenhengende, redaksjonell
-          flate i stedet. Hver av under-komponentene
-          (TasteProfileDisplay/NutritionPanel/MealBuilder/
-          DrinkPairingSection/RecipeQuestionSection) er derfor også lettet
-          for sin egen kort-boks-styling, se de filene. */}
+          flate i stedet. Hver av under-komponentene (NutritionPanel/
+          MealBuilder/DrinkPairingSection/RecipeQuestionSection) er derfor
+          også lettet for sin egen kort-boks-styling, se de filene. */}
       <div className="mt-16 divide-y divide-line border-t border-line sm:mt-20">
         <div className="py-10 sm:py-12">
           <RecipeQuestionSection
@@ -803,16 +805,14 @@ export function RecipeInteractive({
           />
         </div>
 
-        {/* Smaksprofil + Næringsinnhold – kombinert i én rad (side om side
-            fra sm og opp, stablet på mobil) i stedet for hver sin fulle
-            rad, per ønske 31.08.2026 ("trenger ikke hver sin rad, tar for
-            mye plass"). Begge forhåndsgenerert i admin (ikke live
-            AI-kall), og vises uavhengig av hverandre – mangler den ene,
-            tar den andre bare hele radens bredde. */}
-        {(recipe.tasteProfile || recipe.nutritionInfo) && (
-          <div className="grid gap-10 py-10 sm:grid-cols-2 sm:py-12">
-            {recipe.tasteProfile && <TasteProfileDisplay tasteProfile={recipe.tasteProfile} lang={lang} />}
-            {recipe.nutritionInfo && <NutritionPanel nutrition={recipe.nutritionInfo} lang={lang} />}
+        {/* Næringsinnhold – delte tidligere denne raden med Smaksprofil
+            (side om side fra sm og opp), som er fjernet 03.10.2026 (se
+            MERK-kommentaren i lib/actions/recipes.ts). Står nå alene, men
+            beholder samme py-10/py-12-rytme som resten av
+            sekundærinfo-stacken over/under. */}
+        {recipe.nutritionInfo && (
+          <div className="py-10 sm:py-12">
+            <NutritionPanel nutrition={recipe.nutritionInfo} lang={lang} />
           </div>
         )}
 

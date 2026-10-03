@@ -1,5 +1,4 @@
 import type { Difficulty } from "@/lib/config";
-import type { TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import type { NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
 import type { DrinkPairing } from "@/lib/kitchen-intelligence/drink-pairing";
 import type { MoodId } from "@/lib/kitchen-intelligence/moods";
@@ -75,7 +74,7 @@ export interface RecipeImage {
  * genererer med AI OG/ELLER skriver den selv i admin, lagres direkte på
  * oppskrift-raden (`vegetarian_variant`-kolonnen), og vises på
  * oppskriftssiden KUN dersom en variant faktisk er lagret. Samme
- * "forhåndsgenerert, ikke live"-mønster som tasteProfile/nutritionInfo. */
+ * "forhåndsgenerert, ikke live"-mønster som nutritionInfo/drinkPairing. */
 export interface VegetarianIngredientItem {
   amount: string | null;
   unit: string | null;
@@ -240,28 +239,33 @@ export interface Recipe {
    * ikke går via databasen). */
   titleEn?: string | null;
   descriptionEn?: string | null;
-  /** Forhåndsgenerert smaksprofil (admin -> "Generer smaksprofil", se
-   * lib/actions/recipes.ts -> generateTasteProfile). Null/undefined = ikke
-   * generert ennå – vis da INGEN smaksprofil-seksjon på oppskriftssiden,
-   * ikke en tom/lastende en. Samme "valgfritt, ikke satt i demo-data"-
-   * mønster som titleEn/descriptionEn over. */
-  tasteProfile?: TasteProfile | null;
+  /** Admin-satt styrkegrad for sterk mat – 1, 2 eller 3 chili, satt fra
+   * "Sterk mat"-avkrysningsboksen + chili-velgeren i
+   * components/admin/RecipeForm.tsx, lagret direkte på oppskrift-raden
+   * (recipes.spice_level) – migrasjon 0028. Null/undefined = ikke
+   * sterk/ikke satt (vis da INGEN chili-indikator). Erstatter (03.10.2026,
+   * Henrik: "jeg tror vi kan fjerne 'smaksprofil' den gir ingenting") den
+   * tidligere AI-genererte "spicy"-dimensjonen i den nå fjernede
+   * smaksprofilen (recipes.taste_profile, se MERK-kommentaren i
+   * lib/actions/recipes.ts) – et enkelt, pålitelig admin-valg i stedet for
+   * en AI-gjetning. Samme "eksplisitt admin-kategori fremfor AI-gjetting"-
+   * begrunnelse som moods/courses/isVegetarian over. */
+  spiceLevel?: number | null;
   /** Forhåndsgenerert kalori-/makro-oversikt (admin -> "Generer
    * næringsinnhold", se lib/actions/recipes.ts -> generateNutritionInfo).
    * Null/undefined = ikke generert ennå – vis da INGEN "vis
    * næringsinnhold"-knapp på oppskriftssiden. Samme "valgfritt, ikke satt i
-   * demo-data"-mønster som tasteProfile over. */
+   * demo-data"-mønster som titleEn/descriptionEn over. */
   nutritionInfo?: NutritionInfo | null;
   /** Forhåndsgenerert drikkeforslag – vin/øl/alkoholfritt (admin -> "Generer
    * drikkeforslag", se lib/actions/recipes.ts -> generateDrinkPairing).
-   * Flyttet 11.09.2026 fra en live, cachet per-besøk AI-beregning (samme
-   * overgang som tasteProfile gjennomgikk 25.08.2026) – se
+   * Flyttet 11.09.2026 fra en live, cachet per-besøk AI-beregning – se
    * lib/kitchen-intelligence/drink-pairing.ts sin filheader. Null/undefined
    * = ikke generert ennå – vis da INGEN "DRIKKE TIL"-knapp/-seksjon på
    * oppskriftssiden (samme "valgfritt, ikke satt i demo-data"-mønster som
-   * tasteProfile/nutritionInfo over). "Passer denne?" (skriv inn/fotografer
-   * egen vin) er UPÅVIRKET av dette feltet – den forblir en live AI-sjekk
-   * hver gang, se DrinkPairingSection.tsx. */
+   * nutritionInfo over). "Passer denne?" (skriv inn/fotografer egen vin) er
+   * UPÅVIRKET av dette feltet – den forblir en live AI-sjekk hver gang, se
+   * DrinkPairingSection.tsx. */
   drinkPairing?: DrinkPairing | null;
   /** Forhåndslagret vegetarversjon (admin -> "Generer med AI" og/eller
    * håndredigert selv, se lib/actions/recipes.ts ->
@@ -269,7 +273,7 @@ export interface Recipe {
    * variant lagret ennå – vis da INGEN "ønsker du en vegetarversjon?"-knapp
    * på oppskriftssiden (i motsetning til tidligere, hvor knappen alltid
    * viste og genererte live for enhver besøkende). Samme "valgfritt, ikke
-   * satt i demo-data"-mønster som tasteProfile/nutritionInfo over. */
+   * satt i demo-data"-mønster som spiceLevel/nutritionInfo over. */
   vegetarianVariant?: VegetarianVariant | null;
   heroImageUrl: string | null;
   heroImageAlt: string | null;
@@ -286,7 +290,7 @@ export interface Recipe {
    * undefined = ikke satt, vis kun cookTimeMinutes som ett tall (som før).
    * cookTimeMinutes selv er fortsatt eneste feltet som brukes i schema.org/
    * beregninger – dette er rent presentasjon. Valgfritt, ikke satt i
-   * demo-data, samme mønster som tasteProfile/nutritionInfo over. */
+   * demo-data, samme mønster som spiceLevel/nutritionInfo over. */
   cookTimeMinutesMax?: number | null;
   totalTimeMinutes: number | null;
   difficulty: Difficulty;
@@ -298,7 +302,7 @@ export interface Recipe {
    * se lib/actions/recipes.ts -> generateRecipeTipsAndWarnings), vist
    * sammen med tips over på oppskriftssiden – migrasjon 0015. Valgfritt,
    * ikke satt i demo-data, samme "ikke touch alle demo-oppskrifter for et
-   * nytt felt"-mønster som titleEn/tasteProfile/nutritionInfo lenger opp i
+   * nytt felt"-mønster som titleEn/spiceLevel/nutritionInfo lenger opp i
    * dette interfacet. */
   warnings?: string | null;
   /** Admin-satte "humør"-kategorier for forsidens "Hva passer humøret
@@ -408,6 +412,10 @@ export type RecipeSummary = Pick<
   | "tags"
   | "totalTimeMinutes"
   | "difficulty"
+  // Lagt til 03.10.2026 slik at kort/lister (ikke bare selve
+  // oppskriftssiden) kan vise en liten chili-indikator – se spiceLevel sin
+  // filheader lenger opp.
+  | "spiceLevel"
   | "isFeatured"
   | "featuredSortOrder"
   | "favoritedByAdmin"

@@ -951,26 +951,20 @@ const DICT = {
   },
   "recipeDetail.substituteRetry": { no: "Prøv igjen", en: "Try again" },
 
-  // Smaksprofil (Fase 4 – Smak) – se components/recipe/TasteProfilePanel.tsx
-  // og lib/kitchen-intelligence/taste.ts.
-  "tasteProfile.heading": { no: "Smaksprofil", en: "Flavor profile" },
-  "tasteProfile.loading": { no: "Analyserer smaken …", en: "Analyzing the flavor …" },
-  "tasteProfile.error": {
-    no: "Klarte ikke å hente smaksprofilen. Prøv igjen.",
-    en: "Couldn't fetch the flavor profile. Please try again.",
-  },
-  "tasteProfile.retry": { no: "Prøv igjen", en: "Try again" },
-  "tasteProfile.sweet": { no: "Søtt", en: "Sweet" },
-  "tasteProfile.salty": { no: "Salt", en: "Salty" },
-  "tasteProfile.sour": { no: "Syrlig", en: "Sour" },
-  "tasteProfile.bitter": { no: "Bittert", en: "Bitter" },
-  "tasteProfile.umami": { no: "Umami", en: "Umami" },
-  "tasteProfile.spicy": { no: "Sterkt", en: "Spicy" },
+  // "Sterk mat"-badgen i heroen (1-3 chili, se RecipeHero.tsx) – admin-satt
+  // styrkegrad, lagt til 03.10.2026 som erstatning for den tidligere
+  // "Smaksprofil"-seksjonen (hele tasteProfile.*-blokken som sto her, samt
+  // components/recipe/TasteProfileDisplay.tsx og
+  // lib/kitchen-intelligence/taste.ts, er fjernet – Henrik: "jeg tror vi
+  // kan fjerne 'smaksprofil' den gir ingenting", se MERK-kommentaren i
+  // lib/actions/recipes.ts). Kun til aria-label/title på selve
+  // chili-ikonrekken, ikke en synlig tekstlabel.
+  "recipeDetail.spicy": { no: "Sterk mat", en: "Spicy" },
 
   // Næringsinnhold (kalori-/makro-oversikt) – se
   // components/recipe/NutritionPanel.tsx og lib/kitchen-intelligence/nutrition.ts.
-  // Bak en "vis"-knapp på oppskriftssiden, i motsetning til smaksprofilen
-  // over som alltid vises – ønsket eksplisitt av Henrik 25.08.2026.
+  // Bak en "vis"-knapp på oppskriftssiden, ikke alltid synlig – ønsket
+  // eksplisitt av Henrik 25.08.2026.
   "nutrition.heading": { no: "Næringsinnhold", en: "Nutrition information" },
   "nutrition.show": { no: "Vis næringsinnhold", en: "Show nutrition information" },
   "nutrition.hide": { no: "Skjul næringsinnhold", en: "Hide nutrition information" },

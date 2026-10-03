@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
-import { EditIcon } from "@/components/ui/icons";
+import { EditIcon, ChiliIcon } from "@/components/ui/icons";
 
 /**
  * Oppskriftssidens hero – redesignet 31.08.2026 (spesifikasjonens punkt 1,
@@ -65,6 +65,8 @@ export function RecipeHero({
   imagePendingLabel,
   categoryLabel,
   tags,
+  spiceLevel,
+  spicyLabel,
   isDraft,
   draftLabel,
   title,
@@ -87,6 +89,18 @@ export function RecipeHero({
   imagePendingLabel: string;
   categoryLabel?: string | null;
   tags: { id: string; name: string }[];
+  // Admin-satt styrkegrad (1-3 chili), se spiceLevel sin filheader i
+  // lib/types.ts – lagt til 03.10.2026 som erstatning for den tidligere
+  // "Smaksprofil"-seksjonen lenger ned på siden (fjernet, se MERK-
+  // kommentaren i lib/actions/recipes.ts). Plassert her, i den samme
+  // rolige flex-wrap-badgeraden som kategori/tags/utkast, i stedet for i
+  // den nøye oppmålte grid-cols-5 metadata-raden under (RecipeMeta.tsx) –
+  // den raden er bevisst matematisk balansert for akkurat fem kolonner
+  // (se filheaderen der), og tåler ikke en sjette uten samme runde
+  // finjustering på nytt. null/undefined = ikke sterk/ikke satt, vis
+  // ingen chili-badge.
+  spiceLevel?: number | null;
+  spicyLabel: string;
   isDraft: boolean;
   draftLabel: string;
   title: string;
@@ -164,6 +178,17 @@ export function RecipeHero({
                   {tag.name}
                 </Badge>
               ))}
+              {spiceLevel ? (
+                <span
+                  className="inline-flex items-center gap-0.5 rounded-full border border-line-strong bg-paper px-2.5 py-1"
+                  title={spicyLabel}
+                  aria-label={spicyLabel}
+                >
+                  {Array.from({ length: spiceLevel }).map((_, i) => (
+                    <ChiliIcon key={i} filled className="h-3.5 w-3.5 text-clay-dark" aria-hidden="true" />
+                  ))}
+                </span>
+              ) : null}
               {isDraft && <Badge tone="mustard">{draftLabel}</Badge>}
             </div>
 

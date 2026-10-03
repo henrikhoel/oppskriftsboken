@@ -294,10 +294,11 @@ export async function getIngredientSubstitution(
 
 /**
  * Smaksprofil (Fase 4 – Smak): flyttet 25.08.2026 fra en live, cachet
- * per-besøk AI-beregning her, til en FORHÅNDSGENERERT admin-egenskap lagret
- * direkte på oppskriften (recipes.taste_profile) – se generateTasteProfile
- * i lib/actions/recipes.ts og TasteProfileDisplay.tsx. Denne filen har
- * derfor ingen getTasteProfile lenger.
+ * per-besøk AI-beregning her, til en FORHÅNDSGENERERT admin-egenskap
+ * (recipes.taste_profile) – denne filen hadde derfor ingen getTasteProfile
+ * lenger. Hele funksjonen er nå (03.10.2026) fjernet helt, erstattet av et
+ * enkelt admin-satt spice_level-felt – se MERK-kommentaren i
+ * lib/actions/recipes.ts.
  *
  * "Drikke til" (vin/øl/alkoholfritt): flyttet 11.09.2026 fra en live, cachet
  * per-besøk AI-beregning her (getDrinkPairing, se "MERK" for "drink_pairing"

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { clsx } from "clsx";
 import type { Category, Recipe } from "@/lib/types";
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, type Difficulty } from "@/lib/config";
 import {
@@ -9,8 +10,6 @@ import {
   updateRecipe,
   generateEnglishTitleDescription,
   saveEnglishTitleDescription,
-  generateTasteProfile,
-  clearTasteProfile,
   generateNutritionInfo,
   clearNutritionInfo,
   generateDrinkPairing,
@@ -36,7 +35,6 @@ import {
   extractCaptionTextFromImages,
 } from "@/lib/actions/recipe-import";
 import { resizeImageFileToJpegBase64 } from "@/lib/utils/image";
-import { TASTE_DIMENSIONS, type TasteProfile } from "@/lib/kitchen-intelligence/taste";
 import { NUTRITION_FIELDS, type NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
 import type { DrinkPairing, DrinkPairingOption, PinnedVinmonopoletProduct } from "@/lib/kitchen-intelligence/drink-pairing";
 import { drinkOptionSearchText } from "@/lib/kitchen-intelligence/drink-pairing";
@@ -63,6 +61,7 @@ import { StepsEditor } from "@/components/admin/StepsEditor";
 import { ImageUploadField, type ImageValue } from "@/components/admin/ImageUploadField";
 import { TagInput } from "@/components/admin/TagInput";
 import { Button } from "@/components/ui/Button";
+import { ChiliIcon } from "@/components/ui/icons";
 import { useMealSession } from "@/lib/hooks/useMealSession";
 
 function recipeToFormGroups(recipe?: Recipe | null): FormIngredientGroup[] {
@@ -1048,60 +1047,25 @@ export function RecipeForm({
     }
   }
 
-  // Smaksprofil (Fase 4 – Smak) – forhåndsgenerert og lagret fast på
-  // oppskriften (recipes.taste_profile), IKKE en live per-besøk AI-
-  // beregning – se filheaderen i lib/kitchen-intelligence/taste.ts. Bruker
-  // (som handleGenerateEnglish over) skjemaets NÅVÆRENDE, evt. ulagrede
-  // felt – lar deg justere ingredienser og generere på nytt uten å måtte
-  // lagre hele oppskriften først.
-  const [tasteProfile, setTasteProfile] = useState<TasteProfile | null>(recipe?.tasteProfile ?? null);
-  const [isGeneratingTaste, setIsGeneratingTaste] = useState(false);
-  const [tasteError, setTasteError] = useState<string | null>(null);
-  const [isClearingTaste, setIsClearingTaste] = useState(false);
-  const [tasteClearError, setTasteClearError] = useState<string | null>(null);
+  // "Sterk mat" – admin-satt styrkegrad (1-3 chili), erstatter den tidligere
+  // AI-genererte "Smaksprofil" (03.10.2026, Henrik: "jeg tror vi kan fjerne
+  // 'smaksprofil' den gir ingenting ... legge til en checkboks ... om den
+  // er spicy, og evt hvor spicy. 1-3 chili symboler"). I MOTSETNING til
+  // smaksprofilen (eget "Generer"-AI-kall, lagret umiddelbart i databasen
+  // via en egen server action) er dette et HELT VANLIG skjemafelt, akkurat
+  // som Vanskelighetsgrad rett ved siden av – inngår i payload i
+  // handleSubmit under og lagres først når hele skjemaet lagres/opprettes.
+  // null = ikke sterk/ikke satt (avkrysningsboksen av); 1-3 = antall chili.
+  const [spiceLevel, setSpiceLevel] = useState<number | null>(recipe?.spiceLevel ?? null);
 
-  async function handleGenerateTasteProfile() {
-    if (!recipe) return;
-    setTasteError(null);
-    setIsGeneratingTaste(true);
-    try {
-      const ingredientNames = groups.flatMap((g) => g.items.map((i) => i.name.trim())).filter(Boolean);
-      const result = await generateTasteProfile(recipe.id, { title, description, ingredientNames });
-      if (!result.success || !result.tasteProfile) {
-        setTasteError(result.error ?? "Kunne ikke generere smaksprofil.");
-        return;
-      }
-      setTasteProfile(result.tasteProfile);
-    } finally {
-      setIsGeneratingTaste(false);
-    }
-  }
-
-  /** Fjerner en lagret smaksprofil helt – for de som genererte den og
-   * ombestemte seg (ønsket av Henrik 26.08.2026, samme "fjern det man ikke
-   * vil ha likevel"-mønster som vegetarversjonen allerede har). */
-  async function handleClearTasteProfile() {
-    if (!recipe) return;
-    setTasteClearError(null);
-    setIsClearingTaste(true);
-    try {
-      const result = await clearTasteProfile(recipe.id);
-      if (!result.success) {
-        setTasteClearError(result.error ?? "Kunne ikke fjerne smaksprofilen.");
-        return;
-      }
-      setTasteProfile(null);
-    } finally {
-      setIsClearingTaste(false);
-    }
-  }
-
-  // Næringsinnhold (kalori-/makro-oversikt) – samme
-  // admin-genererer-og-lagrer-fast-mønster som smaksprofilen over, men vises
-  // bak en "vis"-knapp på selve oppskriftssiden i stedet for alltid synlig
-  // (se NutritionPanel.tsx). I MOTSETNING til smaksprofilen sender vi her
-  // med de FAKTISKE MENGDENE (amount/unit), ikke bare ingrediensnavnene –
-  // se filheaderen til generateNutritionInfo i lib/actions/recipes.ts.
+  // Næringsinnhold (kalori-/makro-oversikt) – et eget "Generer"-AI-kall,
+  // lagret umiddelbart i databasen via en egen server action (i motsetning
+  // til spiceLevel over, som er et vanlig skjemafelt lagret sammen med
+  // resten av oppskriften). Vises bak en "vis"-knapp på selve
+  // oppskriftssiden i stedet for alltid synlig (se NutritionPanel.tsx).
+  // Sender med de FAKTISKE MENGDENE (amount/unit), ikke bare
+  // ingrediensnavnene – se filheaderen til generateNutritionInfo i
+  // lib/actions/recipes.ts.
   const [nutritionInfo, setNutritionInfo] = useState<NutritionInfo | null>(recipe?.nutritionInfo ?? null);
   const [isGeneratingNutrition, setIsGeneratingNutrition] = useState(false);
   const [nutritionError, setNutritionError] = useState<string | null>(null);
@@ -1128,7 +1092,8 @@ export function RecipeForm({
     }
   }
 
-  /** Se kommentaren på handleClearTasteProfile over. */
+  /** Se kommentaren på handleGenerateNutrition over – samme "fjern det man
+   * ikke vil ha likevel"-mønster. */
   async function handleClearNutrition() {
     if (!recipe) return;
     setNutritionClearError(null);
@@ -1148,7 +1113,7 @@ export function RecipeForm({
   // Drikkeforslag (vin/øl/alkoholfritt) – flyttet 11.09.2026 fra en live,
   // per-besøk AI-beregning til en forhåndsgenerert admin-egenskap her, se
   // filheaderen til generateDrinkPairing i lib/actions/recipes.ts. I
-  // MOTSETNING til smaksprofil/næringsinnhold over (kun "generer") har
+  // MOTSETNING til næringsinnhold over (kun "generer") har
   // dette BEVISST SAMME to-veier-inn-mønster som Engelsk tittel/beskrivelse
   // OG Vegetarversjon lenger ned: feltene er alltid vanlige, redigerbare
   // tekstfelt – "Generer drikkeforslag" fyller dem fra et AI-forslag, men
@@ -1194,7 +1159,7 @@ export function RecipeForm({
     setIsGeneratingDrinkPairing(true);
     try {
       const ingredientNames = groups.flatMap((g) => g.items.map((i) => i.name.trim())).filter(Boolean);
-      const result = await generateDrinkPairing(recipe.id, { title, description, ingredientNames, tasteProfile });
+      const result = await generateDrinkPairing(recipe.id, { title, description, ingredientNames });
       if (!result.success || !result.drinkPairing) {
         setDrinkPairingGenerateError(result.error ?? "Kunne ikke generere drikkeforslag.");
         return;
@@ -1594,6 +1559,7 @@ export function RecipeForm({
       cookTimeMinutesMax: cookTimeRange.max,
       totalTimeMinutes: totalTime === "" ? null : Number(totalTime),
       difficulty,
+      spiceLevel,
       ingredientGroups: groups.map((g) => ({
         title: g.title || null,
         items: g.items
@@ -2153,67 +2119,11 @@ export function RecipeForm({
         )}
       </section>
 
-      <section className="space-y-4 rounded-card border border-line bg-paper p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-serif text-xl text-ink">Smaksprofil</h2>
-            <p className="mt-1 text-xs text-ink-faint">
-              Vises fast, langt oppe på oppskriftssiden. IKKE noe besøkende laster inn selv. Generer
-              (eller regenerer) her etter at ingrediensene under er fylt ut.
-            </p>
-          </div>
-          {isEditing && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateTasteProfile}
-              disabled={isGeneratingTaste}
-            >
-              {isGeneratingTaste ? "Genererer …" : tasteProfile ? "Generer på nytt" : "Generer smaksprofil"}
-            </Button>
-          )}
-        </div>
-
-        {isEditing ? (
-          <>
-            {tasteError && <p className="text-sm text-clay-dark">{tasteError}</p>}
-            {tasteClearError && <p className="text-sm text-clay-dark">{tasteClearError}</p>}
-            {tasteProfile ? (
-              <>
-                <div className="space-y-2 rounded-xl border border-line bg-cream-dark/40 p-3.5">
-                  <p className="text-xs italic leading-relaxed text-ink-soft">{tasteProfile.summary}</p>
-                  {tasteProfile.summaryEn && (
-                    <p className="text-xs italic leading-relaxed text-ink-faint">{tasteProfile.summaryEn}</p>
-                  )}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-1 sm:grid-cols-3">
-                    {TASTE_DIMENSIONS.map((dim) => (
-                      <div key={dim.id} className="flex items-center justify-between text-xs text-ink-soft">
-                        <span>{dim.id}</span>
-                        <span className="font-medium text-ink">{tasteProfile.dimensions[dim.id]}/5</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleClearTasteProfile}
-                  disabled={isClearingTaste}
-                  className="text-sm text-ink-faint underline underline-offset-2 hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isClearingTaste ? "Fjerner …" : "Fjern smaksprofil"}
-                </button>
-              </>
-            ) : (
-              <p className="text-xs italic text-ink-faint">Ingen smaksprofil generert ennå.</p>
-            )}
-          </>
-        ) : (
-          <p className="text-xs italic text-ink-faint">
-            Opprett og lagre oppskriften først. Deretter kan du generere en smaksprofil her.
-          </p>
-        )}
-      </section>
+      {/* "Smaksprofil"-seksjonen (AI-generert, lagret i recipes.taste_profile)
+          er fjernet herfra (03.10.2026, Henrik: "jeg tror vi kan fjerne
+          'smaksprofil' den gir ingenting") – se MERK-kommentaren i
+          lib/actions/recipes.ts. Erstattet av "Sterk mat"-feltet (avkrysning
+          + 1-3 chili) rett ved Vanskelighetsgrad lenger opp i skjemaet. */}
 
       <section className="space-y-4 rounded-card border border-line bg-paper p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2702,6 +2612,48 @@ export function RecipeForm({
               </option>
             ))}
           </select>
+        </Field>
+
+        {/* "Sterk mat" – erstatter den tidligere AI-genererte "Smaksprofil"
+            (03.10.2026, Henrik: "jeg tror vi kan fjerne 'smaksprofil' den
+            gir ingenting ... legge til en checkboks ... om den er spicy, og
+            evt hvor spicy. 1-3 chili symboler"). Avkrysningsboksen av/på
+            styrer om spiceLevel er null eller satt; chili-velgeren vises
+            kun når boksen er krysset av og setter selve graden (1-3), samme
+            "klikk for å sette, ikke en slider"-interaksjon som en vanlig
+            stjernevurdering. */}
+        <Field label="Sterk mat" htmlFor="spicy">
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input
+                id="spicy"
+                type="checkbox"
+                checked={spiceLevel !== null}
+                onChange={(e) => setSpiceLevel(e.target.checked ? 1 : null)}
+                className="h-4 w-4 accent-clay"
+              />
+              Er den sterk/spicy?
+            </label>
+            {spiceLevel !== null && (
+              <div className="flex items-center gap-1" role="radiogroup" aria-label="Styrkegrad, 1 til 3 chili">
+                {[1, 2, 3].map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setSpiceLevel(level)}
+                    aria-pressed={spiceLevel >= level}
+                    aria-label={`${level} av 3 chili`}
+                    className={clsx(
+                      "transition-colors",
+                      spiceLevel >= level ? "text-clay-dark" : "text-line-strong hover:text-clay",
+                    )}
+                  >
+                    <ChiliIcon filled={spiceLevel >= level} className="h-5 w-5" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </Field>
       </section>
 
