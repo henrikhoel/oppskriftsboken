@@ -127,6 +127,44 @@ export function removeSlot(session: MealSession, slotId: string): MealSession {
   return { ...session, slots: session.slots.filter((s) => s.id !== slotId) };
 }
 
+/**
+ * Rolle-baserte varianter av addExistingSlot/removeSlot over (03.10.2026) –
+ * skrevet for ManualMealBuilder.tsx sitt "skriv fortløpende, ikke kun ved
+ * 'Gå videre'"-behov (se filheaderen der): menybyggeren tillater KUN én rett
+ * per rolle (`selected`-stateet er `Partial<Record<MealCourseRole, …>>`), så
+ * "bytt retten i denne rollen" skal alltid ERSTATTE en ev. tidligere slot for
+ * akkurat den rollen, ikke legge til enda en ved siden av (addExistingSlot
+ * APPENDER alltid en ny slot med fersk id – fint for engangsbygging i
+ * handleSave slik MealBuilder.tsx/det opprinnelige handleSave her gjorde, men
+ * ville gitt duplikate slots om det kalles på nytt for samme rolle, som nå
+ * skjer hver gang brukeren bytter ut en rett FØR endelig lagring). Rollen
+ * selv (ikke en husket slot-id) er dermed nøkkelen – enklere og tryggere enn
+ * å spore slot-id-er i UI-et.
+ */
+export function setExistingSlotForRole(
+  session: MealSession,
+  role: MealCourseRole,
+  recipe: { id: string; slug: string; title: string },
+  servings: number,
+): MealSession {
+  const slot: ExistingMealCourseSlot = {
+    id: generateId(), // se kommentaren i addExistingSlot over
+    role,
+    servings,
+    source: "existing",
+    recipeId: recipe.id,
+    slug: recipe.slug,
+    title: recipe.title,
+  };
+  return { ...session, slots: [...session.slots.filter((s) => s.role !== role), slot] };
+}
+
+/** Se setExistingSlotForRole over – fjerner en rolles slot (om den finnes)
+ * uten å måtte kjenne slot-id-en. */
+export function removeSlotsForRole(session: MealSession, role: MealCourseRole): MealSession {
+  return { ...session, slots: session.slots.filter((s) => s.role !== role) };
+}
+
 /** Bytter ut RETTEN på en gitt plass uten å røre resten av menyen (rekke-
  * følge, andre plasser) – brukes av "bytt ut denne retten"-handlingen i
  * menybyggeren. Rollen (`role`) på plassen beholdes; kun hva som fyller den

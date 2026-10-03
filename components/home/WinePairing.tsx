@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type FormEvent } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
 import { searchRecipesForPicker } from "@/lib/actions/search";
@@ -121,20 +120,16 @@ function DishPicker({ lang, onPick }: { lang: Lang; onPick: (recipe: SearchableR
             <ul className="divide-y divide-cream/10">
               {results.map((r) => (
                 <li key={r.id}>
+                  {/* Miniatyrbildet fjernet (03.10.2026, Henrik: "jeg tenker
+                   * at bildene på wine pairing og mealbuilder er så små at
+                   * man ikke trenger dem") – samme Supabase-kvote-begrunnelse
+                   * som fjerningen i admin-listene (se
+                   * WeeklyMenuAdminPicker.tsx sin filheader). */}
                   <button
                     type="button"
                     onClick={() => onPick(r)}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cream/5"
+                    className="flex w-full items-center px-4 py-2.5 text-left transition-colors hover:bg-cream/5"
                   >
-                    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-cream/10">
-                      {r.heroImageUrl && (
-                        // (29.09.2026, Henrik: "hopper over de som faktisk ikke trenger responsiv
-                        // skalering") – liten, fast 44px miniatyr i søkeresultatlisten, kun til
-                        // gjenkjenning. unoptimized dropper Vercels bilde-transformasjon (se
-                        // next.config.ts sin kommentar om 5000/mnd-kvoten).
-                        <Image src={r.heroImageUrl} alt="" fill unoptimized sizes="44px" className="object-cover" />
-                      )}
-                    </div>
                     <span className="min-w-0 flex-1 truncate text-sm text-cream">{localizedTitle(r, lang)}</span>
                   </button>
                 </li>
@@ -272,13 +267,9 @@ function FoodToWine({ lang, isLoggedIn }: { lang: Lang; isLoggedIn: boolean }) {
 
   return (
     <div>
+      {/* Miniatyrbildet fjernet (03.10.2026) – se begrunnelsen i DishPicker
+       * sin resultatliste over. */}
       <div className="flex items-center gap-3">
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream-dark">
-          {selected.heroImageUrl && (
-            // Samme begrunnelse som 44px-miniatyren over – fast 56px, kun gjenkjenning.
-            <Image src={selected.heroImageUrl} alt="" fill unoptimized sizes="56px" className="object-cover" />
-          )}
-        </div>
         <div className="min-w-0">
           <p className="truncate font-serif text-lg text-ink">{localizedTitle(selected, lang)}</p>
           <button type="button" onClick={reset} className="text-xs font-medium text-clay hover:text-clay-dark">

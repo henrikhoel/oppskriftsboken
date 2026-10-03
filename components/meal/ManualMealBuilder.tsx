@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Link from "next/link";
 import {
   evaluateManualMeal,
   type ManualMealFitResult,
@@ -28,11 +28,22 @@ const MAX_PICKER_RESULTS = 40;
  * (samme SearchableRecipe[] som /oppskrifter allerede henter). Ingen
  * "suggested"-plasser finnes noensinne i denne flyten.
  *
- * Følger MealBuilder.tsx sitt "bygg lokalt, skriv til MealSession kun ved
- * lagring"-mønster (`selected`-state under, IKKE addExisting per klikk) –
- * enklere å resonnere om, og gir samme trygge flushSync-håndtering ved
- * selve lagringen (se handleSave, samme begrunnelse som MealBuilder.tsx sin
- * handleSave).
+ * `selected`-state er fortsatt kilden UI-et render fra (enklere å resonnere
+ * om enn å lese alt ut av MealSession underveis), MEN hvert valg/fjerning
+ * skrives nå OGSÅ fortløpende til den ekte MealSession-en (setExistingForRole/
+ * removeRoleSlot, se selectRecipe/removeRole/removeRoleEntirely under) – ikke
+ * lenger kun ved endelig lagring slik det var FØR 03.10.2026. Bakgrunn:
+ * Henrik ba om at man skal kunne trykke på en valgt rett for å se
+ * oppskriften, med en fungerende "tilbake til menyen"-knapp derfra (samme
+ * ?fromMealId=<mealId>-mønster som MealView.tsx/WeeklyMenuView.tsx allerede
+ * bruker, se app/oppskrifter/[slug]/page.tsx sin backHref-logikk) – det
+ * mønsteret funker KUN fordi /meny/[id] leser en ekte, lagret MealSession.
+ * Uten fortløpende skriving ville /meny/${mealId} vært tom helt frem til
+ * "Gå videre" ble trykket, og et klikk inn på en rett (FØR lagring) ville
+ * mistet alt brukeren hadde valgt så langt den dagen de kom tilbake.
+ * handleSave sin flushSync-håndtering beholdes uendret som et sikkerhetsnett
+ * (idempotent – setExistingForRole ERSTATTER alltid rollens forrige slot,
+ * aldri en duplikat, se filheaderen i meal-session.ts).
  *
  * Retter lagt til her er per avklaring med Henrik alltid "må-ha" – ingen
  * låse/åpne-vippebryter per plass. evaluateManualMeal (se
@@ -73,7 +84,7 @@ const MAX_PICKER_RESULTS = 40;
 export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe[]; lang: Lang }) {
   const router = useRouter();
   const [mealId] = useState(() => generateMealId());
-  const { setTitle, addExisting } = useMealSession(mealId, "");
+  const { setTitle, setExistingForRole, removeRoleSlot } = useMealSession(mealId, "");
 
   const [selected, setSelected] = useState<Partial<Record<MealCourseRole, RecipeSummary>>>({});
   const [menuTitle, setMenuTitle] = useState("");
@@ -115,6 +126,7 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
 
   function selectRecipe(role: MealCourseRole, recipe: RecipeSummary) {
     setSelected((prev) => ({ ...prev, [role]: recipe }));
+    setExistingForRole(role, { id: recipe.id, slug: recipe.slug, title: recipe.title }, recipe.servings);
     setFitResult(null);
     setEvalError(null);
     setPickerRole(null);
@@ -127,6 +139,7 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
       delete next[role];
       return next;
     });
+    removeRoleSlot(role);
     setFitResult(null);
     setEvalError(null);
   }
@@ -139,6 +152,7 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
       delete next[role];
       return next;
     });
+    removeRoleSlot(role);
     setRemovedRoles((prev) => [...prev, role]);
     setFitResult(null);
     setEvalError(null);
@@ -185,7 +199,11 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
         setTitle(menuTitle || t(lang, "manualMeal.heading"));
         for (const role of filledRoles) {
           const recipe = selected[role]!;
-          addExisting(role, { id: recipe.id, slug: recipe.slug, title: recipe.title }, recipe.servings);
+          // setExistingForRole (ikke addExisting) – se filheaderen øverst:
+          // valgene er som regel allerede skrevet fortløpende, dette er kun
+          // et idempotent sikkerhetsnett, og addExisting ville dupliserte
+          // slots her siden den alltid APPENDER i stedet for å erstatte.
+          setExistingForRole(role, { id: recipe.id, slug: recipe.slug, title: recipe.title }, recipe.servings);
         }
       });
       setSaved(true);
@@ -225,7 +243,23 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
               </span>
               {recipe ? (
                 <>
-                  <p className="font-serif text-base text-ink">{localizedTitle(recipe, lang)}</p>
+                  {/* Klikkbar tittel → oppskriftssiden (03.10.2026, Henrik:
+                   * "da må du fa fikse at man kan trykke på retten å gå til
+                   * oppskriftsiden ... da er det viktig med tilbakeknapp til
+                   * menyen"). ?fromMealId=${mealId} er samme mønster som
+                   * MealView.tsx/WeeklyMenuView.tsx allerede bruker – se
+                   * backHref-logikken i app/oppskrifter/[slug]/page.tsx, som
+                   * da viser en "Tilbake til menyen"-lenke rett til
+                   * /meny/${mealId} i stedet for den vanlige "Alle
+                   * oppskrifter"-lenken. Fungerer FØR endelig lagring også,
+                   * siden selectRecipe over skriver fortløpende til den
+                   * samme MealSession-en. */}
+                  <Link
+                    href={`/oppskrifter/${recipe.slug}?fromMealId=${mealId}`}
+                    className="font-serif text-base text-ink transition-colors hover:text-clay-dark hover:underline"
+                  >
+                    {localizedTitle(recipe, lang)}
+                  </Link>
                   {recipe.category && (
                     <p className="text-xs text-ink-faint">{localizedCategoryName(recipe.category, lang)}</p>
                   )}
@@ -344,7 +378,14 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
             <input
               type="text"
               value={menuTitle}
-              onChange={(e) => setMenuTitle(e.target.value)}
+              onChange={(e) => {
+                setMenuTitle(e.target.value);
+                // Skrevet fortløpende (ikke kun ved "Gå videre") av samme
+                // grunn som selectRecipe/removeRole over – /meny/${mealId}
+                // skal vise riktig navn selv om brukeren trykker tilbake dit
+                // FØR endelig lagring.
+                setTitle(e.target.value || t(lang, "manualMeal.heading"));
+              }}
               placeholder={t(lang, "manualMeal.heading")}
               // text-base på mobil (unngår iOS-innzooming ved fokus).
               className="mt-1 w-full rounded-lg border border-line bg-cream px-3 py-2 text-base text-ink focus:border-clay focus:outline-none sm:text-sm"
@@ -389,23 +430,11 @@ export function ManualMealBuilder({ recipes, lang }: { recipes: SearchableRecipe
           ) : (
             pickerResults.map((recipe) => (
               <div key={recipe.id} className="flex items-center gap-3 rounded-lg border border-line bg-paper px-3 py-2">
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-cream-dark">
-                  {recipe.heroImageUrl && (
-                    // (29.09.2026, Henrik: "hopper over de som faktisk ikke
-                    // trenger responsiv skalering") – fast 48px miniatyr i
-                    // søkeresultatene, kun til gjenkjenning. unoptimized
-                    // sparer Vercels bilde-transformasjonskvote (se
-                    // next.config.ts sin kommentar om 5000/mnd-kvoten).
-                    <Image
-                      src={recipe.heroImageUrl}
-                      alt=""
-                      fill
-                      unoptimized
-                      sizes="48px"
-                      className="object-cover"
-                    />
-                  )}
-                </div>
+                {/* Miniatyrbildet fjernet (03.10.2026, Henrik: "jeg tenker at
+                 * bildene på wine pairing og mealbuilder er så små at man
+                 * ikke trenger dem") – samme Supabase-kvote-begrunnelse som
+                 * fjerningen i de tre admin-listene (se WeeklyMenuAdminPicker.tsx
+                 * sin filheader), nå også for denne offentlige søkelisten. */}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-ink">{localizedTitle(recipe, lang)}</p>
                   {recipe.category && (
