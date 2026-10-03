@@ -18,6 +18,12 @@
  * oppskrift med fire små på/av-knapper (ett ikon per rolle) gir full
  * oversikt og ett-klikks redigering.
  *
+ * INGEN miniatyrbilde per rad (fjernet 02.10.2026, se samme begrunnelse i
+ * WeeklyMenuAdminPicker.tsx sin filheader – den forrige `unoptimized`
+ * <Thumb>-miniatyren lastet ned hele originalbildet for en 48px-visning på
+ * hver rad, og var trolig den største enkeltkilden til at Supabase sin
+ * gratiskvote for cached egress ble sprengt).
+ *
  * Rolletekstene (forrett/hovedrett/tilbehør/dessert) hentes fra de samme
  * `mealBuilder.role.*`-nøklene som allerede brukes i den offentlige
  * menybyggeren (ManualMealBuilder.tsx/MealBuilder.tsx) – IKKE nye
@@ -26,7 +32,6 @@
  */
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { clsx } from "clsx";
 import type { RecipeSummary } from "@/lib/types";
 import { addRecipeToCourse, removeRecipeFromCourse } from "@/lib/actions/recipes";
@@ -43,18 +48,6 @@ const ROLE_ICONS = {
   side: UsersIcon,
   dessert: HeartIcon,
 } as const;
-
-function Thumb({ recipe }: { recipe: RecipeSummary }) {
-  // Samme begrunnelse som Thumb i MoodPicker.tsx – fast 48px admin-miniatyr,
-  // kun til gjenkjenning; unoptimized sparer Vercels bilde-transformasjonskvote.
-  return (
-    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-cream-dark">
-      {recipe.heroImageUrl && (
-        <Image src={recipe.heroImageUrl} alt="" fill unoptimized sizes="48px" className="object-cover" />
-      )}
-    </div>
-  );
-}
 
 export function RolePicker({ recipes, lang }: { recipes: RecipeSummary[]; lang: Lang }) {
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -128,7 +121,6 @@ export function RolePicker({ recipes, lang }: { recipes: RecipeSummary[]; lang: 
               key={recipe.id}
               className="flex flex-wrap items-center gap-4 border-b border-line px-4 py-3 last:border-b-0 sm:px-5"
             >
-              <Thumb recipe={recipe} />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-ink">{recipe.title}</p>
                 {recipe.category && <p className="text-xs text-ink-faint">{recipe.category.name}</p>}
