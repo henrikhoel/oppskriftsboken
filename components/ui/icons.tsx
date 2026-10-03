@@ -54,15 +54,25 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
  * den ble satt inn her. Leselig som en tydelig krummet chili fra ca.
  * 28px og oppover (se størrelsene på bruksstedene – RecipeForm.tsx/
  * RecipeHero.tsx bruker bevisst IKKE den minste tenkelige ikonstørrelsen,
- * nettopp for at krummingen/avsmalningen skal være synlig). Stilken (den
- * lille korte kurven øverst) er fortsatt bare en enkel, kort strek. */
+ * nettopp for at krummingen/avsmalningen skal være synlig).
+ *
+ * Stilken (andre "path" under) fikk samme behandling i en runde til:
+ * Henrik på neste forsøk – "den mangler stilken" (en tynn enkelt-strek
+ * leste ikke som en stilk i det hele tatt, den forsvant inn i podens egen
+ * kontur). Løst som en egen liten avsmalnende form (samme
+ * senterlinje+normalvektor-teknikk som podens kontur), med bunnen lagt
+ * solid INNENFOR podens silhuett nær toppen – ikke bare inntil kanten –
+ * så de to formene smelter sammen til ett rent omriss uten synlig
+ * skjøt/hakk når de fylles med samme farge. (Et tidligere forsøk på å
+ * sy stilk og pod sammen til ÉN sammenhengende kurve ga et hakk der de
+ * møttes, fordi retningen/tangenten endrer seg brått der en stilk
+ * faktisk sitter på en pepperfrukt – to overlappende former var enklere
+ * og ga et renere resultat enn å tvinge fram glatt kurve-kontinuitet.) */
 export function ChiliIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
   return (
     <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
-      <path d="M16 5c.5-1.2 1.9-1.6 2.8-.9" fill="none" />
-      <path
-        d="M15.44,8.35 L15.78,8.23 L16.08,8.13 L16.35,8.05 L16.6,8 L16.84,7.98 L17.07,7.99 L17.3,8.04 L17.52,8.15 L17.73,8.33 L17.92,8.57 L18.08,8.88 L18.19,9.25 L18.25,9.68 L18.25,10.16 L18.18,10.68 L18.04,11.24 L17.84,11.82 L17.56,12.43 L17.21,13.05 L16.78,13.68 L16.28,14.31 L15.71,14.94 L15.06,15.56 L14.34,16.18 L13.55,16.78 L12.68,17.36 L11.74,17.93 L10.73,18.46 L11.27,19.54 L12.33,18.98 L13.33,18.41 L14.26,17.82 L15.14,17.23 L15.95,16.62 L16.71,16 L17.4,15.38 L18.04,14.75 L18.63,14.11 L19.16,13.47 L19.64,12.83 L20.07,12.17 L20.44,11.51 L20.75,10.84 L21.01,10.16 L21.21,9.46 L21.34,8.75 L21.39,8.02 L21.36,7.28 L21.24,6.52 L21.01,5.77 L20.67,5.03 L20.22,4.32 L19.67,3.66 L19.02,3.05 L18.27,2.51 L17.45,2.04 L16.56,1.65 Z"
-      />
+      <path d="M15.44,8.35 L15.78,8.23 L16.08,8.13 L16.35,8.05 L16.6,8 L16.84,7.98 L17.07,7.99 L17.3,8.04 L17.52,8.15 L17.73,8.33 L17.92,8.57 L18.08,8.88 L18.19,9.25 L18.25,9.68 L18.25,10.16 L18.18,10.68 L18.04,11.24 L17.84,11.82 L17.56,12.43 L17.21,13.05 L16.78,13.68 L16.28,14.31 L15.71,14.94 L15.06,15.56 L14.34,16.18 L13.55,16.78 L12.68,17.36 L11.74,17.93 L10.73,18.46 L11.27,19.54 L12.33,18.98 L13.33,18.41 L14.26,17.82 L15.14,17.23 L15.95,16.62 L16.71,16 L17.4,15.38 L18.04,14.75 L18.63,14.11 L19.16,13.47 L19.64,12.83 L20.07,12.17 L20.44,11.51 L20.75,10.84 L21.01,10.16 L21.21,9.46 L21.34,8.75 L21.39,8.02 L21.36,7.28 L21.24,6.52 L21.01,5.77 L20.67,5.03 L20.22,4.32 L19.67,3.66 L19.02,3.05 L18.27,2.51 L17.45,2.04 L16.56,1.65 Z" />
+      <path d="M17.22,1.88 L16.9,1.68 L16.58,1.48 L16.27,1.3 L15.95,1.13 L15.63,0.97 L15.33,0.83 L15.02,0.7 L14.73,0.59 L14.45,0.5 L14.17,0.42 L13.63,1.38 L13.79,1.56 L13.95,1.76 L14.13,1.97 L14.31,2.19 L14.49,2.43 L14.67,2.67 L14.86,2.92 L15.04,3.18 L15.21,3.45 L15.38,3.72 Z" />
     </svg>
   );
 }
