@@ -1,10 +1,9 @@
 "use client";
 
 import { useRef, useState, useTransition, type ChangeEvent } from "react";
-import Image from "next/image";
 import { uploadRecipeImage } from "@/lib/actions/upload";
 import { generateRecipeHeroImage } from "@/lib/actions/ai";
-import { ImageIcon, SparklesIcon, TrashIcon, UploadIcon } from "@/components/ui/icons";
+import { SparklesIcon, TrashIcon, UploadIcon } from "@/components/ui/icons";
 
 export interface ImageValue {
   url: string;
@@ -88,92 +87,75 @@ export function ImageUploadField({
   return (
     <div>
       <p className="mb-1.5 text-sm font-medium text-ink">{label}</p>
-      <div className="flex items-start gap-4">
-        <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-line bg-cream-dark">
-          {value?.url ? (
-            // (29.09.2026, Henrik: "hopper over de som faktisk ikke trenger
-            // responsiv skalering") – fast 112px admin-forhåndsvisning av
-            // bildet man nettopp lastet opp/genererte, ikke et innholdsbilde
-            // besøkende ser. unoptimized sparer Vercels bilde-
-            // transformasjonskvote (se next.config.ts sin kommentar).
-            <Image src={value.url} alt="" fill unoptimized sizes="112px" className="object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-ink-faint">
-              <ImageIcon className="h-6 w-6" />
-            </div>
-          )}
-          {(isPending || isGenerating) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-cream/60 text-center text-ink text-xs">
-              {isGenerating ? "Genererer …" : "Laster opp …"}
-            </div>
-          )}
-          {isAiGenerated && value?.url && !isPending && !isGenerating && (
-            <div className="absolute left-1 top-1 flex items-center gap-1 rounded-full bg-cream/80 px-2 py-0.5 text-[10px] font-medium text-ink">
-              <SparklesIcon className="h-3 w-3" />
-              AI-generert
-            </div>
-          )}
-        </div>
-        <div className="flex-1 space-y-2">
-          <div className="flex flex-wrap gap-2">
+      {/* Selve 112px-forhåndsvisningen fjernet (03.10.2026, Henrik: "jeg
+       * trenger den jo forsåvidt ikke der") – admin trenger ikke SE bildet
+       * her for å vite at opplastingen gikk bra, kun bekreftelse/status
+       * (status-teksten under) og knappene. Samme Supabase-kvote-begrunnelse
+       * som de andre miniatyr-fjerningene i dag, pluss at denne i tillegg
+       * alltid lastet det nylig opplastede FULLSTØRRELSE-bildet rett
+       * tilbake fra Supabase Storage for en 112px-visning. */}
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={isPending || isGenerating}
+            className="flex items-center gap-1.5 rounded-full border border-line-strong px-3.5 py-2 text-xs font-medium text-ink hover:bg-cream-dark disabled:opacity-50"
+          >
+            <UploadIcon className="h-3.5 w-3.5" />
+            {value ? "Bytt bilde" : "Last opp"}
+          </button>
+          {aiGenerate && (
             <button
               type="button"
-              onClick={() => inputRef.current?.click()}
+              onClick={handleGenerateClick}
               disabled={isPending || isGenerating}
+              title="Genererer et midlertidig AI-bilde av retten, frem til du legger inn et ekte foto"
               className="flex items-center gap-1.5 rounded-full border border-line-strong px-3.5 py-2 text-xs font-medium text-ink hover:bg-cream-dark disabled:opacity-50"
             >
-              <UploadIcon className="h-3.5 w-3.5" />
-              {value ? "Bytt bilde" : "Last opp"}
+              <SparklesIcon className="h-3.5 w-3.5" />
+              {isGenerating ? "Genererer …" : "Generer AI-bilde"}
             </button>
-            {aiGenerate && (
-              <button
-                type="button"
-                onClick={handleGenerateClick}
-                disabled={isPending || isGenerating}
-                title="Genererer et midlertidig AI-bilde av retten, frem til du legger inn et ekte foto"
-                className="flex items-center gap-1.5 rounded-full border border-line-strong px-3.5 py-2 text-xs font-medium text-ink hover:bg-cream-dark disabled:opacity-50"
-              >
-                <SparklesIcon className="h-3.5 w-3.5" />
-                {isGenerating ? "Genererer …" : "Generer AI-bilde"}
-              </button>
-            )}
-            {value && (
-              <button
-                type="button"
-                onClick={handleRemove}
-                disabled={isPending || isGenerating}
-                className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-ink-faint hover:bg-clay-light hover:text-clay-dark disabled:opacity-50"
-              >
-                <TrashIcon className="h-3.5 w-3.5" />
-                Fjern
-              </button>
-            )}
-          </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/avif"
-            className="sr-only"
-            onChange={handleFileChange}
-          />
-          {aiGenerate && isAiGenerated && value?.url && (
-            <p className="text-xs text-ink-faint">
-              Dette er et AI-generert plassholderbilde. Last opp et ekte foto når du har et.
-            </p>
           )}
           {value && (
-            <input
-              type="text"
-              value={value.alt}
-              onChange={(e) => onChange({ ...value, alt: e.target.value })}
-              placeholder={altPlaceholder ?? "Alt-tekst (beskrivelse av bildet)"}
-              aria-label="Alt-tekst for bildet"
-              // text-base på mobil (unngår iOS-innzooming ved fokus).
-              className="w-full rounded-lg border border-line-strong bg-paper px-3 py-1.5 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-xs"
-            />
+            <button
+              type="button"
+              onClick={handleRemove}
+              disabled={isPending || isGenerating}
+              className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-ink-faint hover:bg-clay-light hover:text-clay-dark disabled:opacity-50"
+            >
+              <TrashIcon className="h-3.5 w-3.5" />
+              Fjern
+            </button>
           )}
-          {error && <p className="text-xs text-clay-dark">{error}</p>}
         </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif"
+          className="sr-only"
+          onChange={handleFileChange}
+        />
+        {(isPending || isGenerating) && (
+          <p className="text-xs text-ink-faint">{isGenerating ? "Genererer …" : "Laster opp …"}</p>
+        )}
+        {aiGenerate && isAiGenerated && value?.url && !isPending && !isGenerating && (
+          <p className="text-xs text-ink-faint">
+            Dette er et AI-generert plassholderbilde. Last opp et ekte foto når du har et.
+          </p>
+        )}
+        {value && (
+          <input
+            type="text"
+            value={value.alt}
+            onChange={(e) => onChange({ ...value, alt: e.target.value })}
+            placeholder={altPlaceholder ?? "Alt-tekst (beskrivelse av bildet)"}
+            aria-label="Alt-tekst for bildet"
+            // text-base på mobil (unngår iOS-innzooming ved fokus).
+            className="w-full max-w-sm rounded-lg border border-line-strong bg-paper px-3 py-1.5 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-xs"
+          />
+        )}
+        {error && <p className="text-xs text-clay-dark">{error}</p>}
       </div>
     </div>
   );

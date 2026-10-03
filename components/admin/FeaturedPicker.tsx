@@ -10,25 +10,18 @@
  * Hver handling skriver rett til databasen med det samme (samme
  * startTransition+router.refresh()-mønster som AdminRecipeRow.tsx sin
  * publiser-knapp) – ingen egen "lagre"-knapp å glemme.
+ *
+ * INGEN miniatyrbilde per rad (fjernet 03.10.2026, se samme begrunnelse i
+ * WeeklyMenuAdminPicker.tsx sin filheader – den forrige `unoptimized`
+ * <Thumb>-miniatyren lastet ned hele originalbildet for en 48px-visning på
+ * hver rad, og var trolig en av kildene til at Supabase sin gratiskvote for
+ * cached egress ble sprengt).
  */
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import type { RecipeSummary } from "@/lib/types";
 import { addToFeatured, removeFromFeatured, moveFeatured } from "@/lib/actions/recipes";
 import { ArrowUpIcon, ArrowDownIcon, PlusIcon, TrashIcon, SearchIcon } from "@/components/ui/icons";
-
-function Thumb({ recipe }: { recipe: RecipeSummary }) {
-  // Samme begrunnelse som Thumb i MoodPicker.tsx – fast 48px admin-miniatyr,
-  // kun til gjenkjenning; unoptimized sparer Vercels bilde-transformasjonskvote.
-  return (
-    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-cream-dark">
-      {recipe.heroImageUrl && (
-        <Image src={recipe.heroImageUrl} alt="" fill unoptimized sizes="48px" className="object-cover" />
-      )}
-    </div>
-  );
-}
 
 function IconButton({
   onClick,
@@ -135,7 +128,6 @@ export function FeaturedPicker({
                 className="flex flex-wrap items-center gap-4 border-b border-line px-4 py-3 last:border-b-0 sm:px-5"
               >
                 <span className="w-5 shrink-0 text-sm font-medium text-ink-faint">{index + 1}</span>
-                <Thumb recipe={recipe} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-ink">{recipe.title}</p>
                   {recipe.category && <p className="text-xs text-ink-faint">{recipe.category.name}</p>}
@@ -190,7 +182,6 @@ export function FeaturedPicker({
                 key={recipe.id}
                 className="flex flex-wrap items-center gap-4 border-b border-line px-4 py-3 last:border-b-0 sm:px-5"
               >
-                <Thumb recipe={recipe} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-ink">{recipe.title}</p>
                   {recipe.category && <p className="text-xs text-ink-faint">{recipe.category.name}</p>}
