@@ -1396,8 +1396,39 @@ const DICT = {
   "weekendGuests.featuredEyebrow": { no: "Utvalgt", en: "Featured" },
   "weekendGuests.viewRecipe": { no: "Se oppskriften →", en: "View the recipe →" },
   "weekendGuests.makeItANight": { no: "Gjør det til en kveld →", en: "Make it a night →" },
-  // Overskrift for rutenettet under den featured-retten.
-  "weekendGuests.gridHeading": { no: "Retter for helg & gjester", en: "Dishes for weekends & guests" },
+  // Overskrift for rutenettet under den featured-retten – én per
+  // anledning (inkl. "alle"), slik at teksten faktisk beskriver det
+  // aktive filteret (Henrik 03.10.2026: "når det er 'alle' kan det stå
+  // 'Retter for helg & gjester', men hvis jeg trykker på 'Date night' så
+  // må det stå 'Retter som passer til date night'"). Nøklene er navngitt
+  // "weekendGuests.gridHeading.<id>" der <id> er nøyaktig samme streng som
+  // ALL_OCCASIONS_FILTER ("alle") eller WeekendGuestsOccasionId-verdiene i
+  // weekend-guests.ts, se WeekendGuestsClient.tsx sin bruk av
+  // `weekendGuests.gridHeading.${activeOccasion}` som DictKey (fungerer
+  // fordi activeOccasion er typet som en union av akkurat disse literalene,
+  // ikke en generell `string`).
+  "weekendGuests.gridHeading.alle": { no: "Retter for helg & gjester", en: "Dishes for weekends & guests" },
+  "weekendGuests.gridHeading.fredagskveld": {
+    no: "Retter som passer til fredagskveld",
+    en: "Dishes for Friday night",
+  },
+  "weekendGuests.gridHeading.date_night": { no: "Retter som passer til date night", en: "Dishes for a date night" },
+  "weekendGuests.gridHeading.venner_pa_middag": {
+    no: "Retter som passer når venner kommer på middag",
+    en: "Dishes for when friends come for dinner",
+  },
+  "weekendGuests.gridHeading.sondagsmiddag": {
+    no: "Retter som passer til søndagsmiddag",
+    en: "Dishes for Sunday dinner",
+  },
+  "weekendGuests.gridHeading.feiring": { no: "Retter som passer til en feiring", en: "Dishes for a celebration" },
+  // "Se alle"-knapp under rutenettet (03.10.2026, Henrik: "det holder med 6
+  // stk før det kan stå 'se alle'") – vises KUN når flere enn
+  // WEEKEND_GUESTS_GRID_PREVIEW_COUNT retter finnes i aktivt filter, se
+  // WeekendGuestsClient.tsx. {count} = antall SKJULTE retter (ikke totalen),
+  // samme "vis hvor mye mer"-tanke som andre tellevars i denne fila (f.eks.
+  // season.recipesWithIngredient).
+  "weekendGuests.seeAllInGrid": { no: "Se alle ({count} til)", en: "See all ({count} more)" },
   "weekendGuests.emptyForOccasion": {
     no: "Ingen retter er lagt til under denne anledningen ennå.",
     en: "No dishes have been added under this occasion yet.",

@@ -43,13 +43,35 @@ import { t, type Lang } from "@/lib/i18n";
  * filterbytte (Henrik: "gjerne med en rolig/subtil overgang") – ingen ny
  * CSS-keyframe lagt til i globals.css for dette, kun et kort
  * opacity-0→100-step via Tailwinds innebygde transition-opacity.
+ *
+ * Overskriften over rutenettet (03.10.2026, Henrik: "når det er 'alle' kan
+ * det stå 'Retter for helg & gjester', men hvis jeg trykker på 'Date
+ * night' så må det stå 'Retter som passer til date night'") bruker
+ * `weekendGuests.gridHeading.${activeOccasion}` som nøkkel direkte –
+ * `activeOccasion` er typet som WeekendGuestsOccasionFilter (unionen
+ * "alle" | WeekendGuestsOccasionId), så malstrengen blir en fagforening av
+ * eksakt de DictKey-verdiene som finnes i dictionary.ts, ikke en generell
+ * `string` – TypeScript ville klaget dersom en anledning mangler sin egen
+ * gridHeading-nøkkel der.
+ *
+ * Rutenettet viser maks WEEKEND_GUESTS_GRID_PREVIEW_COUNT retter til å
+ * begynne med, med en "Se alle (N til)"-knapp under dersom det er flere
+ * (03.10.2026, Henrik: "det holder med 6 stk før det kan stå 'se alle'").
+ * Ren client-side-avsløring (showAllInGrid), ingen ny henting – hele
+ * `rest`-lista er allerede inne. Nullstilles til lukket igjen når
+ * anledningen byttes (se useEffect under), slik at man ikke lander midt i
+ * et langt, allerede utvidet rutenett etter et filterbytte.
  */
+const WEEKEND_GUESTS_GRID_PREVIEW_COUNT = 6;
+
 export function WeekendGuestsClient({ recipes, lang }: { recipes: RecipeSummary[]; lang: Lang }) {
   const [activeOccasion, setActiveOccasion] = useState<WeekendGuestsOccasionFilter>(ALL_OCCASIONS_FILTER);
   const [visible, setVisible] = useState(true);
+  const [showAllInGrid, setShowAllInGrid] = useState(false);
 
   useEffect(() => {
     setVisible(false);
+    setShowAllInGrid(false);
     const timeout = setTimeout(() => setVisible(true), 40);
     return () => clearTimeout(timeout);
   }, [activeOccasion]);
@@ -60,6 +82,8 @@ export function WeekendGuestsClient({ recipes, lang }: { recipes: RecipeSummary[
   }, [recipes, activeOccasion]);
 
   const [featured, ...rest] = filtered;
+  const visibleRest = showAllInGrid ? rest : rest.slice(0, WEEKEND_GUESTS_GRID_PREVIEW_COUNT);
+  const hiddenCount = rest.length - visibleRest.length;
 
   return (
     <div>
@@ -112,13 +136,25 @@ export function WeekendGuestsClient({ recipes, lang }: { recipes: RecipeSummary[
             {rest.length > 0 && (
               <div className="mt-16 sm:mt-20">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-faint">
-                  {t(lang, "weekendGuests.gridHeading")}
+                  {t(lang, `weekendGuests.gridHeading.${activeOccasion}`)}
                 </h2>
                 <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-                  {rest.map((recipe, i) => (
+                  {visibleRest.map((recipe, i) => (
                     <WeekendGuestsCard key={recipe.id} recipe={recipe} priority={i < 3} lang={lang} />
                   ))}
                 </div>
+
+                {hiddenCount > 0 && (
+                  <div className="mt-10 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowAllInGrid(true)}
+                      className="rounded-full border border-line-strong bg-paper px-5 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
+                    >
+                      {t(lang, "weekendGuests.seeAllInGrid", { count: hiddenCount })}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </>
