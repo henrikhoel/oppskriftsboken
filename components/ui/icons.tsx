@@ -39,31 +39,35 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
  * components/admin/RecipeForm.tsx og RecipeHero.tsx), lagt til 03.10.2026
  * som erstatning for den tidligere AI-genererte smaksprofilen. Samme
  * `filled`-mønster som HeartIcon over – fylt chili for "aktiv/valgt" grad,
- * kun omriss for en ledig/ufylt.
+ * kun omriss for en ledig/ufylt. Fylt farge er IKKE currentColor-arv fra
+ * gull-aksenten her – se --color-chili i app/globals.css og bruken av
+ * `text-chili` på kallstedene; chilien skal lyse rød når den er valgt.
  *
- * Tre runder før denne satt: (1) frihåndstegnet pod så ikke ut som chili
- * i det hele tatt, (2) en tapret pod + tynn enkelt-strek-stilk manglet
- * synlig stilk, (3) pod+stilk som to omtrent like store, avrundede
- * klumper med en tynn hals mellom så ut som et beinknokkel ("ser ut som
- * bein", Henrik, med et rent referanse-ikon ved siden av – et betalt
- * lager-ikon som ikke kan kopieres inn direkte, men god å style etter).
+ * Flere runder før denne satt, hver med et referanse-ikon fra Henrik
+ * (ingen av dem kopiert direkte inn – betalte/ukjent-lisensierte
+ * lager-ikoner, men gode å style etter): (1) frihåndstegnet pod så ikke
+ * ut som chili i det hele tatt, (2) tapret pod + tynn strek-stilk
+ * manglet synlig stilk, (3) pod+stilk som to like store klumper med tynn
+ * hals mellom så ut som en beinknokkel, (4) en vannrett, krøllet stilk
+ * (for å ligne et liggende referanse-ikon) endte opp som en fugl – halsen
+ * + krøllen leste som hode/nebb, (5) et tredje referanse-ikon viste en
+ * tydelig LUFTE/avstand mellom stilk og pod i stedet for at de glir
+ * sammen.
  *
- * Geometrien her er derfor bygget rundt ÉN tydelig asymmetri i stedet:
- * en SMAL hals rett ved stilken (samme bredde som selve stilken, så
- * overgangen blir en jevn avsmalning i stedet for en synlig skjøt), en
- * buk som sveller ut en liten bit nedenfor halsen, og en spiss tupp.
- * Samme senterlinje+normalvektor-teknikk som før (kurvet senterlinje,
- * konturen bygget fra normalvektorer langs den, i stedet for frihånds-
- * gjettede koordinater), men med en ikke-monoton radiusfunksjon (smal →
- * bred → smal) for buken, fremfor den rett avtagende fra forrige runde.
- * Verifisert med Playwright-skjermbilder i de faktiske bruksstørrelsene
- * (28px i RecipeForm.tsx, 16px i RecipeHero.tsx), ikke bare i stort
- * format, siden det er der Henrik faktisk vurderer den. */
+ * Endelig geometri: kurvet senterlinje + normalvektorer langs den (som i
+ * alle rundene), podens senterlinje loddrett/diagonal igjen (stilk øverst
+ * til høyre, spiss tupp nederst til venstre), ikke-monoton radiusfunksjon
+ * for buken (smal hals → bred buk → spiss tupp), og stilken en enkel rett
+ * kurve satt LITT UNNA podens skulder i stedet for å overlappe den – gir
+ * en tydelig, ren atskillelse mellom de to formene uten den krøllede
+ * "fugl"-effekten. Verifisert med Playwright-skjermbilder i de faktiske
+ * bruksstørrelsene (28px i RecipeForm.tsx, 16px i RecipeHero.tsx), ikke
+ * bare i stort format. */
 export function ChiliIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
   return (
     <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
-      <path d="M15.13,5.47 L14.71,5.35 L14.27,5.21 L13.81,5.07 L13.32,4.94 L12.8,4.82 L12.25,4.75 L11.68,4.73 L11.1,4.77 L10.52,4.88 L9.96,5.08 L9.43,5.36 L8.94,5.72 L8.48,6.14 L8.06,6.61 L7.68,7.11 L7.33,7.66 L7.02,8.23 L6.76,8.84 L6.53,9.46 L6.34,10.11 L6.18,10.78 L6.06,11.46 L5.98,12.15 L5.93,12.86 L5.9,13.58 L5.91,14.31 L5.93,15.05 L5.99,15.81 L6.06,16.58 L6.16,17.37 L6.27,18.18 L6.4,19.02 L6.6,18.98 L6.49,18.15 L6.45,17.35 L6.48,16.57 L6.55,15.82 L6.69,15.11 L6.86,14.44 L7.08,13.8 L7.34,13.2 L7.63,12.65 L7.94,12.13 L8.27,11.66 L8.61,11.22 L8.97,10.83 L9.33,10.47 L9.69,10.14 L10.04,9.84 L10.39,9.57 L10.73,9.32 L11.06,9.09 L11.38,8.88 L11.67,8.67 L11.95,8.44 L12.2,8.19 L12.44,7.92 L12.69,7.64 L12.95,7.36 L13.23,7.1 L13.53,6.87 L13.85,6.68 L14.19,6.55 L14.53,6.5 L14.87,6.53 Z" />
-      <path d="M15.24,5.85 L15.45,5.45 L15.66,5.06 L15.87,4.68 L16.08,4.31 L16.28,3.95 L16.48,3.6 L16.67,3.26 L16.84,2.94 L17.01,2.62 L17.17,2.33 L17.31,2.04 L17.44,1.77 L16.76,1.43 L16.62,1.68 L16.47,1.94 L16.3,2.22 L16.12,2.52 L15.92,2.83 L15.72,3.15 L15.51,3.49 L15.29,3.84 L15.06,4.2 L14.83,4.58 L14.6,4.96 L14.36,5.35 Z" />
+      <path d="M15.15,5.42 L14.71,5.3 L14.27,5.16 L13.81,5.01 L13.31,4.87 L12.79,4.75 L12.23,4.68 L11.66,4.65 L11.07,4.69 L10.48,4.8 L9.91,4.99 L9.37,5.28 L8.88,5.65 L8.42,6.07 L7.99,6.54 L7.61,7.05 L7.26,7.6 L6.96,8.19 L6.69,8.8 L6.47,9.43 L6.28,10.09 L6.13,10.76 L6.02,11.44 L5.94,12.14 L5.89,12.85 L5.88,13.57 L5.89,14.31 L5.92,15.05 L5.98,15.81 L6.06,16.58 L6.15,17.37 L6.27,18.18 L6.4,19.02 L6.6,18.98 L6.49,18.15 L6.46,17.35 L6.48,16.57 L6.56,15.82 L6.7,15.11 L6.88,14.44 L7.11,13.8 L7.37,13.21 L7.66,12.66 L7.98,12.15 L8.32,11.68 L8.67,11.25 L9.03,10.86 L9.39,10.51 L9.75,10.19 L10.11,9.9 L10.46,9.63 L10.8,9.39 L11.13,9.17 L11.44,8.96 L11.73,8.75 L12,8.53 L12.24,8.27 L12.48,8 L12.72,7.72 L12.97,7.44 L13.24,7.17 L13.54,6.93 L13.85,6.74 L14.18,6.61 L14.52,6.55 L14.85,6.58 Z" />
+      <path d="M14.73,4.86 L14.98,4.41 L15.22,3.98 L15.45,3.57 L15.67,3.18 L15.89,2.8 L16.09,2.45 L16.28,2.12 L16.45,1.81 L16.61,1.52 L16.75,1.26 L16.25,0.94 L16.07,1.18 L15.88,1.44 L15.67,1.73 L15.45,2.04 L15.21,2.37 L14.96,2.73 L14.7,3.1 L14.44,3.49 L14.16,3.91 L13.87,4.34 Z" />
     </svg>
   );
 }

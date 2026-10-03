@@ -2645,7 +2645,13 @@ export function RecipeForm({
                     aria-label={`${level} av 3 chili`}
                     className={clsx(
                       "transition-colors",
-                      spiceLevel >= level ? "text-clay-dark" : "text-line-strong hover:text-clay",
+                      // Rød ved valgt grad (Henrik: "fargen må være rød når man
+                      // trykker på den") – IKKE gull som resten av UI-ets
+                      // aksenter, se --color-chili i app/globals.css. Hover på en
+                      // ufylt chili varsler med samme røde i stedet for det
+                      // vanlige gull-hover-mønsteret, så fargen ikke hopper
+                      // overraskende fra gull til rødt idet man klikker.
+                      spiceLevel >= level ? "text-chili" : "text-line-strong hover:text-chili",
                     )}
                   >
                     <ChiliIcon filled={spiceLevel >= level} className="h-7 w-7" />

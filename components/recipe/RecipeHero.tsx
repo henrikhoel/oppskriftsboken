@@ -185,7 +185,9 @@ export function RecipeHero({
                   aria-label={spicyLabel}
                 >
                   {Array.from({ length: spiceLevel }).map((_, i) => (
-                    <ChiliIcon key={i} filled className="h-4 w-4 text-clay-dark" aria-hidden="true" />
+                    // Rød, ikke gull – se --color-chili i app/globals.css og
+                    // samme fargevalg i chili-velgeren i RecipeForm.tsx.
+                    <ChiliIcon key={i} filled className="h-4 w-4 text-chili" aria-hidden="true" />
                   ))}
                 </span>
               ) : null}
