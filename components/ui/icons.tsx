@@ -41,38 +41,29 @@ export function HeartIcon({ filled, ...props }: IconProps & { filled?: boolean }
  * `filled`-mønster som HeartIcon over – fylt chili for "aktiv/valgt" grad,
  * kun omriss for en ledig/ufylt.
  *
- * Selve pod-formen (det lange, avsmalnende "path" under) er IKKE
- * frihåndstegnet som de andre ikonene her – TO frihåndsforsøk på rad så
- * ikke ut som en chili i det hele tatt (Henrik, med Google-bilder av en
- * ekte chili ved siden av: "det der er ikke chili ... jeg mente mer sånn
- * her"). Generert i stedet ved å ta en enkel kurvet senterlinje (fra
- * stilken, rundt en myk "C"-sving, ned til en spiss tupp) og bygge en
- * ordentlig AVSMALNENDE kontur rundt den (bred ved stilken, smal mot
- * spissen, med normalvektorer langs kurven), så selve geometrien
- * garantert smalner av riktig i stedet for å gjettes frihånds – verifisert
- * ved faktisk å rendre den (Playwright-skjermbilde) i flere størrelser før
- * den ble satt inn her. Leselig som en tydelig krummet chili fra ca.
- * 28px og oppover (se størrelsene på bruksstedene – RecipeForm.tsx/
- * RecipeHero.tsx bruker bevisst IKKE den minste tenkelige ikonstørrelsen,
- * nettopp for at krummingen/avsmalningen skal være synlig).
+ * Tre runder før denne satt: (1) frihåndstegnet pod så ikke ut som chili
+ * i det hele tatt, (2) en tapret pod + tynn enkelt-strek-stilk manglet
+ * synlig stilk, (3) pod+stilk som to omtrent like store, avrundede
+ * klumper med en tynn hals mellom så ut som et beinknokkel ("ser ut som
+ * bein", Henrik, med et rent referanse-ikon ved siden av – et betalt
+ * lager-ikon som ikke kan kopieres inn direkte, men god å style etter).
  *
- * Stilken (andre "path" under) fikk samme behandling i en runde til:
- * Henrik på neste forsøk – "den mangler stilken" (en tynn enkelt-strek
- * leste ikke som en stilk i det hele tatt, den forsvant inn i podens egen
- * kontur). Løst som en egen liten avsmalnende form (samme
- * senterlinje+normalvektor-teknikk som podens kontur), med bunnen lagt
- * solid INNENFOR podens silhuett nær toppen – ikke bare inntil kanten –
- * så de to formene smelter sammen til ett rent omriss uten synlig
- * skjøt/hakk når de fylles med samme farge. (Et tidligere forsøk på å
- * sy stilk og pod sammen til ÉN sammenhengende kurve ga et hakk der de
- * møttes, fordi retningen/tangenten endrer seg brått der en stilk
- * faktisk sitter på en pepperfrukt – to overlappende former var enklere
- * og ga et renere resultat enn å tvinge fram glatt kurve-kontinuitet.) */
+ * Geometrien her er derfor bygget rundt ÉN tydelig asymmetri i stedet:
+ * en SMAL hals rett ved stilken (samme bredde som selve stilken, så
+ * overgangen blir en jevn avsmalning i stedet for en synlig skjøt), en
+ * buk som sveller ut en liten bit nedenfor halsen, og en spiss tupp.
+ * Samme senterlinje+normalvektor-teknikk som før (kurvet senterlinje,
+ * konturen bygget fra normalvektorer langs den, i stedet for frihånds-
+ * gjettede koordinater), men med en ikke-monoton radiusfunksjon (smal →
+ * bred → smal) for buken, fremfor den rett avtagende fra forrige runde.
+ * Verifisert med Playwright-skjermbilder i de faktiske bruksstørrelsene
+ * (28px i RecipeForm.tsx, 16px i RecipeHero.tsx), ikke bare i stort
+ * format, siden det er der Henrik faktisk vurderer den. */
 export function ChiliIcon({ filled, ...props }: IconProps & { filled?: boolean }) {
   return (
     <svg {...base} fill={filled ? "currentColor" : "none"} {...props}>
-      <path d="M15.44,8.35 L15.78,8.23 L16.08,8.13 L16.35,8.05 L16.6,8 L16.84,7.98 L17.07,7.99 L17.3,8.04 L17.52,8.15 L17.73,8.33 L17.92,8.57 L18.08,8.88 L18.19,9.25 L18.25,9.68 L18.25,10.16 L18.18,10.68 L18.04,11.24 L17.84,11.82 L17.56,12.43 L17.21,13.05 L16.78,13.68 L16.28,14.31 L15.71,14.94 L15.06,15.56 L14.34,16.18 L13.55,16.78 L12.68,17.36 L11.74,17.93 L10.73,18.46 L11.27,19.54 L12.33,18.98 L13.33,18.41 L14.26,17.82 L15.14,17.23 L15.95,16.62 L16.71,16 L17.4,15.38 L18.04,14.75 L18.63,14.11 L19.16,13.47 L19.64,12.83 L20.07,12.17 L20.44,11.51 L20.75,10.84 L21.01,10.16 L21.21,9.46 L21.34,8.75 L21.39,8.02 L21.36,7.28 L21.24,6.52 L21.01,5.77 L20.67,5.03 L20.22,4.32 L19.67,3.66 L19.02,3.05 L18.27,2.51 L17.45,2.04 L16.56,1.65 Z" />
-      <path d="M17.22,1.88 L16.9,1.68 L16.58,1.48 L16.27,1.3 L15.95,1.13 L15.63,0.97 L15.33,0.83 L15.02,0.7 L14.73,0.59 L14.45,0.5 L14.17,0.42 L13.63,1.38 L13.79,1.56 L13.95,1.76 L14.13,1.97 L14.31,2.19 L14.49,2.43 L14.67,2.67 L14.86,2.92 L15.04,3.18 L15.21,3.45 L15.38,3.72 Z" />
+      <path d="M15.13,5.47 L14.71,5.35 L14.27,5.21 L13.81,5.07 L13.32,4.94 L12.8,4.82 L12.25,4.75 L11.68,4.73 L11.1,4.77 L10.52,4.88 L9.96,5.08 L9.43,5.36 L8.94,5.72 L8.48,6.14 L8.06,6.61 L7.68,7.11 L7.33,7.66 L7.02,8.23 L6.76,8.84 L6.53,9.46 L6.34,10.11 L6.18,10.78 L6.06,11.46 L5.98,12.15 L5.93,12.86 L5.9,13.58 L5.91,14.31 L5.93,15.05 L5.99,15.81 L6.06,16.58 L6.16,17.37 L6.27,18.18 L6.4,19.02 L6.6,18.98 L6.49,18.15 L6.45,17.35 L6.48,16.57 L6.55,15.82 L6.69,15.11 L6.86,14.44 L7.08,13.8 L7.34,13.2 L7.63,12.65 L7.94,12.13 L8.27,11.66 L8.61,11.22 L8.97,10.83 L9.33,10.47 L9.69,10.14 L10.04,9.84 L10.39,9.57 L10.73,9.32 L11.06,9.09 L11.38,8.88 L11.67,8.67 L11.95,8.44 L12.2,8.19 L12.44,7.92 L12.69,7.64 L12.95,7.36 L13.23,7.1 L13.53,6.87 L13.85,6.68 L14.19,6.55 L14.53,6.5 L14.87,6.53 Z" />
+      <path d="M15.24,5.85 L15.45,5.45 L15.66,5.06 L15.87,4.68 L16.08,4.31 L16.28,3.95 L16.48,3.6 L16.67,3.26 L16.84,2.94 L17.01,2.62 L17.17,2.33 L17.31,2.04 L17.44,1.77 L16.76,1.43 L16.62,1.68 L16.47,1.94 L16.3,2.22 L16.12,2.52 L15.92,2.83 L15.72,3.15 L15.51,3.49 L15.29,3.84 L15.06,4.2 L14.83,4.58 L14.6,4.96 L14.36,5.35 Z" />
     </svg>
   );
 }
