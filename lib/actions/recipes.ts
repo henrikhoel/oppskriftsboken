@@ -1,13 +1,18 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
 import { ALL_MEAL_COURSE_ROLES, type MealCourseRole } from "@/lib/kitchen-intelligence";
 import { WEEKLY_MENU_STYLE_DEFINITIONS, type WeeklyMenuStyleId } from "@/lib/kitchen-intelligence/weekly-menu-styles";
 import { createClient } from "@/lib/supabase/server";
-import { getAllRecipeSlugsForCollisionCheck, getPublishedRecipeSummaries, getRecipesByIds } from "@/lib/data/recipes";
+import {
+  getAllRecipeSlugsForCollisionCheck,
+  getPublishedRecipeSummaries,
+  getRecipesByIds,
+  RECIPES_TAG,
+} from "@/lib/data/recipes";
 import { ensureUniqueSlug, slugify } from "@/lib/utils/slug";
 import { recipeInputSchema, type RecipeInput } from "@/lib/validation/recipe-schema";
 import {
@@ -197,6 +202,19 @@ function revalidateRecipePaths(slug?: string) {
   revalidatePath("/favoritter");
   revalidatePath("/admin");
   if (slug) revalidatePath(`/oppskrifter/${slug}`);
+  // RECIPES_TAG (02.10.2026, se filheaderen ved getPublishedRecipeRows i
+  // lib/data/recipes.ts) – revalidatePath alene treffer kun Next sin
+  // Full Route Cache for de EKSPLISITT listede sidene over. Den nye,
+  // DELTE unstable_cache()-cachen som getPublishedRecipeSummaries/
+  // getSearchableRecipes nå bruker (brukt av BLANT ANNET /ukesmeny og
+  // /sesong/*, ikke bare sidene listet over) trenger sin egen, eksplisitte
+  // updateTag for å bli fersk med det samme i stedet for å vente på
+  // RECIPES_REVALIDATE_SECONDS. updateTag (ikke revalidateTag) – alle
+  // kallerne av revalidateRecipePaths() er Server Actions, og updateTag gir
+  // "read-your-own-writes" (umiddelbar utløping, ingen cacheLife-profil
+  // nødvendig), se filheaderen ved getPublishedRecipeRows i
+  // lib/data/recipes.ts.
+  updateTag(RECIPES_TAG);
 }
 
 export async function createRecipe(rawInput: unknown): Promise<RecipeActionResult> {
@@ -1780,6 +1798,11 @@ export async function setWeeklyMenuExclusion(recipeId: string, excluded: boolean
     throw new Error(`Kunne ikke oppdatere ukesmeny-status: ${error.message}`);
   }
   revalidatePath("/admin/ukesmeny");
+  // RECIPES_TAG (02.10.2026) – weekly_menu_excluded er en del av
+  // RecipeSummary og brukt av /ukesmeny sin getSearchableRecipes, som nå er
+  // cachet på tvers av forespørsler. Se revalidateRecipePaths() sin
+  // kommentar lenger opp i filen for hele bakgrunnen.
+  updateTag(RECIPES_TAG);
 }
 
 /**
@@ -1800,6 +1823,8 @@ export async function setRecipeVegetarian(recipeId: string, isVegetarian: boolea
     throw new Error(`Kunne ikke oppdatere vegetar-status: ${error.message}`);
   }
   revalidatePath("/admin/ukesmeny");
+  // Se kommentaren i setWeeklyMenuExclusion over.
+  updateTag(RECIPES_TAG);
 }
 
 /**
@@ -1839,6 +1864,8 @@ export async function addRecipeToWeeklyMenuStyle(recipeId: string, styleId: Week
     throw new Error(`Kunne ikke legge til ukesmeny-stil: ${error.message}`);
   }
   revalidatePath("/admin/ukesmeny");
+  // Se kommentaren i setWeeklyMenuExclusion over.
+  updateTag(RECIPES_TAG);
 }
 
 export async function removeRecipeFromWeeklyMenuStyle(recipeId: string, styleId: WeeklyMenuStyleId): Promise<void> {
@@ -1863,6 +1890,8 @@ export async function removeRecipeFromWeeklyMenuStyle(recipeId: string, styleId:
     throw new Error(`Kunne ikke fjerne ukesmeny-stil: ${error.message}`);
   }
   revalidatePath("/admin/ukesmeny");
+  // Se kommentaren i setWeeklyMenuExclusion over.
+  updateTag(RECIPES_TAG);
 }
 
 /**

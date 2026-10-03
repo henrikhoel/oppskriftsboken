@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 import { createClient } from "@/lib/supabase/server";
 import { createStaticClient } from "@/lib/supabase/static";
@@ -22,53 +23,93 @@ async function getPublishedDemoRecipes(): Promise<Recipe[]> {
   return demoRecipes.filter((r) => r.isPublished);
 }
 
+// Delt cache-tag (02.10.2026, Supabase-varsel: "exceeded its usage quota" –
+// cached egress OG egress begge sprengt samtidig) – brukt av ALLE
+// Server Actions som endrer noe synlig i RecipeSummary/SearchableRecipe
+// (publiser, utvalg, humør, roller, ukesmeny-felter osv., se
+// revalidateRecipePaths() i lib/actions/recipes.ts) til å kalle
+// revalidateTag(RECIPES_TAG) og dermed invalidere akkurat denne cachen med
+// det samme, i stedet for å vente på REVALIDATE_SECONDS under.
+export const RECIPES_TAG = "recipes";
+// Sikkerhetsnett i tillegg til revalidateTag over – dekker ev. fremtidige
+// mutasjonsveier noen glemmer å tagge, uten at ferskheten blir for dårlig
+// om det skulle skje. 2 minutter er kort nok til at "nesten sanntid" fortsatt
+// stemmer for besøkende, men lenge nok til å fjerne det store flertallet av
+// gjentatte spørringer ved vanlig trafikk/sideoppdateringer.
+const RECIPES_REVALIDATE_SECONDS = 120;
+
+/**
+ * FELLES, CACHET råhenting av alle publiserte oppskrifter (02.10.2026, se
+ * RECIPES_TAG sin kommentar over for hele bakgrunnen – Supabase sin
+ * gratiskvote for egress/cached egress ble sprengt på kun 11 dager, drevet
+ * av at BÅDE getPublishedRecipeSummaries OG getSearchableRecipes under
+ * kjørte sin EGEN, identiske, UCACHEDE spørring mot ALLE publiserte
+ * oppskrifter (med full fremgangsmåte/ingredienser/tags) på HVER ENESTE
+ * sidevisning av forsiden/oppskrift-oversikten/ukesmenyen – uten
+ * gjenbruk på tvers av besøk i det hele tatt).
+ *
+ * To endringer fra den gamle, separate, ucachede versjonen av disse to
+ * funksjonene:
+ * 1. Én delt spørring i stedet for to identiske – getPublishedRecipeSummaries
+ *    og getSearchableRecipes trengte uansett nøyaktig samme rader, bare
+ *    mappet til to ulike formater (toSummary/toSearchable) helt til slutt.
+ * 2. unstable_cache() (ekte cache PÅ TVERS AV forespørsler/besøkende, til
+ *    forskjell fra react sin cache() lenger ned, som kun memoiserer
+ *    INNENFOR ett enkelt render-pass – løste "tre identiske kall på samme
+ *    sidevisning"-problemet den gang, 10.09.2026, men aldri "samme spørring
+ *    på hver ny sidevisning"-problemet).
+ *
+ * Bruker BEVISST den cookie-frie createStaticClient() (ikke createClient())
+ * – unstable_cache() tillater ikke at den cachede funksjonen leser
+ * cookies()/headers() i det hele tatt (Next.js kaster da en feil), og RLS-
+ * policyen "recipes_select_published_or_admin" gir uansett enhver klient,
+ * innlogget eller ikke, leserett på PUBLISERTE oppskrifter – helt samme
+ * resonnement som getRecipeBySlug (det offentlige, includeUnpublished:
+ * false-tilfellet) og getAllCategories i lib/data/categories.ts allerede
+ * bruker denne klienten for.
+ */
+const getPublishedRecipeRows = unstable_cache(
+  async (): Promise<Recipe[]> => {
+    if (!isSupabaseConfigured) {
+      return getPublishedDemoRecipes();
+    }
+
+    const supabase = createStaticClient();
+    const { data, error } = await supabase
+      .from("recipes")
+      .select(RECIPE_SELECT)
+      .eq("is_published", true)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Kunne ikke hente oppskrifter:", error.message);
+      return [];
+    }
+
+    return ((data ?? []) as unknown as RawRecipeRow[]).map(mapRecipeRow);
+  },
+  ["published-recipe-rows"],
+  { tags: [RECIPES_TAG], revalidate: RECIPES_REVALIDATE_SECONDS },
+);
+
 // react sin cache() (10.09.2026, samme "treig navigasjon"-tilbakemelding som
-// proxy.ts sin filheader) – memoiserer PER FORESPØRSEL (ikke på tvers av
-// besøkende/forespørsler, kun innenfor samme render-pass). Forsiden kaller
-// getFeaturedRecipes/getNewestRecipes/getAdminFavoriteRecipes parallelt via
-// Promise.all, og alle tre kalte tidligere denne funksjonen på nytt hver for
-// seg – tre uavhengige, identiske Supabase-spørringer for samme data på hver
-// eneste forsidevisning. Med cache() gjenbruker de to siste kallene resultatet
-// fra det første i stedet for å spørre databasen på nytt.
+// proxy.ts sin filheader) – memoiserer PER FORESPØRSEL OVENPÅ
+// unstable_cache() over, slik at flere kall til nøyaktig denne funksjonen
+// INNENFOR samme render-pass (forsiden kaller getFeaturedRecipes/
+// getNewestRecipes/getAdminFavoriteRecipes parallelt via Promise.all, som
+// alle går via denne) ikke trenger tre separate runder gjennom
+// unstable_cache() sin egen oppslagslogikk heller.
 export const getPublishedRecipeSummaries = cache(async (): Promise<RecipeSummary[]> => {
-  if (!isSupabaseConfigured) {
-    return (await getPublishedDemoRecipes()).map(toSummary);
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("recipes")
-    .select(RECIPE_SELECT)
-    .eq("is_published", true)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Kunne ikke hente oppskrifter:", error.message);
-    return [];
-  }
-
-  return ((data ?? []) as unknown as RawRecipeRow[]).map((row) => toSummary(mapRecipeRow(row)));
+  const recipes = await getPublishedRecipeRows();
+  return recipes.map(toSummary);
 });
 
-/** Full søkbar liste (inkl. ingrediensnavn) over publiserte oppskrifter. */
+/** Full søkbar liste (inkl. ingrediensnavn) over publiserte oppskrifter. Deler
+ * samme cachede råhenting som getPublishedRecipeSummaries over, se
+ * getPublishedRecipeRows sin filheader. */
 export async function getSearchableRecipes(): Promise<SearchableRecipe[]> {
-  if (!isSupabaseConfigured) {
-    return (await getPublishedDemoRecipes()).map(toSearchable);
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("recipes")
-    .select(RECIPE_SELECT)
-    .eq("is_published", true)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Kunne ikke hente søkbare oppskrifter:", error.message);
-    return [];
-  }
-
-  return ((data ?? []) as unknown as RawRecipeRow[]).map((row) => toSearchable(mapRecipeRow(row)));
+  const recipes = await getPublishedRecipeRows();
+  return recipes.map(toSearchable);
 }
 
 export async function getFeaturedRecipes(limit = 3): Promise<RecipeSummary[]> {

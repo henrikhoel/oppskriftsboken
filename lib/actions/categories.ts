@@ -1,10 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { categoryInputSchema } from "@/lib/validation/recipe-schema";
 import { translateCategoryName } from "@/lib/actions/ai";
+import { RECIPES_TAG } from "@/lib/data/recipes";
 
 export interface CategoryActionResult {
   success: boolean;
@@ -43,6 +44,12 @@ export async function createCategory(input: {
   revalidatePath("/admin/kategorier");
   revalidatePath("/oppskrifter");
   revalidatePath("/");
+  // RECIPES_TAG (02.10.2026) – hver oppskrifts innbakte category-objekt
+  // (navn/name_en) er en del av den cachede RecipeSummary/SearchableRecipe,
+  // se filheaderen ved getPublishedRecipeRows i lib/data/recipes.ts.
+  // updateTag (ikke revalidateTag) – kalt fra en Server Action, se
+  // revalidateRecipePaths() i lib/actions/recipes.ts for samme valg.
+  updateTag(RECIPES_TAG);
   return { success: true };
 }
 
@@ -73,6 +80,12 @@ export async function renameCategory(id: string, name: string): Promise<Category
   revalidatePath("/admin/kategorier");
   revalidatePath("/oppskrifter");
   revalidatePath("/");
+  // RECIPES_TAG (02.10.2026) – hver oppskrifts innbakte category-objekt
+  // (navn/name_en) er en del av den cachede RecipeSummary/SearchableRecipe,
+  // se filheaderen ved getPublishedRecipeRows i lib/data/recipes.ts.
+  // updateTag (ikke revalidateTag) – kalt fra en Server Action, se
+  // revalidateRecipePaths() i lib/actions/recipes.ts for samme valg.
+  updateTag(RECIPES_TAG);
   return { success: true };
 }
 
@@ -128,6 +141,12 @@ export async function saveEnglishCategoryName(
   revalidatePath("/admin/kategorier");
   revalidatePath("/oppskrifter");
   revalidatePath("/");
+  // RECIPES_TAG (02.10.2026) – hver oppskrifts innbakte category-objekt
+  // (navn/name_en) er en del av den cachede RecipeSummary/SearchableRecipe,
+  // se filheaderen ved getPublishedRecipeRows i lib/data/recipes.ts.
+  // updateTag (ikke revalidateTag) – kalt fra en Server Action, se
+  // revalidateRecipePaths() i lib/actions/recipes.ts for samme valg.
+  updateTag(RECIPES_TAG);
   return { success: true, nameEn };
 }
 
@@ -144,5 +163,11 @@ export async function deleteCategory(id: string): Promise<CategoryActionResult> 
   revalidatePath("/admin/kategorier");
   revalidatePath("/oppskrifter");
   revalidatePath("/");
+  // RECIPES_TAG (02.10.2026) – hver oppskrifts innbakte category-objekt
+  // (navn/name_en) er en del av den cachede RecipeSummary/SearchableRecipe,
+  // se filheaderen ved getPublishedRecipeRows i lib/data/recipes.ts.
+  // updateTag (ikke revalidateTag) – kalt fra en Server Action, se
+  // revalidateRecipePaths() i lib/actions/recipes.ts for samme valg.
+  updateTag(RECIPES_TAG);
   return { success: true };
 }
