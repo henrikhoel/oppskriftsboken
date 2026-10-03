@@ -2,6 +2,7 @@
 
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { compressRecipeImage } from "@/lib/utils/image-processing";
 
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "recipe-images";
 // 10 MB (hevet fra 8 MB, 29.09.2026, Henrik) – selve filen sendes som
@@ -48,12 +49,25 @@ export async function uploadRecipeImage(formData: FormData): Promise<UploadResul
     return { success: false, error: "Bildet er for stort (maks 10 MB)." };
   }
 
-  const supabase = await createClient();
-  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${crypto.randomUUID()}.${extension}`;
+  // Komprimering (03.10.2026) – se lib/utils/image-processing.ts sin
+  // filheader for hele bakgrunnen (Henrik: "hvert bilde er på 8,5 mb ca",
+  // ofte PNG). MAX_BYTES-sjekken over er bevisst mot ORIGINALEN (admin skal
+  // fortsatt kunne laste opp rett fra telefon/kamera uten å måtte
+  // komprimere selv først) – selve filen som havner i Supabase er alltid
+  // det komprimerte JPEG-resultatet, typisk noen hundre KB.
+  let compressed;
+  try {
+    const original = Buffer.from(await file.arrayBuffer());
+    compressed = await compressRecipeImage(original);
+  } catch {
+    return { success: false, error: "Kunne ikke lese bildefilen. Prøv et annet bilde." };
+  }
 
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type,
+  const supabase = await createClient();
+  const path = `${crypto.randomUUID()}.${compressed.extension}`;
+
+  const { error } = await supabase.storage.from(BUCKET).upload(path, compressed.buffer, {
+    contentType: compressed.contentType,
     upsert: false,
     cacheControl: STORAGE_CACHE_CONTROL,
   });
@@ -70,24 +84,30 @@ export async function uploadRecipeImage(formData: FormData): Promise<UploadResul
  * Som uploadRecipeImage, men tar imot rå bytes i stedet for en File – brukt
  * til å laste opp et AI-generert bilde (se generateRecipeHeroImage i
  * lib/actions/ai.ts), som kommer som base64 fra OpenAI sitt API i stedet
- * for fra en filvelger i nettleseren.
+ * for fra en filvelger i nettleseren. `contentType`/`extension`-parameterne
+ * som fantes her FØR 03.10.2026 er fjernet – siden alt uansett kjøres
+ * gjennom compressRecipeImage (se uploadRecipeImage sin kommentar) er
+ * resultatet alltid JPEG, uavhengig av hva OpenAI faktisk returnerte.
  */
-export async function uploadGeneratedRecipeImage(
-  bytes: Buffer,
-  contentType: string,
-  extension: string,
-): Promise<UploadResult> {
+export async function uploadGeneratedRecipeImage(bytes: Buffer): Promise<UploadResult> {
   await requireAdmin();
 
   if (bytes.byteLength > MAX_BYTES) {
     return { success: false, error: "Det genererte bildet er for stort." };
   }
 
-  const supabase = await createClient();
-  const path = `ai-${crypto.randomUUID()}.${extension}`;
+  let compressed;
+  try {
+    compressed = await compressRecipeImage(bytes);
+  } catch {
+    return { success: false, error: "Kunne ikke behandle det genererte bildet." };
+  }
 
-  const { error } = await supabase.storage.from(BUCKET).upload(path, bytes, {
-    contentType,
+  const supabase = await createClient();
+  const path = `ai-${crypto.randomUUID()}.${compressed.extension}`;
+
+  const { error } = await supabase.storage.from(BUCKET).upload(path, compressed.buffer, {
+    contentType: compressed.contentType,
     upsert: false,
     cacheControl: STORAGE_CACHE_CONTROL,
   });

@@ -294,7 +294,7 @@ export async function generateRecipeHeroImage(
   try {
     const base64Png = await generateDishImageBase64(recipe);
     const bytes = Buffer.from(base64Png, "base64");
-    const uploadResult = await uploadGeneratedRecipeImage(bytes, "image/png", "png");
+    const uploadResult = await uploadGeneratedRecipeImage(bytes);
 
     if (!uploadResult.success || !uploadResult.url) {
       return { success: false, error: uploadResult.error ?? "Opplasting feilet." };

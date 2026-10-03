@@ -32,3 +32,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# lokale sikkerhetskopier fra scripts/backfill-compress-images.ts
+scripts/backups/
