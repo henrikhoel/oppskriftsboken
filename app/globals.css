@@ -112,6 +112,29 @@
      * ScrollDownHint.tsx) – uendret sluttresultat for DEM, uten å ta
      * sideskifter med på kjøpet.
      */
+    /* overflow-x: hidden (04.10.2026) – Henrik: "hvorfor er 'logg ut'
+     * knappen utenfor oppe til høyre? kan scrolle til siden nå, det vil
+     * jeg ikke". Årsak: flere seksjoner (RecipeHero.tsx sitt bilde fra
+     * xl/1280px, MealBuilder.tsx sin "Gjør det til en kveld"-flate) bruker
+     * det klassiske "full-bleed"-trikset `w-screen` + `-mx-[50vw]` for å
+     * strekke seg til hele viewportbredden. `100vw` (det `w-screen`
+     * tilsvarer) regner IKKE med at en vertikal scrollbar spiser noe av
+     * den faktiske, synlige bredden – på et oppsett med synlig
+     * scrollbar (vanlig på Windows/Linux-nettlesere, og på macOS når
+     * "Alltid vis scrollbar" er valgt) blir disse seksjonene dermed noen
+     * piksler BREDERE enn selve vinduet, som skaper en helt ny, utilsiktet
+     * horisontal scrollbar for HELE siden. Siden headeren (`sticky
+     * top-0`, se Header.tsx) ligger i vanlig dokumentflyt og ikke er
+     * `position: fixed` til selve viewportet, følger den med når siden kan
+     * scrolles sidelengs – "Logg ut"-ikonet lengst til høyre endte da rett
+     * utenfor synlig område til man scrollet. `overflow-x: hidden` her
+     * klipper bort akkurat denne lille, utilsiktede overflyten på
+     * sideNIVÅ (ikke inni enkeltkomponenter) uten å røre selve
+     * full-bleed-seksjonene eller headerens egen plassering – enkleste,
+     * mest robuste fiks for nettopp denne klassen av bug, fremfor å måtte
+     * endre `w-screen`/`-mx-[50vw]` i hver enkelt fil.
+     */
+    overflow-x: hidden;
   }
 
   body {
@@ -119,6 +142,11 @@
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    /* Samme `overflow-x: hidden` speilet her, se html over – noen
+     * nettlesere (særlig eldre WebKit/mobil Safari) respekterer
+     * horisontal-overflow-klipping mer pålitelig når den også står på
+     * body, ikke bare html. Helt ufarlig å ha begge steder. */
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
