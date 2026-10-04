@@ -114,25 +114,27 @@
      */
     /* overflow-x: hidden (04.10.2026) – Henrik: "hvorfor er 'logg ut'
      * knappen utenfor oppe til høyre? kan scrolle til siden nå, det vil
-     * jeg ikke". Årsak: flere seksjoner (RecipeHero.tsx sitt bilde fra
-     * xl/1280px, MealBuilder.tsx sin "Gjør det til en kveld"-flate) bruker
-     * det klassiske "full-bleed"-trikset `w-screen` + `-mx-[50vw]` for å
-     * strekke seg til hele viewportbredden. `100vw` (det `w-screen`
-     * tilsvarer) regner IKKE med at en vertikal scrollbar spiser noe av
-     * den faktiske, synlige bredden – på et oppsett med synlig
-     * scrollbar (vanlig på Windows/Linux-nettlesere, og på macOS når
-     * "Alltid vis scrollbar" er valgt) blir disse seksjonene dermed noen
-     * piksler BREDERE enn selve vinduet, som skaper en helt ny, utilsiktet
-     * horisontal scrollbar for HELE siden. Siden headeren (`sticky
-     * top-0`, se Header.tsx) ligger i vanlig dokumentflyt og ikke er
-     * `position: fixed` til selve viewportet, følger den med når siden kan
-     * scrolles sidelengs – "Logg ut"-ikonet lengst til høyre endte da rett
-     * utenfor synlig område til man scrollet. `overflow-x: hidden` her
-     * klipper bort akkurat denne lille, utilsiktede overflyten på
-     * sideNIVÅ (ikke inni enkeltkomponenter) uten å røre selve
-     * full-bleed-seksjonene eller headerens egen plassering – enkleste,
-     * mest robuste fiks for nettopp denne klassen av bug, fremfor å måtte
-     * endre `w-screen`/`-mx-[50vw]` i hver enkelt fil.
+     * jeg ikke". OPPDATERT samme dag: den første versjonen av denne
+     * kommentaren pekte kun på full-bleed-seksjonenes `w-screen`/`-mx-
+     * [50vw]`-triks (RecipeHero.tsx, MealBuilder.tsx) som årsak – reelt
+     * nok for selve den sidebrede horisontale scrollbaren, men IKKE hele
+     * forklaringen på hvorfor "Logg ut"-ikonet spesifikt manglet/lå
+     * utenfor: den EGENTLIGE, viktigste årsaken til akkurat DET viste seg
+     * å være at header-raden selv (components/layout/Header.tsx) var låst
+     * til max-w-7xl (1280px) – samme bredde som sideinnholdets
+     * lesekolonne, men header-radens EGET innhold (logo + søkefelt + alle
+     * nav-lenkene + handleliste/"+"/logg ut) trenger i praksis ca.
+     * 1400–1450px, så ikonene lengst til høyre ble alltid presset utenfor
+     * denne 1280px-boksen – på ENHVER skjermbredde, selv en kjempebred
+     * skjerm, siden max-w er et fast tak. Rettet i Header.tsx (max-w-7xl →
+     * max-w-[1600px], se kommentaren der for hele utregningen, bekreftet
+     * med DevTools på flere skjermbredder). `overflow-x: hidden` her
+     * står fortsatt igjen som et generelt sikkerhetsnett for selve
+     * full-bleed-triksets scrollbar-bredde-avvik (100vw regner ikke med
+     * at en synlig vertikal scrollbar spiser noe av den faktiske, synlige
+     * bredden) – uten denne Header.tsx-fiksen ville sikkerhetsnettet
+     * alene bare ha SKJULT symptomet (klippet bort ikonet) i stedet for å
+     * løse det, som var akkurat det som skjedde her først.
      */
     overflow-x: hidden;
   }

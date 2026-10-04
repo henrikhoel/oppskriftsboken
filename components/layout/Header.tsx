@@ -79,7 +79,29 @@ export async function Header() {
       id="site-header"
       className="sticky top-0 z-30 border-b border-line bg-cream/95 backdrop-blur-none sm:backdrop-blur"
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
+      {/* max-w-[1600px] (04.10.2026, var max-w-7xl/1280px) – Henrik: "hvorfor
+          er 'logg ut' knappen utenfor oppe til høyre? kan scrolle til siden
+          nå, det vil jeg ikke". Den EGENTLIGE årsaken (ikke bare det
+          påfølgende symptomet, se overflow-x-kommentaren i globals.css):
+          denne raden (logo + søkefelt + alle nav-lenkene + handleliste/"+"
+          for admin/logg ut) trenger i praksis ca. 1400–1450px for å få plass
+          uten at noe må klemmes – men var låst til SAMME 1280px-bredde som
+          selve sideinnholdets lesekolonne (max-w-5xl/xl:max-w-[1280px] i
+          f.eks. app/oppskrifter/[slug]/page.tsx). Den bredden passer for en
+          tekstkolonne, men var aldri egentlig dimensjonert for denne radens
+          eget innhold – og siden `max-w` er et TAK, ikke en prosentandel,
+          ble raden FAST 1280px bred uansett hvor stor selve skjermen var,
+          selv på en kjempebred skjerm. Ikonene lengst til høyre (handleliste/
+          "+"/logg ut) ble dermed alltid presset utenfor denne 1280px-boksen
+          – usynlig/nåbart-kun-ved-scroll før `overflow-x: hidden` ble lagt
+          til i globals.css, deretter rett og slett usynlig. 1600px gir nok
+          slakk til at hele raden får plass uten klemming på alle vanlige
+          skjermbredder (bekreftet med DevTools på 1366/1512/1800px, inkl.
+          simulert admin-ikon) – kun på uvanlig smale vinduer (under ca.
+          1450px) vil det fortsatt kunne klemme noe, og da fanges det opp av
+          samme `overflow-x: hidden`-sikkerhetsnett i stedet for å skape en
+          sidebred scrollbar. */}
+      <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
         <div className="flex shrink-0 items-center gap-1.5">
           <Link href="/" className="flex items-center gap-2.5 font-serif text-xl tracking-tight text-ink">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-clay text-cream">
