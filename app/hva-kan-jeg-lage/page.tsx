@@ -30,7 +30,7 @@ export default async function PantryPage() {
   const [lang, user] = await Promise.all([getLang(), getCurrentUserFast()]);
 
   return (
-    <div className="relative">
+    <div className="relative bg-black">
       {/* (04.10.2026) Stemningsbilde av et åpent kjøleskap – Henrik sendte
           eget foto og ba om at det skulle brukes her, og presiserte
           etterpå at han mente SAMME teknikk som /ukesmeny (se
@@ -43,7 +43,16 @@ export default async function PantryPage() {
           opplyste kjøleskapet til høyre) gjør at object-cover uten egen
           object-position allerede viser begge deler fint i et bredt,
           kort utsnitt – ingen av de problemene weekly-menu.jpg trengte
-          en justert object-position for. */}
+          en justert object-position for.
+
+          `bg-black` på selve ytre wrapperen (04.10.2026, Henrik:
+          "bakgrunnen bak rettene må være helt svart") – resten av siden
+          arver ellers --color-cream fra <body> (#0b0b0a, "nesten sort",
+          se WeeklyMenuPage sin filheader), som er en anelse lysere/varmere
+          enn ekte sort. Oppskriftsresultatene («DETTE KAN DU LAGE») skal
+          lese som et rent, sort bakteppe bak oppskriftskortene, derfor
+          ekte #000 (bg-black) spesifikt på denne siden i stedet for den
+          vanlige site-wide cream-tonen. */}
       <div
         className="absolute inset-x-0 top-0 -z-10 h-[520px] overflow-hidden sm:h-[620px] lg:h-[760px]"
         aria-hidden="true"
@@ -56,11 +65,23 @@ export default async function PantryPage() {
           sizes="100vw"
           className="object-cover"
         />
-        {/* Samme nedtoning-mot-bakgrunn-teknikk som /ukesmeny – uten denne
-            får billedboksen en hard kant der den faste høyden stopper. */}
+        {/* (04.10.2026, justert – Henrik: "det må være en gradient nederst
+            på bildet også nå man får opp retter") Nedtoning mot bunnen,
+            samme prinsipp som /ukesmeny, men strukket til å bli HELT sort
+            godt før boksens egen bunnkant (65 % i stedet for 100 %): med
+            input/chips/CTA/admin-raden over gir ikke alle skjermbredder
+            nok innhold til at man rekker å scrolle forbi hele den faste
+            bildehøyden før resultatgridet dukker opp – uten denne
+            marginen var bildet fortsatt synlig/lyst helt ned mot rettene.
+            Mot #000 (ikke lenger var(--color-cream)) for å matche den nye
+            bg-black-bakgrunnen over, så det ikke oppstår en synlig skjøt
+            mellom gradienten og bakgrunnen under. */}
         <div
           className="absolute inset-0"
-          style={{ background: "linear-gradient(to bottom, transparent 45%, var(--color-cream) 100%)" }}
+          style={{
+            background:
+              "linear-gradient(to bottom, transparent 10%, rgba(0,0,0,0.55) 40%, #000 65%, #000 100%)",
+          }}
         />
         {/* (04.10.2026) Lang, mørk nedtoning fra venstre – Henrik: "du kan
             gjerne legge på en ganske lang svart gradient fra venstre".
