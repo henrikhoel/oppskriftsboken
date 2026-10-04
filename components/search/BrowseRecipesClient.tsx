@@ -9,7 +9,7 @@ import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods"
 import { FilterPanel } from "@/components/search/FilterPanel";
 import { BrowseRecipeGrid } from "@/components/search/BrowseRecipeGrid";
 import { ShuffleOrderButton } from "@/components/admin/ShuffleOrderButton";
-import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/icons";
+import { ChevronLeftIcon, ChevronRightIcon, FilterIcon } from "@/components/ui/icons";
 import { useAccountFavorites } from "@/lib/hooks/useAccountFavorites";
 import { recipeCountLabel, t, type Lang } from "@/lib/i18n";
 import { clsx } from "clsx";
@@ -95,6 +95,37 @@ export function BrowseRecipesClient({
     [withAccountFavorites, filters],
   );
 
+  // SKJULT FILTERPANEL SOM STANDARD (04.10.2026, Henrik: "Den permanente
+  // filterboksen til venstre skal være skjult som standard [...] Når
+  // brukeren trykker 'Filtrer', åpnes det eksisterende filterpanelet fra
+  // venstre [...] Ikke bruk modal. Panelet skal åpnes som en del av
+  // layouten"). `filterOpen` styrer BÅDE om <aside> rendres i det hele
+  // tatt OG om selve grid-template-kolonnene på lg+ settes opp med en
+  // 280px-bredde til panelet (se JSX-en under) – ingen <aside> i det hele
+  // tatt når lukket betyr at den resterende <div>-en (selve
+  // oppskriftsgridet) automatisk får hele bredden tilbake, helt uten en
+  // egen "lukket bredde"-gren å holde synkronisert. INGEN endring av selve
+  // FilterPanel.tsx – kun om/hvor den vises, akkurat som bedt om ("Ikke
+  // redesign filterpanelet").
+  //
+  // `activeFilterCount` telles KUN fra feltene FilterPanel.tsx selv
+  // styrer (kategori/tid/vanskelighetsgrad/humør/favoritter/ingrediens) –
+  // IKKE filters.query, som uansett alltid er synlig som skrevet tekst i
+  // søkefeltet i toppmenyen/mobil-søkefeltet, aldri gjemt inni det
+  // kollapsede panelet. Vises som "Filtrer · N" ved siden av selve
+  // knappen når N > 0, se JSX under.
+  const [filterOpen, setFilterOpen] = useState(false);
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.categorySlug) count++;
+    if (filters.difficulty) count++;
+    if (filters.maxTotalTime) count++;
+    if (filters.mood) count++;
+    if (filters.favoritesOnly) count++;
+    if (filters.ingredient) count++;
+    return count;
+  }, [filters]);
+
   // PAGINERING (04.10.2026, se app/oppskrifter/page.tsx og
   // BrowseRecipeGrid.tsx sine filheadere for resten av redesignet). `page`
   // er 0-indeksert internt, kun +1 i selve visningen av "Side X av Y".
@@ -143,23 +174,56 @@ export function BrowseRecipesClient({
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside>
-        <FilterPanel
-          categories={categories}
-          filters={filters}
-          onChange={setFilters}
-          canFavorite={isAdmin || isLoggedIn}
-          lang={lang}
-        />
-      </aside>
+    <div className={clsx("grid gap-8", filterOpen && "lg:grid-cols-[280px_minmax(0,1fr)]")}>
+      {filterOpen && (
+        <aside>
+          {/* Tydelig lukk-kontroll INNE i panelet (04.10.2026, Henrik: "Ha
+              en tydelig pil/kontroll for å lukke panelet igjen") – i
+              tillegg til at selve "Filtrer"-knappen under gridet også
+              lukker panelet igjen ved et nytt trykk (se pilen som roterer
+              der). Egen rad HER, over selve FilterPanel.tsx, i stedet for
+              inni den filen – rører ikke FilterPanel.tsx sitt eget
+              innhold. */}
+          <div className="mb-3 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setFilterOpen(false)}
+              className="flex items-center gap-1 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+            >
+              <ChevronLeftIcon className="h-4 w-4" />
+              {t(lang, "recipesPage.filterClose")}
+            </button>
+          </div>
+          <FilterPanel
+            categories={categories}
+            filters={filters}
+            onChange={setFilters}
+            canFavorite={isAdmin || isLoggedIn}
+            lang={lang}
+          />
+        </aside>
+      )}
       <div>
         <div ref={gridTopRef} className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-ink-faint">{recipeCountLabel(lang, filtered.length)}</p>
-          {/* Kun admin – se ShuffleOrderButton.tsx sin filheader. Plassert her
-              (ikke i FilterPanel) siden den styrer selve RESULTATREKKEFØLGEN,
-              ikke et filter. */}
-          {isAdmin && <ShuffleOrderButton />}
+          <div className="flex items-center gap-3">
+            {/* Kun admin – se ShuffleOrderButton.tsx sin filheader. Plassert
+                her (ikke i FilterPanel) siden den styrer selve
+                RESULTATREKKEFØLGEN, ikke et filter. */}
+            {isAdmin && <ShuffleOrderButton />}
+            <button
+              type="button"
+              onClick={() => setFilterOpen((v) => !v)}
+              aria-expanded={filterOpen}
+              className="flex items-center gap-1.5 rounded-full border border-line-strong bg-paper px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
+            >
+              <FilterIcon className="h-4 w-4" />
+              {activeFilterCount > 0
+                ? t(lang, "recipesPage.filterToggleWithCount", { count: activeFilterCount })
+                : t(lang, "recipesPage.filterToggle")}
+              <ChevronRightIcon className={clsx("h-4 w-4 transition-transform", filterOpen && "rotate-180")} />
+            </button>
+          </div>
         </div>
         <div className={clsx("transition-opacity duration-300", visible ? "opacity-100" : "opacity-0")}>
           <BrowseRecipeGrid recipes={visibleRecipes} isAdmin={isAdmin} isLoggedIn={isLoggedIn} lang={lang} />

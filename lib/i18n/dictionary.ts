@@ -342,6 +342,17 @@ const DICT = {
   "recipesPage.paginationPrevious": { no: "Tilbake", en: "Back" },
   "recipesPage.paginationNext": { no: "Neste", en: "Next" },
   "recipesPage.paginationPageOf": { no: "Side {page} av {total}", en: "Page {page} of {total}" },
+  // Kollapsbart filterpanel (04.10.2026, Henrik: "Den permanente
+  // filterboksen til venstre skal være skjult som standard [...] Over
+  // oppskriftsgridet skal det være en enkel kontroll: '292 oppskrifter'
+  // 'Filtrer ›'") – se filterOpen/activeFilterCount i
+  // BrowseRecipesClient.tsx. "Filtrer · {count}" vises i stedet for ren
+  // "Filtrer" når ett eller flere filtre i FilterPanel.tsx er aktive MENS
+  // panelet er lukket, slik at man ikke mister av synet at et filter
+  // faktisk er på.
+  "recipesPage.filterToggle": { no: "Filtrer", en: "Filter" },
+  "recipesPage.filterToggleWithCount": { no: "Filtrer · {count}", en: "Filter · {count}" },
+  "recipesPage.filterClose": { no: "Lukk filter", en: "Close filter" },
 
   "favoritesPage.title": { no: "Favoritter", en: "Favorites" },
   "favoritesPage.metaDescription": {
