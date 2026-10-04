@@ -30,53 +30,73 @@ export default async function PantryPage() {
   const [lang, user] = await Promise.all([getLang(), getCurrentUserFast()]);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-      {/* (04.10.2026, redesign – Henrik: "gjør siden betydelig renere og mer
-          i tråd med det nye CONVITE-uttrykket") Ytre container uendret
-          bredde (max-w-5xl) – resultatgridet i PantryMatchView.tsx trenger
-          den fulle bredden for å få plass til opptil 4 kolonner. Intro/
-          undertittel/inputområdet begrenses i stedet til en smalere,
-          editorial lesebredde INNENFRA (max-w-prose her, max-w-2xl i
-          PantryMatchView.tsx – se filheaderen der), slik at siden fortsatt
-          føles som ett rolig, smalt løp (intro → input → chips → CTA) selv
-          om selve siden har plass til et bredt resultatgrid under. */}
-      {/* (04.10.2026) Stemningsbilde av et åpent kjøleskap, lagt til etter
-          selve redesignet – Henrik sendte eget foto og ba om at det skulle
-          brukes her. Rent dekorativt (alt=""), kontained i et rounded-card-
-          "bannerbilde" rett over H1 – IKKE full-bleed som forsidens hero
-          (se app/page.tsx): denne siden er en innlogget verktøyside midt i
-          et smalt editorial-løp, ikke en landingsside, så et stort
-          skjermfyllende bilde med tekst over ville konkurrert med
-          intro/input rett under i stedet for å innlede dem rolig. */}
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-card bg-cream-dark sm:aspect-[21/9]">
+    <div className="relative">
+      {/* (04.10.2026) Stemningsbilde av et åpent kjøleskap – Henrik sendte
+          eget foto og ba om at det skulle brukes her, og presiserte
+          etterpå at han mente SAMME teknikk som /ukesmeny (se
+          WeeklyMenuPage sin filheader for hele bakgrunnen/historikken der):
+          et fast-høyt bakgrunnsbilde øverst i selve DOKUMENTET (ikke
+          `fixed`/viewport-pinnet – ruller normalt ut av syne), med
+          introteksten liggende direkte oppå i en smal kolonne, i stedet
+          for et avgrenset "kort" under tittelen slik første forsøk gjorde
+          det. Bildets komposisjon (mørkt/tomt ca. 2/3 til venstre, det
+          opplyste kjøleskapet til høyre) gjør at object-cover uten egen
+          object-position allerede viser begge deler fint i et bredt,
+          kort utsnitt – ingen av de problemene weekly-menu.jpg trengte
+          en justert object-position for. */}
+      <div
+        className="absolute inset-x-0 top-0 -z-10 h-[520px] overflow-hidden sm:h-[620px] lg:h-[760px]"
+        aria-hidden="true"
+      >
         <Image
           src="/images/pantry-hero.jpg"
           alt=""
           fill
           priority
-          sizes="(min-width: 1024px) 896px, 100vw"
+          sizes="100vw"
           className="object-cover"
         />
+        {/* Samme nedtoning-mot-bakgrunn-teknikk som /ukesmeny – uten denne
+            får billedboksen en hard kant der den faste høyden stopper. */}
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(to bottom, transparent 45%, var(--color-cream) 100%)" }}
+        />
       </div>
-      <h1 className="mt-8 font-serif text-3xl text-ink sm:text-4xl">{t(lang, "pantryPage.title")}</h1>
-      {/* Tydelig editorial undertittel, egen linje – ikke en del av H1,
-          ikke en del av ingressen under. */}
-      <p className="mt-3 max-w-prose text-balance font-serif text-xl text-ink sm:text-2xl">
-        {t(lang, "pantryPage.subtitle")}
-      </p>
-      <p className="mt-3 max-w-prose text-ink-soft">{t(lang, "pantryPage.intro")}</p>
-      {/* (27.09.2026) "I kjøleskapet" er kontoeksklusiv – se
-          favoritter/page.tsx for samme resonnement. */}
-      <div className="mt-10">
-        {user ? (
-          <PantryMatchView lang={lang} isAdmin={Boolean(user?.isAdmin)} />
-        ) : (
-          <LockedPanel
-            message={t(lang, "featureLocked.pantryMessage")}
-            ctaLabel={t(lang, "featureLocked.cta")}
-            nextPath="/hva-kan-jeg-lage"
-          />
-        )}
+
+      <div className="relative z-10 mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        {/* (04.10.2026, redesign – Henrik: "gjør siden betydelig renere og
+            mer i tråd med det nye CONVITE-uttrykket") Ytre container
+            uendret bredde (max-w-5xl) – resultatgridet i
+            PantryMatchView.tsx trenger den fulle bredden for å få plass
+            til opptil 4 kolonner. Intro/undertittel/inputområdet
+            begrenses i stedet til en smalere, editorial lesebredde
+            INNENFRA (max-w-xl her, max-w-2xl i PantryMatchView.tsx – se
+            filheaderen der), slik at siden fortsatt føles som ett rolig,
+            smalt løp (intro → input → chips → CTA) selv om selve siden
+            har plass til et bredt resultatgrid under. */}
+        <div className="max-w-xl">
+          <h1 className="font-serif text-3xl text-ink sm:text-4xl">{t(lang, "pantryPage.title")}</h1>
+          {/* Tydelig editorial undertittel, egen linje – ikke en del av
+              H1, ikke en del av ingressen under. */}
+          <p className="mt-3 text-balance font-serif text-xl text-ink sm:text-2xl">
+            {t(lang, "pantryPage.subtitle")}
+          </p>
+          <p className="mt-3 text-ink-soft">{t(lang, "pantryPage.intro")}</p>
+        </div>
+        {/* (27.09.2026) "I kjøleskapet" er kontoeksklusiv – se
+            favoritter/page.tsx for samme resonnement. */}
+        <div className="mt-10">
+          {user ? (
+            <PantryMatchView lang={lang} isAdmin={Boolean(user?.isAdmin)} />
+          ) : (
+            <LockedPanel
+              message={t(lang, "featureLocked.pantryMessage")}
+              ctaLabel={t(lang, "featureLocked.cta")}
+              nextPath="/hva-kan-jeg-lage"
+            />
+          )}
+        </div>
       </div>
     </div>
   );
