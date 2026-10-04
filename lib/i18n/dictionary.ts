@@ -962,6 +962,11 @@ const DICT = {
   // besøkende som ikke er logget inn (se RecipeTeaser.tsx) – kun toppen av
   // oppskriften (bilde/tittel/beskrivelse) er synlig, resten er faded til
   // svart med denne meldingen og knappen over.
+  // ORPHANED 04.10.2026 – ingrediens-/fremgangsmåte-gaten (og dermed
+  // RecipeTeaser.tsx) er fjernet, se app/oppskrifter/[slug]/page.tsx sin
+  // filheader ("uten bruker får alt det som står under 'uten bruker'").
+  // Disse to nøklene er bevisst latt stå urørt i tilfelle gaten
+  // reverseres igjen.
   "recipeDetail.lockedMessage": {
     no: "Ingredienser og fremgangsmåte er kun synlig for dem som er logget inn.",
     en: "Ingredients and instructions are only visible to those who are logged in.",
@@ -1087,6 +1092,14 @@ const DICT = {
   // "Gjør det til en kveld"-opplevelsen på /meny/[id] (se mealMood.heading
   // under) bruker – bevisst samme tone/språk begge steder, selv om dette
   // er to ulike funksjoner på to ulike sider.
+  // (04.10.2026) Låst teaser-tekst for gjester – se MealBuilderLocked i
+  // RecipeInteractive.tsx. "Gjør det til en kveld" er interim-gatet bak
+  // vanlig innlogging (se prosjektnotatet "Betalingsmodell, revidert").
+  "mealBuilder.lockedMessage": {
+    no: "«Gjør det til en kveld» er kun tilgjengelig når du er logget inn.",
+    en: "\"Make it an evening\" is only available when you're logged in.",
+  },
+  "mealBuilder.lockedCta": { no: "Logg inn for å bygge kvelden", en: "Log in to build the evening" },
   "mealBuilder.eyebrow": { no: "Gjør det til en kveld", en: "Make it an evening" },
   // Tekst endret 29.09.2026 (stor redesign-brief, se filheaderen i
   // MealBuilder.tsx) – tidligere "Bygg en meny rundt denne retten"/"Build a

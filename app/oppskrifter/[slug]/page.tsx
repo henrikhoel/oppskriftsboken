@@ -7,7 +7,6 @@ import { siteConfig } from "@/lib/config";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 import { RecipeInteractive } from "@/components/recipe/RecipeInteractive";
-import { RecipeTeaser } from "@/components/recipe/RecipeTeaser";
 import { buildRecipeJsonLd } from "@/lib/utils/seo";
 import { localizedTitle, localizedDescription } from "@/lib/utils/format";
 import { ChevronLeftIcon } from "@/components/ui/icons";
@@ -114,42 +113,26 @@ export default async function RecipePage({
         : "recipeDetail.allRecipesLink",
   );
 
-  // (27.09.2026) Henrik: "man skal kunne trykke inn på alt på siden, men at
-  // funksjonene er låst ... oppskrifter, jeg kan trykke inn på en
-  // oppskrift, men man ser kun bildet og beskrivelsen med mindre man er
-  // logget inn". Se RecipeTeaser.tsx for hele resonnementet bak hvorfor
-  // dette er en egen komponent som ALDRI får ingredienser/fremgangsmåte
-  // sendt inn til seg for en ikke-innlogget besøkende.
-  if (!user) {
-    const title = localizedTitle(recipe, lang);
-    const description = localizedDescription(recipe, lang);
-    return (
-      <article className="pb-24">
-        <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8 xl:max-w-[1280px]">
-          <Link
-            href={backHref}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-            {backLabel}
-          </Link>
-
-          <div className="mt-6 sm:mt-8">
-            <RecipeTeaser
-              title={title}
-              description={description}
-              imageUrl={recipe.heroImageUrl}
-              imageAlt={recipe.heroImageAlt ?? title}
-              categoryLabel={recipe.category?.name}
-              nextPath={`/oppskrifter/${recipe.slug}`}
-              lang={lang}
-            />
-          </div>
-        </div>
-      </article>
-    );
-  }
-
+  // (04.10.2026) INNLOGGINGSGATEN FJERNET – Henrik, om den reviderte
+  // betalingsmodellen: "men jeg mener at vi kan fikse at en uten bruker
+  // får alt det som står under 'uten bruker'" (se "Betalingsmodell,
+  // revidert" i prosjektnotatet). "Uten bruker"-raden i den tabellen
+  // dekker nettopp oppskrifter/søk/ingredienser+fremgangsmåte/
+  // porsjonsskalering – den tidligere "if (!user) return <RecipeTeaser/>"-
+  // grenen (27.09.2026, se git-historikk) er derfor fjernet, og
+  // RecipeInteractive rendres nå for ALLE, innlogget eller ei.
+  // RecipeTeaser.tsx selv er bevisst latt stå urørt (orphaned, ikke
+  // slettet) i tilfelle denne retningen reverseres igjen.
+  //
+  // RecipeInteractive har fått en ny `isLoggedIn`-prop (se filheaderen
+  // der) som den bruker til å fortsatt gate AKKURAT de tingene som ikke
+  // er en del av "uten bruker"-tabellraden: favoritter/handleliste
+  // ("gratis bruker"), Cook Mode/"Gjør det til en kveld" (interim-gatet
+  // bak innlogging inntil et ekte premium-flagg finnes, se
+  // prosjektnotatet), og de AI-tunge ekstrafunksjonene (bytt ut
+  // ingrediens, EN/US-oversettelse, kokeplan, "Spør om noe",
+  // vin-/drikkeseksjonen) som ikke står nevnt i "uten bruker"-raden i
+  // tabellen og derfor bevisst holdes bak innlogging av kostnadshensyn.
   const jsonLd = buildRecipeJsonLd(recipe, lang);
 
   return (
@@ -218,10 +201,10 @@ export default async function RecipePage({
           <RecipeInteractive
             recipe={recipe}
             isAdmin={Boolean(user?.isAdmin)}
+            // (04.10.2026) `user` kan nå være null – se filheaderen over for
+            // hvorfor RecipeInteractive selv trenger å vite dette.
+            isLoggedIn={Boolean(user)}
             lang={lang}
-            // (29.09.2026) `user` er alltid satt her (se gjesteveien over,
-            // som returnerer tidlig med RecipeTeaser) – Boolean() likevel
-            // for konsistens med isAdmin rett over.
             hasCompletedCookModeTutorial={Boolean(user?.cookModeTutorialCompleted)}
           />
         </div>

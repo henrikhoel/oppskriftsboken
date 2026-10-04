@@ -4,6 +4,14 @@ import { Button } from "@/components/ui/Button";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
+ * ORPHANED 04.10.2026 – ikke lenger brukt noe sted. Ingrediens-/
+ * fremgangsmåte-gaten denne komponenten viste for ikke-innloggede
+ * besøkende er fjernet (se filheaderen i app/oppskrifter/[slug]/page.tsx:
+ * Henrik, "men jeg mener at vi kan fikse at en uten bruker får alt det
+ * som står under 'uten bruker'" – se "Betalingsmodell, revidert" i
+ * prosjektnotatet). Bevisst latt stå (ikke slettet) i tilfelle gaten
+ * reverseres igjen senere.
+ *
  * (27.09.2026) Gjenopplivet fra den opprinnelige RecipeTeaser.tsx (fjernet
  * 26.09.2026 sammen med det gamle fellespassordet for hele nettstedet, se
  * git-historikk commit 2846ef1) – samme visuelle mønster som før, men nå

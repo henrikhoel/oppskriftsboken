@@ -71,11 +71,26 @@ function withSyntheticIds(
 export function RecipeInteractive({
   recipe,
   isAdmin,
+  isLoggedIn,
   lang,
   hasCompletedCookModeTutorial,
 }: {
   recipe: Recipe;
   isAdmin: boolean;
+  /** (04.10.2026) NY – RecipeInteractive rendres nå for ALLE besøkende, ikke
+   * bare innloggede (se filheaderen i app/oppskrifter/[slug]/page.tsx for
+   * bakgrunnen: Henrik, "men jeg mener at vi kan fikse at en uten bruker
+   * får alt det som står under 'uten bruker'"). Kjerneinnholdet under
+   * (ingredienser, fremgangsmåte, porsjonsskalering, vurdering, del) er
+   * derfor ALLTID synlig uavhengig av denne – kun de funksjonene som
+   * fortsatt er konto-/premium-eksklusive (favoritter, handleliste, Cook
+   * Mode, "Gjør det til en kveld", og de AI-tunge ekstrafunksjonene: bytt
+   * ut ingrediens, EN/US-oversettelse, kokeplan, "Spør om noe",
+   * drikke-/vinseksjonen) sjekker denne. Se prosjektnotatet
+   * "Betalingsmodell, revidert" for hvorfor akkurat disse fortsatt er
+   * gatet bak innlogging (gratis bruker-tier / interim premium-erstatning
+   * / AI-kostnad). */
+  isLoggedIn: boolean;
   lang: Lang;
   /** (29.09.2026) profiles.cook_mode_tutorial_completed for den innloggede
    * brukeren – se filheaderen i CookModeTutorial.tsx. Styrer kun det
@@ -268,12 +283,20 @@ export function RecipeInteractive({
   // automatisk – ingen egen knapp per oppskrift lenger. Trigges kun når
   // lang endrer seg (f.eks. ved mount, eller når man bytter i menyen og
   // siden refreshes), ikke ved hvert re-render.
+  //
+  // (04.10.2026) `isLoggedIn`-sjekk lagt til – EN-oversettelsen er et
+  // AI-kall (getEnglishVariant) og holdes derfor bak innlogging som resten
+  // av de AI-tunge ekstrafunksjonene (se filheaderen på isLoggedIn-propen
+  // over), selv om selve oppskriftsinnholdet ellers er åpent for alle. En
+  // ikke-innlogget besøkende med engelsk som navigasjonsspråk ser derfor
+  // den norske originalteksten i stedet – en liten språkmiks, men ingen
+  // ukontrollerte AI-kall fra anonyme besøkende.
   useEffect(() => {
-    if (lang === "en" && !engResult && !engLoading) {
+    if (isLoggedIn && lang === "en" && !engResult && !engLoading) {
       handleGetEnglish();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang, recipe.id]);
+  }, [isLoggedIn, lang, recipe.id]);
 
   const useEnglish = lang === "en" && Boolean(engResult);
   const useVegetarian = lang === "no" && Boolean(vegResult) && showVegetarian;
@@ -360,6 +383,15 @@ export function RecipeInteractive({
   const finalTips = unitSystem === "us" && usResult ? usResult.tips : displayTips;
   const finalWarnings = unitSystem === "us" && usResult ? usResult.warnings : displayWarnings;
 
+  // (04.10.2026) Styrer "sekundær info"-blokken lenger ned (Spør om noe/
+  // Næringsinnhold/Drikke til) – se isLoggedIn-propens filheader for
+  // hvorfor Spør om noe og drikke-/vinseksjonen (begge AI-tunge) er gatet
+  // bak innlogging mens Næringsinnhold (ren lagret data) ikke er det.
+  const showQuestionSection = isLoggedIn;
+  const showNutrition = Boolean(recipe.nutritionInfo);
+  const showDrinkPairing = isLoggedIn && Boolean(recipe.drinkPairing || recipe.showBeverageMatchChecker);
+  const hasSecondaryContent = showQuestionSection || showNutrition || showDrinkPairing;
+
   function toggleChecked(id: string) {
     setCheckedItems((prev) => {
       const next = new Set(prev);
@@ -445,12 +477,12 @@ export function RecipeInteractive({
             recipeId={recipe.id}
             initialFavorited={isAdmin ? recipe.favoritedByAdmin : false}
             isAdmin={isAdmin}
-            // (27.09.2026) RecipeInteractive rendres KUN når user er
-            // truthy (se app/oppskrifter/[slug]/page.tsx sin tidlige
-            // "if (!user) return <RecipeTeaser/>"-gren, før denne
-            // komponenten i det hele tatt kalles) – trygt å hardkode uten
-            // en egen prop her. Se FavoriteButton.tsx sin filheader.
-            isLoggedIn={true}
+            // (04.10.2026) RecipeInteractive rendres nå for ALLE besøkende
+            // (se isLoggedIn-propens filheader over) – bruker derfor den
+            // faktiske propen her i stedet for å hardkode true. Se
+            // FavoriteButton.tsx sin filheader: knappen viser seg selv
+            // uansett ikke i det hele tatt for en ikke-innlogget besøkende.
+            isLoggedIn={isLoggedIn}
             // Kompakt (kun ikon) fra venstrekolonne-raffinementet 31.08.2026 –
             // Favoritt sitter nå diskret sammen med ratingen i stedet for på
             // linje med tittelen, se RecipeHero.tsx.
@@ -503,14 +535,24 @@ export function RecipeInteractive({
             <h2 id="ingredienser-heading" className="font-serif text-2xl text-ink">
               {t(lang, "recipeDetail.ingredientsHeading")}
             </h2>
+            {/* Porsjonsskalering (ServingsScaler) er ren klient-matte, ingen
+                AI-kall – del av "uten bruker"-raden i betalingstabellen og
+                derfor ALLTID synlig. Metrisk/US-bryteren derimot kaller
+                getUsMeasurementsVariant (AI) når US velges – gatet bak
+                innlogging 04.10.2026 sammen med de andre AI-ekstrafunksjonene
+                (se isLoggedIn-propens filheader), rendres derfor ikke i det
+                hele tatt for en gjest i stedet for å la en gjest trykke "US"
+                og trigge et AI-kall. */}
             <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
               <ServingsScaler servings={servings} onChange={setServings} lang={lang} />
-              <div>
-                <div className="mb-2 text-sm font-medium text-ink-soft">
-                  {t(lang, "recipeDetail.unitsAria")}
+              {isLoggedIn && (
+                <div>
+                  <div className="mb-2 text-sm font-medium text-ink-soft">
+                    {t(lang, "recipeDetail.unitsAria")}
+                  </div>
+                  <UnitSystemSwitcher value={unitSystem} onChange={setUnitSystem} lang={lang} />
                 </div>
-                <UnitSystemSwitcher value={unitSystem} onChange={setUnitSystem} lang={lang} />
-              </div>
+              )}
             </div>
             {unitSystem === "us" && usLoading && (
               <p className="mt-1.5 text-xs text-ink-faint">{t(lang, "recipeDetail.convertingUnits")}</p>
@@ -545,17 +587,25 @@ export function RecipeInteractive({
               </div>
             )}
 
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setSubstituteMode((v) => !v)}
-                className="text-xs font-medium text-clay hover:text-clay-dark"
-              >
-                {substituteMode
-                  ? t(lang, "recipeDetail.substituteModeOff")
-                  : t(lang, "recipeDetail.substituteModeOn")}
-              </button>
-            </div>
+            {/* "Bytt ut"-funksjonen kaller getIngredientSubstitution (AI) per
+                ingrediens – gatet bak innlogging 04.10.2026, se
+                isLoggedIn-propens filheader. Kun selve av/på-knappen trengs
+                å skjules; per-ingrediens-knappene lenger ned er allerede
+                betinget av substituteMode, som da aldri kan bli true for en
+                gjest. */}
+            {isLoggedIn && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setSubstituteMode((v) => !v)}
+                  className="text-xs font-medium text-clay hover:text-clay-dark"
+                >
+                  {substituteMode
+                    ? t(lang, "recipeDetail.substituteModeOff")
+                    : t(lang, "recipeDetail.substituteModeOn")}
+                </button>
+              </div>
+            )}
 
             <div className="mt-6 space-y-6">
               {displayGroups.map((group) => (
@@ -646,41 +696,74 @@ export function RecipeInteractive({
               ))}
             </div>
 
-            <div className="mt-6">
-              <CookingTimelinePanel
-                recipeId={recipe.id}
-                steps={finalSteps}
-                prepTimeMinutes={recipe.prepTimeMinutes}
-                lang={lang}
-                onTimelineChange={setCookingTimeline}
-                onParallelGroupsChange={setParallelGroups}
-              />
-            </div>
+            {/* "Når bør jeg starte?" – den deterministiske tidsregningen i
+                panelet er gratis, men "Se hva som kan gjøres samtidig" inni
+                det kaller getParallelTaskHints (AI) – hele panelet regnes
+                derfor som en AI-ekstrafunksjon og gates samlet bak
+                innlogging 04.10.2026 (se isLoggedIn-propens filheader),
+                fremfor å dele opp selve panelet i en gratis og en betalt
+                halvdel. */}
+            {isLoggedIn && (
+              <div className="mt-6">
+                <CookingTimelinePanel
+                  recipeId={recipe.id}
+                  steps={finalSteps}
+                  prepTimeMinutes={recipe.prepTimeMinutes}
+                  lang={lang}
+                  onTimelineChange={setCookingTimeline}
+                  onParallelGroupsChange={setParallelGroups}
+                />
+              </div>
+            )}
 
             <div className="mt-4 flex flex-col gap-3">
-              <Button variant="primary" size="lg" onClick={openCookMode}>
-                <PlayIcon className="h-4 w-4" />
-                {t(lang, hasCookModeProgress ? "recipeDetail.continueCooking" : "recipeDetail.startCooking")}
-              </Button>
-              <Button variant="outline" size="md" onClick={handleAddToShoppingList}>
-                {justAdded ? (
-                  <>
-                    <CheckIcon className="h-4 w-4" />
-                    {t(lang, "recipeDetail.addedToList")}
-                  </>
-                ) : (
-                  <>
-                    <ShoppingBagIcon className="h-4 w-4" />
-                    {t(lang, "recipeDetail.addToList")}
-                  </>
-                )}
-              </Button>
+              {/* Cook Mode er interim-gatet bak vanlig innlogging (se
+                  prosjektnotatet "Betalingsmodell, revidert" – fremtidig
+                  Premium-funksjon, men inntil et ekte premium-flagg finnes
+                  holder "er innlogget" som skille). Knappen er fortsatt
+                  alltid SYNLIG ("man skal kunne trykke inn på alt på siden,
+                  men at funksjonene er låst") – for en gjest peker den til
+                  innlogging i stedet for å åpne Cook Mode direkte. */}
+              {isLoggedIn ? (
+                <Button variant="primary" size="lg" onClick={openCookMode}>
+                  <PlayIcon className="h-4 w-4" />
+                  {t(lang, hasCookModeProgress ? "recipeDetail.continueCooking" : "recipeDetail.startCooking")}
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  href={`/logg-inn?next=${encodeURIComponent(`/oppskrifter/${recipe.slug}`)}`}
+                >
+                  <PlayIcon className="h-4 w-4" />
+                  {t(lang, "recipeDetail.startCooking")}
+                </Button>
+              )}
+              {/* Handleliste er en "gratis bruker"-funksjon (krever konto,
+                  men ikke premium, se betalingstabellen i prosjektnotatet) –
+                  skjult helt for en gjest, samme mønster som
+                  FavoriteButton.tsx (hjerteknappen) bruker. */}
+              {isLoggedIn && (
+                <Button variant="outline" size="md" onClick={handleAddToShoppingList}>
+                  {justAdded ? (
+                    <>
+                      <CheckIcon className="h-4 w-4" />
+                      {t(lang, "recipeDetail.addedToList")}
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBagIcon className="h-4 w-4" />
+                      {t(lang, "recipeDetail.addToList")}
+                    </>
+                  )}
+                </Button>
+              )}
               {/* Vises samtidig som "Lagt til!"-tilstanden over (samme
                * justAdded-state, samme 6000ms-vindu, se
                * handleAddToShoppingList) – gir brukeren et direkte neste
                * steg i stedet for at bekreftelsen bare blafrer forbi uten
                * noen handling å ta. */}
-              {justAdded && (
+              {isLoggedIn && justAdded && (
                 <Link
                   href="/handleliste"
                   className="text-center text-sm font-medium text-clay underline underline-offset-2 hover:text-clay-dark"
@@ -791,48 +874,61 @@ export function RecipeInteractive({
           flate i stedet. Hver av under-komponentene (NutritionPanel/
           MealBuilder/DrinkPairingSection/RecipeQuestionSection) er derfor
           også lettet for sin egen kort-boks-styling, se de filene. */}
-      <div className="mt-16 divide-y divide-line border-t border-line sm:mt-20">
-        <div className="py-10 sm:py-12">
-          <RecipeQuestionSection
-            recipeId={recipe.id}
-            recipeContext={{
-              title: displayTitle,
-              description: displayDescription,
-              ingredientGroups: displayGroups,
-              steps: finalSteps,
-              tips: finalTips,
-            }}
-            lang={lang}
-          />
+      {/* (04.10.2026) "Spør om noe" og drikke-/vinseksjonen er begge
+          AI-tunge ekstrafunksjoner, gatet bak innlogging samme dag (se
+          isLoggedIn-propens filheader og showQuestionSection/showNutrition/
+          showDrinkPairing/hasSecondaryContent over) – Næringsinnhold er
+          derimot ren, admin-lagret data uten AI-kostnad og forblir åpent
+          for alle. `hasSecondaryContent` avgjør om HELE denne "sekundær
+          info"-blokken (inkl. mt-16/border-t) i det hele tatt skal rendres
+          – uten denne sjekken ville en ikke-innlogget besøkende på en
+          oppskrift UTEN næringsinnhold sett en stakkars, tom stripe med kun
+          en skillelinje og ingenting under. */}
+      {hasSecondaryContent && (
+        <div className="mt-16 divide-y divide-line border-t border-line sm:mt-20">
+          {showQuestionSection && (
+            <div className="py-10 sm:py-12">
+              <RecipeQuestionSection
+                recipeId={recipe.id}
+                recipeContext={{
+                  title: displayTitle,
+                  description: displayDescription,
+                  ingredientGroups: displayGroups,
+                  steps: finalSteps,
+                  tips: finalTips,
+                }}
+                lang={lang}
+              />
+            </div>
+          )}
+
+          {/* Næringsinnhold – delte tidligere denne raden med Smaksprofil
+              (side om side fra sm og opp), som er fjernet 03.10.2026 (se
+              MERK-kommentaren i lib/actions/recipes.ts). Står nå alene, men
+              beholder samme py-10/py-12-rytme som resten av
+              sekundærinfo-stacken over/under. */}
+          {showNutrition && (
+            <div className="py-10 sm:py-12">
+              <NutritionPanel nutrition={recipe.nutritionInfo!} lang={lang} />
+            </div>
+          )}
+
+          {showDrinkPairing && (
+            <div className="py-10 sm:py-12">
+              <DrinkPairingSection
+                drinkPairing={recipe.drinkPairing ?? null}
+                showBeverageMatchChecker={recipe.showBeverageMatchChecker}
+                recipeContext={{
+                  title: displayTitle,
+                  description: displayDescription,
+                  ingredientNames: recipeIngredientNames,
+                }}
+                lang={lang}
+              />
+            </div>
+          )}
         </div>
-
-        {/* Næringsinnhold – delte tidligere denne raden med Smaksprofil
-            (side om side fra sm og opp), som er fjernet 03.10.2026 (se
-            MERK-kommentaren i lib/actions/recipes.ts). Står nå alene, men
-            beholder samme py-10/py-12-rytme som resten av
-            sekundærinfo-stacken over/under. */}
-        {recipe.nutritionInfo && (
-          <div className="py-10 sm:py-12">
-            <NutritionPanel nutrition={recipe.nutritionInfo} lang={lang} />
-          </div>
-        )}
-
-        {(recipe.drinkPairing || recipe.showBeverageMatchChecker) && (
-          <div className="py-10 sm:py-12">
-            <DrinkPairingSection
-              drinkPairing={recipe.drinkPairing ?? null}
-              showBeverageMatchChecker={recipe.showBeverageMatchChecker}
-              recipeContext={{
-                title: displayTitle,
-                description: displayDescription,
-                ingredientNames: recipeIngredientNames,
-              }}
-              lang={lang}
-            />
-          </div>
-        )}
-
-      </div>
+      )}
 
       {/* "Gjør det til en kveld" (MealBuilder) – FLYTTET UT av divide-y
           "sekundær info"-blokken over 29.09.2026 (se filheaderen i
@@ -865,19 +961,33 @@ export function RecipeInteractive({
           (Henrik sin eksplisitte instruks for den siden). scroll-mt-24
           kompenserer for den sticky headeren (Header.tsx), slik at
           seksjonen ikke havner skjult bak den ved et ankerhopp. */}
+      {/* (04.10.2026) "Gjør det til en kveld" er interim-gatet bak vanlig
+          innlogging (se prosjektnotatet "Betalingsmodell, revidert" –
+          Henrik, med skjermbilde av akkurat denne seksjonen: "det skal ikke
+          komme opp med mindre man har premium bruker"; inntil et ekte
+          premium-flagg finnes holder "er innlogget" som interim-skille, se
+          isLoggedIn-propens filheader). En gjest ser fortsatt at
+          funksjonen finnes (samme "trykk inn på alt, men funksjonene er
+          låst"-prinsipp som resten av siden) via MealBuilderLocked under,
+          men får ALDRI den fulle, fullbredde MealBuilder-opplevelsen (og
+          dermed heller ingen AI-kall for å generere en meny). */}
       {recipe.showMealBuilder && (
         <div id="gjor-det-til-en-kveld" className="mt-4 scroll-mt-24 sm:mt-10">
-          <MealBuilder
-            recipe={{
-              id: recipe.id,
-              slug: recipe.slug,
-              title: displayTitle,
-              description: displayDescription,
-              servings,
-              category: recipe.category ? { name: recipe.category.name } : null,
-            }}
-            lang={lang}
-          />
+          {isLoggedIn ? (
+            <MealBuilder
+              recipe={{
+                id: recipe.id,
+                slug: recipe.slug,
+                title: displayTitle,
+                description: displayDescription,
+                servings,
+                category: recipe.category ? { name: recipe.category.name } : null,
+              }}
+              lang={lang}
+            />
+          ) : (
+            <MealBuilderLocked lang={lang} nextPath={`/oppskrifter/${recipe.slug}`} />
+          )}
         </div>
       )}
 
@@ -922,5 +1032,37 @@ export function RecipeInteractive({
         />
       )}
     </>
+  );
+}
+
+/** (04.10.2026) Låst teaser for "Gjør det til en kveld" – vises i stedet for
+ * den fulle MealBuilder-seksjonen når besøkende ikke er innlogget (se
+ * bruksstedet over). Bevarer eyebrow/heading/intro (samme
+ * mealBuilder.eyebrow/heading/intro-nøkler som selve MealBuilder.tsx
+ * bruker) slik at funksjonen fortsatt "annonseres" for en gjest – kun
+ * selve den interaktive byggeren (og dermed AI-kallet) er erstattet med en
+ * enkel innloggingsoppfordring. Bevisst en enklere, mindre boks enn
+ * MealBuilder.tsx sin fulle fullbredde-premiumflate (eget bakgrunnsbilde
+ * osv., se filheaderen der) – ville vært unødvendig mye kode å gjenskape
+ * kun for en låst tilstand. */
+function MealBuilderLocked({ lang, nextPath }: { lang: Lang; nextPath: string }) {
+  return (
+    <div className="rounded-card border border-line/70 bg-paper/70 p-6 sm:p-8">
+      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-clay sm:text-xs">
+        {t(lang, "mealBuilder.eyebrow")}
+      </p>
+      <h2 className="mt-3 text-balance font-serif text-2xl text-ink sm:text-3xl">
+        {t(lang, "mealBuilder.heading")}
+      </h2>
+      <p className="mt-3 max-w-prose font-serif text-sm leading-relaxed text-ink-soft sm:text-base">
+        {t(lang, "mealBuilder.intro")}
+      </p>
+      <p className="mt-5 max-w-sm text-sm text-ink-faint">{t(lang, "mealBuilder.lockedMessage")}</p>
+      <div className="mt-4">
+        <Button href={`/logg-inn?next=${encodeURIComponent(nextPath)}`} variant="primary">
+          {t(lang, "mealBuilder.lockedCta")}
+        </Button>
+      </div>
+    </div>
   );
 }
