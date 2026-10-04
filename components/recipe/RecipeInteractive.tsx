@@ -1035,34 +1035,72 @@ export function RecipeInteractive({
   );
 }
 
-/** (04.10.2026) Låst teaser for "Gjør det til en kveld" – vises i stedet for
- * den fulle MealBuilder-seksjonen når besøkende ikke er innlogget (se
- * bruksstedet over). Bevarer eyebrow/heading/intro (samme
+/** (04.10.2026, OMBYGD samme dag) Låst teaser for "Gjør det til en kveld" –
+ * vises i stedet for den fulle MealBuilder-seksjonen når besøkende ikke er
+ * innlogget (se bruksstedet over). Bevarer eyebrow/heading/intro (samme
  * mealBuilder.eyebrow/heading/intro-nøkler som selve MealBuilder.tsx
- * bruker) slik at funksjonen fortsatt "annonseres" for en gjest – kun
- * selve den interaktive byggeren (og dermed AI-kallet) er erstattet med en
- * enkel innloggingsoppfordring. Bevisst en enklere, mindre boks enn
- * MealBuilder.tsx sin fulle fullbredde-premiumflate (eget bakgrunnsbilde
- * osv., se filheaderen der) – ville vært unødvendig mye kode å gjenskape
- * kun for en låst tilstand. */
+ * bruker) slik at funksjonen fortsatt "annonseres" for en gjest – kun selve
+ * den interaktive byggeren (og dermed AI-kallet) er erstattet med en enkel
+ * innloggingsoppfordring.
+ *
+ * FØRSTE VERSJON (en liten, enkel border-boks) hadde to problemer, begge
+ * oppdaget av Henrik rett etter commit:
+ *
+ *   1. "selve utseendet her burde være likt som når man er innlogget, med
+ *      bakgrunnsbildet og alt" – løst ved å gjenbruke EKSAKT samme
+ *      full-bleed seksjon/bakgrunnsbilde/overlegg-oppskrift som
+ *      MealBuilder.tsx (se filheaderen der for selve bakgrunnsbilde-
+ *      resonnementet) – kun selve det interaktive innholdet (tidsvalg +
+ *      "Bygg en meny") er byttet ut med låst melding + "Logg inn"-knapp.
+ *
+ *   2. "den 'logg inn' knappen der er ikke klikkbar" – IKKE et CSS/z-index-
+ *      problem i selve knappen, men en konsekvens av problem 1: siden
+ *      app/oppskrifter/[slug]/page.tsx sin ytre <article> bruker en negativ
+ *      bunnmargin (-mb-40/md:-mb-20) NÅR recipe.showMealBuilder er sann –
+ *      bevisst, for å la footeren "henge i" oppå MealBuilder sin egen mørke
+ *      bakgrunn i stedet for å etterlate et tomt lyst felt (se kommentaren
+ *      der). Den utregningen forutsetter MealBuilder sin FULLE høyde – den
+ *      første, mye kortere border-boksen var ikke høy nok til å "absorbere"
+ *      det oppsettet, så footeren (med sin egen "til toppen"-lenke) endte
+ *      fysisk oppå/over "Logg inn"-knappen, og tok klikket i stedet for
+ *      knappen under (bekreftet med document.elementFromPoint i
+ *      DevTools). Nå som denne komponenten har SAMME seksjonshøyde som
+ *      MealBuilder, stemmer footer-utregningen igjen og knappen er
+ *      klikkbar. */
 function MealBuilderLocked({ lang, nextPath }: { lang: Lang; nextPath: string }) {
   return (
-    <div className="rounded-card border border-line/70 bg-paper/70 p-6 sm:p-8">
-      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-clay sm:text-xs">
-        {t(lang, "mealBuilder.eyebrow")}
-      </p>
-      <h2 className="mt-3 text-balance font-serif text-2xl text-ink sm:text-3xl">
-        {t(lang, "mealBuilder.heading")}
-      </h2>
-      <p className="mt-3 max-w-prose font-serif text-sm leading-relaxed text-ink-soft sm:text-base">
-        {t(lang, "mealBuilder.intro")}
-      </p>
-      <p className="mt-5 max-w-sm text-sm text-ink-faint">{t(lang, "mealBuilder.lockedMessage")}</p>
-      <div className="mt-4">
-        <Button href={`/logg-inn?next=${encodeURIComponent(nextPath)}`} variant="primary">
-          {t(lang, "mealBuilder.lockedCta")}
-        </Button>
+    <section className="relative isolate left-1/2 -mx-[50vw] w-screen overflow-hidden bg-paper">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url(/images/recipe-evening.jpg)" }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-cream/86" aria-hidden="true" />
+
+      <div className="relative mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-18 lg:px-8 lg:py-21 xl:max-w-[1280px]">
+        <div className="max-w-2xl">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-clay sm:text-xs">
+            {t(lang, "mealBuilder.eyebrow")}
+          </p>
+          <h2 className="mt-3 text-balance font-serif text-3xl text-ink sm:mt-4 sm:text-5xl">
+            {t(lang, "mealBuilder.heading")}
+          </h2>
+          <p className="mt-3 max-w-prose font-serif text-[15px] leading-relaxed text-ink-soft sm:mt-4 sm:text-xl">
+            {t(lang, "mealBuilder.intro")}
+          </p>
+
+          <div className="mt-6 max-w-md sm:mt-10">
+            <p className="max-w-sm text-sm text-ink-faint">{t(lang, "mealBuilder.lockedMessage")}</p>
+            <Button
+              href={`/logg-inn?next=${encodeURIComponent(nextPath)}`}
+              variant="primary"
+              className="mt-5 sm:mt-8"
+            >
+              {t(lang, "mealBuilder.lockedCta")}
+            </Button>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
