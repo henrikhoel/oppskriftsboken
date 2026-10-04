@@ -42,8 +42,37 @@
  * EKSPLISITT lagring (en egen "Lagre ukesmenyen"-knapp, ikke automatisk),
  * ekte localStorage (til forskjell fra den AKTIVE uken over), og en egen
  * oversiktsside (/ukesmeny/lagrede, se SavedWeeklyMenusList.tsx).
+ *
+ * DRA-FOR-Å-BYTTE DAGER (04.10.2026, Henrik: "flytte på rettene mellom
+ * dagene, hvis jeg får burger på mandag, så kan jeg bytte den med den som
+ * står på fredag feks, og at man da kan dra over selve segmentet med
+ * bildet og tittel") – BYTTER to dager (A↔B), til forskjell fra
+ * IngredientGroupsEditor.tsx sin dra-for-å-OMORDNE-en-liste (som flytter
+ * ÉN vare til en ny posisjon og skyver resten). Dagene her er faste
+ * POSISJONER (mandag er alltid først uansett), så riktig mental modell er
+ * "bytt plass", ikke "flytt til ny rekkefølge".
+ *
+ * Bruker samme Pointer Events-mønster som IngredientGroupsEditor.tsx (IKKE
+ * HTML5 sitt native draggable-API – se den filens filheader for hvorfor),
+ * MEN uten en egen dra-håndtak-knapp: Henrik ba eksplisitt om at selve
+ * bilde+tittel-segmentet (den eksisterende oppskrift-lenken) skal være
+ * drahåndtaket. Det krever å skille et faktisk DRA fra et vanlig KLIKK (som
+ * fortsatt skal navigere til oppskriften) på nøyaktig samme element:
+ * `dragStartRef` lagrer startposisjon ved pointerdown, og først når
+ * pointeren har beveget seg forbi DRAG_THRESHOLD_PX regnes det som en reell
+ * drag (`didDragRef`) – under den terskelen er det fortsatt et klikk.
+ * Lenkens egen onClick sjekker `didDragRef` og kaller `e.preventDefault()`
+ * for å kansellere navigeringen KUN når gesten faktisk var en drag.
+ *
+ * KUN mus/penn i praksis (ingen `touchAction: "none"` lagt til, til
+ * forskjell fra IngredientGroupsEditor.tsx sitt drahåndtak) – dagene står i
+ * ÉN kolonne på mobil (se grid-oppsettet under), så en dra-gest her ville
+ * vært i nøyaktig samme retning som vanlig vertikal scrolling og dermed
+ * stride mot den på touch. "Bytt ut" under hvert bilde er fortsatt den
+ * mobilvennlige måten å endre én enkelt dag på – dra-og-bytt er et
+ * tilleggsgrep for mus/trackpad på større skjermer.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
@@ -235,6 +264,79 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
     setAdded(false);
     setSavedJustNow(false);
     setActiveWeek({ style, recipeIds: nextIds, vegetarianOnly });
+  }
+
+  // --- Dra-for-å-bytte dager (04.10.2026) – se filheaderens eget avsnitt
+  // for hele resonnementet. cardRefs: DOM-noden for hvert dagskort, nøkkel
+  // = indeksen i recipeIds (0 = mandag osv.), brukt til å måle hvilket kort
+  // pekeren befinner seg over akkurat nå (samme hit-test-teknikk som
+  // reorderItemsForPointer i IngredientGroupsEditor.tsx, men mot
+  // getBoundingClientRect()-REKTANGELET til hvert kort i stedet for bare
+  // midtpunktet på Y-aksen, siden kortene her ligger side ved side
+  // horisontalt på lg+, ikke bare stablet vertikalt).
+  const cardRefs = useRef<Map<number, HTMLAnchorElement>>(new Map());
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const didDragRef = useRef(false);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+
+  const DRAG_THRESHOLD_PX = 6;
+
+  function swapDays(a: number, b: number) {
+    if (a === b) return;
+    const nextIds = [...recipeIds];
+    [nextIds[a], nextIds[b]] = [nextIds[b], nextIds[a]];
+    setAdded(false);
+    setSavedJustNow(false);
+    setActiveWeek({ style, recipeIds: nextIds, vegetarianOnly });
+  }
+
+  function handleCardPointerDown(e: ReactPointerEvent<HTMLAnchorElement>, index: number) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    didDragRef.current = false;
+    // Pointer capture tas FØR vi vet om dette blir en reell drag – helt
+    // nødvendig for å fortsatt få pointermove/pointerup selv om pekeren
+    // beveger seg utenfor selve lenke-elementet underveis (akkurat som
+    // IngredientGroupsEditor.tsx sitt drahåndtak).
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function handleCardPointerMove(e: ReactPointerEvent<HTMLAnchorElement>, index: number) {
+    if (!dragStartRef.current) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    if (!didDragRef.current) {
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+      didDragRef.current = true;
+      setDraggingIndex(index);
+    }
+    e.preventDefault();
+
+    let target: number | null = null;
+    for (const [i, el] of cardRefs.current) {
+      const rect = el.getBoundingClientRect();
+      if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        target = i;
+        break;
+      }
+    }
+    setDropTargetIndex(target);
+  }
+
+  function handleCardPointerEnd(e: ReactPointerEvent<HTMLAnchorElement>, index: number) {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    if (didDragRef.current && dropTargetIndex !== null) {
+      swapDays(index, dropTargetIndex);
+    }
+    dragStartRef.current = null;
+    setDraggingIndex(null);
+    setDropTargetIndex(null);
+    // didDragRef nullstilles IKKE her – den leses av Lenkens egen onClick
+    // (som fyres RETT ETTER pointerup) for å kansellere navigeringen når
+    // gesten faktisk var en drag, se filheaderen. Nullstilles der i stedet.
   }
 
   function handleSaveMenu() {
@@ -446,11 +548,35 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
                       oppskriften skjer, i stedet for å holde uken løpende
                       synket mot sessionStorage (det ga en uheldig
                       bieffekt: uken ble husket ved ALL navigering i samme
-                      fane, ikke bare denne ene tilbake-reisen). */}
+                      fane, ikke bare denne ene tilbake-reisen).
+
+                      DRA-FOR-Å-BYTTE (04.10.2026) – se filheaderens eget
+                      avsnitt. Samme lenke er NÅ også drahåndtaket: onClick
+                      kansellerer navigeringen kun når didDragRef sier at
+                      gesten faktisk var en drag, ikke et vanlig klikk. */}
                   <Link
+                    ref={(el) => {
+                      if (el) cardRefs.current.set(index, el);
+                      else cardRefs.current.delete(index);
+                    }}
                     href={`/oppskrifter/${recipe.slug}?fromWeeklyMenu=1`}
-                    onClick={() => stashActiveWeeklyMenu(activeWeek)}
-                    className="group mt-3 block"
+                    onClick={(e) => {
+                      if (didDragRef.current) {
+                        e.preventDefault();
+                        didDragRef.current = false;
+                        return;
+                      }
+                      stashActiveWeeklyMenu(activeWeek);
+                    }}
+                    onPointerDown={(e) => handleCardPointerDown(e, index)}
+                    onPointerMove={(e) => handleCardPointerMove(e, index)}
+                    onPointerUp={(e) => handleCardPointerEnd(e, index)}
+                    onPointerCancel={(e) => handleCardPointerEnd(e, index)}
+                    className={clsx(
+                      "group mt-3 block cursor-grab select-none rounded-lg transition-[opacity,box-shadow] active:cursor-grabbing",
+                      draggingIndex === index && "relative z-10 opacity-60 shadow-card",
+                      dropTargetIndex === index && draggingIndex !== index && "ring-2 ring-clay ring-offset-2 ring-offset-cream",
+                    )}
                   >
                     <div className="relative aspect-[4/3] w-full overflow-hidden bg-cream-dark">
                       {recipe.heroImageUrl && (
