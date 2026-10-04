@@ -27,12 +27,32 @@ import { t, type Lang } from "@/lib/i18n";
  * man allerede hadde). Lagres via den delte, SSR-trygge useLocalStorage
  * (samme hydration-mønster som useShoppingList/useMealSession) – bevisst
  * localStorage (ikke sessionStorage), samme "husk til brukeren selv rydder"
- * -prinsipp som resten av appens klient-state. `results`/`suggestions`/
- * `externalMatches` er allerede lette, JSON-vennlige data (SearchableRecipe
- * o.l. – ingen fulle oppskriftsobjekter med bilder/steg), så størrelsen er
- * ikke et problem her. Set<> (addedMissing…-tilstandene) kan ikke
- * JSON-serialiseres direkte, så de lagres som vanlige arrays og
- * konverteres til/fra Set ved hydrering/skriving.
+ * -prinsipp som resten av appens klient-state.
+ *
+ * (04.10.2026, presisert i to omganger av Henrik) Rått "husk alltid alt"
+ * viste seg for bredt: "når jeg går ut av siden, så må den refreshe seg
+ * selv uten oppskrifter [...] samme når jeg fjerner alle ingrediensene jeg
+ * har lagt inn" – ETTERFULGT av "men ikke hvis jeg trykker på en
+ * oppskrift, om jeg trykker på en oppskrift må jeg ha muligheten til å gå
+ * tilbake til 'i kjøleskapet' med alternativene fortsatt synlig". Altså:
+ * et helt NYTT besøk (via menyen, en annen fane, e.l.) skal starte blankt,
+ * mens et besøk som kommer rett FRA en lenke herfra (en oppskrift, "opprett
+ * som oppskrift", handlelista) skal gjenopprette alt akkurat som før.
+ *
+ * Løsning: ALLE feltene lagres fortsatt i localStorage som før (ingen
+ * endring i selve PersistedPantryState-skjemaet), men restaureringen av
+ * SØKERESULTATENE (results/suggestions/externalMatches + "lagt til"-
+ * merkene) gates nå bak et eget, kortlevd ett-gangs-flagg i sessionStorage
+ * (PANTRY_EXPECT_RETURN_KEY) – se markExpectingReturn() og
+ * bruksstedene (BrowseRecipeCard-kortene, "Opprett som oppskrift"-lenkene,
+ * "se handleliste"-lenkene) lenger ned. Flagget settes RETT FØR man
+ * navigerer bort via en av disse lenkene, og konsumeres (fjernes) med én
+ * gang i hydreringseffekten – en helt vanlig retur til siden (uten at
+ * flagget er satt) gjenoppretter dermed kun ingrediensene/admin-
+ * preferansene, ikke de gamle resultatene. Ingredientene beholdes alltid
+ * uansett – kun selve TREFFENE er det som skal "glemmes" ved et vanlig nytt
+ * besøk. Se også effekten lenger ned som i tillegg nullstiller
+ * resultatene med én gang ingredients blir tom i en AKTIV økt.
  */
 interface PersistedPantryState {
   ingredients: string[];
@@ -59,6 +79,24 @@ const EMPTY_PERSISTED_PANTRY_STATE: PersistedPantryState = {
   addedExternalMissingForIndices: [],
   addedMissingForIds: [],
 };
+
+/** Ett-gangs sessionStorage-flagg – se filheaderen til PersistedPantryState
+ * over. sessionStorage (ikke localStorage): trengs uansett kun å overleve
+ * selve navigeringen bort og tilbake i SAMME fane, aldri på tvers av en ny
+ * økt. Konsumeres (fjernes) med én gang i hydreringseffekten, uansett
+ * verdi, slik at det aldri blir "hengende igjen" og feilaktig gjenoppretter
+ * resultater ved et SENERE, helt vanlig besøk. */
+const PANTRY_EXPECT_RETURN_KEY = "oppskriftsboken:pantrymatch-expect-return";
+
+function markExpectingReturn() {
+  try {
+    window.sessionStorage.setItem(PANTRY_EXPECT_RETURN_KEY, "1");
+  } catch {
+    // sessionStorage utilgjengelig (privat modus o.l.) – da gjenopprettes
+    // rett og slett ikke resultatene ved retur, samme som et vanlig nytt
+    // besøk. Ikke kritisk nok til å avbryte selve navigeringen for.
+  }
+}
 
 /**
  * Selve "Hva kan jeg lage?"-UI-et – se app/hva-kan-jeg-lage/page.tsx for
@@ -140,15 +178,27 @@ export function PantryMatchView({ lang, isAdmin = false }: { lang: Lang; isAdmin
   // synlig for andre effekter i samme flush, kun i neste rendering).
   useEffect(() => {
     if (!persistedPantryStateHydrated || pantryStateHydrationApplied) return;
+    // Konsumer ett-gangs-flagget FØR noe annet – se filheaderen til
+    // PersistedPantryState. Fjernes uansett verdi, slik at det aldri kan stå
+    // igjen og feilaktig gjenopprette resultater ved et senere, vanlig besøk.
+    let expectingReturn = false;
+    try {
+      expectingReturn = window.sessionStorage.getItem(PANTRY_EXPECT_RETURN_KEY) === "1";
+      window.sessionStorage.removeItem(PANTRY_EXPECT_RETURN_KEY);
+    } catch {
+      // sessionStorage utilgjengelig – behandles som et vanlig nytt besøk.
+    }
     setIngredients(persistedPantryState.ingredients);
-    setResults(persistedPantryState.results);
     setDesiredType(persistedPantryState.desiredType);
     setShowAdminSuggest(persistedPantryState.showAdminSuggest);
-    setSuggestions(persistedPantryState.suggestions);
-    setAddedMissingForIndices(new Set(persistedPantryState.addedMissingForIndices));
-    setExternalMatches(persistedPantryState.externalMatches);
-    setAddedExternalMissingForIndices(new Set(persistedPantryState.addedExternalMissingForIndices));
-    setAddedMissingForIds(new Set(persistedPantryState.addedMissingForIds));
+    if (expectingReturn) {
+      setResults(persistedPantryState.results);
+      setSuggestions(persistedPantryState.suggestions);
+      setAddedMissingForIndices(new Set(persistedPantryState.addedMissingForIndices));
+      setExternalMatches(persistedPantryState.externalMatches);
+      setAddedExternalMissingForIndices(new Set(persistedPantryState.addedExternalMissingForIndices));
+      setAddedMissingForIds(new Set(persistedPantryState.addedMissingForIds));
+    }
     setPantryStateHydrationApplied(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [persistedPantryStateHydrated, persistedPantryState, pantryStateHydrationApplied]);
@@ -179,6 +229,30 @@ export function PantryMatchView({ lang, isAdmin = false }: { lang: Lang; isAdmin
     addedExternalMissingForIndices,
     addedMissingForIds,
   ]);
+
+  /** (04.10.2026 – Henrik: "samme når jeg fjerner alle ingrediensene jeg har
+   * lagt inn") Så snart ingredienslisten blir tom – enten ved å fjerne
+   * chips én og én, eller via "Tilbakestill alt" – nullstilles alle
+   * søkeresultater/admin-forslag/"lagt til"-merker automatisk, i stedet for
+   * å bli stående igjen koblet til en ingrediensliste som ikke lenger
+   * finnes. Kjører ved enhver endring av ingredients (også ved
+   * hydrering fra localStorage), men er en ren no-op når feltene allerede
+   * er tomme/null, så dette dobbeltarbeider ikke med handleResetAll. */
+  useEffect(() => {
+    if (ingredients.length > 0) return;
+    setResults(null);
+    setSearchError(null);
+    setAddingMissingForId(null);
+    setAddedMissingForIds(new Set());
+    setAddMissingErrors({});
+    setSuggestions(null);
+    setSuggestError(null);
+    setAddedMissingForIndices(new Set());
+    setExternalMatches(null);
+    setExternalError(null);
+    setAddedExternalMissingForIndices(new Set());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ingredients]);
 
   function addIngredients(raw: string) {
     const parsed = splitIngredientList(raw);
@@ -594,7 +668,14 @@ export function PantryMatchView({ lang, isAdmin = false }: { lang: Lang; isAdmin
                       createLabel={t(lang, "pantryPage.adminExternalCreateLink")}
                       missingAdded={addedExternalMissingForIndices.has(i)}
                       onAddMissing={() => handleAddExternalMissing(match, i)}
-                      onCreateAsRecipe={() => router.push(`/admin/oppskrifter/ny?importUrl=${encodeURIComponent(match.url)}`)}
+                      onCreateAsRecipe={() => {
+                        // Samme returflagg-mønster som BrowseRecipeCard-kortene
+                        // over (se filheaderen til PersistedPantryState) –
+                        // denne lenken bruker router.push direkte i stedet for
+                        // en <Link>, så flagget settes her, rett før navigeringen.
+                        markExpectingReturn();
+                        router.push(`/admin/oppskrifter/ny?importUrl=${encodeURIComponent(match.url)}`);
+                      }}
                     />
                   ))}
                 </div>
@@ -625,6 +706,7 @@ export function PantryMatchView({ lang, isAdmin = false }: { lang: Lang; isAdmin
                             {addedMissingForIndices.has(i) ? (
                               <Link
                                 href="/handleliste"
+                                onClick={markExpectingReturn}
                                 className="mt-1 block text-xs font-medium text-clay underline underline-offset-2 hover:text-clay-dark"
                               >
                                 {t(lang, "pantryPage.missingAdded")}
@@ -642,6 +724,7 @@ export function PantryMatchView({ lang, isAdmin = false }: { lang: Lang; isAdmin
                         )}
                         <Link
                           href={`/admin/oppskrifter/ny?${params.toString()}`}
+                          onClick={markExpectingReturn}
                           className="mt-3 inline-block text-sm font-medium text-clay underline underline-offset-2 hover:text-clay-dark"
                         >
                           {t(lang, "pantryPage.adminSuggestCreateLink")}
@@ -769,7 +852,19 @@ function PantryResultCard({
       {/* (27.09.2026) PantryMatchView rendres kun for innloggede brukere (se
           app/hva-kan-jeg-lage/page.tsx), derfor hardkodet isLoggedIn – se
           FavoriteButton.tsx sin filheader. */}
-      <BrowseRecipeCard recipe={result.recipe} isLoggedIn={true} lang={lang} />
+      {/* (04.10.2026, Henrik: "om jeg trykker på en oppskrift må jeg ha
+          muligheten til å gå tilbake til 'i kjøleskapet' med alternativene
+          fortsatt synlig") – onClick på den omsluttende diven (IKKE en
+          endring i selve BrowseRecipeCard, som er en delt komponent brukt
+          flere steder) setter ett-gangs-returflagget (se
+          markExpectingReturn/PANTRY_EXPECT_RETURN_KEY i filheaderen over)
+          RETT FØR Link-en inni kortet navigerer bort. Fanger IKKE
+          favoritt-hjertet ved et uhell – FavoriteButton sin egen
+          klikk-handler kaller allerede e.stopPropagation() (se
+          FavoriteButton.tsx), så den slags klikk bobler aldri hit opp. */}
+      <div onClick={markExpectingReturn}>
+        <BrowseRecipeCard recipe={result.recipe} isLoggedIn={true} lang={lang} />
+      </div>
       <p className="mt-2 text-xs font-medium text-clay-dark">
         {t(lang, "pantryPage.coverage", { matched: result.matchedCount, total: result.totalCount })}
       </p>
@@ -781,6 +876,7 @@ function PantryResultCard({
           {added ? (
             <Link
               href="/handleliste"
+              onClick={markExpectingReturn}
               className="mt-1 block text-xs font-medium text-clay underline underline-offset-2 hover:text-clay-dark"
             >
               {t(lang, "pantryPage.missingAdded")}
