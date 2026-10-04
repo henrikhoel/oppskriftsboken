@@ -570,9 +570,17 @@ const DICT = {
   "filter.reset": { no: "Nullstill filtre", en: "Reset filters" },
 
   "search.srLabel": { no: "Søk i oppskrifter", en: "Search recipes" },
+  // Delt placeholder-tekst for ALLE tre SearchBar-forekomster (hero på
+  // forsiden, HeaderSearchSlot.tsx og /oppskrifter-sidens egen søkefelt) –
+  // ingen av dem sender inn en egen `placeholder`-prop, se SearchBar.tsx.
+  // Henrik, 04.10.2026 (med skjermbilde av forsiden): "gjør om teksten inni
+  // søkeboksen til 'Søk blant 300+ oppskrifter ...'". Tallet er et bevisst
+  // rundt, FAST tall (ikke beregnet fra faktisk antall oppskrifter i
+  // databasen) – samme "pen, rund milepæl"-prinsipp som f.eks. "300+
+  // oppskrifter" i markedsføringstekst ellers, ikke en live teller.
   "search.placeholder": {
-    no: "Søk etter oppskrift, ingrediens eller kategori …",
-    en: "Search for a recipe, ingredient, or category …",
+    no: "Søk blant 300+ oppskrifter …",
+    en: "Search 300+ recipes …",
   },
   "search.button": { no: "Søk", en: "Search" },
 
