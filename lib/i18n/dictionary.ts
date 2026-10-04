@@ -321,6 +321,20 @@ const DICT = {
     no: "Søk og filtrer i alle oppskriftene i samlingen.",
     en: "Search and filter through the whole recipe collection.",
   },
+  // Innloggingsgate lagt til 04.10.2026 (Henrik: "jeg tenker det er litt
+  // for mye å gå alle oppskriftene på 'Alle oppskrifter' også, jeg tenker
+  // den siden også kan være låst bak [bruker], så får man kun en teaser fra
+  // rettene på forsiden") – samme LockedPanel-mønster som /sesong og
+  // /helg-og-gjester. Tittel/intro forblir synlig (generisk tekst, ikke
+  // selve oppskriftsdataene), men hele søk/filter/grid-opplevelsen
+  // (BrowseRecipesClient) er låst, og selve datahentingen
+  // (getBrowseRecipeSummaries/getAllCategories) hoppes bevisst over for en
+  // ikke-innlogget besøkende, se app/oppskrifter/page.tsx.
+  "recipesPage.lockedMessage": {
+    no: "Alle oppskrifter er kun tilgjengelig når du er logget inn. Du finner et utvalg på forsiden i mellomtiden.",
+    en: "All recipes is only available when you're logged in. You'll find a selection on the homepage in the meantime.",
+  },
+  "recipesPage.lockedCta": { no: "Logg inn for å se alle oppskrifter", en: "Log in to see all recipes" },
   "recipesPage.emptyTitle": { no: "Fant ingen oppskrifter", en: "No recipes found" },
   "recipesPage.emptyDescription": {
     no: "Prøv et annet søkeord eller nullstill filtrene.",

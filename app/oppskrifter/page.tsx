@@ -8,6 +8,7 @@ import { t } from "@/lib/i18n";
 import { BrowseRecipesClient } from "@/components/search/BrowseRecipesClient";
 import { SearchBar } from "@/components/search/SearchBar";
 import { BrowseRecipeCardSkeleton } from "@/components/ui/Skeleton";
+import { LockedPanel } from "@/components/ui/LockedPanel";
 
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLang();
@@ -17,13 +18,40 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+/**
+ * INNLOGGINGSGATE lagt til 04.10.2026 (Henrik: "jeg tenker det er litt for
+ * mye å gå alle oppskriftene på 'Alle oppskrifter' også, jeg tenker den
+ * siden også kan være låst bak bruker, så får man kun en teaser fra
+ * rettene på forsiden") – samme mønster som /sesong og /helg-og-gjester:
+ * tittel/intro forblir synlig (generisk tekst, ikke selve
+ * oppskriftsdataene), men hele søk/filter/grid-opplevelsen
+ * (BrowseRecipesClient) er låst bak LockedPanel for en ikke-innlogget
+ * besøkende, og selve datahentingen (getBrowseRecipeSummaries/
+ * getAllCategories) hoppes bevisst over – se recipesPage.lockedMessage sin
+ * filheader i dictionary.ts. Forsidens egne oppskrifts-seksjoner
+ * (FeaturedEditorial/NewestRecipesFeed) er UENDRET og fortsatt offentlige –
+ * det ER "teaser fra forsiden" Henrik sikter til.
+ */
 export default async function RecipesPage() {
-  const [recipes, categories, user, lang] = await Promise.all([
-    getBrowseRecipeSummaries(),
-    getAllCategories(),
-    getCurrentUserFast(),
-    getLang(),
-  ]);
+  const [user, lang] = await Promise.all([getCurrentUserFast(), getLang()]);
+
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <h1 className="font-serif text-3xl text-ink sm:text-4xl">{t(lang, "recipesPage.title")}</h1>
+        <p className="mt-2 max-w-2xl text-ink-soft">{t(lang, "recipesPage.description")}</p>
+        <div className="mt-8">
+          <LockedPanel
+            message={t(lang, "recipesPage.lockedMessage")}
+            ctaLabel={t(lang, "recipesPage.lockedCta")}
+            nextPath="/oppskrifter"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const [recipes, categories] = await Promise.all([getBrowseRecipeSummaries(), getAllCategories()]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -64,8 +92,8 @@ export default async function RecipesPage() {
           <BrowseRecipesClient
             recipes={recipes}
             categories={categories}
-            isAdmin={Boolean(user?.isAdmin)}
-            isLoggedIn={Boolean(user)}
+            isAdmin={user.isAdmin}
+            isLoggedIn
             lang={lang}
           />
         </Suspense>
