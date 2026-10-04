@@ -1379,10 +1379,17 @@ const DICT = {
   // Dra-for-å-bytte-hint (04.10.2026) – kort forklaringstekst over
   // dagskortene, kun synlig på desktop (hidden lg:block i WeeklyMenuView.tsx,
   // se filheaderen der for hvorfor funksjonen kun er mus/penn i praksis).
+  // Teksten sier ikke selv "på datamaskin" (Henrik: "du trenger ikke skrive
+  // på datamaskin, fordi den teksten kommer uansett bare opp på
+  // datamaskin") – lg:block-synligheten ALENE garanterer konteksten.
   "weeklyMenu.dragHint": {
-    no: "Tips: på datamaskin kan du dra et dagskort over et annet for å bytte dem.",
-    en: "Tip: on a computer, you can drag a day card onto another to swap them.",
+    no: "Tips: dra et dagskort over et annet for å bytte dem.",
+    en: "Tip: drag a day card onto another to swap them.",
   },
+  // Speilvendt hint for mobil (04.10.2026, Henrik: "legg til en tilsvarende
+  // tekst på telefon: Trykk på pilene for å bytte plass") – lg:hidden,
+  // altså synlig akkurat der dragHint over er skjult.
+  "weeklyMenu.movePillsHint": { no: "Tips: trykk på pilene for å bytte plass.", en: "Tip: tap the arrows to swap places." },
   // Flytt opp/ned-piler (04.10.2026) – touch-vennlig erstatning for
   // dra-og-bytt, kun synlig under lg (lg:hidden) i WeeklyMenuView.tsx.
   "weeklyMenu.moveUpAria": { no: "Bytt {day} med dagen over", en: "Swap {day} with the day above" },

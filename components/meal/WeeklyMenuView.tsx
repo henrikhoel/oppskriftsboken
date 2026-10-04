@@ -546,8 +546,10 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
               "KUN mus/penn"-avsnitt), og lg er nøyaktig samme brytningspunkt
               som rutenettet under går fra én kolonne (stablet, ingen
               dra-støtte) til fem kolonner side ved side (hvor dra faktisk
-              virker). */}
+              virker). Speilvendt mobil-hint (`lg:hidden`) peker i stedet på
+              flytt opp/ned-pilene, se disse sin egen kommentar lenger ned. */}
           <p className="mt-6 hidden text-xs text-ink-faint lg:block">{t(lang, "weeklyMenu.dragHint")}</p>
+          <p className="mt-6 text-xs text-ink-faint lg:hidden">{t(lang, "weeklyMenu.movePillsHint")}</p>
 
           <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-5 lg:gap-6">
             {recipeIds.map((id, index) => {
