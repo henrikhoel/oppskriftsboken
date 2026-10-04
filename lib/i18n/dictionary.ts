@@ -406,12 +406,19 @@ const DICT = {
     no: "Fortell oss hva du har i kjøleskapet eller skapet, så finner vi oppskrifter du kan lage med det.",
     en: "Tell us what's in your fridge or pantry, and we'll find recipes you can make with it.",
   },
+  // (04.10.2026, redesign) Editorial undertittel rett under H1 – se
+  // app/hva-kan-jeg-lage/page.tsx.
+  "pantryPage.subtitle": { no: "Bruk det du allerede har.", en: "Use what you already have." },
   "pantryPage.intro": {
-    no: "Skriv inn eller ta bilde av det du har liggende, enten det er rester fra i går eller bare det som er i kjøleskapet, så finner vi oppskrifter som passer.",
-    en: "Type in or take a photo of what you have on hand, whether it's leftovers from yesterday or just what's in the fridge, and we'll find recipes that fit.",
+    no: "Fortell oss hva som ligger i kjøleskapet, så finner vi oppskrifter som passer.",
+    en: "Tell us what's in your fridge, and we'll find recipes that fit.",
   },
-  "pantryPage.inputPlaceholder": { no: "F.eks. løk, fløte, kylling …", en: "E.g. onion, cream, chicken …" },
+  "pantryPage.inputPlaceholder": { no: "Hva har du liggende?", en: "What do you have on hand?" },
   "pantryPage.inputAria": { no: "Legg til ingrediens", en: "Add ingredient" },
+  // ORPHANED 04.10.2026 – den separate "Legg til"-knappen ved siden av
+  // inputfeltet er fjernet i redesignet (se PantryMatchView.tsx): Enter i
+  // feltet (handleInputKeyDown) dekker det samme. Bevisst latt stå, ikke
+  // slettet, i tilfelle knappen kommer tilbake.
   "pantryPage.addButton": { no: "Legg til", en: "Add" },
   "pantryPage.photoAria": { no: "Ta bilde av det du har", en: "Take a photo of what you have" },
   "pantryPage.analyzingPhoto": { no: "Ser gjennom bildet …", en: "Looking through the photo …" },
@@ -424,7 +431,7 @@ const DICT = {
     en: "Couldn't clearly identify any food in the photo. Try a closer photo, or type them in yourself.",
   },
   "pantryPage.removeIngredientAria": { no: "Fjern {name}", en: "Remove {name}" },
-  "pantryPage.searchButton": { no: "Finn oppskrifter", en: "Find recipes" },
+  "pantryPage.searchButton": { no: "Finn oppskrifter →", en: "Find recipes →" },
   "pantryPage.searching": { no: "Leter …", en: "Searching …" },
   // (27.08.2026) – nullstiller ingredienser/søk/AI-forslag tilbake til tom
   // tilstand, se handleResetAll i PantryMatchView.tsx.
@@ -433,12 +440,23 @@ const DICT = {
     no: "Klarte ikke å søke akkurat nå. Prøv igjen.",
     en: "Couldn't search right now. Please try again.",
   },
-  "pantryPage.resultsHeading": { no: "Du kan lage", en: "You can make" },
+  // (04.10.2026, redesign) "Dette kan du lage" – vist med uppercase/tracking
+  // via CSS (samme mønster som f.eks. mealBuilder.eyebrow), derfor lagret i
+  // vanlig case her. Se PantryMatchView.tsx.
+  "pantryPage.resultsHeading": { no: "Dette kan du lage", en: "What you can make" },
+  // (04.10.2026, redesign) Gruppeoverskrifter når resultatene faktisk deler
+  // seg i komplette/delvise treff – kun vist når begge gruppene har noe i
+  // seg, se PantryMatchView.tsx.
+  "pantryPage.completeGroupHeading": { no: "Har alt du trenger", en: "You have everything you need" },
+  "pantryPage.partialGroupHeading": { no: "Mangler bare litt", en: "Just missing a little" },
   "pantryPage.noResults": {
     no: "Fant ingen oppskrifter med noen av disse ingrediensene ennå. Prøv å legge til flere.",
     en: "No recipes found with any of these ingredients yet. Try adding a few more.",
   },
-  "pantryPage.coverage": { no: "{matched} av {total} ingredienser", en: "{matched} of {total} ingredients" },
+  "pantryPage.coverage": {
+    no: "Du har {matched} av {total} ingredienser",
+    en: "You have {matched} of {total} ingredients",
+  },
   "pantryPage.missing": { no: "Mangler", en: "Missing" },
   "pantryPage.missingAddButton": { no: "Legg i handleliste", en: "Add to shopping list" },
   "pantryPage.missingAdding": { no: "Legger til …", en: "Adding …" },
@@ -447,6 +465,10 @@ const DICT = {
     no: "Fikk ikke lagt til. Prøv igjen.",
     en: "Couldn't add. Try again.",
   },
+  // ORPHANED 04.10.2026 – den store, stiplede tom-tilstand-boksen under
+  // inputområdet (vist før brukeren hadde søkt) er fjernet i redesignet
+  // (Henrik: "la heller siden ha luft og negativ plass"), se
+  // PantryMatchView.tsx. Bevisst latt stå, ikke slettet.
   "pantryPage.emptyStateTitle": { no: "Hva har du liggende?", en: "What do you have on hand?" },
   "pantryPage.emptyStateDescription": {
     no: "Legg til noen ingredienser over, så viser vi oppskrifter som passer.",
@@ -457,6 +479,11 @@ const DICT = {
   // fra ingrediensene over, i motsetning til søket over som kun finner
   // eksisterende oppskrifter. Se PantryMatchView.tsx.
   "pantryPage.adminSuggestToggle": { no: "Foreslå nye retter", en: "Suggest new dishes" },
+  // (04.10.2026, redesign) Nå en liten, alltid synlig "Admin"-merkelapp ved
+  // siden av selve toggle-lenken (se PantryMatchView.tsx) – ikke lenger en
+  // tekst som bytter mellom "Admin"/"Skjul" ved åpen/lukket (et eget
+  // +/−-tegn dekker nå det), derfor er adminSuggestBadgeClose ORPHANED,
+  // bevisst latt stå.
   "pantryPage.adminSuggestBadgeOpen": { no: "Admin", en: "Admin" },
   "pantryPage.adminSuggestBadgeClose": { no: "Skjul", en: "Hide" },
   "pantryPage.adminSuggestIntro": {

@@ -13,9 +13,10 @@ import { useShoppingList } from "@/lib/hooks/useShoppingList";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import type { IngredientGroup, IngredientItem, NewDishSuggestion, ExternalRecipeMatch } from "@/lib/types";
 import { generateId } from "@/lib/utils/id";
-import { RecipeCard } from "@/components/recipe/RecipeCard";
+import { BrowseRecipeCard } from "@/components/recipe/BrowseRecipeCard";
 import { ExternalRecipeMatchCard } from "@/components/admin/ExternalRecipeMatchCard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
 import { CameraIcon, XIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
@@ -419,14 +420,77 @@ export function PantryMatchView({ lang, isAdmin = false }: { lang: Lang; isAdmin
     externalMatches !== null ||
     desiredType.trim() !== "";
 
+  // (04.10.2026, redesign – se filheaderen for hele bakgrunnen) Deterministisk
+  // gruppering av de allerede ferdig-rangerte resultatene i to visuelle bøtter
+  // – INGEN ny matchelogikk, kun en .filter() på data pantry-match.ts allerede
+  // regner ut (missingIngredientNames.length). Rekkefølgen INNAD i hver bøtte
+  // er fortsatt den originale rangeringen fra matchRecipesToPantry (høyest
+  // coverage/flest treff først), siden .filter() bevarer kildearrayets
+  // rekkefølge. Gruppeoverskriftene vises kun når BEGGE bøttene faktisk har
+  // noe i seg (se bruksstedet lenger ned) – med kun én type treff er selve
+  // delingen uinteressant/støy.
+  const completeResults = results?.filter((r) => r.missingIngredientNames.length === 0) ?? [];
+  const partialResults = results?.filter((r) => r.missingIngredientNames.length > 0) ?? [];
+
   return (
     <div>
-      <div className="rounded-card border border-line bg-paper p-5 shadow-card sm:p-6">
-        <div className="flex flex-wrap gap-2">
+      {/* INGREDIENSINPUT (04.10.2026, redesign – Henrik: "fjern dagens store
+          grå card rundt inputområdet, lag i stedet ett rent og tydelig
+          inputområde direkte i layouten"). Ingen rounded-card/border/shadow-
+          innpakning lenger – selve input-feltet ER elementet, med kamera-
+          ikonet integrert direkte i feltet (absolutt posisjonert, høyre
+          side) i stedet for en egen knapp ved siden av. Den tidligere egne
+          "Legg til"-knappen er fjernet – Enter (se handleInputKeyDown over)
+          dekker det samme, og er allerede eneste måte å legge til på mobil
+          uten eget tastatur-"legg til"-steg. */}
+      {/* max-w-2xl (04.10.2026) – begrenser input/chips/CTA/admin-delen til
+          en smal, editorial lesebredde, uavhengig av at den ytre siden
+          (app/hva-kan-jeg-lage/page.tsx) er bred nok til at resultatgridet
+          under kan bruke opptil 4 kolonner. */}
+      <div className="max-w-2xl">
+      <div className="relative">
+        <input
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleInputKeyDown}
+          placeholder={t(lang, "pantryPage.inputPlaceholder")}
+          aria-label={t(lang, "pantryPage.inputAria")}
+          // text-base på mobil (unngår iOS-innzooming ved fokus).
+          className="w-full rounded-full border border-line-strong bg-paper py-4 pl-5 pr-14 text-base text-ink placeholder:text-ink-faint focus:border-clay/50 focus:outline-none sm:text-lg"
+        />
+        <button
+          type="button"
+          onClick={handlePhotoButtonClick}
+          disabled={isAnalyzingPhoto}
+          aria-label={t(lang, "pantryPage.photoAria")}
+          title={t(lang, "pantryPage.photoAria")}
+          className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <CameraIcon className="h-5 w-5" />
+        </button>
+      </div>
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+
+      {photoPreview && (
+        <div className="mt-3 flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element -- lokal blob-forhåndsvisning, ikke egnet for next/image */}
+          <img src={photoPreview} alt="" className="h-14 w-14 rounded-lg border border-line-strong object-cover" />
+          {isAnalyzingPhoto ? (
+            <p className="text-sm text-ink-faint">{t(lang, "pantryPage.analyzingPhoto")}</p>
+          ) : (
+            photoError && <p className="text-sm text-clay-dark">{photoError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Valgte ingredienser – små, elegante chips (uendret visuelt mønster,
+          kun flyttet ut av kortet over sammen med resten av inputområdet). */}
+      {ingredients.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
           {ingredients.map((name) => (
             <span
               key={name}
-              className="flex items-center gap-1.5 rounded-full bg-clay-light px-3 py-1.5 text-sm text-clay-dark"
+              className="flex items-center gap-1.5 rounded-full bg-clay-light px-3 py-1 text-sm text-clay-dark"
             >
               {name}
               <button
@@ -440,89 +504,47 @@ export function PantryMatchView({ lang, isAdmin = false }: { lang: Lang; isAdmin
             </span>
           ))}
         </div>
+      )}
 
-        <div className="mt-3 flex gap-2">
-          <input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleInputKeyDown}
-            placeholder={t(lang, "pantryPage.inputPlaceholder")}
-            aria-label={t(lang, "pantryPage.inputAria")}
-            // text-base på mobil (unngår iOS-innzooming ved fokus).
-            className="w-full flex-1 rounded-xl border border-line-strong bg-cream px-3.5 py-2.5 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-sm"
-          />
+      <div className="mt-6 flex flex-wrap items-center gap-4">
+        <Button type="button" onClick={handleSearch} disabled={ingredients.length === 0 || searching} variant="primary">
+          {searching ? t(lang, "pantryPage.searching") : t(lang, "pantryPage.searchButton")}
+        </Button>
+        {hasAnythingToReset && (
           <button
             type="button"
-            onClick={handlePhotoButtonClick}
-            disabled={isAnalyzingPhoto}
-            aria-label={t(lang, "pantryPage.photoAria")}
-            title={t(lang, "pantryPage.photoAria")}
-            className="flex shrink-0 items-center justify-center rounded-xl border border-line-strong bg-cream px-3.5 py-2.5 text-ink-soft transition-colors hover:bg-cream-dark disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={handleResetAll}
+            className="text-sm text-ink-faint underline underline-offset-2 hover:text-clay-dark"
           >
-            <CameraIcon className="h-5 w-5" />
+            {t(lang, "pantryPage.resetAllButton")}
           </button>
-          <button
-            type="button"
-            onClick={handleAddFromInput}
-            disabled={!inputValue.trim()}
-            className="shrink-0 rounded-xl border border-line-strong bg-cream px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {t(lang, "pantryPage.addButton")}
-          </button>
-        </div>
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-
-        {photoPreview && (
-          <div className="mt-3 flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element -- lokal blob-forhåndsvisning, ikke egnet for next/image */}
-            <img src={photoPreview} alt="" className="h-14 w-14 rounded-lg border border-line-strong object-cover" />
-            {isAnalyzingPhoto ? (
-              <p className="text-sm text-ink-faint">{t(lang, "pantryPage.analyzingPhoto")}</p>
-            ) : (
-              photoError && <p className="text-sm text-clay-dark">{photoError}</p>
-            )}
-          </div>
         )}
-
-        <div className="mt-4 flex flex-wrap items-center gap-4">
-          <button
-            type="button"
-            onClick={handleSearch}
-            disabled={ingredients.length === 0 || searching}
-            className="w-full rounded-full bg-clay px-5 py-3 text-sm font-medium text-cream transition-colors hover:bg-clay-dark disabled:cursor-not-allowed disabled:bg-ink-faint sm:w-auto"
-          >
-            {searching ? t(lang, "pantryPage.searching") : t(lang, "pantryPage.searchButton")}
-          </button>
-          {hasAnythingToReset && (
-            <button
-              type="button"
-              onClick={handleResetAll}
-              className="text-sm text-ink-faint underline underline-offset-2 hover:text-clay-dark"
-            >
-              {t(lang, "pantryPage.resetAllButton")}
-            </button>
-          )}
-        </div>
-        {searchError && <p className="mt-2 text-sm text-clay-dark">{searchError}</p>}
       </div>
+      {searchError && <p className="mt-2 text-sm text-clay-dark">{searchError}</p>}
 
+      {/* ADMIN – "Foreslå nye retter" (04.10.2026, redesign – Henrik: "fjern
+          den store fremtredende admin-boksen fra den vanlige brukerflyten,
+          vis den heller som en diskret admin-only kontroll"). Ingen
+          clay-farget boks lenger – kun en liten, umerkelig tekst-lenke bak
+          en tynn skillelinje, samme visuelle "vekt" som Tilbakestill-lenken
+          over. Selve funksjonaliteten (begge AI-kallene, resultatene) er
+          UENDRET, kun innpakningen er dempet ned. */}
       {isAdmin && (
-        <div className="mt-4 rounded-card border border-clay/30 bg-clay-light/30 p-5 sm:p-6">
+        <div className="mt-10 border-t border-line pt-6">
           <button
             type="button"
             onClick={() => setShowAdminSuggest((v) => !v)}
-            className="flex w-full cursor-pointer items-center justify-between gap-3 text-left"
+            className="flex cursor-pointer items-center gap-2 text-xs font-medium uppercase tracking-wide text-ink-faint transition-colors hover:text-clay-dark"
           >
-            <span className="font-serif text-lg text-ink">{t(lang, "pantryPage.adminSuggestToggle")}</span>
-            <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-clay-dark">
-              {showAdminSuggest
-                ? t(lang, "pantryPage.adminSuggestBadgeClose")
-                : t(lang, "pantryPage.adminSuggestBadgeOpen")}
+            <span className="rounded-full border border-line-strong px-1.5 py-0.5 text-[10px] tracking-normal">
+              {t(lang, "pantryPage.adminSuggestBadgeOpen")}
             </span>
+            {t(lang, "pantryPage.adminSuggestToggle")}
+            <span aria-hidden="true">{showAdminSuggest ? "−" : "+"}</span>
           </button>
 
           {showAdminSuggest && (
-            <div className="mt-4">
+            <div className="mt-4 max-w-xl">
               <p className="text-sm text-ink-soft">{t(lang, "pantryPage.adminSuggestIntro")}</p>
 
               <input
@@ -633,92 +655,149 @@ export function PantryMatchView({ lang, isAdmin = false }: { lang: Lang; isAdmin
           )}
         </div>
       )}
-
-      <div className="mt-8">
-        {results === null && (
-          <EmptyState
-            title={t(lang, "pantryPage.emptyStateTitle")}
-            description={t(lang, "pantryPage.emptyStateDescription")}
-          />
-        )}
-
-        {results !== null && results.length === 0 && <EmptyState title={t(lang, "pantryPage.noResults")} />}
-
-        {results !== null && results.length > 0 && (
-          <>
-            <h2 className="font-serif text-xl text-ink">{t(lang, "pantryPage.resultsHeading")}</h2>
-            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {results.map((result) => {
-                // Rangeringen kommer allerede ferdig sortert fra
-                // matchRecipesToPantry (høyest coverage først) – prosenten
-                // her er samme tall visualisert, ikke en ny beregning, så
-                // badge og fremdriftslinje kan aldri komme i utakt med
-                // faktisk rekkefølge på kortene.
-                const matchPercent = Math.round(result.coverage * 100);
-                return (
-                  <div key={result.recipe.id} className="flex flex-col gap-2">
-                    <div className="relative">
-                      {/* (27.09.2026) PantryMatchView rendres kun for
-                          innloggede brukere (se app/hva-kan-jeg-lage/page.tsx),
-                          derfor hardkodet isLoggedIn – se FavoriteButton.tsx
-                          sin filheader. */}
-                      <RecipeCard recipe={result.recipe} isLoggedIn={true} lang={lang} />
-                      {/* Plassert øverst til venstre – RecipeCard bruker selv
-                          øverst til høyre til favoritt-hjertet, se
-                          RecipeCard.tsx. */}
-                      <span className="absolute left-3 top-3 rounded-full bg-clay px-2.5 py-1 text-xs font-bold tracking-wide text-cream shadow-card">
-                        {matchPercent} %
-                      </span>
-                    </div>
-                    <div className="px-1">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-cream-dark">
-                          <div
-                            className="h-full rounded-full bg-clay transition-[width]"
-                            style={{ width: `${matchPercent}%` }}
-                          />
-                        </div>
-                        <span className="shrink-0 text-xs font-medium text-clay-dark">
-                          {t(lang, "pantryPage.coverage", { matched: result.matchedCount, total: result.totalCount })}
-                        </span>
-                      </div>
-                      {result.missingIngredientNames.length > 0 && (
-                        <>
-                          <p className="mt-1.5 line-clamp-2 text-xs text-ink-faint">
-                            {t(lang, "pantryPage.missing")}: {result.missingIngredientNames.join(", ")}
-                          </p>
-                          {addedMissingForIds.has(result.recipe.id) ? (
-                            <Link
-                              href="/handleliste"
-                              className="mt-1 block text-xs font-medium text-clay underline underline-offset-2 hover:text-clay-dark"
-                            >
-                              {t(lang, "pantryPage.missingAdded")}
-                            </Link>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleAddMissing(result)}
-                              disabled={addingMissingForId === result.recipe.id}
-                              className="mt-1 text-xs font-medium text-clay hover:text-clay-dark disabled:cursor-not-allowed disabled:text-ink-faint"
-                            >
-                              {addingMissingForId === result.recipe.id
-                                ? t(lang, "pantryPage.missingAdding")
-                                : t(lang, "pantryPage.missingAddButton")}
-                            </button>
-                          )}
-                          {addMissingErrors[result.recipe.id] && (
-                            <p className="mt-1 text-xs text-clay-dark">{addMissingErrors[result.recipe.id]}</p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
       </div>
+
+      {/* TOM TILSTAND (04.10.2026, redesign – Henrik: "når brukeren ikke har
+          lagt til ingredienser eller søkt ennå, trenger vi ikke et stort
+          placeholder-element under inputområdet, la heller siden ha luft og
+          negativ plass"). Den tidligere store, stiplede EmptyState-boksen
+          ("Hva har du liggende? / Legg til noen ingredienser over …") er
+          derfor fjernet herfra – results === null gir nå rett og slett
+          ingenting, kun luft. EmptyState brukes fortsatt for et EKTE
+          "søkte, men fant ingenting"-resultat (results !== null, lengde 0)
+          – det er faktisk ny informasjon til brukeren, ikke en
+          placeholder, og fortjener fortsatt en tydelig, men rolig melding. */}
+      {results !== null && results.length === 0 && (
+        <div className="mt-14 sm:mt-20">
+          <EmptyState title={t(lang, "pantryPage.noResults")} />
+        </div>
+      )}
+
+      {/* RESULTATER (04.10.2026, redesign) – samme ferdig-rangerte data som
+          før (matchRecipesToPantry), nå gruppert i to bøtter
+          (completeResults/partialResults over, ren .filter() på eksisterende
+          data) og presentert med BrowseRecipeCard – "det nye rene
+          CONVITE-uttrykket" (se filheaderen der), samme komponent som /
+          oppskrifter sitt redesignede rutenett bruker. Ingen mørk card-flate
+          rundt hvert resultat lenger; match-informasjonen (dekning/mangler)
+          står som diskret tekst RETT UNDER BrowseRecipeCard sin egen
+          bilde+tittel-blokk, i stedet for en overlagt prosent-badge+
+          fremdriftslinje. */}
+      {results !== null && results.length > 0 && (
+        <div className="mt-14 border-t border-line pt-10 sm:mt-20 sm:pt-14">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-clay">
+            {t(lang, "pantryPage.resultsHeading")}
+          </p>
+
+          {completeResults.length > 0 && (
+            <div className="mt-6">
+              {partialResults.length > 0 && (
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                  {t(lang, "pantryPage.completeGroupHeading")}
+                </p>
+              )}
+              <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {completeResults.map((result) => (
+                  <PantryResultCard
+                    key={result.recipe.id}
+                    result={result}
+                    lang={lang}
+                    adding={addingMissingForId === result.recipe.id}
+                    added={addedMissingForIds.has(result.recipe.id)}
+                    error={addMissingErrors[result.recipe.id]}
+                    onAddMissing={() => handleAddMissing(result)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {partialResults.length > 0 && (
+            <div className={completeResults.length > 0 ? "mt-12" : "mt-6"}>
+              {completeResults.length > 0 && (
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                  {t(lang, "pantryPage.partialGroupHeading")}
+                </p>
+              )}
+              <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {partialResults.map((result) => (
+                  <PantryResultCard
+                    key={result.recipe.id}
+                    result={result}
+                    lang={lang}
+                    adding={addingMissingForId === result.recipe.id}
+                    added={addedMissingForIds.has(result.recipe.id)}
+                    error={addMissingErrors[result.recipe.id]}
+                    onAddMissing={() => handleAddMissing(result)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** (04.10.2026) Ett resultatkort i det grupperte resultatgridet over – samme
+ * bilde+metadata+serif-tittel-blokk som /oppskrifter sitt redesignede
+ * rutenett (BrowseRecipeCard, se filheaderen der – "det nye rene
+ * CONVITE-uttrykket"), med pantry-spesifikk matchinformasjon (dekning/
+ * mangler/"legg i handleliste") lagt til som egne, diskrete tekstlinjer
+ * RETT UNDER – ingen egen prosent-badge/fremdriftslinje oppå bildet lenger
+ * (se filheaderen til PantryMatchView for resonnementet om hvorfor). Egen,
+ * liten komponent kun for å slippe å gjenta denne blokken to ganger –
+ * komplett-/delvis-bøttene over bruker begge denne, uendret logikk. */
+function PantryResultCard({
+  result,
+  lang,
+  adding,
+  added,
+  error,
+  onAddMissing,
+}: {
+  result: PantryMatchResult;
+  lang: Lang;
+  adding: boolean;
+  added: boolean;
+  error?: string;
+  onAddMissing: () => void;
+}) {
+  return (
+    <div>
+      {/* (27.09.2026) PantryMatchView rendres kun for innloggede brukere (se
+          app/hva-kan-jeg-lage/page.tsx), derfor hardkodet isLoggedIn – se
+          FavoriteButton.tsx sin filheader. */}
+      <BrowseRecipeCard recipe={result.recipe} isLoggedIn={true} lang={lang} />
+      <p className="mt-2 text-xs font-medium text-clay-dark">
+        {t(lang, "pantryPage.coverage", { matched: result.matchedCount, total: result.totalCount })}
+      </p>
+      {result.missingIngredientNames.length > 0 && (
+        <>
+          <p className="mt-1 line-clamp-2 text-xs text-ink-faint">
+            {t(lang, "pantryPage.missing")}: {result.missingIngredientNames.join(", ")}
+          </p>
+          {added ? (
+            <Link
+              href="/handleliste"
+              className="mt-1 block text-xs font-medium text-clay underline underline-offset-2 hover:text-clay-dark"
+            >
+              {t(lang, "pantryPage.missingAdded")}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={onAddMissing}
+              disabled={adding}
+              className="mt-1 text-xs font-medium text-clay hover:text-clay-dark disabled:cursor-not-allowed disabled:text-ink-faint"
+            >
+              {adding ? t(lang, "pantryPage.missingAdding") : t(lang, "pantryPage.missingAddButton")}
+            </button>
+          )}
+          {error && <p className="mt-1 text-xs text-clay-dark">{error}</p>}
+        </>
+      )}
     </div>
   );
 }
