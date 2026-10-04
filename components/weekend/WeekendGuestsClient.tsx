@@ -10,6 +10,7 @@ import {
 } from "@/lib/kitchen-intelligence/weekend-guests";
 import { WeekendGuestsFeatured } from "@/components/weekend/WeekendGuestsFeatured";
 import { WeekendGuestsCard } from "@/components/weekend/WeekendGuestsCard";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
@@ -54,24 +55,27 @@ import { t, type Lang } from "@/lib/i18n";
  * `string` – TypeScript ville klaget dersom en anledning mangler sin egen
  * gridHeading-nøkkel der.
  *
- * Rutenettet viser maks WEEKEND_GUESTS_GRID_PREVIEW_COUNT retter til å
- * begynne med, med en "Se alle (N til)"-knapp under dersom det er flere
- * (03.10.2026, Henrik: "det holder med 6 stk før det kan stå 'se alle'").
- * Ren client-side-avsløring (showAllInGrid), ingen ny henting – hele
- * `rest`-lista er allerede inne. Nullstilles til lukket igjen når
- * anledningen byttes (se useEffect under), slik at man ikke lander midt i
- * et langt, allerede utvidet rutenett etter et filterbytte.
+ * Rutenettet viser WEEKEND_GUESTS_GRID_PAGE_SIZE retter om gangen, med
+ * "Tilbake"/"Neste"-sidenavigasjon under (04.10.2026, Henrik, etter et
+ * første forsøk med en "Se alle"-knapp som avslørte ALT på én gang her:
+ * "da blir det så fryktelig mange plutselig, så 'neste' [...] har man
+ * trykket neste, så må man kunne gå tilbake også"). Ren client-side
+ * paginering (`page`), ingen ny henting – hele `rest`-lista er allerede
+ * inne, kun hvilken "side" av den som vises endres. Nullstilles til side 0
+ * igjen når anledningen byttes (se useEffect under), slik at man ikke
+ * lander midt i en senere side fra en tidligere anledning etter et
+ * filterbytte.
  */
-const WEEKEND_GUESTS_GRID_PREVIEW_COUNT = 6;
+const WEEKEND_GUESTS_GRID_PAGE_SIZE = 6;
 
 export function WeekendGuestsClient({ recipes, lang }: { recipes: RecipeSummary[]; lang: Lang }) {
   const [activeOccasion, setActiveOccasion] = useState<WeekendGuestsOccasionFilter>(ALL_OCCASIONS_FILTER);
   const [visible, setVisible] = useState(true);
-  const [showAllInGrid, setShowAllInGrid] = useState(false);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     setVisible(false);
-    setShowAllInGrid(false);
+    setPage(0);
     const timeout = setTimeout(() => setVisible(true), 40);
     return () => clearTimeout(timeout);
   }, [activeOccasion]);
@@ -82,8 +86,19 @@ export function WeekendGuestsClient({ recipes, lang }: { recipes: RecipeSummary[
   }, [recipes, activeOccasion]);
 
   const [featured, ...rest] = filtered;
-  const visibleRest = showAllInGrid ? rest : rest.slice(0, WEEKEND_GUESTS_GRID_PREVIEW_COUNT);
-  const hiddenCount = rest.length - visibleRest.length;
+  const pageCount = Math.max(1, Math.ceil(rest.length / WEEKEND_GUESTS_GRID_PAGE_SIZE));
+  const visibleRest = rest.slice(page * WEEKEND_GUESTS_GRID_PAGE_SIZE, (page + 1) * WEEKEND_GUESTS_GRID_PAGE_SIZE);
+  const hasPrevious = page > 0;
+  const hasNext = page < pageCount - 1;
+
+  // Bla side – samme lette, subtile fade som filterbyttet over (ikke
+  // eksakt samme useEffect, siden den også skal nullstille SELVE siden ved
+  // filterbytte, noe et rent sidebytte aldri skal).
+  function goToPage(next: number) {
+    setVisible(false);
+    setPage(next);
+    setTimeout(() => setVisible(true), 40);
+  }
 
   return (
     <div>
@@ -144,14 +159,25 @@ export function WeekendGuestsClient({ recipes, lang }: { recipes: RecipeSummary[
                   ))}
                 </div>
 
-                {hiddenCount > 0 && (
-                  <div className="mt-10 text-center">
+                {pageCount > 1 && (
+                  <div className="mt-10 flex items-center justify-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setShowAllInGrid(true)}
-                      className="rounded-full border border-line-strong bg-paper px-5 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
+                      onClick={() => goToPage(page - 1)}
+                      disabled={!hasPrevious}
+                      className="flex items-center gap-1.5 rounded-full border border-line-strong bg-paper px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-paper disabled:hover:text-ink-soft"
                     >
-                      {t(lang, "weekendGuests.seeAllInGrid", { count: hiddenCount })}
+                      <ChevronLeftIcon className="h-4 w-4" />
+                      {t(lang, "weekendGuests.gridPrevious")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goToPage(page + 1)}
+                      disabled={!hasNext}
+                      className="flex items-center gap-1.5 rounded-full border border-line-strong bg-paper px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-paper disabled:hover:text-ink-soft"
+                    >
+                      {t(lang, "weekendGuests.gridNext")}
+                      <ChevronRightIcon className="h-4 w-4" />
                     </button>
                   </div>
                 )}

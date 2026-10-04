@@ -1437,13 +1437,15 @@ const DICT = {
     en: "Dishes for Sunday dinner",
   },
   "weekendGuests.gridHeading.feiring": { no: "Retter som passer til en feiring", en: "Dishes for a celebration" },
-  // "Se alle"-knapp under rutenettet (03.10.2026, Henrik: "det holder med 6
-  // stk før det kan stå 'se alle'") – vises KUN når flere enn
-  // WEEKEND_GUESTS_GRID_PREVIEW_COUNT retter finnes i aktivt filter, se
-  // WeekendGuestsClient.tsx. {count} = antall SKJULTE retter (ikke totalen),
-  // samme "vis hvor mye mer"-tanke som andre tellevars i denne fila (f.eks.
-  // season.recipesWithIngredient).
-  "weekendGuests.seeAllInGrid": { no: "Se alle ({count} til)", en: "See all ({count} more)" },
+  // "Tilbake"/"Neste"-sidenavigasjon under rutenettet (04.10.2026, Henrik,
+  // etter et første forsøk med én "Se alle"-knapp: "da blir det så
+  // fryktelig mange plutselig, så 'neste' [...] har man trykket neste, så
+  // må man kunne gå tilbake også") – vises KUN når aktivt filter har mer
+  // enn én side (WEEKEND_GUESTS_GRID_PAGE_SIZE per side), se
+  // WeekendGuestsClient.tsx. Hver knapp deaktiveres (ikke skjules) når det
+  // ikke er noen forrige/neste side.
+  "weekendGuests.gridPrevious": { no: "Tilbake", en: "Back" },
+  "weekendGuests.gridNext": { no: "Neste", en: "Next" },
   "weekendGuests.emptyForOccasion": {
     no: "Ingen retter er lagt til under denne anledningen ennå.",
     en: "No dishes have been added under this occasion yet.",
