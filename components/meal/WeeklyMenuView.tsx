@@ -64,6 +64,18 @@
  * Lenkens egen onClick sjekker `didDragRef` og kaller `e.preventDefault()`
  * for å kansellere navigeringen KUN når gesten faktisk var en drag.
  *
+ * FEILRETTET SAMME DAG (Henrik, med skjermbilde: "får ikke dratt noe som
+ * helst") – lenken (<a>) og bildet inni (<img>, via next/image) er
+ * NATIVT drag-bare i nettlesere helt uavhengig av Pointer Events-koden
+ * over. Skjermbildet viste nettopp dette: nettleserens EGEN drag-spøkelse
+ * av bildet, og URL-en i statuslinjen, akkurat som når man drar en vanlig
+ * lenke – nettleserens innebygde lenke/bilde-drag vant kappestriden om
+ * selve gesten før/i stedet for onPointerMove-logikken. Løsning:
+ * `draggable={false}` på BÅDE Lenken og Image-komponenten under, pluss en
+ * `onDragStart`-handler som kaller `e.preventDefault()` som et ekstra
+ * sikkerhetsnett (draggable={false} skal i teorien være nok alene per
+ * HTML-spesifikasjonen, men kostet ingenting å legge til begge).
+ *
  * KUN mus/penn i praksis (ingen `touchAction: "none"` lagt til, til
  * forskjell fra IngredientGroupsEditor.tsx sitt drahåndtak) – dagene står i
  * ÉN kolonne på mobil (se grid-oppsettet under), så en dra-gest her ville
@@ -560,6 +572,8 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
                       else cardRefs.current.delete(index);
                     }}
                     href={`/oppskrifter/${recipe.slug}?fromWeeklyMenu=1`}
+                    draggable={false}
+                    onDragStart={(e) => e.preventDefault()}
                     onClick={(e) => {
                       if (didDragRef.current) {
                         e.preventDefault();
@@ -584,6 +598,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
                           src={recipe.heroImageUrl}
                           alt={recipe.heroImageAlt || localizedTitle(recipe, lang)}
                           fill
+                          draggable={false}
                           sizes="(min-width: 1024px) 20vw, (min-width: 640px) 45vw, 90vw"
                           className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                         />
