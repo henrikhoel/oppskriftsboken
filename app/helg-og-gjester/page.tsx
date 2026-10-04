@@ -3,7 +3,9 @@ import Image from "next/image";
 import { getWeekendGuestsRecipes } from "@/lib/data/recipes";
 import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
+import { getCurrentUserFast } from "@/lib/auth";
 import { WeekendGuestsClient } from "@/components/weekend/WeekendGuestsClient";
+import { LockedPanel } from "@/components/ui/LockedPanel";
 
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLang();
@@ -16,10 +18,18 @@ export async function generateMetadata(): Promise<Metadata> {
  * Henrik sin spesifikasjon var eksplisitt på at dette IKKE er en ny
  * Ukesmeny-variant: "Dette skal IKKE fungere som Ukesmeny. Det skal ikke
  * genereres noe. Brukeren skal lande direkte i et kuratert utvalg av
- * retter og kunne filtrere dem etter anledning." Siden er derfor en helt
- * vanlig, offentlig server-rendret side (ingen LockedPanel/innloggings-
- * gate som /ukesmeny) – hele poenget er at ALLE besøkende skal kunne bla
- * rett inn i det kuraterte utvalget uten noen ekstra handling først.
+ * retter og kunne filtrere dem etter anledning."
+ *
+ * INNLOGGINGSGATE lagt til 04.10.2026 (Henrik: "helg & gjester må også
+ * kun være tilgjengelig for de som er logget inn") – siden var opprinnelig
+ * BEVISST bygget uten gate (se historikken over), men samme vurdering som
+ * "I sesong" (app/sesong/page.tsx) gjelder nå her: kontoeksklusivt,
+ * samme LockedPanel-mønster. Heroen (bilde/tittel/tagline/beskrivelse)
+ * forblir synlig for alle – det er ren, statisk markedsføringstekst, ikke
+ * kontoeksklusivt innhold – men selve det kuraterte utvalget og
+ * anledningsfilteret (WeekendGuestsClient) er låst, og selve datahentingen
+ * (getWeekendGuestsRecipes) hoppes bevisst over for en ikke-innlogget
+ * besøkende, samme prinsipp som på /sesong.
  *
  * HERO (grunnere enn Ukesmeny, se Henriks spesifikasjon: "Heroen skal
  * være grunnere enn heroen på Ukesmeny, fordi oppskriftene under skal
@@ -45,7 +55,9 @@ export async function generateMetadata(): Promise<Metadata> {
  * gang her på serveren.
  */
 export default async function WeekendGuestsPage() {
-  const [recipes, lang] = await Promise.all([getWeekendGuestsRecipes(), getLang()]);
+  const [lang, user] = await Promise.all([getLang(), getCurrentUserFast()]);
+  // Hoppet bevisst over for en ikke-innlogget besøkende, se filheaderen.
+  const recipes = user ? await getWeekendGuestsRecipes() : [];
 
   return (
     <div className="relative">
@@ -72,7 +84,15 @@ export default async function WeekendGuestsPage() {
         </div>
 
         <div className="mt-10">
-          <WeekendGuestsClient recipes={recipes} lang={lang} />
+          {user ? (
+            <WeekendGuestsClient recipes={recipes} lang={lang} />
+          ) : (
+            <LockedPanel
+              message={t(lang, "weekendGuests.lockedMessage")}
+              ctaLabel={t(lang, "weekendGuests.lockedCta")}
+              nextPath="/helg-og-gjester"
+            />
+          )}
         </div>
       </div>
     </div>

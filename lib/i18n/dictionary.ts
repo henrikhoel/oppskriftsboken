@@ -1449,6 +1449,15 @@ const DICT = {
     no: "Retter for lange middager, gode glass og folk du har lyst til å bli sittende med.",
     en: "Dishes for long dinners, good glasses, and people you want to linger with.",
   },
+  // Innloggingsgate lagt til 04.10.2026 (Henrik: "helg & gjester må også
+  // kun være tilgjengelig for de som er logget inn") – se filheaderen i
+  // app/helg-og-gjester/page.tsx. Samme formulering/mønster som
+  // seasonPage.lockedMessage/lockedCta lenger ned i denne fila.
+  "weekendGuests.lockedMessage": {
+    no: "Helg & gjester er kun synlig for dem som er logget inn.",
+    en: "Weekend & guests is only visible to those who are logged in.",
+  },
+  "weekendGuests.lockedCta": { no: "Logg inn for å se utvalget", en: "Log in to see the selection" },
   // "Alle" + de fem faste anledningene – se WEEKEND_GUESTS_OCCASION_DEFINITIONS
   // i lib/kitchen-intelligence/weekend-guests.ts. Pille-filterrad rett under
   // introen, "Alle" valgt som standard, ingen bekreft-knapp (filtrerer

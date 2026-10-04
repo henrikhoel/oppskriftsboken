@@ -11,7 +11,7 @@ import { BrowseRecipeGrid } from "@/components/search/BrowseRecipeGrid";
 import { ShuffleOrderButton } from "@/components/admin/ShuffleOrderButton";
 import { ChevronLeftIcon, ChevronRightIcon, FilterIcon } from "@/components/ui/icons";
 import { useAccountFavorites } from "@/lib/hooks/useAccountFavorites";
-import { recipeCountLabel, t, type Lang } from "@/lib/i18n";
+import { t, type Lang } from "@/lib/i18n";
 import { clsx } from "clsx";
 
 // 20 pr. side på desktop (04.10.2026, Henrik: "Vis 20 oppskrifter per side
@@ -192,8 +192,17 @@ export function BrowseRecipesClient({
         </aside>
       )}
       <div>
-        <div ref={gridTopRef} className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-ink-faint">{recipeCountLabel(lang, filtered.length)}</p>
+        {/* Antallsteksten ("302 oppskrifter") er FJERNET herfra 04.10.2026
+            (Henrik: "'302 oppskrifter' må bort fra oversikten over 'alle
+            oppskrifter', der forsvinner mystikken rundt '300+'" – et presist
+            tall her ville avslørt det runde "300+"-tallet i søkefeltets
+            placeholder, se search.placeholder sin filheader i
+            dictionary.ts). Raden viser derfor nå KUN Miks rekkefølgen/
+            Filtrer-kontrollene, dyttet til høyre (justify-end i stedet for
+            justify-between, siden venstresiden ikke lenger har noe
+            innhold). Selve filtreringen (filtered.length) brukes fortsatt
+            internt til paginering, kun denne synlige teksten er borte. */}
+        <div ref={gridTopRef} className="mb-4 flex flex-wrap items-center justify-end gap-3">
           <div className="flex items-center gap-3">
             {/* Kun admin – se ShuffleOrderButton.tsx sin filheader. Plassert
                 her (ikke i FilterPanel) siden den styrer selve
