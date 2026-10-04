@@ -334,6 +334,14 @@ const DICT = {
   // manuelle menybyggeren (/meny/ny) er fjernet sammen med hele den
   // funksjonen – denne lenken står nå alene.
   "recipesPage.savedMealsLink": { no: "Dine lagrede menyer", en: "Your saved menus" },
+  // Paginering (04.10.2026) – "etter samme visuelle prinsipp som vi nå
+  // bruker på Helg & gjester" (se weekendGuests.gridPrevious/gridNext),
+  // men EGNE, side-lokale nøkler i stedet for å gjenbruke de andre
+  // sidens – samme "hver side eier sin egen tekst"-prinsipp som resten av
+  // ordboken (f.eks. "swap"-tekster er heller ikke delt mellom sider).
+  "recipesPage.paginationPrevious": { no: "Tilbake", en: "Back" },
+  "recipesPage.paginationNext": { no: "Neste", en: "Next" },
+  "recipesPage.paginationPageOf": { no: "Side {page} av {total}", en: "Page {page} of {total}" },
 
   "favoritesPage.title": { no: "Favoritter", en: "Favorites" },
   "favoritesPage.metaDescription": {

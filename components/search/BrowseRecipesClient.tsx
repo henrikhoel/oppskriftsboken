@@ -1,16 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Category, RecipeFilters } from "@/lib/types";
 import type { SearchableRecipe } from "@/lib/utils/search";
 import { filterRecipes } from "@/lib/utils/search";
 import { MOOD_DEFINITIONS, type MoodId } from "@/lib/kitchen-intelligence/moods";
 import { FilterPanel } from "@/components/search/FilterPanel";
-import { RecipeGrid } from "@/components/recipe/RecipeGrid";
+import { BrowseRecipeGrid } from "@/components/search/BrowseRecipeGrid";
 import { ShuffleOrderButton } from "@/components/admin/ShuffleOrderButton";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/icons";
 import { useAccountFavorites } from "@/lib/hooks/useAccountFavorites";
-import { recipeCountLabel, type Lang } from "@/lib/i18n";
+import { recipeCountLabel, t, type Lang } from "@/lib/i18n";
+import { clsx } from "clsx";
+
+// 20 pr. side på desktop (04.10.2026, Henrik: "Vis 20 oppskrifter per side
+// på desktop. Med 4 kolonner gir dette 5 komplette rader") – se
+// BrowseRecipeGrid.tsx for selve kolonnebrytningspunktene (uendret fra det
+// gamle RecipeGrid.tsx, kun luften mellom kortene er justert).
+const RECIPES_PAGE_SIZE = 20;
 
 export function BrowseRecipesClient({
   recipes,
@@ -87,6 +95,53 @@ export function BrowseRecipesClient({
     [withAccountFavorites, filters],
   );
 
+  // PAGINERING (04.10.2026, se app/oppskrifter/page.tsx og
+  // BrowseRecipeGrid.tsx sine filheadere for resten av redesignet). `page`
+  // er 0-indeksert internt, kun +1 i selve visningen av "Side X av Y".
+  // Nullstilles til side 0 hver gang `filters` endrer IDENTITET (Henrik:
+  // "Ved endring av søk eller filter skal brukeren automatisk gå tilbake
+  // til side 1") – FilterPanel sin onChange, OG de to useEffect-ene over
+  // (synkronisering fra ?q=/?mood=), setter ALLTID et NYTT filters-objekt
+  // når noe faktisk endres (de har allerede sin egen
+  // "er verdien uendret? behold samme referanse"-vakt, se useEffect-ene
+  // over), så denne ene effekten fanger alle tre kildene uten å måtte vite
+  // noe om dem. "Miks rekkefølgen" (ShuffleOrderButton, kun admin) endrer
+  // derimot `recipes`-prop-en, IKKE `filters` – siden selve filteret ikke
+  // endres der, nullstilles siden med VILJE ikke, se ShuffleOrderButton.tsx
+  // sin filheader.
+  const [page, setPage] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const gridTopRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / RECIPES_PAGE_SIZE));
+  // Sikkerhetsnett: hvis `filtered` plutselig blir kortere enn der `page`
+  // allerede står (f.eks. et sjeldent race mellom filterbytte og en
+  // "Miks rekkefølgen"-oppdatering), vises heller SISTE gyldige side enn en
+  // tom en – selve nullstillingen til side 0 ved et ekte filterbytte skjer
+  // uansett i useEffect-en over.
+  const safePage = Math.min(page, pageCount - 1);
+  const visibleRecipes = filtered.slice(safePage * RECIPES_PAGE_SIZE, (safePage + 1) * RECIPES_PAGE_SIZE);
+  const hasPrevious = safePage > 0;
+  const hasNext = safePage < pageCount - 1;
+
+  // Lett fade ved sidebytte, samme visuelle prinsipp som Helg & gjester sin
+  // "Tilbake"/"Neste"-paginering (WeekendGuestsClient.tsx) – KUN ved selve
+  // sidebyttet (goToPage), ikke ved søk/filterendring (filtered regnes om
+  // synkront via useMemo, akkurat som før dette redesignet, og skal
+  // fortsatt oppleves instant). Scroller også rutenettet mildt inn i synsfelt
+  // – med 20 kort over 5 rader er "Neste" nederst på siden ellers lett å
+  // trykke uten at man merker at NOE har endret seg før man ruller opp selv.
+  function goToPage(next: number) {
+    setVisible(false);
+    setPage(next);
+    gridTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => setVisible(true), 40);
+  }
+
   return (
     <div className="grid gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside>
@@ -99,14 +154,42 @@ export function BrowseRecipesClient({
         />
       </aside>
       <div>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div ref={gridTopRef} className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-ink-faint">{recipeCountLabel(lang, filtered.length)}</p>
           {/* Kun admin – se ShuffleOrderButton.tsx sin filheader. Plassert her
               (ikke i FilterPanel) siden den styrer selve RESULTATREKKEFØLGEN,
               ikke et filter. */}
           {isAdmin && <ShuffleOrderButton />}
         </div>
-        <RecipeGrid recipes={filtered} isAdmin={isAdmin} isLoggedIn={isLoggedIn} lang={lang} />
+        <div className={clsx("transition-opacity duration-300", visible ? "opacity-100" : "opacity-0")}>
+          <BrowseRecipeGrid recipes={visibleRecipes} isAdmin={isAdmin} isLoggedIn={isLoggedIn} lang={lang} />
+        </div>
+
+        {pageCount > 1 && (
+          <div className="mt-12 flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => goToPage(safePage - 1)}
+              disabled={!hasPrevious}
+              className="flex items-center gap-1.5 rounded-full border border-line-strong bg-paper px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-paper disabled:hover:text-ink-soft"
+            >
+              <ChevronLeftIcon className="h-4 w-4" />
+              {t(lang, "recipesPage.paginationPrevious")}
+            </button>
+            <p className="text-xs text-ink-faint">
+              {t(lang, "recipesPage.paginationPageOf", { page: safePage + 1, total: pageCount })}
+            </p>
+            <button
+              type="button"
+              onClick={() => goToPage(safePage + 1)}
+              disabled={!hasNext}
+              className="flex items-center gap-1.5 rounded-full border border-line-strong bg-paper px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-paper disabled:hover:text-ink-soft"
+            >
+              {t(lang, "recipesPage.paginationNext")}
+              <ChevronRightIcon className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { getLang } from "@/lib/i18n/lang";
 import { t } from "@/lib/i18n";
 import { BrowseRecipesClient } from "@/components/search/BrowseRecipesClient";
 import { SearchBar } from "@/components/search/SearchBar";
-import { RecipeCardSkeleton } from "@/components/ui/Skeleton";
+import { BrowseRecipeCardSkeleton } from "@/components/ui/Skeleton";
 
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLang();
@@ -54,9 +54,9 @@ export default async function RecipesPage() {
       <div className="mt-8">
         <Suspense
           fallback={
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
-                <RecipeCardSkeleton key={i} />
+                <BrowseRecipeCardSkeleton key={i} />
               ))}
             </div>
           }
