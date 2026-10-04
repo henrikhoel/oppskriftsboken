@@ -62,6 +62,22 @@ export default async function PantryPage() {
           className="absolute inset-0"
           style={{ background: "linear-gradient(to bottom, transparent 45%, var(--color-cream) 100%)" }}
         />
+        {/* (04.10.2026) Lang, mørk nedtoning fra venstre – Henrik: "du kan
+            gjerne legge på en ganske lang svart gradient fra venstre".
+            Samme prinsipp som den horisontale nedtoningen i forsidens
+            desktop-hero (se app/page.tsx), men strukket mye lenger ut mot
+            høyre: teksten ligger i den mørke venstre kolonnen og trenger
+            god kontrast, og en lang/gradvis overgang (i stedet for en brå
+            kant) lar den mørke sonen gli naturlig over i kjøleskapets eget
+            mørke før den lysere, opplyste delen av bildet lengst til
+            høyre. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.65) 35%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0) 85%)",
+          }}
+        />
       </div>
 
       <div className="relative z-10 mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
