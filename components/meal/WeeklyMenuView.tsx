@@ -531,6 +531,14 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
           </div>
           {error && <p className="mt-2 text-xs text-clay-dark">{error}</p>}
 
+          {/* Dra-for-å-bytte-hint (04.10.2026) – `hidden lg:block` fordi
+              selve funksjonen kun er mus/penn i praksis (se filheaderens
+              "KUN mus/penn"-avsnitt), og lg er nøyaktig samme brytningspunkt
+              som rutenettet under går fra én kolonne (stablet, ingen
+              dra-støtte) til fem kolonner side ved side (hvor dra faktisk
+              virker). */}
+          <p className="mt-6 hidden text-xs text-ink-faint lg:block">{t(lang, "weeklyMenu.dragHint")}</p>
+
           <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-5 lg:gap-6">
             {recipeIds.map((id, index) => {
               const recipe = byId.get(id);

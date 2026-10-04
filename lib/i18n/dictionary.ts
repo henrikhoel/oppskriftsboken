@@ -1376,6 +1376,13 @@ const DICT = {
   "weeklyMenu.vegetarianOnly": { no: "Kun vegetar", en: "Vegetarian only" },
   "weeklyMenu.swap": { no: "Bytt ut", en: "Swap" },
   "weeklyMenu.swapAria": { no: "Bytt ut retten for {day}", en: "Swap the dish for {day}" },
+  // Dra-for-å-bytte-hint (04.10.2026) – kort forklaringstekst over
+  // dagskortene, kun synlig på desktop (hidden lg:block i WeeklyMenuView.tsx,
+  // se filheaderen der for hvorfor funksjonen kun er mus/penn i praksis).
+  "weeklyMenu.dragHint": {
+    no: "Tips: på datamaskin kan du dra et dagskort over et annet for å bytte dem.",
+    en: "Tip: on a computer, you can drag a day card onto another to swap them.",
+  },
   // "Lagre ukesmeny" + "Se lagrede ukesmenyer" (28.09.2026, Henrik: "jeg
   // mener også å ha en 'lagre ukesmeny' og 'se lagrede ukesmenyer'") –
   // speiler mealPage.saveButton/savedLabel og recipesPage.savedMealsLink,
