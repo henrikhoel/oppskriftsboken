@@ -30,7 +30,7 @@ export default async function PantryPage() {
   const [lang, user] = await Promise.all([getLang(), getCurrentUserFast()]);
 
   return (
-    <div className="relative bg-black">
+    <div className="relative isolate bg-black">
       {/* (04.10.2026) Stemningsbilde av et åpent kjøleskap – Henrik sendte
           eget foto og ba om at det skulle brukes her, og presiserte
           etterpå at han mente SAMME teknikk som /ukesmeny (se
@@ -52,7 +52,20 @@ export default async function PantryPage() {
           enn ekte sort. Oppskriftsresultatene («DETTE KAN DU LAGE») skal
           lese som et rent, sort bakteppe bak oppskriftskortene, derfor
           ekte #000 (bg-black) spesifikt på denne siden i stedet for den
-          vanlige site-wide cream-tonen. */}
+          vanlige site-wide cream-tonen.
+
+          `isolate` er IKKE valgfritt her (04.10.2026, feil oppdaget av
+          Henrik: "du fjerna jo bildet") – uten den danner ikke denne
+          `relative`-diven sin egen stacking-context, og da males
+          `bg-black` sin egen boks-bakgrunn OPPÅ bildet (som ligger på
+          `-z-10` LENGER NEDE i treet) i stedet for bak det: et negativt
+          z-index uten en stackingcontext-dannende forelder "ryker" helt
+          opp til nærmeste ekte stacking-context (her: dokumentrota), og
+          havner dermed bak ALT vanlig, ikke-posisjonert innhold på hele
+          siden – inkludert denne divens egen bakgrunnsfarge. `isolate`
+          tvinger frem en ny stacking-context nøyaktig her, slik at
+          rekkefølgen blir riktig: bakgrunn (svart) → bildet (-z-10,
+          males OPPÅ bakgrunnen) → vanlig innhold (z-10, males øverst). */}
       <div
         className="absolute inset-x-0 top-0 -z-10 h-[520px] overflow-hidden sm:h-[620px] lg:h-[760px]"
         aria-hidden="true"
