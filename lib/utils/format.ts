@@ -111,12 +111,13 @@ export function difficultyLabel(difficulty: Difficulty, lang: "no" | "en" = "no"
 
 /** Samme "no/en-oppslag med norsk som sannhetskilde"-mønster som
  * difficultyLabel over, for styrkegrad (se SPICE_LEVEL_LABELS sin
- * filheader i lib/config.ts). "Hot" i stedet for en direkte oversettelse
- * av "Sterk" på engelsk – mer naturlig/gjenkjennelig ord for sterk mat. */
+ * filheader i lib/config.ts, omdøpt 04.10.2026). "Hot"/"Very hot" i
+ * stedet for direkte oversettelser av "Sterk"/"Veldig sterk" på engelsk –
+ * mer naturlig/gjenkjennelig ord for sterk mat. */
 const SPICE_LEVEL_LABELS_EN: Record<SpiceLevel, string> = {
-  1: "Mild",
-  2: "Medium",
-  3: "Hot",
+  1: "Medium",
+  2: "Hot",
+  3: "Very hot",
 };
 
 export function spiceLevelLabel(level: SpiceLevel, lang: "no" | "en" = "no"): string {

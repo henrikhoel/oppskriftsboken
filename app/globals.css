@@ -58,6 +58,19 @@
   --color-mustard: #c98f2e;
   --color-mustard-light: #34260d;
 
+  /* "lemon" – lagt til 04.10.2026 for "Sterk mat"-styrkegradene (se
+     SPICE_LEVEL_CLASSES i lib/config.ts): Henrik omdøpte skalaen fra
+     Mild/Medium/Sterk til Medium/Sterk/Veldig sterk, med fargelogikk
+     "gul – oransj – rød" i stedet for forrige "grønn (olive) – oransj
+     (mustard) – rød (chili)". Mustard/chili gjenbrukes uendret til
+     oransj/rød (nivå 2/3), men ingen eksisterende token var en tydelig,
+     REN gul distinkt fra både mustard (mer oransje, hue ~33°) og clay
+     (appens vanlige gull-aksent, lett å forveksle "medium" styrke med
+     bare "gull"-merket) – derfor ett nytt, dedikert token her, samme
+     bg-lys/text-mørk-par-mønster som olive/mustard over. */
+  --color-lemon: #e3cf3c;
+  --color-lemon-light: #332d0b;
+
   /* "chili" – det eneste røde tokenet i paletten, lagt til 03.10.2026.
      Brukt ETT sted: den fylte/valgte chilien i "Sterk mat"-velgeren
      (components/admin/RecipeForm.tsx) og i chili-badgen på
