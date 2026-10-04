@@ -30,6 +30,38 @@ const TIME_OPTIONS = [
   { key: "filter.timeUnder60" as const, value: 60 },
 ];
 
+/**
+ * VISUELT REDESIGNET 04.10.2026 (Henrik: "Gjør panelet mørkere og nærmere
+ * sidens svarte bakgrunn [...] Ton kraftig ned card-følelsen og bruk svært
+ * subtil border/radius"). Dette er en RENT visuell omarbeiding – selve
+ * filtrene, feltene og onChange-logikken under er UENDRET fra før
+ * (04.10.2026-redesignet av selve "Alle oppskrifter"-gridet rørte heller
+ * ikke disse), kun selve ESKEN rundt dem og FilterPill-stylingen er
+ * endret:
+ *
+ * - `bg-cream-dark` (#191917) i stedet for `bg-paper` (#201f1c) – betydelig
+ *   nærmere sidens egen `bg-cream` (#0b0b0a) enn den lysere "kort"-fargen
+ *   paper var ment for. `rounded-lg` (8px) i stedet for `rounded-card`
+ *   (1.1rem) – en mye mindre, mindre "boks-aktig" avrunding.
+ * - Filtergruppene (kategori/tid/vanskelighetsgrad/humør/ingrediens/
+ *   favoritter) er nå delt med en tynn `border-t border-line`-linje
+ *   mellom hver, ikke bare luft (`space-y-5` → `space-y-6` +
+ *   `pt-6`-linjer, litt mer vertikal luft enn før).
+ * - FilterPill under er betydelig lettere: mindre padding, ensartet
+ *   `text-xs` (ikke `sm:text-sm`-oppgradering), og en tynn `border-line`
+ *   (ikke `border-line-strong`) med INGEN bakgrunnsfyll når inaktiv – rent
+ *   en diskret outline mot panelets egen mørke bakgrunn. Aktiv bruker
+ *   fortsatt CONVITE-gull, men samme lette `bg-clay-light text-clay-dark`-
+ *   behandling som "Kun favoritter"-knappen under alltid har brukt
+ *   (i stedet for forrige, tyngre `bg-clay text-cream`-fyll).
+ * - "Nullstill filtre" (`hasActiveFilters` under) nullstiller ALLE feltene
+ *   FilterPanel selv styrer (kategori/tid/vanskelighetsgrad/humør/
+ *   favoritter/ingrediens) i ett onChange-kall, men lar `filters.query`
+ *   (søketeksten, satt fra et HELT annet søkefelt, se
+ *   BrowseRecipesClient.tsx) stå urørt – samme avgrensning som
+ *   `activeFilterCount` i BrowseRecipesClient.tsx bruker for selve
+ *   "Filtrer · N"-tallet på knappen som åpner dette panelet.
+ */
 export function FilterPanel({
   categories,
   filters,
@@ -47,19 +79,40 @@ export function FilterPanel({
   canFavorite?: boolean;
   lang: Lang;
 }) {
+  const hasActiveFilters = Boolean(
+    filters.categorySlug ||
+      filters.difficulty ||
+      filters.maxTotalTime ||
+      filters.mood ||
+      filters.favoritesOnly ||
+      filters.ingredient,
+  );
+
+  function handleReset() {
+    onChange({
+      ...filters,
+      categorySlug: undefined,
+      difficulty: undefined,
+      maxTotalTime: undefined,
+      mood: undefined,
+      favoritesOnly: undefined,
+      ingredient: undefined,
+    });
+  }
+
   return (
-    <div className="rounded-card border border-line bg-paper p-5">
+    <div className="rounded-lg border border-line bg-cream-dark p-5">
       <div className="mb-4 flex items-center gap-2 text-sm font-medium text-ink">
         <FilterIcon className="h-4 w-4" />
         {t(lang, "filter.heading")}
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-6">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
             {t(lang, "filter.category")}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <FilterPill
               active={!filters.categorySlug}
               onClick={() => onChange({ ...filters, categorySlug: undefined })}
@@ -78,11 +131,11 @@ export function FilterPanel({
           </div>
         </div>
 
-        <div>
+        <div className="border-t border-line pt-6">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
             {t(lang, "filter.totalTime")}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {TIME_OPTIONS.map((opt) => (
               <FilterPill
                 key={opt.key}
@@ -95,11 +148,11 @@ export function FilterPanel({
           </div>
         </div>
 
-        <div>
+        <div className="border-t border-line pt-6">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
             {t(lang, "filter.difficulty")}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <FilterPill
               active={!filters.difficulty}
               onClick={() => onChange({ ...filters, difficulty: undefined })}
@@ -118,7 +171,7 @@ export function FilterPanel({
           </div>
         </div>
 
-        <div>
+        <div className="border-t border-line pt-6">
           {/* Humør-filter (03.10.2026, Henrik: "legg inn humør som en
               filter inne på Alle oppskrifter [...] kan trykke 'se alle' og
               da kommer man inn på 'Alle oppskrifter' siden hvor humøret
@@ -129,7 +182,7 @@ export function FilterPanel({
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
             {t(lang, "filter.mood")}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <FilterPill active={!filters.mood} onClick={() => onChange({ ...filters, mood: undefined })}>
               {t(lang, "filter.all")}
             </FilterPill>
@@ -151,7 +204,7 @@ export function FilterPanel({
           </div>
         </div>
 
-        <div>
+        <div className="border-t border-line pt-6">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
             {t(lang, "filter.ingredient")}
           </p>
@@ -167,20 +220,34 @@ export function FilterPanel({
         </div>
 
         {canFavorite && (
-          <button
-            type="button"
-            onClick={() => onChange({ ...filters, favoritesOnly: !filters.favoritesOnly })}
-            aria-pressed={Boolean(filters.favoritesOnly)}
-            className={clsx(
-              "flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
-              filters.favoritesOnly
-                ? "border-clay bg-clay-light text-clay-dark"
-                : "border-line-strong text-ink-soft hover:bg-cream-dark",
-            )}
-          >
-            <HeartIcon filled={filters.favoritesOnly} className="h-4 w-4" />
-            {t(lang, "filter.favoritesOnly")}
-          </button>
+          <div className="border-t border-line pt-6">
+            <button
+              type="button"
+              onClick={() => onChange({ ...filters, favoritesOnly: !filters.favoritesOnly })}
+              aria-pressed={Boolean(filters.favoritesOnly)}
+              className={clsx(
+                "flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
+                filters.favoritesOnly
+                  ? "border-clay bg-clay-light text-clay-dark"
+                  : "border-line-strong text-ink-soft hover:bg-cream-dark",
+              )}
+            >
+              <HeartIcon filled={filters.favoritesOnly} className="h-4 w-4" />
+              {t(lang, "filter.favoritesOnly")}
+            </button>
+          </div>
+        )}
+
+        {hasActiveFilters && (
+          <div className="border-t border-line pt-6">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="text-xs font-medium text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark"
+            >
+              {t(lang, "filter.reset")}
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -202,10 +269,10 @@ function FilterPill({
       onClick={onClick}
       aria-pressed={active}
       className={clsx(
-        "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm",
+        "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
         active
-          ? "border-clay bg-clay text-cream"
-          : "border-line-strong bg-cream text-ink-soft hover:bg-cream-dark",
+          ? "border-clay bg-clay-light text-clay-dark"
+          : "border-line text-ink-soft hover:border-line-strong hover:text-ink",
       )}
     >
       {children}

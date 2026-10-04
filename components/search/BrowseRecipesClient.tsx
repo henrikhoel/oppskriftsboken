@@ -176,24 +176,12 @@ export function BrowseRecipesClient({
   return (
     <div className={clsx("grid gap-8", filterOpen && "lg:grid-cols-[280px_minmax(0,1fr)]")}>
       {filterOpen && (
+        // Lukk-kontroll INNE i panelet ER FJERNET (04.10.2026, runde 2,
+        // Henrik: "Fjern 'Lukk filter' som nå vises separat over panelet.
+        // Bruk kun eksisterende 'Filtrer ‹'-kontroll til å lukke
+        // panelet") – selve "Filtrer"-knappen under gridet er nå den ENE
+        // veien inn/ut (pilen roterer 180° når panelet er åpent, se der).
         <aside>
-          {/* Tydelig lukk-kontroll INNE i panelet (04.10.2026, Henrik: "Ha
-              en tydelig pil/kontroll for å lukke panelet igjen") – i
-              tillegg til at selve "Filtrer"-knappen under gridet også
-              lukker panelet igjen ved et nytt trykk (se pilen som roterer
-              der). Egen rad HER, over selve FilterPanel.tsx, i stedet for
-              inni den filen – rører ikke FilterPanel.tsx sitt eget
-              innhold. */}
-          <div className="mb-3 flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => setFilterOpen(false)}
-              className="flex items-center gap-1 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
-            >
-              <ChevronLeftIcon className="h-4 w-4" />
-              {t(lang, "recipesPage.filterClose")}
-            </button>
-          </div>
           <FilterPanel
             categories={categories}
             filters={filters}
@@ -226,7 +214,20 @@ export function BrowseRecipesClient({
           </div>
         </div>
         <div className={clsx("transition-opacity duration-300", visible ? "opacity-100" : "opacity-0")}>
-          <BrowseRecipeGrid recipes={visibleRecipes} isAdmin={isAdmin} isLoggedIn={isLoggedIn} lang={lang} />
+          {/* `filterOpen` sendes videre til gridet KUN for å avgjøre
+              kolonnetallet (04.10.2026, runde 2, Henrik: "Når
+              filterpanelet er åpent på desktop, vis 3 kolonner med
+              oppskrifter i stedet for å presse inn 4 [...] Når
+              filterpanelet lukkes, gå tilbake til 4 kolonner") – se
+              BrowseRecipeGrid.tsx sin filheader for selve brytningspunkt-
+              logikken. */}
+          <BrowseRecipeGrid
+            recipes={visibleRecipes}
+            isAdmin={isAdmin}
+            isLoggedIn={isLoggedIn}
+            lang={lang}
+            filterOpen={filterOpen}
+          />
         </div>
 
         {pageCount > 1 && (

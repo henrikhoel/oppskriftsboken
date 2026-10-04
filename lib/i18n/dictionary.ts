@@ -352,7 +352,11 @@ const DICT = {
   // faktisk er på.
   "recipesPage.filterToggle": { no: "Filtrer", en: "Filter" },
   "recipesPage.filterToggleWithCount": { no: "Filtrer · {count}", en: "Filter · {count}" },
-  "recipesPage.filterClose": { no: "Lukk filter", en: "Close filter" },
+  // "recipesPage.filterClose" ("Lukk filter") er FJERNET (04.10.2026,
+  // runde 2, Henrik: "Fjern 'Lukk filter' som nå vises separat over
+  // panelet. Bruk kun eksisterende 'Filtrer ‹'-kontroll til å lukke
+  // panelet") – selve "Filtrer"-knappen (filterToggle/filterToggleWithCount
+  // over) er nå den ENE kontrollen for både å åpne og lukke panelet.
 
   "favoritesPage.title": { no: "Favoritter", en: "Favorites" },
   "favoritesPage.metaDescription": {
@@ -560,6 +564,10 @@ const DICT = {
   "filter.ingredientPlaceholder": { no: "F.eks. kylling", en: "E.g. chicken" },
   "filter.ingredientAria": { no: "Filtrer på ingrediens", en: "Filter by ingredient" },
   "filter.favoritesOnly": { no: "Kun favoritter", en: "Favorites only" },
+  // "Nullstill filtre" (04.10.2026) – vises diskret nederst i
+  // FilterPanel.tsx, KUN når minst ett filter faktisk er aktivt (se
+  // hasActiveFilters der).
+  "filter.reset": { no: "Nullstill filtre", en: "Reset filters" },
 
   "search.srLabel": { no: "Søk i oppskrifter", en: "Search recipes" },
   "search.placeholder": {
