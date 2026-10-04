@@ -93,7 +93,17 @@ import { useActiveWeeklyMenu, stashActiveWeeklyMenu } from "@/lib/hooks/useActiv
 import { useSavedWeeklyMenus } from "@/lib/hooks/useSavedWeeklyMenus";
 import { getMealShoppingIngredients } from "@/lib/actions/meal-shopping-list";
 import { formatMinutes, localizedTitle } from "@/lib/utils/format";
-import { ShoppingBagIcon, ClockIcon, LeafIcon, UsersIcon, SparklesIcon, BookIcon, CheckIcon } from "@/components/ui/icons";
+import {
+  ShoppingBagIcon,
+  ClockIcon,
+  LeafIcon,
+  UsersIcon,
+  SparklesIcon,
+  BookIcon,
+  CheckIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/Button";
 import type { SearchableRecipe } from "@/lib/utils/search";
 import {
@@ -618,15 +628,44 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
                     <p className="mt-1 text-xs text-ink-faint">{formatMinutes(recipe.totalTimeMinutes, lang)}</p>
                   </Link>
 
-                  <button
-                    type="button"
-                    onClick={() => handleSwapDay(index)}
-                    disabled={!canSwap}
-                    aria-label={t(lang, "weeklyMenu.swapAria", { day: dayLabel })}
-                    className="mt-2 text-xs text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {t(lang, "weeklyMenu.swap")}
-                  </button>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSwapDay(index)}
+                      disabled={!canSwap}
+                      aria-label={t(lang, "weeklyMenu.swapAria", { day: dayLabel })}
+                      className="text-xs text-ink-faint underline decoration-line-strong underline-offset-4 transition-colors hover:text-clay-dark disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {t(lang, "weeklyMenu.swap")}
+                    </button>
+
+                    {/* Flytt opp/ned (04.10.2026, touch-erstatning for
+                        dra-og-bytt) – bytter posisjon med dagen over/under,
+                        samme swapDays-funksjon som selve drahåndteringen
+                        over bruker. KUN synlig under lg (lg:hidden) – speilvendt
+                        av dragHint-teksten (hidden lg:block): fra lg har man
+                        drag i stedet, og piler ville vært overflødige der. */}
+                    <div className="flex items-center gap-1 lg:hidden">
+                      <button
+                        type="button"
+                        onClick={() => swapDays(index, index - 1)}
+                        disabled={index === 0}
+                        aria-label={t(lang, "weeklyMenu.moveUpAria", { day: dayLabel })}
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-cream-dark hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        <ArrowUpIcon className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => swapDays(index, index + 1)}
+                        disabled={index === recipeIds.length - 1}
+                        aria-label={t(lang, "weeklyMenu.moveDownAria", { day: dayLabel })}
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-cream-dark hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        <ArrowDownIcon className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               );
             })}

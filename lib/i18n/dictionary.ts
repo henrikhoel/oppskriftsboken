@@ -1383,6 +1383,10 @@ const DICT = {
     no: "Tips: på datamaskin kan du dra et dagskort over et annet for å bytte dem.",
     en: "Tip: on a computer, you can drag a day card onto another to swap them.",
   },
+  // Flytt opp/ned-piler (04.10.2026) – touch-vennlig erstatning for
+  // dra-og-bytt, kun synlig under lg (lg:hidden) i WeeklyMenuView.tsx.
+  "weeklyMenu.moveUpAria": { no: "Bytt {day} med dagen over", en: "Swap {day} with the day above" },
+  "weeklyMenu.moveDownAria": { no: "Bytt {day} med dagen under", en: "Swap {day} with the day below" },
   // "Lagre ukesmeny" + "Se lagrede ukesmenyer" (28.09.2026, Henrik: "jeg
   // mener også å ha en 'lagre ukesmeny' og 'se lagrede ukesmenyer'") –
   // speiler mealPage.saveButton/savedLabel og recipesPage.savedMealsLink,
