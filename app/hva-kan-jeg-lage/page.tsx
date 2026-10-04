@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { PantryMatchView } from "@/components/pantry/PantryMatchView";
 import { LockedPanel } from "@/components/ui/LockedPanel";
 import { getCurrentUserFast } from "@/lib/auth";
@@ -39,7 +40,25 @@ export default async function PantryPage() {
           PantryMatchView.tsx – se filheaderen der), slik at siden fortsatt
           føles som ett rolig, smalt løp (intro → input → chips → CTA) selv
           om selve siden har plass til et bredt resultatgrid under. */}
-      <h1 className="font-serif text-3xl text-ink sm:text-4xl">{t(lang, "pantryPage.title")}</h1>
+      {/* (04.10.2026) Stemningsbilde av et åpent kjøleskap, lagt til etter
+          selve redesignet – Henrik sendte eget foto og ba om at det skulle
+          brukes her. Rent dekorativt (alt=""), kontained i et rounded-card-
+          "bannerbilde" rett over H1 – IKKE full-bleed som forsidens hero
+          (se app/page.tsx): denne siden er en innlogget verktøyside midt i
+          et smalt editorial-løp, ikke en landingsside, så et stort
+          skjermfyllende bilde med tekst over ville konkurrert med
+          intro/input rett under i stedet for å innlede dem rolig. */}
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-card bg-cream-dark sm:aspect-[21/9]">
+        <Image
+          src="/images/pantry-hero.jpg"
+          alt=""
+          fill
+          priority
+          sizes="(min-width: 1024px) 896px, 100vw"
+          className="object-cover"
+        />
+      </div>
+      <h1 className="mt-8 font-serif text-3xl text-ink sm:text-4xl">{t(lang, "pantryPage.title")}</h1>
       {/* Tydelig editorial undertittel, egen linje – ikke en del av H1,
           ikke en del av ingressen under. */}
       <p className="mt-3 max-w-prose text-balance font-serif text-xl text-ink sm:text-2xl">
