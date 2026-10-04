@@ -1,8 +1,16 @@
+import { clsx } from "clsx";
 import Image from "next/image";
 import Link from "next/link";
 import type { RecipeSummary } from "@/lib/types";
+import { SPICE_LEVEL_CLASSES, type SpiceLevel } from "@/lib/config";
 import { FavoriteButton } from "@/components/recipe/FavoriteButton";
-import { formatMinutes, difficultyLabel, localizedTitle, localizedCategoryName } from "@/lib/utils/format";
+import {
+  formatMinutes,
+  difficultyLabel,
+  localizedTitle,
+  localizedCategoryName,
+  spiceLevelLabel,
+} from "@/lib/utils/format";
 import { t, type Lang } from "@/lib/i18n";
 
 /**
@@ -40,6 +48,16 @@ import { t, type Lang } from "@/lib/i18n";
  * innholdshierarkiet Henrik spesifiserte (metadata → serif-tittel, ferdig),
  * og høyere tetthet handler her om FLERE kort synlige samtidig, ikke mer
  * tekst per kort.
+ *
+ * Sterkhetsgrad (04.10.2026, Henrik: "få sterkheten fram her også, på
+ * oversikten over rettene, til høyre rett under bildet") – samme liten
+ * fargetone-pill som på selve oppskriftssiden (RecipeHero.tsx, se
+ * SPICE_LEVEL_CLASSES sin filheader i lib/config.ts), men plassert til
+ * HØYRE på metadata-raden (egen flex-rad, justify-between) i stedet for
+ * i selve metadata-strengen – styrkegrad er ikke "enda et sted" på
+ * samme linje som kategori/vanskelighetsgrad/tid, det skal skille seg ut
+ * visuelt akkurat som på oppskriftssiden. Vises kun når oppskriften
+ * faktisk har en satt styrkegrad (ikke alle oppskrifter er sterk mat).
  */
 export function BrowseRecipeCard({
   recipe,
@@ -59,6 +77,9 @@ export function BrowseRecipeCard({
     difficultyLabel(recipe.difficulty, lang),
     recipe.totalTimeMinutes != null ? formatMinutes(recipe.totalTimeMinutes, lang) : null,
   ].filter((part): part is string => Boolean(part));
+
+  const spiceLevel = recipe.spiceLevel as SpiceLevel | null | undefined;
+  const spiceText = spiceLevel ? spiceLevelLabel(spiceLevel, lang) : null;
 
   return (
     <Link href={`/oppskrifter/${recipe.slug}`} className="group block">
@@ -93,8 +114,25 @@ export function BrowseRecipeCard({
         )}
       </div>
 
-      {metaParts.length > 0 && (
-        <p className="mt-3 text-xs text-ink-faint">{metaParts.join(" · ")}</p>
+      {(metaParts.length > 0 || spiceText) && (
+        <div className="mt-3 flex items-start justify-between gap-2">
+          {metaParts.length > 0 ? (
+            <p className="text-xs text-ink-faint">{metaParts.join(" · ")}</p>
+          ) : (
+            <span />
+          )}
+          {spiceLevel && spiceText ? (
+            <span
+              className={clsx(
+                "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium tracking-wide",
+                SPICE_LEVEL_CLASSES[spiceLevel],
+              )}
+              aria-label={`${t(lang, "recipeDetail.spicy")}: ${spiceText}`}
+            >
+              {spiceText}
+            </span>
+          ) : null}
+        </div>
       )}
       <h3 className="mt-1 text-balance font-serif text-sm leading-snug text-ink transition-colors group-hover:text-clay-dark sm:text-base">
         {localizedTitle(recipe, lang)}
