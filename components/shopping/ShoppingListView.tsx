@@ -7,6 +7,7 @@ import { useShoppingList } from "@/lib/hooks/useShoppingList";
 import {
   categorizeShoppingItem,
   formatShoppingAmount,
+  getPurchaseNote,
   isPantryStaple,
   SHOPPING_CATEGORY_ORDER,
   type ShoppingCategoryKey,
@@ -325,6 +326,15 @@ function ShoppingRow({
             {formatShoppingAmount(entry)}{" "}
           </span>
           <span className={clsx(entry.checked ? "text-ink-faint line-through" : "text-ink")}>{entry.name}</span>
+          {/* Kjøps-normaliserings-notat (05.10.2026, §6) – kun hvitløk i
+           * dag, f.eks. "(ca. 7 fedd)" ved siden av det kollapsede "2
+           * hvitløk"-hovedtallet, slik at presisjonen ikke går tapt selv om
+           * hovedlinjen viser et avrundet antall hele hvitløk. Ren
+           * tilleggsinfo – IKKE overstrøket (adskilt span), selv når varen
+           * er avhuket. */}
+          {getPurchaseNote(entry) && (
+            <span className="text-xs text-ink-faint"> ({getPurchaseNote(entry)})</span>
+          )}
           {/* Vises kun mens varen fortsatt står i sin automatisk
            * overstrøkne basisvare-tilstand (se PANTRY_STAPLE_NAMES i
            * lib/utils/shopping-list.ts) – forsvinner av seg selv i det

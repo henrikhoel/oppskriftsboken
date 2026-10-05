@@ -349,6 +349,298 @@ function parseAmountForMerging(raw: string | null | undefined): number | null {
 }
 
 /**
+ * KJØPSNORMALISERING (05.10.2026, Henrik sin spesifikasjon) – "oppskriften
+ * viser hvor mye du skal bruke, handlelisten viser hva du skal kjøpe". Rent
+ * deterministisk (ingen AI, ingen nettverkskall) – nøyaktig samme
+ * kuraterte-ordliste-prinsipp som resten av filen (PANTRY_STAPLE_PATTERNS,
+ * CATEGORY_KEYWORDS osv.): en ingrediens kjøps-normaliseres KUN når den
+ * eksplisitt står i en av regel-listene under. Alt annet (f.eks. "250 g
+ * rigatoni", "2 dl kremfløte", "400 g hermetiske tomater") går gjennom helt
+ * UENDRET – sikkerhetsprinsippet er at det er langt bedre at listen viser et
+ * rått oppskrift-tall enn å gjette en feil kjøpsmengde.
+ *
+ * ARKITEKTUR – ikke-destruktiv, kun ved VISNING: selve sammenslåingen
+ * (mergeIngredientsIntoList under) kjenner ikke til "kjøpsenheter" i det hele
+ * tatt. Det canonicalizeForPurchase under gjør, er å skrive om f.eks. "1
+ * lime" og "3 ss limesaft" til samme interne sammenligningsenhet (ml) FØR
+ * selve sammenslåingen kjører, slik at den allerede eksisterende
+ * eksakt-match-/kryss-enhet-maskinen lenger ned summerer dem akkurat som den
+ * ville summert to vanlige volummengder. Dette er nødvendig fordi Ukesmenyen
+ * (se WeeklyMenuView.tsx/MealShoppingListSection.tsx) kaller
+ * mergeIngredientsIntoList ÉN GANG PER OPPSKRIFT, sekvensielt – skulle
+ * avrundingen til kjøpsenhet (f.eks. hele lime) skjedd FØR summeringen, ville
+ * hver oppskrifts bidrag blitt avrundet hver for seg (1,5 ss → 1 lime, 2 ss →
+ * 1 lime, 1 ss → 1 lime = 3 lime) i stedet for riktig å summere råtallet
+ * først og avrunde ÉN gang til slutt (1,5+2+1=4,5 ss → 3 lime). Den lagrede
+ * entry.amount er dermed alltid et råtall i en delt intern enhet (ml for
+ * sitrus, g for ferske urter) – den faktiske kjøpsmengden ("3 lime", "1 bunt
+ * persille") regnes først ut i formatShoppingAmount lenger ned, ved hver
+ * visning – samme prinsipp som den eksisterende WHOLE_ITEM_PART_UNITS-
+ * kollapsen til "1". Oppskriftsvisningen/Kokemodus bruker et helt annet
+ * kodeløp (RecipeInteractive.tsx/scaleAmount) og berøres ikke av noe av
+ * dette.
+ */
+
+/**
+ * SITRUS (§3) – juice-/skall-/hel frukt-mengder for samme frukt regnes om til
+ * en delt "ml juice"-enhet og summeres, slik at f.eks. "1 lime" + "3 ss
+ * limesaft" blir ÉN samlet kjøpslinje i stedet for to. mlPerFruit er et
+ * forsiktig anslag på hvor mye saft man typisk får av én hel frukt – brukt
+ * kun til å avgjøre antall frukter å kjøpe. Skall/zest-mengder legges ALDRI
+ * til som en brøkdel av juice-behovet (man skal ikke anta at samme frukt
+ * dekker både skall og juice på en måte som gir for lite, se §3) – de legges
+ * i stedet til som et eget, fullt fruktbehov i tillegg, aldri færre enn 1
+ * frukt per skall-nevning.
+ */
+interface CitrusRule {
+  canonicalName: string;
+  mlPerFruit: number;
+  juicePhrases: string[];
+  zestPhrases: string[];
+  fruitPhrases: string[];
+}
+
+const CITRUS_RULES: CitrusRule[] = [
+  {
+    canonicalName: "lime",
+    mlPerFruit: 30, // ca. 2 ss saft per frukt – forsiktig anslag
+    juicePhrases: ["limesaft", "limejuice", "saft av lime", "presset lime", "juice av lime", "fersk limesaft"],
+    zestPhrases: ["limeskall", "revet skall av lime", "zest av lime", "limezest", "revet lime"],
+    fruitPhrases: ["lime"],
+  },
+  {
+    canonicalName: "sitron",
+    mlPerFruit: 45, // ca. 3 ss saft per frukt
+    juicePhrases: [
+      "sitronsaft",
+      "sitronjuice",
+      "saft av sitron",
+      "presset sitron",
+      "juice av sitron",
+      "fersk sitronsaft",
+    ],
+    zestPhrases: ["sitronskall", "revet skall av sitron", "zest av sitron", "sitronzest", "revet sitron"],
+    fruitPhrases: ["sitron"],
+  },
+  {
+    canonicalName: "appelsin",
+    mlPerFruit: 90, // ca. 6 ss saft per frukt
+    juicePhrases: [
+      "appelsinsaft",
+      "appelsinjuice",
+      "saft av appelsin",
+      "presset appelsin",
+      "juice av appelsin",
+      "fersk appelsinsaft",
+    ],
+    zestPhrases: ["appelsinskall", "revet skall av appelsin", "zest av appelsin", "appelsinzest"],
+    fruitPhrases: ["appelsin"],
+  },
+  {
+    canonicalName: "grapefrukt",
+    mlPerFruit: 120, // ca. 8 ss saft per frukt
+    juicePhrases: [
+      "grapefruktsaft",
+      "grapefruktjuice",
+      "saft av grapefrukt",
+      "presset grapefrukt",
+      "juice av grapefrukt",
+    ],
+    zestPhrases: ["grapefruktskall", "revet skall av grapefrukt", "zest av grapefrukt", "grapefruktzest"],
+    fruitPhrases: ["grapefrukt"],
+  },
+];
+
+function matchesAnyPhrase(normalizedName: string, phrases: string[]): boolean {
+  return phrases.some((phrase) => new RegExp(`\\b${phrase}\\b`).test(normalizedName));
+}
+
+function findCitrusRule(name: string): CitrusRule | null {
+  const normalized = normalizeName(name);
+  return CITRUS_RULES.find((rule) => normalized === rule.canonicalName) ?? null;
+}
+
+/** Skriver om en sitrus-/juice-/skall-mengde til { name: <frukt>, amount: <ml
+ * som streng>, unit: "ml" } – eller null dersom navnet ikke er en kjent
+ * sitrus-variant, eller mengden/enheten ikke er noe vi trygt kan regne om
+ * (se sikkerhetsprinsippet §10 – da beholdes ingrediensen helt uendret). */
+function canonicalizeCitrus(
+  name: string,
+  amount: string | null,
+  unit: string | null,
+): { name: string; amount: string; unit: string } | null {
+  const normalized = normalizeName(name);
+
+  for (const rule of CITRUS_RULES) {
+    if (matchesAnyPhrase(normalized, rule.zestPhrases)) {
+      const normalizedUnit = normalizeUnit(unit);
+      const parsed = amount != null ? parseAmountForMerging(amount) : null;
+      // Skall oppgis så godt som alltid som et fruktantall ("skall av 2
+      // sitroner") eller helt uten tall ("sitronskall") – en ss/dl-mengde av
+      // selve skallet er ikke noe vi trygt kan tolke som et fruktantall, så
+      // da faller vi tilbake til den trygge minimumsantakelsen (1 frukt)
+      // fremfor å gjette.
+      const multiplier =
+        parsed != null && (!normalizedUnit || DISCRETE_COUNT_UNITS.has(normalizedUnit)) ? parsed : 1;
+      return { name: rule.canonicalName, amount: String(multiplier * rule.mlPerFruit), unit: "ml" };
+    }
+    if (matchesAnyPhrase(normalized, rule.juicePhrases)) {
+      const parsed = parseAmountForMerging(amount);
+      if (parsed == null) return null;
+      const base = toBaseAmount(parsed, unit);
+      // Kun volum-enheter vi trygt kan regne om (ss/ts/dl/l/ml) – alt annet
+      // (f.eks. en enhetsløs/ukjent mengde) beholdes uendret fremfor å
+      // gjette, se §10.
+      if (!base || base.base !== "ml") return null;
+      return { name: rule.canonicalName, amount: String(base.value), unit: "ml" };
+    }
+    if (matchesAnyPhrase(normalized, rule.fruitPhrases)) {
+      const normalizedUnit = normalizeUnit(unit);
+      // En bokstavelig frukt-nevning ("1 lime", "2 sitroner") skal være et
+      // antall hele frukter – enhetsløst eller "stk", akkurat som
+      // DISCRETE_COUNT_UNITS-prinsippet lenger ned i filen. En ekte
+      // vekt-/volum-mengde av selve fruktnavnet er uventet nok til at vi
+      // ikke tør gjette hva den betyr.
+      if (normalizedUnit && !DISCRETE_COUNT_UNITS.has(normalizedUnit)) return null;
+      const parsed = parseAmountForMerging(amount);
+      if (parsed == null) return null; // "lime" uten tall – ingen sikker ml-ekvivalent, behold uendret
+      return { name: rule.canonicalName, amount: String(parsed * rule.mlPerFruit), unit: "ml" };
+    }
+  }
+  return null;
+}
+
+/**
+ * FERSKE URTER (§5) – samme prinsipp som sitrus over, men med gram som delt
+ * sammenligningsenhet (det naturlige målet for "hvor mye urt har jeg"), og
+ * med en eksplisitt sjekk på at urten er FERSK, ikke tørket/pulverisert (§5:
+ * "ikke gjør alle tørkede krydder om til én pakke"). roughHerbGrams under er
+ * bevisst en svært grov kjøkken-tommelfingerregel (ikke en presis
+ * tetthetsomregning per urt – det varierer naturligvis), kun god nok til å
+ * avgjøre om den samlede mengden fortsatt er "1 bunt" eller bør rundes opp
+ * til flere. Rører ALDRI den delte, presise toBaseAmount (g/ml) brukt andre
+ * steder i filen for ekte kryss-enhet-sammenslåing av vekt/volum.
+ */
+interface FreshHerbRule {
+  canonicalName: string;
+  aliases: string[];
+  purchaseUnit: "bunt" | "potte";
+  gramsPerUnit: number;
+}
+
+const FRESH_HERB_RULES: FreshHerbRule[] = [
+  {
+    canonicalName: "persille",
+    aliases: ["bladpersille", "flatbladpersille", "krusepersille"],
+    purchaseUnit: "bunt",
+    gramsPerUnit: 25,
+  },
+  { canonicalName: "koriander", aliases: ["cilantro"], purchaseUnit: "bunt", gramsPerUnit: 20 },
+  { canonicalName: "basilikum", aliases: [], purchaseUnit: "potte", gramsPerUnit: 15 },
+  { canonicalName: "dill", aliases: [], purchaseUnit: "bunt", gramsPerUnit: 20 },
+  { canonicalName: "gressløk", aliases: [], purchaseUnit: "bunt", gramsPerUnit: 20 },
+  { canonicalName: "mynte", aliases: [], purchaseUnit: "potte", gramsPerUnit: 15 },
+  { canonicalName: "estragon", aliases: [], purchaseUnit: "bunt", gramsPerUnit: 15 },
+  { canonicalName: "rosmarin", aliases: [], purchaseUnit: "bunt", gramsPerUnit: 15 },
+  { canonicalName: "timian", aliases: [], purchaseUnit: "bunt", gramsPerUnit: 15 },
+  { canonicalName: "salvie", aliases: [], purchaseUnit: "bunt", gramsPerUnit: 15 },
+  { canonicalName: "oregano", aliases: [], purchaseUnit: "potte", gramsPerUnit: 15 },
+];
+
+/** Kjente tørkede/pulveriserte varianter – disse skal ALDRI kjøps-
+ * normaliseres til "bunt"/"potte" (§5), uansett om navnet ellers matcher en
+ * av FRESH_HERB_RULES over. */
+const DRIED_HERB_MARKERS = ["tørket", "tørkede", "dried", "pulver", "powder", "krydder"];
+
+function findFreshHerbRule(name: string): FreshHerbRule | null {
+  const normalized = normalizeName(name);
+  return (
+    FRESH_HERB_RULES.find((rule) => matchesAnyPhrase(normalized, [rule.canonicalName, ...rule.aliases])) ?? null
+  );
+}
+
+/** Mengde brukt for "ikke-tallfestede" ferske urte-nevninger ("en håndfull
+ * basilikum", "dill etter smak") – en liten, men ikke-null mengde, slik at
+ * flere slike nevninger fortsatt kan summere seg opp til "2 bunt" dersom
+ * mange nok oppskrifter bruker samme urt (§5: "aggreger behov på tvers av
+ * oppskrifter, samme prinsipp som sitrus"). */
+const ASSUMED_LOOSE_HERB_GRAMS = 5;
+
+function roughHerbGrams(amount: number, unit: string | null): number | null {
+  switch (normalizeUnit(unit)) {
+    case "g":
+      return amount;
+    case "ss":
+      return amount * 3;
+    case "ts":
+      return amount * 1;
+    case "dl":
+      return amount * 20;
+    case "l":
+      return amount * 200;
+    default:
+      return null;
+  }
+}
+
+function canonicalizeFreshHerb(
+  name: string,
+  amount: string | null,
+  unit: string | null,
+): { name: string; amount: string; unit: string } | null {
+  const normalized = normalizeName(name);
+  if (matchesAnyPhrase(normalized, DRIED_HERB_MARKERS)) return null;
+
+  const rule = findFreshHerbRule(name);
+  if (!rule) return null;
+
+  const parsedAmount = amount != null ? parseAmountForMerging(amount) : null;
+  const grams = parsedAmount != null ? roughHerbGrams(parsedAmount, unit) : ASSUMED_LOOSE_HERB_GRAMS;
+  if (grams == null) return null; // ukjent enhet vi ikke tør gjette på (f.eks. "stk") – behold original, se §10
+
+  return { name: rule.canonicalName, amount: String(grams), unit: "g" };
+}
+
+/**
+ * Kjører kjøps-canonicalisering (sitrus §3, deretter ferske urter §5) på en
+ * rå ingrediens FØR den går inn i selve sammenslåingen – se ARKITEKTUR-
+ * kommentaren over. Treffer ingen regel: ingrediensen returneres helt
+ * uendret (§10 – aldri gjett).
+ */
+function canonicalizeForPurchase(
+  name: string,
+  amount: string | null,
+  unit: string | null,
+): { name: string; amount: string | null; unit: string | null } {
+  const citrus = canonicalizeCitrus(name, amount, unit);
+  if (citrus) return citrus;
+  const herb = canonicalizeFreshHerb(name, amount, unit);
+  if (herb) return herb;
+  return { name, amount, unit };
+}
+
+/**
+ * HVITLØK (§6) – utvider den eksisterende fedd/hvitløksfedd-forståelsen
+ * (mergeIdentity/COMPOUND_PART_UNIT_NAME_ALIASES over) med et kuratert anslag
+ * på fedd per hvitløk, slik at et stort, summert feddantall (typisk fra
+ * Ukesmeny – flere oppskrifter som hver bruker noen fedd) vises som flere
+ * hele hvitløk i formatShoppingAmount under, i stedet for dagens (bevisst
+ * enkle) "kollaps alltid til 1". Under en terskel beholdes dagens "1
+ * hvitløk"-oppførsel uendret – ved få fedd er den fortsatt riktig.
+ */
+const GARLIC_CLOVES_PER_BULB = 10;
+const GARLIC_WHOLE_BULB_THRESHOLD = 6;
+
+/** Sant for en handlelistelinje som representerer hvitløksfedd – uansett om
+ * den står med enhet ("N fedd hvitløk") eller som sammensatt navn ("N
+ * hvitløksfedd"), se mergeIdentity over for hvorfor begge formene finnes. */
+function isGarlicCloveEntry(name: string, unit: string | null): boolean {
+  if (detectPartUnit(unit) === "fedd" && normalizeName(name) === "hvitløk") return true;
+  if (normalizeName(name) === "hvitløksfedd") return true;
+  return false;
+}
+
+/**
  * Legger ingredienser fra en eller flere oppskrifter til en eksisterende
  * handleliste.
  *
@@ -395,15 +687,24 @@ export function mergeIngredientsIntoList(
 
   for (const group of groups) {
     for (const item of group.items) {
-      const scaledAmount = item.amount
-        ? parseAmountForMerging(item.amount) != null
-          ? (parseAmountForMerging(item.amount) as number) * servingsMultiplier
+      // KJØPSNORMALISERING (se filheader-kommentaren over
+      // canonicalizeForPurchase) – skriver om kjente sitrus-/ferske urte-
+      // nevninger til en delt intern enhet (ml/g) FØR selve sammenslåingen,
+      // slik at f.eks. "1 lime" og "3 ss limesaft" summeres som samme vare.
+      // Treffer ingen regel: `effective` er identisk med `item`, og resten
+      // av løken oppfører seg akkurat som før denne utvidelsen.
+      const canonical = canonicalizeForPurchase(item.name, item.amount, item.unit);
+      const effective = { ...item, name: canonical.name, amount: canonical.amount, unit: canonical.unit };
+
+      const scaledAmount = effective.amount
+        ? parseAmountForMerging(effective.amount) != null
+          ? (parseAmountForMerging(effective.amount) as number) * servingsMultiplier
           : null
         : null;
 
-      const normalizedName = normalizeName(item.name);
-      const normalizedUnit = normalizeUnit(item.unit);
-      const identity = mergeIdentity(item.name, item.unit);
+      const normalizedName = normalizeName(effective.name);
+      const normalizedUnit = normalizeUnit(effective.unit);
+      const identity = mergeIdentity(effective.name, effective.unit);
       const mergeKey = identity.key;
       // MERK: krevde tidligere at item.unit også var satt (f.eks. "g"/"dl"),
       // noe som gjorde at to enhetsløse linjer med samme navn – f.eks.
@@ -444,8 +745,8 @@ export function mergeIngredientsIntoList(
         // FØRSTE oppskriftens tips vinner, i stedet for å overskrives av en
         // senere oppskrift som tilfeldigvis også bruker samme vin uten selv
         // å ha noe notat.
-        if (!exactMatch.note && item.note && isBuyingTipWorthKeeping(item.name)) {
-          exactMatch.note = item.note;
+        if (!exactMatch.note && effective.note && isBuyingTipWorthKeeping(effective.name)) {
+          exactMatch.note = effective.note;
         }
         continue;
       }
@@ -469,7 +770,7 @@ export function mergeIngredientsIntoList(
       // bevisst IKKE slås sammen, siden det ville krevd å gjette en
       // omregning vi ikke kan vite er riktig.
       if (canMerge) {
-        const itemBase = toBaseAmount(scaledAmount as number, item.unit);
+        const itemBase = toBaseAmount(scaledAmount as number, effective.unit);
         if (itemBase) {
           const compatMatch = next.find((entry) => {
             if (mergeIdentity(entry.name, entry.unit).key !== mergeKey || entry.amount == null) return false;
@@ -494,8 +795,8 @@ export function mergeIngredientsIntoList(
               compatMatch.sources = compatMatch.sources ?? [];
               if (!hasSameSource(compatMatch.sources, source)) compatMatch.sources.push(source);
             }
-            if (!compatMatch.note && item.note && isBuyingTipWorthKeeping(item.name)) {
-              compatMatch.note = item.note;
+            if (!compatMatch.note && effective.note && isBuyingTipWorthKeeping(effective.name)) {
+              compatMatch.note = effective.note;
             }
             continue;
           }
@@ -519,7 +820,7 @@ export function mergeIngredientsIntoList(
             entry.amount == null &&
             mergeIdentity(entry.name, entry.unit).key === mergeKey &&
             normalizeUnit(entry.unit) === normalizedUnit &&
-            (entry.displayAmount ?? "").trim().toLowerCase() === (item.amount ?? "").trim().toLowerCase(),
+            (entry.displayAmount ?? "").trim().toLowerCase() === (effective.amount ?? "").trim().toLowerCase(),
         );
         if (blankDuplicate) {
           if (!blankDuplicate.fromRecipes.includes(recipeTitle)) {
@@ -529,8 +830,8 @@ export function mergeIngredientsIntoList(
             blankDuplicate.sources = blankDuplicate.sources ?? [];
             if (!hasSameSource(blankDuplicate.sources, source)) blankDuplicate.sources.push(source);
           }
-          if (!blankDuplicate.note && item.note && isBuyingTipWorthKeeping(item.name)) {
-            blankDuplicate.note = item.note;
+          if (!blankDuplicate.note && effective.note && isBuyingTipWorthKeeping(effective.name)) {
+            blankDuplicate.note = effective.note;
           }
           continue;
         }
@@ -558,8 +859,8 @@ export function mergeIngredientsIntoList(
             anyNameMatch.sources = anyNameMatch.sources ?? [];
             if (!hasSameSource(anyNameMatch.sources, source)) anyNameMatch.sources.push(source);
           }
-          if (!anyNameMatch.note && item.note && isBuyingTipWorthKeeping(item.name)) {
-            anyNameMatch.note = item.note;
+          if (!anyNameMatch.note && effective.note && isBuyingTipWorthKeeping(effective.name)) {
+            anyNameMatch.note = effective.note;
           }
           continue;
         }
@@ -568,8 +869,8 @@ export function mergeIngredientsIntoList(
       next.push({
         id: generateId(), // se lib/utils/id.ts – crypto.randomUUID() alene kan mangle i nettleseren
         amount: canMerge ? scaledAmount : null,
-        displayAmount: canMerge ? null : item.amount,
-        unit: item.unit,
+        displayAmount: canMerge ? null : effective.amount,
+        unit: effective.unit,
         // MERK: brukte tidligere å henge på item.note her (f.eks.
         // "løk (finhakket)") – ikke bare unødvendig detalj i en handleliste
         // (man trenger ikke vite HVORDAN man skjærer noe før man er på
@@ -579,21 +880,21 @@ export function mergeIngredientsIntoList(
         // samme vare. Notatet henges derfor ALDRI på selve navnet lenger –
         // se `note`-feltet under for de få tilfellene notatet faktisk skal
         // med (kjøpstips, ikke tilberedning).
-        name: item.name,
+        name: effective.name,
         // Basisvarer (salt, pepper, olje osv., se PANTRY_STAPLE_NAMES over)
         // legges automatisk til som avhuket/overstrøket – de aller fleste
         // har dette fra før, og slipper da å måtte fjerne den samme varen
         // manuelt hver gang. Helt vanlig avkrysningsboks, så det er bare å
         // klikke den bort igjen dersom man faktisk trenger å kjøpe akkurat
         // denne gangen (f.eks. gått tom for salt).
-        checked: isPantryStaple(item.name),
+        checked: isPantryStaple(effective.name),
         fromRecipes: [recipeTitle],
         sources: source ? [source] : undefined,
         // Se isBuyingTipWorthKeeping over – kun vin-lignende ingredienser
         // tar med notatet sitt til handlelista (f.eks. "en fyldig rødvin,
         // Chianti eller lignende"), alt annet notat (kuttemåte,
         // romtemperert osv.) forblir kun i fremgangsmåten.
-        note: item.note && isBuyingTipWorthKeeping(item.name) ? item.note : undefined,
+        note: effective.note && isBuyingTipWorthKeeping(effective.name) ? effective.note : undefined,
       });
     }
   }
@@ -640,6 +941,42 @@ export function formatShoppingAmount(entry: ShoppingListEntry): string {
   if (entry.amount != null) {
     const normalizedUnit = normalizeUnit(entry.unit);
 
+    // KJØPSNORMALISERT SITRUS (§3) – entry.amount er her alltid et råtall
+    // ml juice-ekvivalent (se canonicalizeCitrus/ARKITEKTUR-kommentaren ved
+    // mergeIngredientsIntoList), summert over ALLE bidragende oppskrifter.
+    // Regnes om til et antall hele frukter først her, ved visning, slik at
+    // flere mindre bidrag (1,5 ss + 2 ss + 1 ss limesaft) rundes opp ÉN gang
+    // til slutt (4,5 ss → 3 lime) i stedet for hver for seg.
+    const citrusRule = normalizedUnit === "ml" ? findCitrusRule(entry.name) : null;
+    if (citrusRule) {
+      return String(Math.max(1, Math.ceil(entry.amount / citrusRule.mlPerFruit)));
+    }
+
+    // KJØPSNORMALISERTE FERSKE URTER (§5) – samme prinsipp som sitrus over,
+    // men med gram som delt enhet og "bunt"/"potte" som kjøpsenhet. Trenger
+    // et eget enhetsord (i motsetning til sitrus, der selve fruktnavnet ER
+    // kjøpsenheten) – inkludert flertallsformen ("2 potter", ikke "2 potte").
+    const herbRule = normalizedUnit === "g" ? findFreshHerbRule(entry.name) : null;
+    if (herbRule) {
+      const count = Math.max(1, Math.ceil(entry.amount / herbRule.gramsPerUnit));
+      const unitWord =
+        herbRule.purchaseUnit === "potte" ? (count === 1 ? "potte" : "potter") : count === 1 ? "bunt" : "bunter";
+      return `${count} ${unitWord}`;
+    }
+
+    // HVITLØKSFEDD → HEL(E) HVITLØK (§6) – eget tilfelle av WHOLE_ITEM_PART_
+    // UNITS-kollapsen under: ved få fedd beholdes den eksisterende "1
+    // hvitløk"-visningen uendret, men fra og med GARLIC_WHOLE_BULB_THRESHOLD
+    // fedd regnes antallet hele hvitløk ut i stedet for alltid å si "1" (se
+    // getPurchaseNote under for "(ca. N fedd)"-notatet som hører til denne
+    // visningen).
+    if (isGarlicCloveEntry(entry.name, entry.unit)) {
+      if (entry.amount >= GARLIC_WHOLE_BULB_THRESHOLD) {
+        return String(Math.max(1, Math.ceil(entry.amount / GARLIC_CLOVES_PER_BULB)));
+      }
+      return "1";
+    }
+
     if (normalizedUnit && WHOLE_ITEM_PART_UNITS.has(normalizedUnit)) {
       return "1";
     }
@@ -663,6 +1000,29 @@ export function formatShoppingAmount(entry: ShoppingListEntry): string {
     return [entry.displayAmount, entry.unit].filter(Boolean).join(" ");
   }
   return entry.unit ?? "";
+}
+
+/**
+ * Valgfritt, sekundært "kjøps-notat" til en handlelistelinje – i dag kun
+ * hvitløk (§6): "1 hvitløk (ca. 7 fedd)" i stedet for å la det kollapsede
+ * hoved-tallet ("1"/"2") stå helt alene og skjule hvor mye det faktisk er
+ * tale om. Returnerer null for alt annet (inkludert hvitløk under
+ * GARLIC_WHOLE_BULB_THRESHOLD, der "1 hvitløk" alene fortsatt er dekkende og
+ * uendret fra før denne utvidelsen). Egen funksjon i stedet for å bake inn i
+ * selve formatShoppingAmount-strengen, siden den brukes mange steder
+ * (PDF-eksport, delingstekst, print) som forventer én enkel "mengde + enhet"-
+ * streng – se ShoppingListView.tsx for hvor notatet vises separat, samme
+ * mønster som kilde-/kjøpstips-linjene der.
+ */
+export function getPurchaseNote(entry: ShoppingListEntry): string | null {
+  if (
+    entry.amount != null &&
+    isGarlicCloveEntry(entry.name, entry.unit) &&
+    entry.amount >= GARLIC_WHOLE_BULB_THRESHOLD
+  ) {
+    return `ca. ${Math.round(entry.amount)} fedd`;
+  }
+  return null;
 }
 
 /**
