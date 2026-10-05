@@ -9,13 +9,14 @@
  * mønster som det tidligere "I kjøleskapet"-bildet
  * (public/images/pantry-hero.jpg).
  *
- * Bevisst DELVIS utfylt inntil videre – kun "host" og "vinter" har bilde
- * per nå. SeasonHeroImage.tsx returnerer ingenting (ingen hero, siden ser
- * ut som før) for en sesong som mangler et bilde her, så resten av
- * sesongene fungerer helt normalt mens Henrik sender flere bilder etter
- * hvert.
+ * Bevisst DELVIS utfylt inntil videre – kun "host", "vinter" og "var" har
+ * bilde per nå. SeasonHeroImage.tsx returnerer ingenting (ingen hero,
+ * siden ser ut som før) for en sesong som mangler et bilde her, så resten
+ * av sesongene fungerer helt normalt mens Henrik sender flere bilder
+ * etter hvert.
  */
 export const SEASON_HERO_IMAGES: Partial<Record<string, string>> = {
   host: "/images/seasons/host.jpg",
   vinter: "/images/seasons/vinter.jpg",
+  var: "/images/seasons/var.jpg",
 };
