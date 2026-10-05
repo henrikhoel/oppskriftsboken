@@ -40,6 +40,27 @@ import { t, type Lang } from "@/lib/i18n";
  * state – å klikke en rad velger råvaren uansett skjermbredde, det er kun
  * HVOR detaljen vises som er responsivt, ikke selve valg-logikken.
  *
+ * VISUELL OPPRYDDING (05.10.2026, Henrik: "gjør en visuell opprydding av
+ * 'I sesong'-siden slik at den matcher det nyere CONVITE-designet bedre
+ * [...] fjern rester av det gamle card-baserte CONVITE-designet"):
+ * høyrekolonnens detaljvisning hadde fortsatt den eldre
+ * card-stilen (avrundet, grå/brun bakgrunnsflate, gul venstrekant,
+ * shadow) fra FØR "den nye rene CONVITE-uttrykket" (se f.eks.
+ * BrowseRecipeCard.tsx sin filheader) ble etablert andre steder i appen.
+ * Fjernet helt – innholdet ligger nå direkte på sidens egen bakgrunn, med
+ * samme tynne `border-line`-separatorlinjer mellom seksjonene som
+ * IngredientDetailBody.tsx allerede bruker internt (uendret der). Kun
+ * SELVE WRAPPEREN er endret her – ingen endring i struktur, data,
+ * sesongperioder, peak-status, kilder eller søkelogikk.
+ *
+ * Samme runde: de lukkede kategori-nedtrekkene ("Fra havet" osv, se
+ * `exampleIngredientNames` under) viser nå noen få råvarenavn som en
+ * diskret smakebit på innholdet ("Hummer · krabbe · blåskjell · kveite"),
+ * i stedet for kun en tom gruppe-etikett – fortsatt bevisst IKKE cards
+ * eller egne komponenter, bare én ekstra, liten tekstlinje i samme rad.
+ * "Andre sesonger"-listen (SeasonList.tsx) fikk tilsvarende en mer
+ * kompakt radhøyde, se filheaderen der.
+ *
  * `groups` kommer ferdig gruppert og sortert fra
  * groupIngredientsByOriginGroup() i lib/kitchen-intelligence/seasonal.ts –
  * kun grupper som faktisk har innhold er med, i riktig redaksjonell
@@ -161,6 +182,26 @@ export function SeasonIngredientList({
     setSelectedId((prev) => (prev === id ? null : id));
   }
 
+  /** (05.10.2026) Diskret "eksempel på innhold"-linje for en LUKKET gruppe
+   * – se filheaderen over. Kun navn, ingen status/peak-merker (det hører
+   * fortsatt hjemme inne i selve den åpne listen). Store forbokstaver kun
+   * på selve linjens FØRSTE tegn (ikke per navn) – matcher Henriks eget
+   * eksempel ("Hummer · krabbe · blåskjell · kveite"), siden
+   * nameNo/nameEn ellers er lagret med stor forbokstav per navn (se
+   * H1-bruken i IngredientDetail.tsx). EXAMPLE_COUNT (4) er nok til å gi
+   * et inntrykk uten at linjen blir for lang/bryter – `items` kommer
+   * allerede i redaksjonell sortOrder-rekkefølge (uendret), så dette er
+   * ikke et tilfeldig utvalg.
+   */
+  function exampleIngredientNames(items: SeasonPageIngredient[]): string {
+    const EXAMPLE_COUNT = 4;
+    const joined = items
+      .slice(0, EXAMPLE_COUNT)
+      .map((item) => localizedIngredientName(item.ingredient, lang).toLowerCase())
+      .join(" · ");
+    return joined.charAt(0).toUpperCase() + joined.slice(1);
+  }
+
   return (
     <div className="grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-10">
       <div ref={listRef}>
@@ -173,13 +214,22 @@ export function SeasonIngredientList({
                 type="button"
                 onClick={() => toggleGroup(group)}
                 aria-expanded={isGroupOpen}
-                className="flex w-full items-center justify-between gap-3 rounded-lg py-2 text-left transition-colors duration-150 hover:text-ink"
+                className="flex w-full items-start justify-between gap-3 rounded-lg py-2 text-left transition-colors duration-150 hover:text-ink"
               >
-                <span className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
-                  {originGroupLabel(group as Parameters<typeof originGroupLabel>[0], lang)}
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
+                    {originGroupLabel(group as Parameters<typeof originGroupLabel>[0], lang)}
+                  </span>
+                  {/* Kun når LUKKET – med gruppen åpen ligger de ekte radene
+                      rett under uansett, da er denne linjen bare støy. */}
+                  {!isGroupOpen && items.length > 0 && (
+                    <span className="mt-1 block truncate text-xs text-ink-faint/70">
+                      {exampleIngredientNames(items)}
+                    </span>
+                  )}
                 </span>
                 <ChevronDownIcon
-                  className={`h-3.5 w-3.5 shrink-0 text-ink-faint transition-transform duration-300 ${
+                  className={`mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-faint transition-transform duration-300 ${
                     isGroupOpen ? "rotate-180" : ""
                   }`}
                 />
@@ -269,19 +319,16 @@ export function SeasonIngredientList({
           toppmargin et par radhøyder over den valgte raden (ANCHOR_ROWS_UP).
           Deretter blir den stående akkurat der i vanlig sideflyt (ingen
           sticky) mens man scroller videre.
-          Stilen er bevisst holdt rolig/redaksjonell (Henriks ønske om noe
-          "mer elegant og stilrent" 28.08.2026): en tynn gyllen kant i
-          venstre marg (samme antikk-gull-aksent som resten av "CONVITE",
-          se app/globals.css) erstatter en tidligere, mer "snakkeboble"-aktig
-          pil-tupp – den antyder fortsatt en kobling til valget uten å bli
-          en tegneserie-detalj. Romsligere polstring (p-8) matcher ellers
-          det generøse, luftige uttrykket resten av siden har. */}
+          (05.10.2026, se filheaderen) Det gamle "card"-uttrykket (avrundet,
+          grå/brun bakgrunnsflate, gul venstrekant, skygge – fra den tidlige
+          CONVITE-runden 28.08.2026) er fjernet herfra. Innholdet ligger nå
+          direkte på sidens egen (svarte) bakgrunn, uten boks/kant/skygge –
+          kun navnet (serif) + IngredientDetailBody, som allerede har sine
+          egne tynne `border-line`-skillelinjer mellom status/beskrivelse/
+          kilde/oppskrifter (se filheaderen til IngredientDetailBody.tsx). */}
       <div className="hidden lg:block lg:self-start">
         {selected && selectedHomeSeason ? (
-          <div
-            style={{ marginTop: detailOffset }}
-            className="rounded-card border border-line border-l-2 border-l-clay bg-paper p-8 shadow-card transition-[margin-top] duration-300 ease-out"
-          >
+          <div style={{ marginTop: detailOffset }} className="transition-[margin-top] duration-300 ease-out">
             <h3 className="font-serif text-2xl text-ink">{localizedIngredientName(selected.ingredient, lang)}</h3>
             <IngredientDetailBody
               ingredient={selected.ingredient}
@@ -292,7 +339,7 @@ export function SeasonIngredientList({
             />
           </div>
         ) : (
-          <p className="px-1 text-sm text-ink-faint">{t(lang, "season.selectIngredientPrompt")}</p>
+          <p className="text-sm text-ink-faint/70">{t(lang, "season.selectIngredientPrompt")}</p>
         )}
       </div>
     </div>

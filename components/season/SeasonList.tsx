@@ -11,6 +11,12 @@ import type { Lang } from "@/lib/i18n";
  * elegant måte å vise listen på"), gjenbrukt her fordi den samme
  * begrunnelsen gjelder: en enkel liste av sesonger trenger ikke
  * bilde-kort, kun tittel + en kort tidsangivelse.
+ *
+ * (05.10.2026, Henrik, del av "I sesong"-oppryddingen) Radene komprimert
+ * vertikalt (py-4→py-2.5, gap-4→gap-3, mt-0.5→mt-0) – denne seksjonen
+ * ("Andre sesonger") skal ikke gjøre siden merkbart lengre. Uttrykket
+ * ellers (serif-navn, månedsangivelse, pil, HELE raden klikkbar) er
+ * uendret, kun selve høyden er redusert.
  */
 export function SeasonList({ seasons, lang }: { seasons: Season[]; lang: Lang }) {
   if (seasons.length === 0) return null;
@@ -21,13 +27,13 @@ export function SeasonList({ seasons, lang }: { seasons: Season[]; lang: Lang })
         <li key={season.id}>
           <Link
             href={`/sesong/${season.slug}`}
-            className="group -mx-3 flex items-center gap-4 px-3 py-4 transition-colors duration-150 hover:bg-cream-dark/40"
+            className="group -mx-3 flex items-center gap-3 px-3 py-2.5 transition-colors duration-150 hover:bg-cream-dark/40"
           >
             <div className="min-w-0 flex-1">
               <h3 className="font-serif text-lg leading-snug text-ink transition-colors group-hover:text-clay">
                 {localizedSeasonName(season, lang)}
               </h3>
-              <p className="mt-0.5 text-xs text-ink-faint">{seasonMonthRangeLabel(season.months, lang)}</p>
+              <p className="mt-0 text-xs text-ink-faint">{seasonMonthRangeLabel(season.months, lang)}</p>
             </div>
             <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink-faint transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-clay" />
           </Link>
