@@ -31,6 +31,43 @@ function normalizeUnit(unit: string | null): string {
 }
 
 /**
+ * SAMMENSLÅINGS-NØKKEL (05.10.2026, Henrik: "den må forstå at gulrot og
+ * gulrøtter er det samme") – en LØSERE normalisering brukt KUN for å
+ * avgjøre om to handlelistelinjer er "samme vare" ved sammenslåing i
+ * mergeIngredientsIntoList under. Helt separat fra normalizeName over, som
+ * fortsatt brukes direkte andre steder (isPantryStaple,
+ * categorizeShoppingItem) – der skal "gulrot" og "gulrøtter" fortsatt
+ * kunne gjenkjennes HVER FOR SEG, det er ikke et sammenslåingsspørsmål der.
+ * Påvirker ALDRI selve visningsnavnet (`name` settes kun ved FØRSTE
+ * tilføyelse av en linje, se mergeIngredientsIntoList) – kun hvilke linjer
+ * som regnes som samme vare og dermed telles sammen.
+ *
+ * To lag:
+ *  1) IRREGULAR_PLURAL_ALIASES – en kort, eksplisitt liste over kjente
+ *     UREGELMESSIGE norske flertallsformer for vanlige råvarer (flertall
+ *     er IKKE en enkel "+er" på stammen – "gulrot" -> "gulrøtter", ikke
+ *     "gulroter"). Utvides etter hvert som nye tilfeller dukker opp i
+ *     praksis, samme prinsipp som CATEGORY_KEYWORDS/PANTRY_STAPLE_PATTERNS.
+ *  2) stripRegularPluralSuffix – dekker det store flertallet av norske
+ *     substantiv, der flertall faktisk ER en enkel "+er"/"+ene"-endelse
+ *     ("tomat"/"tomater", "potet"/"poteter", "nøtt"/"nøtter").
+ */
+const IRREGULAR_PLURAL_ALIASES: Record<string, string> = {
+  gulrøtter: "gulrot",
+};
+
+function stripRegularPluralSuffix(normalized: string): string {
+  if (normalized.endsWith("ene") && normalized.length > 5) return normalized.slice(0, -3);
+  if (normalized.endsWith("er") && normalized.length > 4) return normalized.slice(0, -2);
+  return normalized;
+}
+
+function mergeNameKey(name: string): string {
+  const normalized = normalizeName(name);
+  return IRREGULAR_PLURAL_ALIASES[normalized] ?? stripRegularPluralSuffix(normalized);
+}
+
+/**
  * Basisvarer – ting de aller fleste alt har i skapet (salt, pepper, olje,
  * sukker, mel, vann, eddik) og derfor ikke trenger påminnelse om å kjøpe
  * hver eneste gang. Rent deterministisk (ordliste + eksakt normalisert
@@ -212,6 +249,37 @@ function pickNiceWeightUnit(totalG: number): { amount: number; unit: string } {
 }
 
 /**
+ * Enkel "X-Y"-intervall-tolkning (bindestrek ELLER kort tankestrek), KUN
+ * brukt her i mergeIngredientsIntoList for å avgjøre om en linje kan
+ * summeres med andre (05.10.2026, Henrik: "hvorfor er ikke parmesan samlet
+ * til ett punkt?" – rot-årsak: "25-30 g parmesan" kunne ikke slås sammen
+ * med "80 g parmesan" siden parseAmount i lib/utils/scale.ts – med god
+ * grunn, se der – ikke tolker rene tallintervaller). Bruker midtpunktet som
+ * et representativt, summérbart tall – fornuftig for en handleliste (man
+ * kjøper uansett i hele pakninger), i motsetning til selve
+ * oppskriftsvisningen der det faktiske intervallet er nyttig å vise
+ * uendret. Faller tilbake til parseAmount for alt annet (desimaltall,
+ * brøker osv.) – rører IKKE den delte parseAmount-funksjonen selv, som
+ * også brukes til porsjonsskalering/US-konvertering andre steder i appen.
+ */
+function parseAmountForMerging(raw: string | null | undefined): number | null {
+  const direct = parseAmount(raw);
+  if (direct != null) return direct;
+  if (!raw) return null;
+  const rangeMatch = raw
+    .trim()
+    .replace(",", ".")
+    .match(/^(\d+(?:\.\d+)?)\s*[-\u2013]\s*(\d+(?:\.\d+)?)$/);
+  if (rangeMatch) {
+    const [, lowRaw, highRaw] = rangeMatch;
+    const low = Number(lowRaw);
+    const high = Number(highRaw);
+    if (Number.isFinite(low) && Number.isFinite(high)) return (low + high) / 2;
+  }
+  return null;
+}
+
+/**
  * Legger ingredienser fra en eller flere oppskrifter til en eksisterende
  * handleliste.
  *
@@ -259,13 +327,14 @@ export function mergeIngredientsIntoList(
   for (const group of groups) {
     for (const item of group.items) {
       const scaledAmount = item.amount
-        ? parseAmount(item.amount) != null
-          ? (parseAmount(item.amount) as number) * servingsMultiplier
+        ? parseAmountForMerging(item.amount) != null
+          ? (parseAmountForMerging(item.amount) as number) * servingsMultiplier
           : null
         : null;
 
       const normalizedName = normalizeName(item.name);
       const normalizedUnit = normalizeUnit(item.unit);
+      const mergeKey = mergeNameKey(item.name);
       // MERK: krevde tidligere at item.unit også var satt (f.eks. "g"/"dl"),
       // noe som gjorde at to enhetsløse linjer med samme navn – f.eks.
       // "3 løk" og "1 løk", der "løk" er navnet og ingen enhet er oppgitt –
@@ -281,7 +350,7 @@ export function mergeIngredientsIntoList(
       const exactMatch = canMerge
         ? next.find(
             (entry) =>
-              normalizeName(entry.name) === normalizedName &&
+              mergeNameKey(entry.name) === mergeKey &&
               normalizeUnit(entry.unit) === normalizedUnit &&
               entry.amount != null,
           )
@@ -328,7 +397,7 @@ export function mergeIngredientsIntoList(
         const itemBase = toBaseAmount(scaledAmount as number, item.unit);
         if (itemBase) {
           const compatMatch = next.find((entry) => {
-            if (normalizeName(entry.name) !== normalizedName || entry.amount == null) return false;
+            if (mergeNameKey(entry.name) !== mergeKey || entry.amount == null) return false;
             const entryBase = toBaseAmount(entry.amount, entry.unit);
             return entryBase != null && entryBase.base === itemBase.base;
           });
@@ -373,7 +442,7 @@ export function mergeIngredientsIntoList(
         const blankDuplicate = next.find(
           (entry) =>
             entry.amount == null &&
-            normalizeName(entry.name) === normalizedName &&
+            mergeNameKey(entry.name) === mergeKey &&
             normalizeUnit(entry.unit) === normalizedUnit &&
             (entry.displayAmount ?? "").trim().toLowerCase() === (item.amount ?? "").trim().toLowerCase(),
         );
@@ -387,6 +456,35 @@ export function mergeIngredientsIntoList(
           }
           if (!blankDuplicate.note && item.note && isBuyingTipWorthKeeping(item.name)) {
             blankDuplicate.note = item.note;
+          }
+          continue;
+        }
+
+        // UKVANTIFISERT VARE SOM ALLEREDE FINNES MED MENGDE ANDRE STEDER
+        // (05.10.2026, Henrik: "hvorfor er ikke parmesan samlet til ett
+        // punkt?") – en ingrediens oppgitt UTEN mengde i én oppskrift
+        // (f.eks. "Parmesan, til servering") endte tidligere alltid opp som
+        // sin egen, forvirrende ekstra linje, selv om en annen oppskrift
+        // alt hadde lagt til akkurat samme vare MED en tallfestet mengde
+        // ("80 g parmesan"). Finner derfor – kun når ingen blank-duplikat
+        // ble funnet over – en HVILKEN SOM HELST eksisterende linje med
+        // samme vare (uavhengig av om den har en mengde), og henger kun
+        // kilden/oppskrift-tittelen på den i stedet for å opprette en ny
+        // linje. Selve mengden/enheten på den eksisterende linjen RØRES
+        // ALDRI (vi gjetter aldri en mengde vi ikke har) – brukeren mister
+        // dermed ingen informasjon, kun en overflødig ekstra "bar" linje
+        // for samme vare.
+        const anyNameMatch = next.find((entry) => mergeNameKey(entry.name) === mergeKey);
+        if (anyNameMatch) {
+          if (!anyNameMatch.fromRecipes.includes(recipeTitle)) {
+            anyNameMatch.fromRecipes.push(recipeTitle);
+          }
+          if (source) {
+            anyNameMatch.sources = anyNameMatch.sources ?? [];
+            if (!hasSameSource(anyNameMatch.sources, source)) anyNameMatch.sources.push(source);
+          }
+          if (!anyNameMatch.note && item.note && isBuyingTipWorthKeeping(item.name)) {
+            anyNameMatch.note = item.note;
           }
           continue;
         }
@@ -683,6 +781,18 @@ const CATEGORY_KEYWORDS: Record<MatchableCategory, string[]> = {
     "rødløk",
     "sjalottløk",
     "hvitløk",
+    // (05.10.2026, Henrik: "hvitløk blir lagt i frukt og grønt, men
+    // hvitløksfedd ligger i annet") – "hvitløksfedd" er et norsk
+    // SAMMENSATT ord (hvitløk + s + fedd, uten mellomrom), så \bhvitløk\b
+    // traff aldri midt inni det (ingen ordgrense mellom "hvitløk" og
+    // "sfedd"). Lagt til som egen, eksplisitt oppføring i stedet for en
+    // generell prefiks-match-regel for alle nøkkelord – en slik generell
+    // regel ville gitt ekte risiko for FEILAKTIGE kategorier andre steder
+    // (f.eks. "kylling" som prefiks midt i en annen sammensatt tørrvare),
+    // og katalogens egen filosofi (se filheaderen) er at et ukjent navn
+    // heller skal havne trygt i "annet" enn gjette feil. Legg til flere
+    // sammensatte former her etter hvert som de dukker opp i praksis.
+    "hvitløksfedd",
     "vårløk",
     "purre",
     "gulrot",
