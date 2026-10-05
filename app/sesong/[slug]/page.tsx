@@ -16,6 +16,7 @@ import {
 } from "@/lib/kitchen-intelligence/seasonal";
 import { SeasonIngredientList } from "@/components/season/SeasonIngredientList";
 import { SeasonList } from "@/components/season/SeasonList";
+import { SeasonHeroImage } from "@/components/season/SeasonHeroImage";
 import { IngredientDetail } from "@/components/season/IngredientDetail";
 import { LockedPanel } from "@/components/ui/LockedPanel";
 import { getCurrentUserFast } from "@/lib/auth";
@@ -40,6 +41,12 @@ import { t } from "@/lib/i18n";
  * lib/validation/season-schema.ts sin ensureUniqueSlug-bruk i
  * lib/actions/seasons.ts), så det er aldri reell tvetydighet om hvilken av
  * de to en gitt slug peker til.
+ *
+ * (05.10.2026) SeasonHeroImage viser her DENNE sesongens eget bilde (ikke
+ * nødvendigvis currentSeason sitt – se filheaderen til
+ * components/season/SeasonHeroImage.tsx) – blar man seg inn på f.eks.
+ * Vinter fra "Andre sesonger" midt på sommeren, skal det likevel være
+ * vinterbildet som vises der, uavhengig av hvilken måned det faktisk er.
  */
 export async function generateMetadata({
   params,
@@ -144,48 +151,52 @@ export default async function SeasonOrIngredientPage({
     }
 
     return (
-      <article className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-        <Link
-          href="/sesong"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
-        >
-          <ChevronLeftIcon className="h-4 w-4" />
-          {t(lang, "seasonPage.backToIndex")}
-        </Link>
+      <article className="relative isolate bg-black">
+        <SeasonHeroImage slug={season.slug} />
 
-        <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h1 className="font-serif text-3xl text-ink sm:text-4xl">{localizedSeasonName(season, lang)}</h1>
-          {isCurrent && (
-            <span className="text-xs font-semibold uppercase tracking-[0.15em] text-clay-dark">
-              {t(lang, "seasonPage.currentBadge")}
-            </span>
-          )}
-        </div>
-        <p className="mt-1 text-xs text-ink-faint">{seasonMonthRangeLabel(season.months, lang)}</p>
-        <p className="mt-4 max-w-2xl text-ink-soft">{localizedSeasonIntro(season, lang)}</p>
+        <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+          <Link
+            href="/sesong"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+          >
+            <ChevronLeftIcon className="h-4 w-4" />
+            {t(lang, "seasonPage.backToIndex")}
+          </Link>
 
-        <div className="mt-10">
-          {groups.length > 0 ? (
-            <SeasonIngredientList
-              groups={groups}
-              lang={lang}
-              allSeasons={allSeasons}
-              recipesByIngredientId={recipesByIngredientId}
-              isLiveSeason={isCurrent}
-            />
-          ) : (
-            <p className="py-6 text-sm text-ink-faint">{t(lang, "seasonPage.noneNow")}</p>
-          )}
-        </div>
-
-        {otherSeasons.length > 0 && (
-          <div className="mt-14">
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
-              {t(lang, "seasonPage.otherSeasonsHeading")}
-            </h2>
-            <SeasonList seasons={otherSeasons} lang={lang} />
+          <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="font-serif text-3xl text-ink sm:text-4xl">{localizedSeasonName(season, lang)}</h1>
+            {isCurrent && (
+              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-clay-dark">
+                {t(lang, "seasonPage.currentBadge")}
+              </span>
+            )}
           </div>
-        )}
+          <p className="mt-1 text-xs text-ink-faint">{seasonMonthRangeLabel(season.months, lang)}</p>
+          <p className="mt-4 max-w-2xl text-ink-soft">{localizedSeasonIntro(season, lang)}</p>
+
+          <div className="mt-10">
+            {groups.length > 0 ? (
+              <SeasonIngredientList
+                groups={groups}
+                lang={lang}
+                allSeasons={allSeasons}
+                recipesByIngredientId={recipesByIngredientId}
+                isLiveSeason={isCurrent}
+              />
+            ) : (
+              <p className="py-6 text-sm text-ink-faint">{t(lang, "seasonPage.noneNow")}</p>
+            )}
+          </div>
+
+          {otherSeasons.length > 0 && (
+            <div className="mt-14">
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
+                {t(lang, "seasonPage.otherSeasonsHeading")}
+              </h2>
+              <SeasonList seasons={otherSeasons} lang={lang} />
+            </div>
+          )}
+        </div>
       </article>
     );
   }

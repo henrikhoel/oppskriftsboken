@@ -10,6 +10,7 @@ import {
 } from "@/lib/kitchen-intelligence/seasonal";
 import { SeasonList } from "@/components/season/SeasonList";
 import { SeasonIngredientList } from "@/components/season/SeasonIngredientList";
+import { SeasonHeroImage } from "@/components/season/SeasonHeroImage";
 import { IngredientSearch } from "@/components/season/IngredientSearch";
 import { LockedPanel } from "@/components/ui/LockedPanel";
 import { getCurrentUserFast } from "@/lib/auth";
@@ -36,6 +37,17 @@ export async function generateMetadata(): Promise<Metadata> {
  * andre sesongene. Bevisst progressive disclosure (spesifikasjonens punkt
  * 1/19): kun navn + evt. peak-merke her, all dybde (måneder, hvorfor,
  * kilde, oppskrifter) ligger på selve råvaresiden – én klikk unna.
+ *
+ * (05.10.2026) SeasonHeroImage legger sesongens eget bakgrunnsbilde bak
+ * toppen av siden (se filheaderen der) – kun for currentSeason, siden
+ * DENNE siden per definisjon alltid viser "nå". Samme teknikk som Ukesmeny/
+ * "I kjøleskapet": ytre wrapper trenger `relative isolate bg-black` (uten
+ * `isolate` "lekker" den negativt z-indekserte bildet ut bak ALT annet på
+ * siden i stedet for kun bak denne seksjonen – se filheaderen til
+ * app/hva-kan-jeg-lage/page.tsx for hele forklaringen av det CSS-stacking-
+ * context-problemet), innholdet får `relative z-10` for å ligge over.
+ * Returnerer ingenting fra SeasonHeroImage (helt uendret layout) for
+ * enhver sesong uten eget bilde ennå.
  */
 export default async function SeasonIndexPage() {
   const [lang, user] = await Promise.all([getLang(), getCurrentUserFast()]);
@@ -105,53 +117,57 @@ export default async function SeasonIndexPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-faint">{t(lang, "seasonPage.eyebrow")}</p>
+    <div className="relative isolate bg-black">
+      {currentSeason && <SeasonHeroImage slug={currentSeason.slug} />}
 
-      {currentSeason ? (
-        <>
-          <h1 className="mt-2 font-serif text-3xl text-ink sm:text-4xl">{localizedSeasonName(currentSeason, lang)}</h1>
-          <p className="mt-3 max-w-2xl text-ink-soft">{localizedSeasonIntro(currentSeason, lang)}</p>
-        </>
-      ) : (
-        <h1 className="mt-2 font-serif text-3xl text-ink sm:text-4xl">{t(lang, "seasonPage.title")}</h1>
-      )}
+      <div className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-faint">{t(lang, "seasonPage.eyebrow")}</p>
 
-      <div className="mt-8 max-w-sm">
-        <IngredientSearch
-          allIngredients={allIngredients}
-          groupLabelBySlug={groupLabelBySlug}
-          statusLabelBySlug={statusLabelBySlug}
-          isPeakBySlug={isPeakBySlug}
-          lang={lang}
-        />
-      </div>
-
-      <div className="mt-10">
-        {groups.length > 0 ? (
-          // isLiveSeason er alltid true her – denne siden viser per definisjon
-          // KUN currentSeason (den vi faktisk er i nå), se lib/utils/season-format.ts
-          // sin ingredientStatusLabel()-filheader for hvorfor dette skillet finnes.
-          <SeasonIngredientList
-            groups={groups}
-            lang={lang}
-            allSeasons={seasonsWithIngredients}
-            recipesByIngredientId={recipesByIngredientId}
-            isLiveSeason
-          />
+        {currentSeason ? (
+          <>
+            <h1 className="mt-2 font-serif text-3xl text-ink sm:text-4xl">{localizedSeasonName(currentSeason, lang)}</h1>
+            <p className="mt-3 max-w-2xl text-ink-soft">{localizedSeasonIntro(currentSeason, lang)}</p>
+          </>
         ) : (
-          <p className="py-6 text-sm text-ink-faint">{t(lang, "seasonPage.noneNow")}</p>
+          <h1 className="mt-2 font-serif text-3xl text-ink sm:text-4xl">{t(lang, "seasonPage.title")}</h1>
+        )}
+
+        <div className="mt-8 max-w-sm">
+          <IngredientSearch
+            allIngredients={allIngredients}
+            groupLabelBySlug={groupLabelBySlug}
+            statusLabelBySlug={statusLabelBySlug}
+            isPeakBySlug={isPeakBySlug}
+            lang={lang}
+          />
+        </div>
+
+        <div className="mt-10">
+          {groups.length > 0 ? (
+            // isLiveSeason er alltid true her – denne siden viser per definisjon
+            // KUN currentSeason (den vi faktisk er i nå), se lib/utils/season-format.ts
+            // sin ingredientStatusLabel()-filheader for hvorfor dette skillet finnes.
+            <SeasonIngredientList
+              groups={groups}
+              lang={lang}
+              allSeasons={seasonsWithIngredients}
+              recipesByIngredientId={recipesByIngredientId}
+              isLiveSeason
+            />
+          ) : (
+            <p className="py-6 text-sm text-ink-faint">{t(lang, "seasonPage.noneNow")}</p>
+          )}
+        </div>
+
+        {otherSeasons.length > 0 && (
+          <div className="mt-14">
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
+              {t(lang, "seasonPage.otherSeasonsHeading")}
+            </h2>
+            <SeasonList seasons={otherSeasons} lang={lang} />
+          </div>
         )}
       </div>
-
-      {otherSeasons.length > 0 && (
-        <div className="mt-14">
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
-            {t(lang, "seasonPage.otherSeasonsHeading")}
-          </h2>
-          <SeasonList seasons={otherSeasons} lang={lang} />
-        </div>
-      )}
     </div>
   );
 }
