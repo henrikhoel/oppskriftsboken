@@ -167,6 +167,15 @@ export function SeasonIngredientList({
   if (groups.length === 0) return null;
 
   function toggleGroup(group: string) {
+    // (05.10.2026) Henrik: lukker man gruppen den VALGTE råvaren hører
+    // til, skal høyrekolonnens detalj forsvinne med den – raden er jo
+    // ikke lenger synlig i listen når gruppen er lukket, så det så ut som
+    // en "spøkelses"-detalj som ble stående igjen uten noen markert rad.
+    // `isClosing` leses FØR state-oppdateringen (fra closure'ens
+    // `openGroups`), ellers vet vi ikke om dette klikket åpner eller
+    // lukker gruppen.
+    const isClosing = openGroups.has(group);
+
     setOpenGroups((prev) => {
       const next = new Set(prev);
       if (next.has(group)) {
@@ -176,6 +185,13 @@ export function SeasonIngredientList({
       }
       return next;
     });
+
+    if (isClosing && selectedId) {
+      const groupData = groups.find((g) => g.group === group);
+      if (groupData?.items.some((item) => item.ingredient.id === selectedId)) {
+        setSelectedId(null);
+      }
+    }
   }
 
   function selectIngredient(id: string) {
