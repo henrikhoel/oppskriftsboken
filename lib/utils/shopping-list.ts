@@ -68,6 +68,75 @@ function mergeNameKey(name: string): string {
 }
 
 /**
+ * "DEL AV EN HELHET"-SAMMENSLÅING (05.10.2026, Henrik, med skjermbilde:
+ * "her forstår den ikke at 1 fedd hvitløk og hvitløksfedd er det samme") –
+ * samme vare skrives i praksis på to ulike måter: med enheten skrevet UT
+ * ("N fedd hvitløk", unit="fedd" eller en kvalifisert variant som "lite
+ * fedd"/"store fedd") ELLER som ETT sammensatt ord i selve navnefeltet,
+ * uten egen enhet ("N hvitløksfedd", unit=null). mergeNameKey over alene
+ * fanger ikke dette – "hvitløk" og "hvitløksfedd" er to helt ulike
+ * normaliserte strenger. PART_UNIT_CANONICAL/detectPartUnit under
+ * gjenkjenner enhets-varianten (også med kvalifiserende ord foran, derfor
+ * \b${ord}\b-søk i STRENGEN, ikke et eksakt sett-oppslag),
+ * COMPOUND_PART_UNIT_NAME_ALIASES dekker den sammensatte navne-varianten –
+ * begge løses til samme kanoniske nøkkel ("fedd:hvitløk") av mergeIdentity,
+ * som brukes i stedet for mergeNameKey alene ved selve sammenligningen i
+ * mergeIngredientsIntoList. Samme "blader/fedd/kvist/båt"-begrep som
+ * WHOLE_ITEM_PART_UNITS lenger ned i filen (der for VISNING – kollapser
+ * til "1 <navn>" – her for SAMMENSLÅING av to ulike skrivemåter).
+ */
+const PART_UNIT_CANONICAL: Record<string, string> = {
+  blad: "blad",
+  blader: "blad",
+  leaf: "blad",
+  leaves: "blad",
+  fedd: "fedd",
+  clove: "fedd",
+  cloves: "fedd",
+  kvist: "kvist",
+  kvister: "kvist",
+  sprig: "kvist",
+  sprigs: "kvist",
+  båt: "båt",
+  båter: "båt",
+  wedge: "båt",
+  wedges: "båt",
+};
+
+function detectPartUnit(unit: string | null): string | null {
+  const normalizedUnit = normalizeUnit(unit);
+  if (!normalizedUnit) return null;
+  for (const [word, canonical] of Object.entries(PART_UNIT_CANONICAL)) {
+    if (new RegExp(`\\b${word}\\b`).test(normalizedUnit)) return canonical;
+  }
+  return null;
+}
+
+/** Kort, eksplisitt liste (samme utvidelsesprinsipp som
+ * IRREGULAR_PLURAL_ALIASES over) over kjente sammensatte entallsord som
+ * egentlig er "{grunnord} + {del-enhet}" skrevet som ETT ord uten egen
+ * enhet. Utvides etter hvert som nye tilfeller dukker opp i praksis. */
+const COMPOUND_PART_UNIT_NAME_ALIASES: Record<string, { unit: string; base: string }> = {
+  hvitløksfedd: { unit: "fedd", base: "hvitløk" },
+};
+
+/** Kanonisk sammenslåings-identitet for en (navn, enhet)-kombinasjon – se
+ * filheader-kommentaren over. For alt som IKKE er en kjent "del av en
+ * helhet"-vare: identisk med { key: mergeNameKey(name), partUnit: null },
+ * altså UENDRET oppførsel fra før denne utvidelsen. */
+function mergeIdentity(name: string, unit: string | null): { key: string; partUnit: string | null } {
+  const detected = detectPartUnit(unit);
+  if (detected) {
+    return { key: `${detected}:${mergeNameKey(name)}`, partUnit: detected };
+  }
+  const alias = COMPOUND_PART_UNIT_NAME_ALIASES[normalizeName(name)];
+  if (alias) {
+    return { key: `${alias.unit}:${mergeNameKey(alias.base)}`, partUnit: alias.unit };
+  }
+  return { key: mergeNameKey(name), partUnit: null };
+}
+
+/**
  * Basisvarer – ting de aller fleste alt har i skapet (salt, pepper, olje,
  * sukker, mel, vann, eddik) og derfor ikke trenger påminnelse om å kjøpe
  * hver eneste gang. Rent deterministisk (ordliste + eksakt normalisert
@@ -334,7 +403,8 @@ export function mergeIngredientsIntoList(
 
       const normalizedName = normalizeName(item.name);
       const normalizedUnit = normalizeUnit(item.unit);
-      const mergeKey = mergeNameKey(item.name);
+      const identity = mergeIdentity(item.name, item.unit);
+      const mergeKey = identity.key;
       // MERK: krevde tidligere at item.unit også var satt (f.eks. "g"/"dl"),
       // noe som gjorde at to enhetsløse linjer med samme navn – f.eks.
       // "3 løk" og "1 løk", der "løk" er navnet og ingen enhet er oppgitt –
@@ -348,12 +418,17 @@ export function mergeIngredientsIntoList(
       const canMerge = scaledAmount != null;
 
       const exactMatch = canMerge
-        ? next.find(
-            (entry) =>
-              mergeNameKey(entry.name) === mergeKey &&
-              normalizeUnit(entry.unit) === normalizedUnit &&
-              entry.amount != null,
-          )
+        ? next.find((entry) => {
+            if (entry.amount == null || mergeIdentity(entry.name, entry.unit).key !== mergeKey) return false;
+            // Del-av-en-helhet-varer ("fedd"/"blad"/"kvist"/"båt", se
+            // mergeIdentity over) slås sammen UAVHENGIG av om enheten er
+            // skrevet eksplisitt eller bakt inn i selve navnet (ulik
+            // bokstavelig enhet er da FORVENTET, ikke et tegn på at det er
+            // to ulike varer). Alt annet krever fortsatt eksakt lik enhet,
+            // som før.
+            if (identity.partUnit) return true;
+            return normalizeUnit(entry.unit) === normalizedUnit;
+          })
         : undefined;
 
       if (exactMatch) {
@@ -397,7 +472,7 @@ export function mergeIngredientsIntoList(
         const itemBase = toBaseAmount(scaledAmount as number, item.unit);
         if (itemBase) {
           const compatMatch = next.find((entry) => {
-            if (mergeNameKey(entry.name) !== mergeKey || entry.amount == null) return false;
+            if (mergeIdentity(entry.name, entry.unit).key !== mergeKey || entry.amount == null) return false;
             const entryBase = toBaseAmount(entry.amount, entry.unit);
             return entryBase != null && entryBase.base === itemBase.base;
           });
@@ -442,7 +517,7 @@ export function mergeIngredientsIntoList(
         const blankDuplicate = next.find(
           (entry) =>
             entry.amount == null &&
-            mergeNameKey(entry.name) === mergeKey &&
+            mergeIdentity(entry.name, entry.unit).key === mergeKey &&
             normalizeUnit(entry.unit) === normalizedUnit &&
             (entry.displayAmount ?? "").trim().toLowerCase() === (item.amount ?? "").trim().toLowerCase(),
         );
@@ -474,7 +549,7 @@ export function mergeIngredientsIntoList(
         // ALDRI (vi gjetter aldri en mengde vi ikke har) – brukeren mister
         // dermed ingen informasjon, kun en overflødig ekstra "bar" linje
         // for samme vare.
-        const anyNameMatch = next.find((entry) => mergeNameKey(entry.name) === mergeKey);
+        const anyNameMatch = next.find((entry) => mergeIdentity(entry.name, entry.unit).key === mergeKey);
         if (anyNameMatch) {
           if (!anyNameMatch.fromRecipes.includes(recipeTitle)) {
             anyNameMatch.fromRecipes.push(recipeTitle);
