@@ -26,12 +26,13 @@ type SeasonHeroImage = {
    * se filheaderen til SeasonHeroImage.tsx), så for et bilde der det mest
    * dekkende/fargeriktige partiet ikke er midt i bildet, må selve
    * beskjæringspunktet (CSS object-position) flyttes – ikke bare
-   * mørkleggingen. Vårbildet er sterkt bakgrunnsbelyst med et disete,
-   * nesten hvitt parti øverst; default senter-beskjæring traff rett i det
-   * partiet. Sommerbildet har en kraftig solstråle til høyre; default
-   * senter-beskjæring fikk den til å dominere fargeinntrykket. Utelatt
-   * (undefined) betyr vanlig senter-beskjæring ("center"), som fungerer
-   * fint for host/vinter/forsommer/sensommer.
+   * mørkleggingen. Sommerbildet har en kraftig solstråle til høyre;
+   * default senter-beskjæring fikk den til å dominere fargeinntrykket.
+   * (Vårbildet ble i stedet BYTTET ut med et nytt, mer balansert bilde
+   * samme dag – se SEASON_HERO_IMAGES – og trengte derfor ikke lenger
+   * noen justering.) Utelatt (undefined) betyr vanlig senter-beskjæring
+   * ("center"), som fungerer fint for host/vinter/var/forsommer/
+   * sensommer.
    */
   position?: string;
 };
@@ -39,7 +40,7 @@ type SeasonHeroImage = {
 export const SEASON_HERO_IMAGES: Partial<Record<string, SeasonHeroImage>> = {
   host: { src: "/images/seasons/host.jpg" },
   vinter: { src: "/images/seasons/vinter.jpg" },
-  var: { src: "/images/seasons/var.jpg", position: "center 85%" },
+  var: { src: "/images/seasons/var.jpg" },
   forsommer: { src: "/images/seasons/forsommer.jpg" },
   sommer: { src: "/images/seasons/sommer.jpg", position: "15% center" },
   sensommer: { src: "/images/seasons/sensommer.jpg" },
