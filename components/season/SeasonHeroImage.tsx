@@ -23,6 +23,14 @@ import { SEASON_HERO_IMAGES } from "@/lib/season-images";
  * selve bildet kompenserer for at `blur` sprer pikslene ut over kantene
  * (ellers vises en utydelig lys stripe i ytterkanten av boksen).
  *
+ * Boksen er kort og bred (380–540px høy, full bredde), så object-cover
+ * beskjærer et SMALT, bredt vindu midt i hvert kildebilde (de er alle
+ * liggende, ~4:3). Default er senter-beskjæring, men enkelte bilder har
+ * sitt mest dekkende/fargeriktige parti et annet sted (se `position` i
+ * SEASON_HERO_IMAGES sin filheader for eksempler – vår og sommer) – da
+ * styres selve CSS object-position per bilde i stedet for å endre
+ * mørklegging/blur, som ikke hjelper på et feil utsnitt.
+ *
  * Returnerer null for enhver sesong som ennå ikke har fått sitt bilde
  * (se SEASON_HERO_IMAGES) – siden ser da ut akkurat som FØR denne
  * funksjonen fantes, helt uendret layout. Dette er bevisst slik at
@@ -30,8 +38,8 @@ import { SEASON_HERO_IMAGES } from "@/lib/season-images";
  * uten noen mellomstate med "ødelagt"/manglende bilde.
  */
 export function SeasonHeroImage({ slug }: { slug: string }) {
-  const src = SEASON_HERO_IMAGES[slug];
-  if (!src) return null;
+  const image = SEASON_HERO_IMAGES[slug];
+  if (!image) return null;
 
   return (
     <div
@@ -39,12 +47,13 @@ export function SeasonHeroImage({ slug }: { slug: string }) {
       aria-hidden="true"
     >
       <Image
-        src={src}
+        src={image.src}
         alt=""
         fill
         priority
         sizes="100vw"
         className="scale-110 object-cover blur-[6px]"
+        style={{ objectPosition: image.position ?? "center" }}
       />
       <div className="absolute inset-0 bg-black/55" />
       <div
