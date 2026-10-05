@@ -532,19 +532,26 @@ const DICT = {
     en: "Your shopping list, put together from your recipes.",
   },
   // 27.09.2026 (Henrik): "det må stå her" – pekte på selve intro-avsnittet
-  // øverst på siden (app/handleliste/page.tsx), IKKE bare del-knappen
-  // (shoppingPage.shareButton) lenger ned. Riktig sted uansett: dette
-  // avsnittet vises alltid, også når listen er tom og selve del-knappen
-  // (kun synlig når entries.length > 0, se ShoppingListView.tsx) derfor
-  // ikke er der ennå.
+  // øverst på siden (app/handleliste/page.tsx). ERSTATTET 05.10.2026 med en
+  // kortere, eksplisitt oppgitt tagline som del av den fulle visuelle
+  // redesignen av siden ("Handleliste-redesign", se filheaderen til
+  // ShoppingListView.tsx) – Henriks ordlyd ordrett. Den praktiske
+  // "lagres i denne nettleseren"-informasjonen fra den gamle teksten er
+  // bevisst IKKE forsøkt proppet inn andre steder på siden – selve
+  // redesignet handler om å gjøre siden renere, og denne detaljen er ikke
+  // noe brukeren trenger fremme i lyset for å bruke siden.
   "shoppingPage.description": {
-    no: "Lagres i denne nettleseren. Legg til flere ingredienser fra hvilken som helst oppskriftsside. Kan også deles videre til Notater, meldinger eller andre apper.",
-    en: "Saved in this browser. Add more ingredients from any recipe page. Can also be shared to Notes, messages, or other apps.",
+    no: "Alt du trenger, samlet på ett sted.",
+    en: "Everything you need, all in one place.",
   },
   "shoppingPage.emptyTitle": { no: "Handlelisten din er tom", en: "Your shopping list is empty" },
+  // 05.10.2026 – oppdatert ordlyd (Handleliste-redesign) for å nevne BEGGE
+  // veiene man kan fylle en tom liste på: fra en oppskrift, ELLER legge til
+  // noe selv (se shoppingPage.addItem/addManualItem i useShoppingList.ts) –
+  // den gamle teksten nevnte kun oppskrift-veien.
   "shoppingPage.emptyDescription": {
-    no: "Legg ingredienser til handlelisten fra en oppskriftsside, så dukker de opp her.",
-    en: "Add ingredients to the list from a recipe page, and they'll show up here.",
+    no: "Legg til ingredienser fra en oppskrift, eller legg til noe selv.",
+    en: "Add ingredients from a recipe, or add something yourself.",
   },
   "shoppingPage.clearChecked": { no: "Fjern avhukede", en: "Remove checked" },
   "shoppingPage.clearAll": { no: "Tøm listen", en: "Clear list" },
@@ -555,6 +562,34 @@ const DICT = {
   },
   "shoppingPage.buyingTipLabel": { no: "Tips", en: "Tip" },
   "shoppingPage.removeAria": { no: "Fjern {name} fra handlelisten", en: "Remove {name} from the shopping list" },
+  // (05.10.2026, Handleliste-redesign) – statuslinjen øverst
+  // ("X av Y gjenstår"), samme {var}-mønster som removeAria over.
+  "shoppingPage.remainingCount": { no: "{count} av {total} gjenstår", en: "{count} of {total} remaining" },
+  "shoppingPage.shareExport": { no: "Del / eksporter", en: "Share / export" },
+  "shoppingPage.addItem": { no: "Legg til vare", en: "Add item" },
+  "shoppingPage.addItemPlaceholder": { no: "f.eks. melk, brød …", en: "e.g. milk, bread …" },
+  "shoppingPage.addItemSubmit": { no: "Legg til", en: "Add" },
+  "shoppingPage.findRecipeLink": { no: "Finn en oppskrift →", en: "Find a recipe →" },
+  "shoppingPage.staplesSectionTitle": { no: "Basisvarer", en: "Pantry staples" },
+  "shoppingPage.staplesSectionSubtitle": {
+    no: "Vi antar at du allerede har disse.",
+    en: "We assume you already have these.",
+  },
+  // Butikkategoriene (05.10.2026, Handleliste-redesign, se
+  // categorizeShoppingItem i lib/utils/shopping-list.ts) – små uppercase
+  // labels i UI-et (samme stil som f.eks. SeasonIngredientList sine
+  // "FRA HAVET/SKOGEN/..."-overskrifter), så selve dict-verdien trenger
+  // ikke være uppercase her – det er et rent CSS-uttrykk (uppercase +
+  // tracking), ikke en del av innholdet.
+  "shoppingPage.category.produce": { no: "Frukt & grønt", en: "Fruit & veg" },
+  "shoppingPage.category.meatFish": { no: "Kjøtt & fisk", en: "Meat & fish" },
+  "shoppingPage.category.dairy": { no: "Kjøl & meieri", en: "Dairy & chilled" },
+  "shoppingPage.category.frozen": { no: "Frysevarer", en: "Frozen" },
+  "shoppingPage.category.bakery": { no: "Bakevarer", en: "Bakery & bread" },
+  "shoppingPage.category.pantry": { no: "Tørrvarer", en: "Dry goods" },
+  "shoppingPage.category.spicesSauces": { no: "Krydder & sauser", en: "Spices & sauces" },
+  "shoppingPage.category.drinks": { no: "Drikke", en: "Drinks" },
+  "shoppingPage.category.other": { no: "Annet", en: "Other" },
   // Bruker telefonens/nettleserens EGEN delemeny (Web Share API) – Notater
   // (iPhone) er ett av valgene som dukker opp der, sammen med f.eks. Keep,
   // meldinger e.l. på Android. Ingen egen "lagre i Notater"-integrasjon

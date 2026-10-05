@@ -1,17 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { clsx } from "clsx";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
-import { formatShoppingAmount, isPantryStaple } from "@/lib/utils/shopping-list";
+import {
+  categorizeShoppingItem,
+  formatShoppingAmount,
+  isPantryStaple,
+  SHOPPING_CATEGORY_ORDER,
+  type ShoppingCategoryKey,
+} from "@/lib/utils/shopping-list";
 import { siteConfig } from "@/lib/config";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Button } from "@/components/ui/Button";
-import { ShoppingBagIcon, TrashIcon } from "@/components/ui/icons";
-import { t, type Lang } from "@/lib/i18n";
+import { CheckIcon, PlusIcon, TrashIcon } from "@/components/ui/icons";
+import { t, type Lang, type DictKey } from "@/lib/i18n";
+import type { ShoppingListEntry } from "@/lib/types";
+
+/**
+ * (05.10.2026, Henrik: "Redesign Handleliste-siden slik at den matcher det
+ * nyere, renere CONVITE-designet") Full visuell redesign av denne siden –
+ * ALL eksisterende lagring/aggregering/basisvare-/avhukingslogikk (se
+ * lib/hooks/useShoppingList.ts og lib/utils/shopping-list.ts) er UENDRET,
+ * dette er kun en ny presentasjon over den samme funksjonelle listen:
+ *
+ *  1) Ingen stor card-container rundt listen lenger – ligger direkte på
+ *     sidens mørke bakgrunn, strukturert med luft/typografi/tynne
+ *     separatorlinjer (divide-y divide-line) i stedet.
+ *  2) Statuslinje ("X av Y gjenstår") + handlinger (Del/eksporter, Fjern
+ *     avhukede, Tøm listen) på én rad, "Tøm listen" tydelig mest nedtonet
+ *     siden den er destruktiv.
+ *  3) Varene grupperes etter butikkategori (categorizeShoppingItem, se
+ *     lib/utils/shopping-list.ts) i stedet for én lang liste – små
+ *     uppercase kategori-labels, samme stil som f.eks. SeasonIngredientList
+ *     sine "FRA HAVET/SKOGEN/..."-overskrifter.
+ *  4) Basisvarer (isPantryStaple) vises ALLTID i en egen, flat seksjon
+ *     nederst – uansett butikkategori – siden poenget med den seksjonen er
+ *     "dette har du sikkert fra før", ikke hvor i butikken den står.
+ *  5) Ny, diskret "+ Legg til vare"-rad (useShoppingList sin nye
+ *     addManualItem) – et lite inline tekstfelt, ikke en modal.
+ */
+
+const CATEGORY_LABEL_KEYS: Record<ShoppingCategoryKey, DictKey> = {
+  produce: "shoppingPage.category.produce",
+  meatFish: "shoppingPage.category.meatFish",
+  dairy: "shoppingPage.category.dairy",
+  frozen: "shoppingPage.category.frozen",
+  bakery: "shoppingPage.category.bakery",
+  pantry: "shoppingPage.category.pantry",
+  spicesSauces: "shoppingPage.category.spicesSauces",
+  drinks: "shoppingPage.category.drinks",
+  other: "shoppingPage.category.other",
+};
 
 export function ShoppingListView({ lang }: { lang: Lang }) {
-  const { entries, hydrated, toggleChecked, removeEntry, clearChecked, clearAll } =
+  const { entries, hydrated, toggleChecked, removeEntry, clearChecked, clearAll, addManualItem } =
     useShoppingList();
   const [shareError, setShareError] = useState<string | null>(null);
 
@@ -37,24 +79,33 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
     return null;
   }
 
-  if (entries.length === 0) {
-    return (
-      <EmptyState
-        icon={<ShoppingBagIcon className="h-10 w-10" />}
-        title={t(lang, "shoppingPage.emptyTitle")}
-        description={t(lang, "shoppingPage.emptyDescription")}
-      />
-    );
-  }
-
   const checkedCount = entries.filter((e) => e.checked).length;
-  const uncheckedFirst = [...entries].sort((a, b) => Number(a.checked) - Number(b.checked));
   // Samme to grupper som brukes i print-sammendraget og i del-teksten under
   // – "det som faktisk gjenstår å handle" er det eneste som er nyttig å ta
   // med seg ut av huset, mens allerede avhukede varer holdes atskilt (ikke
   // bare utelatt – de vises fortsatt, men for seg selv) i selve utskriften.
   const toBuy = entries.filter((e) => !e.checked);
   const alreadyBought = entries.filter((e) => e.checked);
+
+  // Basisvarer (isPantryStaple) havner ALLTID i sin egen seksjon nederst,
+  // uavhengig av butikkategori – se filheaderen over. Resten grupperes per
+  // butikkategori under.
+  const staples = entries.filter((e) => isPantryStaple(e.name));
+  const categorized = entries.filter((e) => !isPantryStaple(e.name));
+  const byCategory = new Map<ShoppingCategoryKey, ShoppingListEntry[]>();
+  for (const entry of categorized) {
+    const key = categorizeShoppingItem(entry.name);
+    const list = byCategory.get(key) ?? [];
+    list.push(entry);
+    byCategory.set(key, list);
+  }
+  // Uavhukede først INNENFOR hver kategori (lettere å skanne hva som
+  // gjenstår mens man går rundt i butikken) – samme prinsipp som den
+  // tidligere globale uncheckedFirst-sorteringen, nå bare avgrenset per
+  // kategori i stedet for hele listen under ett.
+  for (const list of byCategory.values()) {
+    list.sort((a, b) => Number(a.checked) - Number(b.checked));
+  }
 
   async function handleShare() {
     setShareError(null);
@@ -66,10 +117,10 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
       return e.note ? `${base} (${e.note})` : base;
     });
     // Hvilke retter listen faktisk stammer fra (samme fromRecipes-sporbarhet
-    // som vises per linje i selve UI-et, se {t(lang, "shoppingPage.from")}
-    // under) – deduplisert, i den rekkefølgen rettene først dukker opp.
-    // Kun basert på toBuy, samme utvalg som selve varelisten under, slik at
-    // "meny"-blokken og handlelisten alltid stemmer overens med hverandre.
+    // som vises per linje i selve UI-et) – deduplisert, i den rekkefølgen
+    // rettene først dukker opp. Kun basert på toBuy, samme utvalg som selve
+    // varelisten under, slik at "meny"-blokken og handlelisten alltid
+    // stemmer overens med hverandre.
     const dishNames = Array.from(new Set(toBuy.flatMap((e) => e.fromRecipes)));
     const menuBlock =
       dishNames.length > 0
@@ -92,123 +143,93 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
     }
   }
 
+  if (entries.length === 0) {
+    return (
+      <div className="py-10 text-center sm:py-16">
+        <h2 className="font-serif text-2xl text-ink">{t(lang, "shoppingPage.emptyTitle")}</h2>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-ink-soft">{t(lang, "shoppingPage.emptyDescription")}</p>
+        <div className="mt-7 flex flex-col items-center gap-3">
+          <AddItemRow lang={lang} onAdd={addManualItem} align="center" />
+          <Link
+            href="/oppskrifter"
+            className="text-sm font-medium text-clay-dark transition-colors hover:text-clay"
+          >
+            {t(lang, "shoppingPage.findRecipeLink")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-ink-faint">
-          {lang === "en"
-            ? `${entries.length - checkedCount} of ${entries.length} remaining`
-            : `${entries.length - checkedCount} av ${entries.length} gjenstår`}
+          {t(lang, "shoppingPage.remainingCount", {
+            count: entries.length - checkedCount,
+            total: entries.length,
+          })}
         </p>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={clearChecked} disabled={checkedCount === 0}>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <ExportMenu
+            lang={lang}
+            shareSupported={shareSupported}
+            onShare={handleShare}
+            shareError={shareError}
+            shareInsecureContext={shareInsecureContext}
+          />
+          <button
+            type="button"
+            onClick={clearChecked}
+            disabled={checkedCount === 0}
+            className="text-sm font-medium text-ink-soft transition-colors hover:text-ink disabled:cursor-not-allowed disabled:text-ink-faint/50"
+          >
             {t(lang, "shoppingPage.clearChecked")}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={clearAll}>
+          </button>
+          <button
+            type="button"
+            onClick={clearAll}
+            className="text-xs font-medium text-ink-faint/70 transition-colors hover:text-ink-faint print:hidden"
+          >
             {t(lang, "shoppingPage.clearAll")}
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* Bevisst små, tilbaketrukne tekstknapper (samme stil/prinsipp som
-       * "Skriv ut / lagre som PDF" i EveningExperience.tsx) – eksport av
-       * listen er en fin-å-ha-detalj, ikke en hovedhandling som avkrysning
-       * eller "tøm listen" over. print:hidden siden knappene selv ikke skal
-       * være med i selve utskriften (se print-sammendraget nederst i denne
-       * fila for det som faktisk skrives ut). */}
-      <div className="mb-4 flex flex-wrap items-center gap-1 print:hidden">
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="rounded-full px-2.5 py-1.5 text-xs font-medium text-ink-faint transition-colors hover:bg-cream-dark hover:text-ink"
-        >
-          {t(lang, "mealPrint.button")}
-        </button>
-        {shareSupported && (
-          <button
-            type="button"
-            onClick={handleShare}
-            className="rounded-full px-2.5 py-1.5 text-xs font-medium text-ink-faint transition-colors hover:bg-cream-dark hover:text-ink"
-          >
-            {t(lang, "shoppingPage.shareButton")}
-          </button>
-        )}
-        {shareError && <p className="text-xs text-clay-dark">{shareError}</p>}
+      <div className="mb-8 print:hidden">
+        <AddItemRow lang={lang} onAdd={addManualItem} align="start" />
       </div>
-      {/* Vises når nettleseren normalt støtter Web Share, men siden kjører i
-       * en usikker kontekst (vanlig http://, f.eks. testing via LAN-IP) –
-       * ingen kodefeil, virker av seg selv på https (produksjon). Samme
-       * forklaringsmønster som cookMode.voiceInsecureContext/
-       * wakeLockInsecureContext i CookMode.tsx. */}
-      {shareInsecureContext && (
-        <p className="-mt-3 mb-4 text-xs text-ink-faint print:hidden">{t(lang, "shoppingPage.shareInsecureContext")}</p>
-      )}
 
-      <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-paper">
-        {uncheckedFirst.map((entry) => (
-          <li key={entry.id} className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
-            <label className="flex flex-1 cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                checked={entry.checked}
-                onChange={() => toggleChecked(entry.id)}
-                className="h-5 w-5 shrink-0 accent-clay"
-              />
-              {/* MERK: line-through settes IKKE på en ytre wrapper-span lenger
-               * – CSS tegner en gjennomstreking fra en forelder rett gjennom
-               * ALLE etterkommere sitt innhold, og en etterkommer kan ikke
-               * pålitelig skru den av igjen for seg selv (text-decoration:
-               * none på et barn stopper IKKE forelderens linje fra å
-               * fortsette gjennom det – dette gjaldt fortsatt tydelig på
-               * Safari/mobil, et tidligere forsøk med "no-underline" på kun
-               * hint-teksten virket ikke). Linjen settes derfor DIREKTE og
-               * KUN på de to spennene som faktisk skal strykes over (mengde
-               * + navn) – hint/tips/fra-tekstene er søsken utenfor, ikke
-               * etterkommere av en overstrøket forelder, og kan derfor
-               * aldri arve streken uansett nettleser. */}
-              <span className="text-sm sm:text-base">
-                <span
-                  className={clsx("font-medium", entry.checked ? "text-ink-faint line-through" : "text-ink")}
-                >
-                  {formatShoppingAmount(entry)}{" "}
-                </span>
-                <span className={clsx(entry.checked ? "text-ink-faint line-through" : "text-ink")}>
-                  {entry.name}
-                </span>
-                {/* Vises kun mens varen fortsatt står i sin automatisk
-                 * overstrøkne basisvare-tilstand (se PANTRY_STAPLE_NAMES i
-                 * lib/utils/shopping-list.ts) – forsvinner av seg selv i det
-                 * øyeblikket brukeren klikker bort streken, siden det da ikke
-                 * lenger er relevant informasjon. */}
-                {entry.checked && isPantryStaple(entry.name) && (
-                  <span className="block text-xs text-ink-faint">{t(lang, "shoppingPage.pantryStapleHint")}</span>
-                )}
-                {/* Kjøpstips (kun vin, se isBuyingTipWorthKeeping i
-                 * lib/utils/shopping-list.ts) – f.eks. hvilken type rødvin
-                 * oppskriften anbefaler. */}
-                {entry.note && (
-                  <span className="block text-xs italic text-ink-faint">
-                    {t(lang, "shoppingPage.buyingTipLabel")}: {entry.note}
-                  </span>
-                )}
-                {entry.fromRecipes.length > 0 && (
-                  <span className="block text-xs text-ink-faint">
-                    {t(lang, "shoppingPage.from")}: {entry.fromRecipes.join(", ")}
-                  </span>
-                )}
-              </span>
-            </label>
-            <button
-              type="button"
-              onClick={() => removeEntry(entry.id)}
-              aria-label={t(lang, "shoppingPage.removeAria", { name: entry.name })}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-cream-dark hover:text-clay-dark"
-            >
-              <TrashIcon className="h-4 w-4" />
-            </button>
-          </li>
-        ))}
-      </ul>
+      {SHOPPING_CATEGORY_ORDER.map((category) => {
+        const items = byCategory.get(category);
+        if (!items || items.length === 0) return null;
+        return (
+          <section key={category} className="mt-8 first:mt-0">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
+              {t(lang, CATEGORY_LABEL_KEYS[category])}
+            </h2>
+            <ul className="mt-3 divide-y divide-line">
+              {items.map((entry) => (
+                <ShoppingRow key={entry.id} entry={entry} lang={lang} onToggle={toggleChecked} onRemove={removeEntry} />
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+
+      {staples.length > 0 && (
+        <section className="mt-12 border-t border-line pt-8">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
+            {t(lang, "shoppingPage.staplesSectionTitle")}
+          </h2>
+          <p className="mt-1 text-xs text-ink-faint/70">{t(lang, "shoppingPage.staplesSectionSubtitle")}</p>
+          <ul className="mt-3 divide-y divide-line">
+            {staples.map((entry) => (
+              <ShoppingRow key={entry.id} entry={entry} lang={lang} onToggle={toggleChecked} onRemove={removeEntry} />
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Utskriftsvennlig sammendrag – samme redaksjonelle oppskrift (bokstavelig
        * talt) som MealView.tsx sitt print-only sammendrag: siden-eyebrow, serif-
@@ -251,6 +272,265 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
         )}
         <p className="mt-16 font-serif text-sm italic text-ink-faint">{siteConfig.tagline}</p>
       </div>
+    </div>
+  );
+}
+
+/** Én vare-rad – delt mellom de vanlige butikkategori-seksjonene og
+ * basisvare-seksjonen nederst (identisk oppførsel, kun hvilken liste de
+ * vises i er forskjellig). */
+function ShoppingRow({
+  entry,
+  lang,
+  onToggle,
+  onRemove,
+}: {
+  entry: ShoppingListEntry;
+  lang: Lang;
+  onToggle: (id: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <li className="flex items-center gap-3 py-3.5">
+      <label className="flex flex-1 cursor-pointer items-center gap-3.5">
+        {/* Egendefinert, CONVITE-tilpasset avkrysningsboks (05.10.2026) –
+         * fortsatt en EKTE <input type="checkbox"> for tastatur-/
+         * skjermleser-oppførsel, bare visuelt skjult (appearance-none) til
+         * fordel for en avrundet firkant + CheckIcon som vises via
+         * peer-checked. Ikke rent dekorativt: hele boksen ER input-et, ikke
+         * et eget element ved siden av som bare ser ut til å følge det. */}
+        <span className="relative flex h-6 w-6 shrink-0 items-center justify-center">
+          <input
+            type="checkbox"
+            checked={entry.checked}
+            onChange={() => onToggle(entry.id)}
+            aria-label={entry.name}
+            className="peer absolute inset-0 h-full w-full shrink-0 cursor-pointer appearance-none rounded-md border-2 border-line-strong bg-transparent transition-colors checked:border-clay checked:bg-clay"
+          />
+          <CheckIcon className="pointer-events-none relative h-3.5 w-3.5 text-cream opacity-0 transition-opacity peer-checked:opacity-100" />
+        </span>
+        {/* MERK: line-through settes IKKE på en ytre wrapper-span lenger –
+         * CSS tegner en gjennomstreking fra en forelder rett gjennom ALLE
+         * etterkommere sitt innhold, og en etterkommer kan ikke pålitelig
+         * skru den av igjen for seg selv (text-decoration: none på et barn
+         * stopper IKKE forelderens linje fra å fortsette gjennom det – dette
+         * gjaldt fortsatt tydelig på Safari/mobil, et tidligere forsøk med
+         * "no-underline" på kun hint-teksten virket ikke). Linjen settes
+         * derfor DIREKTE og KUN på de to spennene som faktisk skal strykes
+         * over (mengde + navn) – hint/tips/fra-tekstene er søsken utenfor,
+         * ikke etterkommere av en overstrøket forelder, og kan derfor aldri
+         * arve streken uansett nettleser. */}
+        <span className="min-w-0 text-sm sm:text-base">
+          <span className={clsx("font-medium", entry.checked ? "text-ink-faint line-through" : "text-ink")}>
+            {formatShoppingAmount(entry)}{" "}
+          </span>
+          <span className={clsx(entry.checked ? "text-ink-faint line-through" : "text-ink")}>{entry.name}</span>
+          {/* Vises kun mens varen fortsatt står i sin automatisk
+           * overstrøkne basisvare-tilstand (se PANTRY_STAPLE_NAMES i
+           * lib/utils/shopping-list.ts) – forsvinner av seg selv i det
+           * øyeblikket brukeren klikker bort streken, siden det da ikke
+           * lenger er relevant informasjon. */}
+          {entry.checked && isPantryStaple(entry.name) && (
+            <span className="block text-xs text-ink-faint">{t(lang, "shoppingPage.pantryStapleHint")}</span>
+          )}
+          {/* Kjøpstips (kun vin, se isBuyingTipWorthKeeping i
+           * lib/utils/shopping-list.ts) – f.eks. hvilken type rødvin
+           * oppskriften anbefaler. */}
+          {entry.note && (
+            <span className="block text-xs italic text-ink-faint">
+              {t(lang, "shoppingPage.buyingTipLabel")}: {entry.note}
+            </span>
+          )}
+          {/* Kildeinformasjon – diskret/sekundær (mindre på mobil, se punkt 8
+           * i redesign-spesifikasjonen, slik at den ikke konkurrerer med
+           * selve varenavnet mens man skanner listen i butikken). */}
+          {entry.fromRecipes.length > 0 && (
+            <span className="block text-[0.7rem] text-ink-faint/80 sm:text-xs">
+              {t(lang, "shoppingPage.from")}: {entry.fromRecipes.join(", ")}
+            </span>
+          )}
+        </span>
+      </label>
+      <button
+        type="button"
+        onClick={() => onRemove(entry.id)}
+        aria-label={t(lang, "shoppingPage.removeAria", { name: entry.name })}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-cream-dark hover:text-clay-dark"
+      >
+        <TrashIcon className="h-4 w-4" />
+      </button>
+    </li>
+  );
+}
+
+/**
+ * "+ Legg til vare" (05.10.2026, redesign punkt 6) – diskret tekstlenke som
+ * utvides til et lite inline tekstfelt, bevisst IKKE en modal ("Hold
+ * interaksjonen enkel og rask. Ikke bruk en stor modal hvis det kan løses
+ * med et lite inline-felt"). Holder feltet ÅPENT etter innsending (i stedet
+ * for å lukke det igjen) – den typiske bruken er å legge til flere varer på
+ * rad (Henriks eget eksempel: "melk, brød, Cola Zero, bleier"), og å måtte
+ * åpne feltet på nytt for hver eneste vare ville vært tregt.
+ */
+function AddItemRow({
+  lang,
+  onAdd,
+  align,
+}: {
+  lang: Lang;
+  onAdd: (name: string) => void;
+  align: "start" | "center";
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) inputRef.current?.focus();
+  }, [isOpen]);
+
+  function submit(e?: FormEvent) {
+    e?.preventDefault();
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setIsOpen(false);
+      return;
+    }
+    onAdd(trimmed);
+    setValue("");
+    inputRef.current?.focus();
+  }
+
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className={clsx(
+          "inline-flex items-center gap-1.5 text-sm font-medium text-clay-dark transition-colors hover:text-clay",
+          align === "center" && "justify-center",
+        )}
+      >
+        <PlusIcon className="h-3.5 w-3.5" />
+        {t(lang, "shoppingPage.addItem")}
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className={clsx("flex items-center gap-2", align === "center" && "w-full max-w-xs")}>
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => {
+          if (!value.trim()) setIsOpen(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setValue("");
+            setIsOpen(false);
+          }
+        }}
+        placeholder={t(lang, "shoppingPage.addItemPlaceholder")}
+        className="min-w-0 flex-1 border-b border-line-strong bg-transparent py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-clay focus:outline-none"
+      />
+      <button type="submit" className="shrink-0 text-sm font-medium text-clay-dark transition-colors hover:text-clay">
+        {t(lang, "shoppingPage.addItemSubmit")}
+      </button>
+    </form>
+  );
+}
+
+/**
+ * "Del / eksporter" (05.10.2026, redesign punkt 2) – samler den
+ * eksisterende "Skriv ut / lagre som PDF"-funksjonen (window.print(), se
+ * print-sammendraget i ShoppingListView over) og Web Share-knappen i én
+ * diskret, nedtrekkbar meny i stedet for to separate smånapper på rad.
+ * INGEN av selve funksjonene er endret – kun flyttet inn i denne menyen.
+ */
+function ExportMenu({
+  lang,
+  shareSupported,
+  onShare,
+  shareError,
+  shareInsecureContext,
+}: {
+  lang: Lang;
+  shareSupported: boolean;
+  onShare: () => void;
+  shareError: string | null;
+  shareInsecureContext: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative print:hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+      >
+        {t(lang, "shoppingPage.shareExport")}
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-2 w-60 rounded-xl border border-line bg-paper py-1.5 shadow-lg"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              window.print();
+              setOpen(false);
+            }}
+            className="block w-full px-4 py-2.5 text-left text-sm text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
+          >
+            {t(lang, "mealPrint.button")}
+          </button>
+          {shareSupported && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onShare();
+                setOpen(false);
+              }}
+              className="block w-full px-4 py-2.5 text-left text-sm text-ink-soft transition-colors hover:bg-cream-dark hover:text-ink"
+            >
+              {t(lang, "shoppingPage.shareButton")}
+            </button>
+          )}
+          {/* Vises når nettleseren normalt støtter Web Share, men siden
+           * kjører i en usikker kontekst (vanlig http://, f.eks. testing via
+           * LAN-IP) – ingen kodefeil, virker av seg selv på https
+           * (produksjon). */}
+          {shareInsecureContext && (
+            <p className="px-4 py-2 text-xs text-ink-faint">{t(lang, "shoppingPage.shareInsecureContext")}</p>
+          )}
+        </div>
+      )}
+      {shareError && <p className="absolute right-0 top-full mt-1 w-60 text-xs text-clay-dark">{shareError}</p>}
     </div>
   );
 }
