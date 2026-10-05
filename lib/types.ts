@@ -505,6 +505,21 @@ export interface ShoppingListEntry {
   amount: number | null;
   /** Uskalert, opprinnelig tekstmengde – brukt når amount ikke kan parses. */
   displayAmount: string | null;
+  /** KJØPSNORMALISERING v2 (05.10.2026) – spesifikasjonens intervall-regel
+   * (§«Mengder, enheter og ukjent behov»: et intervall som «1–2 ts» skal
+   * ALDRI kollapses til et gjennomsnitt/midtpunkt, verken i beregning eller
+   * visning). `amount` må likevel være et vanlig tall for at eksisterende
+   * sammenslåings-/avrundingslogikk (kryss-enhet, avhukings-ceil osv.)
+   * fortsatt skal fungere uendret – `rawIntervalText` er DERFOR et rent
+   * VISNINGS-unntak: satt til den ORIGINALE fritekst-mengden («1-2», «8-10»)
+   * KUN så lenge linjen fortsatt har ETT bidrag fra ÉN oppskrift. Den
+   * fjernes (settes til null) i det øyeblikket en ANNEN oppskrift slår seg
+   * sammen med linjen (se mergeIngredientsIntoList), siden spesifikasjonen
+   * ikke tester eller definerer hvordan to ulike intervaller skal vises
+   * slått sammen – linjen faller da tilbake til det eksisterende, allerede
+   * godkjente tallsummerings-visningen (se formatShoppingAmount). VALGFRITT
+   * felt, samme mønster som note/sources over. */
+  rawIntervalText?: string | null;
   unit: string | null;
   name: string;
   checked: boolean;
@@ -525,6 +540,51 @@ export interface ShoppingListEntry {
    * lib/utils/shopping-list.ts for det avgjørende skillet. VALGFRITT felt,
    * samme mønster som sources over. */
   note?: string | null;
+  /** KJØPSNORMALISERING v2 (05.10.2026, Henriks produktgodkjente spesifikasjon
+   * `shopping-list-purchase-normalization-spec.md` v1.0) – strukturert
+   * tilstand for linjer som er styrt av registeret i
+   * lib/utils/purchase-registry-data.ts, se lib/utils/purchase-engine.ts.
+   * VALGFRITT felt, samme mønster som sources/note over: linjer lagret før
+   * dette feltet fantes, eller linjer som ikke traff noen regel i
+   * registeret, mangler det rett og slett.
+   *
+   * `events`/`garlicTotals` holder RÅ delressurser (ikke avrundede tall) slik
+   * at S/E (sitron/lime/appelsin, egg) kan avrundes PER oppskriftshendelse/
+   * faktisk tilberedningsøkt FØR kjøpsantallene summeres (spesifikasjonens
+   * absolutte krav – aldri ceil(sum(...)) over flere middager), og slik at G
+   * (hvitløk) kan summere fedd globalt før én avsluttende ceil. `entry.amount`
+   * er alltid det FERDIG utregnede, avrundede kjøpsantallet – selve
+   * delressursene ligger kun her, til etterprøving/fremtidig rekalkulering. */
+  purchaseMeta?: ShoppingListPurchaseMeta;
+}
+
+/** Se ShoppingListEntry.purchaseMeta over. */
+export interface ShoppingListPurchaseMeta {
+  purchaseId: string;
+  ruleId: "S" | "G" | "E" | "W" | "KEEP";
+  ruleVersion: "1.0.0";
+  /** Satt når linjen (eller en delressurs av den) ikke kunne tolkes trygt –
+   * se lib/utils/purchase-engine.ts sine `ResolvedPurchaseLine["reviewReason"]`
+   * -koder. Linjen MÅ da fortsatt vise det opprinnelige oppskriftsbehovet
+   * uendret (se displayAmount/fromRecipes) – reviewReason er bare et flagg,
+   * aldri en destruktiv omskriving. */
+  reviewReason?: string;
+  /** Sitron/lime/appelsin (S) og egg (E) – én oppføring per
+   * oppskriftshendelse/faktiske tilberedningsøkt (= én kall til
+   * mergeIngredientsIntoList i dag), se §sharingGroup. */
+  events?: ShoppingListPurchaseEvent[];
+  /** Hvitløk (G) – fedd/hele løk summeres GLOBALT (ikke per hendelse), se
+   * G-seksjonen. Lagret som enkle tall (øvre grense av evt. intervall/ukjent
+   * er allerede lagt inn før lagring – selve rå-sporingen for S/E over er
+   * mer detaljert fordi de har en ekte per-hendelse-avgrensning å bevare). */
+  garlicTotals?: { reservedWholeHeads: number; totalCloves: number; anyUnknown: boolean };
+}
+
+export interface ShoppingListPurchaseEvent {
+  eventId: string;
+  recipeTitle: string;
+  /** Sitron/lime/appelsin: W/Jfruit/Jml/Zfruit/Zml/Bfruit. Egg: whole/yolk/white. */
+  buckets: Record<string, { low: number; high: number; unknown: boolean }>;
 }
 
 /**

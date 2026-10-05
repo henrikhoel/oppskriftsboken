@@ -1,240 +1,815 @@
 /**
- * Selvstendig assertion-script for KJØPSNORMALISERINGEN i
- * lib/utils/shopping-list.ts (05.10.2026, Henrik sin spesifikasjon –
- * "oppskriften viser hvor mye du skal bruke, handlelisten viser hva du skal
- * kjøpe"). Prosjektet har ingen testrammeverk (ingen Jest/Vitest, se
- * package.json) – dette er derfor et vanlig TypeScript-script i samme stil
- * som de andre filene i scripts/ (seed.ts osv.), ikke en "ekte"
- * test-fil-konvensjon (*.test.ts).
+ * AUTOMATISERT TESTKONTRAKT for kjøpsnormalisering v2 – Henriks
+ * produktgodkjente og autoritative spesifikasjon
+ * `shopping-list-purchase-normalization-spec.md` v1.0 (05.10.2026).
  *
- * Kjøres med:
+ * Dette scriptet ERSTATTER det forrige test-purchase-normalization.ts (som
+ * testet den NÅ SUPERSEDERTE sitrus-/urte-/hvitløk-logikken med feil tall –
+ * sitron 45 ml i stedet for 30 ml, appelsin 90 ml i stedet for 50 ml bare
+ * ferskpresset, flat 10-fedd-per-løk i stedet for den godkjente 6-fedd-
+ * regelen, og automatisk bunt/potte-gjetning for ferske urter som den nye
+ * spesifikasjonen eksplisitt forbyr).
+ *
+ * Del 1 implementerer testmatrisen T001–T124 fra spesifikasjonen ORD FOR ORD
+ * som kontrakt («Bruk testmatrisen i spesifikasjonen som kontrakt og
+ * implementer automatiserte tester for den»). Del 2 er regresjonstester for
+ * EKSISTERENDE handlelistefunksjoner som IKKE er endret av denne
+ * spesifikasjonen (kryss-enhet-sammenslåing, del-av-en-helhet-kollaps,
+ * basisvare-gjenkjenning, butikkategorier, kjøpstips-notat) – «Test også
+ * relevante eksisterende handlelistefunksjoner slik at vi ikke introduserer
+ * regresjoner».
+ *
+ * Ingen testrammeverk i prosjektet (ingen Jest/Vitest) – vanlig TS-script,
+ * samme stil som scripts/seed.ts. Kjøres med:
  *   npx tsx scripts/test-purchase-normalization.ts
- *
- * Avslutter med exit-kode 1 dersom noe FEILER, 0 dersom alt stemmer – kan
- * derfor også brukes i en evt. fremtidig CI-sjekk uten endringer.
- *
- * Dekker minimum-testtilfellene fra §12 i spesifikasjonen, pluss noen
- * tilleggstilfeller funnet ved gjennomgang av eksisterende ingrediensdata i
- * prosjektet (sitrus, ferske urter, hvitløk, basisvarer som skal forbli
- * uendret).
+ * Exit-kode 1 ved minst én FEIL, 0 dersom alt stemmer.
  */
 import {
   formatShoppingAmount,
   getPurchaseNote,
   mergeIngredientsIntoList,
+  isPantryStaple,
+  categorizeShoppingItem,
 } from "../lib/utils/shopping-list";
-import type { IngredientGroup, ShoppingListEntry } from "../lib/types";
+import { resolvePurchaseLine } from "../lib/utils/purchase-engine";
+import type { IngredientGroup, IngredientItem, ShoppingListEntry, ShoppingListSourceRef } from "../lib/types";
 
 let passed = 0;
 let failed = 0;
+const failures: string[] = [];
 
 function assertEqual(label: string, actual: unknown, expected: unknown) {
-  const actualStr = JSON.stringify(actual);
-  const expectedStr = JSON.stringify(expected);
-  if (actualStr === expectedStr) {
+  const a = JSON.stringify(actual);
+  const e = JSON.stringify(expected);
+  if (a === e) {
     passed++;
-    console.log(`OK   ${label}`);
   } else {
     failed++;
-    console.log(`FEIL ${label}`);
-    console.log(`     fikk:      ${actualStr}`);
-    console.log(`     forventet: ${expectedStr}`);
+    const msg = `FEIL ${label}\n     fikk:      ${a}\n     forventet: ${e}`;
+    failures.push(msg);
+    console.log(msg);
   }
 }
 
-/** Bygger en minimal IngredientGroup[] med én ingrediens – nok til å kalle
- * mergeIngredientsIntoList uten å måtte sette opp en hel oppskrift. */
-function single(name: string, amount: string | null, unit: string | null): IngredientGroup[] {
-  return [
-    {
-      id: "g1",
-      title: null,
-      sortOrder: 0,
-      items: [{ id: "i1", amount, unit, name, note: null, sortOrder: 0 }],
-    },
-  ];
+function assertTrue(label: string, condition: boolean, context?: unknown) {
+  if (condition) {
+    passed++;
+  } else {
+    failed++;
+    const msg = `FEIL ${label}${context !== undefined ? `\n     kontekst: ${JSON.stringify(context)}` : ""}`;
+    failures.push(msg);
+    console.log(msg);
+  }
 }
 
-function findEntry(entries: ShoppingListEntry[], name: string): ShoppingListEntry | undefined {
-  return entries.find((e) => e.name.toLowerCase() === name.toLowerCase());
+let seq = 0;
+function it(name: string, amount: string | null, unit: string | null, note: string | null = null): IngredientItem {
+  seq += 1;
+  return { id: `i${seq}`, amount, unit, name, note, sortOrder: seq };
 }
 
-// ---------------------------------------------------------------------------
-// §3 SITRUS
-// ---------------------------------------------------------------------------
+function oneGroup(items: IngredientItem[]): IngredientGroup[] {
+  return [{ id: "g1", title: null, sortOrder: 1, items }];
+}
 
+/** Kjører ett "kall" = én oppskriftshendelse/faktisk tilberedningsøkt (se
+ * §sharingGroup) – matcher hvordan Ukesmenyen kaller mergeIngredientsIntoList
+ * én gang per oppskrift. */
+function addRecipe(
+  existing: ShoppingListEntry[],
+  items: IngredientItem[],
+  recipeTitle: string,
+  servingsMultiplier = 1,
+  source?: ShoppingListSourceRef,
+): ShoppingListEntry[] {
+  return mergeIngredientsIntoList(existing, oneGroup(items), recipeTitle, servingsMultiplier, source);
+}
+
+function findByName(list: ShoppingListEntry[], name: string): ShoppingListEntry | undefined {
+  return list.find((e) => e.name.toLowerCase() === name.toLowerCase());
+}
+/** Finner den STYRTE S/G/E-linjen for en kjøps-ID (ruleId "S"/"G"/"E") –
+ * aldri en KEEP-fallback-linje som (etter 05.10.2026-utvidelsen, se
+ * `keepPurchaseId`/`sameItemAs` i shopping-list.ts) kan dele akkurat samme
+ * purchaseId når formen ikke har en godkjent yield (f.eks. "limebåter",
+ * ruleId "KEEP", purchaseId "lime"). Uten dette skillet ville testene
+ * risikere å plukke feil linje når begge finnes samtidig (se T014). */
+function findByPurchaseId(list: ShoppingListEntry[], purchaseId: string): ShoppingListEntry | undefined {
+  return list.find((e) => e.purchaseMeta?.purchaseId === purchaseId && e.purchaseMeta?.ruleId !== "KEEP");
+}
+
+console.log("=== Del 1: Testmatrise T001–T124 (spesifikasjonens kontrakt) ===\n");
+
+// --- S: sitron/lime/appelsin (T001–T027, T084, T094–T095, T103, T106, T116, T118 osv.) ---
+
+// T001/T002: 1,5 ss limesaft -> 1 lime, 22,5 ml saft
 {
-  // 1,5 ss limesaft -> 1 lime
-  const list = mergeIngredientsIntoList([], single("limesaft", "1,5", "ss"), "Oppskrift A");
-  const lime = findEntry(list, "lime");
-  assertEqual("1,5 ss limesaft -> 1 lime", lime && formatShoppingAmount(lime), "1");
-}
-
-{
-  // Flere limesaft-mengder fra ulike oppskrifter (Ukesmeny: sekvensielle
-  // addFromRecipe-kall) SUMMERES før kjøpsmengden regnes ut: 1,5 + 2 + 1 = 4,5
-  // ss -> 3 lime. IKKE 1+1+1=3 via tre separate avrundinger (som her
-  // tilfeldigvis gir samme tall, men av feil grunn – se neste test for et
-  // tilfelle der det FAKTISK ville gitt feil svar: 1 ss + 1 ss + 1 ss ville
-  // gitt "3 lime" ved individuell avrunding, men riktig svar er "1 lime"
-  // siden 3 ss samlet er godt under én hel limes saftmengde).
   let list: ShoppingListEntry[] = [];
-  list = mergeIngredientsIntoList(list, single("limesaft", "1,5", "ss"), "Mandag");
-  list = mergeIngredientsIntoList(list, single("limesaft", "2", "ss"), "Onsdag");
-  list = mergeIngredientsIntoList(list, single("limesaft", "1", "ss"), "Fredag");
-  const lime = findEntry(list, "lime");
-  assertEqual("1,5+2+1 ss limesaft (ukesmeny) -> 3 lime", lime && formatShoppingAmount(lime), "3");
+  list = addRecipe(list, [it("limesaft", "1,5", "ss")], "R1");
+  const lime = findByPurchaseId(list, "lime");
+  assertTrue("T001/T002: lime-linje finnes", !!lime, list);
+  assertEqual("T001/T002: 1,5 ss limesaft -> 1 lime", lime && formatShoppingAmount(lime), "1");
+  assertTrue("T001/T002: undertekst nevner 22,5 ml saft", !!(lime && getPurchaseNote(lime)?.includes("22,5 ml saft")), lime && getPurchaseNote(lime));
 }
 
+// T003: 2 ss sitronsaft -> 1 sitron, 30 ml saft
 {
-  // Beviser at summering FØR avrunding faktisk er riktig (i motsetning til å
-  // avrunde hver for seg): tre separate "1 ss limesaft" ville blitt "1 lime"
-  // hver (3 totalt) dersom man (feilaktig) avrundet FØR summering – riktig
-  // svar er at 3 ss samlet (~44 ml) fortsatt er under én limes saftmengde
-  // (30 ml) + litt, altså fortsatt kun 2 lime, ALDRI 3.
   let list: ShoppingListEntry[] = [];
-  list = mergeIngredientsIntoList(list, single("limesaft", "1", "ss"), "A");
-  list = mergeIngredientsIntoList(list, single("limesaft", "1", "ss"), "B");
-  list = mergeIngredientsIntoList(list, single("limesaft", "1", "ss"), "C");
-  const lime = findEntry(list, "lime");
-  const amount = lime ? Number(formatShoppingAmount(lime)) : null;
-  assertEqual("3x 1 ss limesaft summeres FØR avrunding (ikke 3 separate lime)", amount !== null && amount < 3, true);
+  list = addRecipe(list, [it("sitronsaft", "2", "ss")], "R1");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T003: 2 ss sitronsaft -> 1 sitron", lemon && formatShoppingAmount(lemon), "1");
+  assertTrue("T003: undertekst 30 ml saft", !!(lemon && getPurchaseNote(lemon)?.includes("30 ml saft")), lemon && getPurchaseNote(lemon));
 }
 
+// T004: finrevet skall av 1 sitron -> 1 sitron, skall av 1 trengs
 {
-  // Hel lime + limesaft aggregeres til ÉN linje, ikke to
   let list: ShoppingListEntry[] = [];
-  list = mergeIngredientsIntoList(list, single("lime", "1", null), "Oppskrift A");
-  list = mergeIngredientsIntoList(list, single("limesaft", "3", "ss"), "Oppskrift B");
-  const limeLines = list.filter((e) => e.name.toLowerCase() === "lime");
-  assertEqual("1 lime + 3 ss limesaft -> én samlet linje", limeLines.length, 1);
+  list = addRecipe(list, [it("finrevet skall av 1 sitron", null, null)], "R1");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T004: finrevet skall av 1 sitron -> 1 sitron", lemon && formatShoppingAmount(lemon), "1");
 }
 
+// T005: 2 ts finrevet sitronskall -> 2 sitroner, 10 ml zest
 {
-  // sitronsaft -> sitron
-  const list = mergeIngredientsIntoList([], single("sitronsaft", "2", "ss"), "Oppskrift A");
-  const sitron = findEntry(list, "sitron");
-  assertEqual("sitronsaft -> sitron (kanonisk navn)", sitron?.name, "sitron");
-}
-
-{
-  // sitronsaft + sitronskall: skallet skal ALDRI la det se ut som om samme
-  // frukt dekker begge – total mengde skal være MINST like stor som om
-  // skallet alene krevde én hel sitron.
   let list: ShoppingListEntry[] = [];
-  list = mergeIngredientsIntoList(list, single("sitronsaft", "1", "ss"), "Saus");
-  list = mergeIngredientsIntoList(list, single("revet sitronskall", null, null), "Kake");
-  const sitron = findEntry(list, "sitron");
-  const antall = sitron ? Number(formatShoppingAmount(sitron)) : 0;
-  assertEqual("sitronsaft + sitronskall gir minst 1 sitron (ikke for lite)", antall >= 1, true);
+  list = addRecipe(list, [it("finrevet sitronskall", "2", "ts")], "R1");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T005: 2 ts finrevet sitronskall -> 2 sitroner", lemon && formatShoppingAmount(lemon), "2");
+  assertTrue("T005: undertekst 10 ml skall", !!(lemon && getPurchaseNote(lemon)?.includes("10 ml skall")), lemon && getPurchaseNote(lemon));
 }
 
-// ---------------------------------------------------------------------------
-// §4 BRØKDELER AV HELE GRØNNSAKER/FRUKT (allerede dekket av eksisterende
-// enhetsløs-/stk-avrunding i formatShoppingAmount – verifiseres her for å
-// bekrefte at den generelle regelen faktisk dekker alle casene i §4, uten
-// at det var nødvendig å skrive en egen, ingrediens-spesifikk liste).
-// ---------------------------------------------------------------------------
-
-for (const name of ["rødløk", "agurk", "paprika", "avokado", "fennikel"]) {
-  const list = mergeIngredientsIntoList([], single(name, "0,5", null), "Oppskrift A");
-  const entry = findEntry(list, name);
-  assertEqual(`½ ${name} -> 1 ${name}`, entry && formatShoppingAmount(entry), "1");
-}
-
+// T006: samme økt, 2 ss sitronsaft + 1 ts finrevet sitronskall -> 1 sitron, begge delbehov vises
 {
-  const list = mergeIngredientsIntoList([], single("rødløk", "1,5", null), "Oppskrift A");
-  const entry = findEntry(list, "rødløk");
-  assertEqual("1½ rødløk -> 2 rødløk", entry && formatShoppingAmount(entry), "2");
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sitronsaft", "2", "ss"), it("finrevet sitronskall", "1", "ts")], "R1");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T006: 2 ss saft + 1 ts skall samme økt -> 1 sitron", lemon && formatShoppingAmount(lemon), "1");
+  const note = lemon && getPurchaseNote(lemon);
+  assertTrue("T006: undertekst viser BÅDE saft og skall", !!(note && note.includes("saft") && note.includes("skall")), note);
 }
 
-// ---------------------------------------------------------------------------
-// §5 FERSKE URTER
-// ---------------------------------------------------------------------------
-
+// T007: 1 ss sitronsaft + skall av 3 sitroner (samme økt) -> 3 sitroner, skall dimensjonerende
 {
-  const list = mergeIngredientsIntoList([], single("hakket persille", "2", "ss"), "Oppskrift A");
-  const persille = findEntry(list, "persille");
-  assertEqual("2 ss hakket persille -> 1 bunt persille", persille && formatShoppingAmount(persille), "1 bunt");
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sitronsaft", "1", "ss"), it("sitronskall", "3", null)], "R1");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T007: 1 ss saft + skall av 3 -> 3 sitroner", lemon && formatShoppingAmount(lemon), "3");
 }
 
+// T008: 5 ss sitronsaft + skall av 1 sitron (samme økt) -> 3 sitroner, saft dimensjonerende
 {
-  // Tørket/pulverisert urt skal ALDRI bli "bunt"/"potte" – canonicalizeFreshHerb
-  // hopper over den (ser DRIED_HERB_MARKERS i navnet), så ingrediensen
-  // beholder sitt ORIGINALE navn ("tørket persille") helt uendret, i stedet
-  // for å bli skrevet om til den kanoniske "persille".
-  const list = mergeIngredientsIntoList([], single("tørket persille", "1", "ts"), "Oppskrift A");
-  const torketPersille = findEntry(list, "tørket persille");
-  assertEqual("tørket persille beholder eget navn (kjøps-normaliseres ikke)", torketPersille?.name, "tørket persille");
-  assertEqual(
-    "tørket persille vises IKKE som bunt",
-    torketPersille != null && formatShoppingAmount(torketPersille).includes("bunt"),
-    false,
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sitronsaft", "5", "ss"), it("sitronskall", "1", null)], "R1");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T008: 5 ss saft + skall av 1 -> 3 sitroner", lemon && formatShoppingAmount(lemon), "3");
+}
+
+// T009: ½ sitron (saften av) + ½ sitron (skallet) -> 1 sitron (max, ingen målte yields siden
+// context_required-formen med note-presedens tolker ½ som fruktantall for hver bøtte)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(
+    list,
+    [it("sitron", "0,5", null, "saften av"), it("sitron", "0,5", null, "skallet")],
+    "R1",
   );
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T009: ½ saften + ½ skallet -> 1 sitron", lemon && formatShoppingAmount(lemon), "1");
 }
 
+// T010: Uke, tre separate middager A/B/C med limesaft -> 1+1+1=3 lime
 {
-  // Aggregering over flere oppskrifter (Ukesmeny), samme prinsipp som sitrus
   let list: ShoppingListEntry[] = [];
-  list = mergeIngredientsIntoList(list, single("basilikum", "1", "dl"), "Mandag");
-  list = mergeIngredientsIntoList(list, single("basilikum", "1", "dl"), "Onsdag");
-  const basilikum = findEntry(list, "basilikum");
-  // 2 dl à 20 g/dl = 40 g, / 15 g per potte = 3 potter
-  assertEqual("2x 1 dl basilikum (ukesmeny) -> flere potter", basilikum && formatShoppingAmount(basilikum), "3 potter");
+  list = addRecipe(list, [it("limesaft", "1,5", "ss")], "A");
+  list = addRecipe(list, [it("limejuice", "2", "ss")], "B");
+  list = addRecipe(list, [it("fersk limesaft", "1", "ss")], "C");
+  const lime = findByPurchaseId(list, "lime");
+  assertEqual("T010: tre separate middager -> 3 lime (ikke sum-så-ceil)", lime && formatShoppingAmount(lime), "3");
 }
 
-// ---------------------------------------------------------------------------
-// §6 HVITLØK
-// ---------------------------------------------------------------------------
-
+// T011: A 0,5 ss + B 0,5 ss limesaft, separate middager -> 2 lime, ikke 1
 {
-  // Få fedd – uendret "1 hvitløk"-oppførsel, ingen notat
-  const list = mergeIngredientsIntoList([], single("hvitløk", "2", "fedd"), "Oppskrift A");
-  const hvitlok = findEntry(list, "hvitløk");
-  assertEqual("2 fedd hvitløk -> 1 hvitløk", hvitlok && formatShoppingAmount(hvitlok), "1");
-  assertEqual("2 fedd hvitløk -> ingen (ca. N fedd)-notat", hvitlok && getPurchaseNote(hvitlok), null);
-}
-
-{
-  // Mange fedd aggregert over flere oppskrifter -> flere hele hvitløk + notat
   let list: ShoppingListEntry[] = [];
-  list = mergeIngredientsIntoList(list, single("hvitløk", "2", "fedd"), "Mandag");
-  list = mergeIngredientsIntoList(list, single("hvitløk", "3", "fedd"), "Onsdag");
-  list = mergeIngredientsIntoList(list, single("hvitløksfedd", "2", null), "Fredag");
-  const hvitlok = findEntry(list, "hvitløk") ?? findEntry(list, "hvitløksfedd");
-  assertEqual("2+3+2 fedd (ukesmeny, inkl. hvitløksfedd-navneform) -> 1 hvitløk", hvitlok && formatShoppingAmount(hvitlok), "1");
-  assertEqual("2+3+2 fedd -> notat (ca. 7 fedd)", hvitlok && getPurchaseNote(hvitlok), "ca. 7 fedd");
+  list = addRecipe(list, [it("limesaft", "0,5", "ss")], "A");
+  list = addRecipe(list, [it("limesaft", "0,5", "ss")], "B");
+  const lime = findByPurchaseId(list, "lime");
+  assertEqual("T011: 0,5+0,5 ss separate middager -> 2 lime", lime && formatShoppingAmount(lime), "2");
 }
 
-// ---------------------------------------------------------------------------
-// §10 SIKKERHETSPRINSIPP – ukjente/ikke-opt-in-ingredienser forblir uendret
-// ---------------------------------------------------------------------------
-
+// T012: 1 hel lime + 2 ss limesaft -> 2 lime (helfrukten reservert)
 {
-  const list = mergeIngredientsIntoList([], single("rigatoni", "250", "g"), "Oppskrift A");
-  const entry = findEntry(list, "rigatoni");
-  assertEqual("250 g rigatoni forblir 250 g rigatoni", entry && formatShoppingAmount(entry), "250 g");
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("lime", "1", null), it("limesaft", "2", "ss")], "R1");
+  const lime = findByPurchaseId(list, "lime");
+  assertEqual("T012: 1 hel lime + 2 ss saft -> 2 lime", lime && formatShoppingAmount(lime), "2");
 }
 
+// T013: ½ lime i båter + 1 ss limesaft -> 1 lime (½ reservert + ½ til pressing)
 {
-  const list = mergeIngredientsIntoList([], single("hermetiske tomater", "400", "g"), "Oppskrift A");
-  const entry = findEntry(list, "hermetiske tomater");
-  assertEqual("400 g hermetiske tomater forblir 400 g", entry && formatShoppingAmount(entry), "400 g");
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("lime", "0,5", null, "i båter"), it("limesaft", "1", "ss")], "R1");
+  const lime = findByPurchaseId(list, "lime");
+  assertEqual("T013: ½ lime i båter + 1 ss saft -> 1 lime", lime && formatShoppingAmount(lime), "1");
 }
 
+// T014: 4 limebåter (wedge-form, ingen yield) + 1 ss saft -> limebåter REVIEW beholdt + 1 lime til saft
 {
-  const list = mergeIngredientsIntoList([], single("kremfløte", "2", "dl"), "Oppskrift A");
-  const entry = findEntry(list, "kremfløte");
-  assertEqual("2 dl kremfløte forblir 2 dl", entry && formatShoppingAmount(entry), "2 dl");
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("limebåter", "4", null), it("limesaft", "1", "ss")], "R1");
+  const lime = findByPurchaseId(list, "lime");
+  assertEqual("T014: 1 ss saft -> 1 lime (limebåter går IKKE inn i ressursmodellen)", lime && formatShoppingAmount(lime), "1");
+  const wedges = findByName(list, "limebåter");
+  assertTrue("T014: limebåter beholdt uendret som egen REVIEW-linje", !!wedges && wedges.amount === 4, wedges);
 }
 
+// T015: samme økt, 1 lime (saft og skall) + 1 ss limesaft -> 2 lime (J=1,5, Z=1, W=0)
 {
-  const list = mergeIngredientsIntoList([], single("en helt ukjent vare", "3", "boks"), "Oppskrift A");
-  const entry = findEntry(list, "en helt ukjent vare");
-  assertEqual("ukjent ingrediens forblir uendret", entry && formatShoppingAmount(entry), "3 boks");
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("lime", "1", null, "saft og skall"), it("limesaft", "1", "ss")], "R1");
+  const lime = findByPurchaseId(list, "lime");
+  // J = 1 (Bfruit) + 1 ss/30ml = 1,4928 ; Z = 1 (Bfruit) ; max(J,Z)=J≈1,49 -> ceil = 2
+  assertEqual("T015: 1 lime (saft og skall) + 1 ss saft -> 2 lime", lime && formatShoppingAmount(lime), "2");
 }
 
-// ---------------------------------------------------------------------------
+// T016: Uke, separat økt (standard): A skall av 1 sitron; B saft av 1 sitron -> 2 sitroner
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sitronskall", "1", null)], "A");
+  list = addRecipe(list, [it("sitronsaft", "1", null)], "B");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T016: separate oppskriftshendelser -> 2 sitroner", lemon && formatShoppingAmount(lemon), "2");
+}
 
-console.log(`\n${passed} OK, ${failed} FEIL`);
+// T017: samme FAKTISKE økt (A+B i samme kall) -> 1 sitron
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sitronskall", "1", null), it("sitronsaft", "1", null)], "A+B samme økt");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T017: samme faktiske økt -> 1 sitron", lemon && formatShoppingAmount(lemon), "1");
+}
+
+// T018: 1–2 ss sitron (saften) -> 1 sitron, beregnet fra øvre 30 ml, intervall beholdt i undertekst
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sitron", "1-2", "ss", "saften")], "R1");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T018: 1–2 ss sitron (saften) -> 1 sitron (øvre grense)", lemon && formatShoppingAmount(lemon), "1");
+}
+
+// T019: sitron (skallet), uten mengde -> ukjent skallbehov beholdt, ikke automatisk 1
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sitron", null, null, "skallet")], "R1");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertTrue("T019: ukjent skallbehov -> reviewReason satt, IKKE et tallfestet kjøpsantall på 1", !!(lemon && lemon.purchaseMeta?.reviewReason), lemon);
+}
+
+// T020: 30 g sitronsaft -> behold 30 g sitronsaft, REVIEW for yield (ingen ml=g)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sitronsaft", "30", "g")], "R1");
+  const lemonGoverned = findByPurchaseId(list, "lemon");
+  assertTrue("T020: 30 g sitronsaft går IKKE inn i sitron-ressursmodellen", !lemonGoverned, list);
+  const kept = findByName(list, "sitronsaft");
+  assertEqual("T020: 30 g sitronsaft beholdes uendret", kept && [kept.amount, kept.unit], [30, "g"]);
+}
+
+// T021: 2 ts grovt sitronskall -> behold, finrevet-zest-yield gjelder ikke (ingen alias -> unknown)
+{
+  const resolved = resolvePurchaseLine("grovt sitronskall", null, "ts");
+  assertEqual("T021: 'grovt sitronskall' har ingen eksakt alias -> unknown (konservativ fallback)", resolved.kind, "unknown");
+}
+
+// T022: 1 ss sitronpepper -> eget krydder, ikke sitron-ressursmodellen
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sitronpepper", "1", "ss")], "R1");
+  const lemonGoverned = findByPurchaseId(list, "lemon");
+  assertTrue("T022: sitronpepper er IKKE sitron-ressursmodellen", !lemonGoverned, list);
+  const kept = findByName(list, "sitronpepper");
+  assertTrue("T022: sitronpepper beholdt som eget produkt", !!kept, list);
+}
+
+// T023: 2 tørkede persiske lime -> behold tørket produkt, ingen juice-yield
+{
+  const resolved = resolvePurchaseLine("tørkede persiske lime (limoo amani)", null, null);
+  assertEqual("T023: tørkede persiske lime -> eget produkt, ikke lime-ressursmodellen", resolved.purchaseId, "lime_persian_dried");
+}
+
+// T024: 50 ml limesaft (konsentrat på flaske) -> behold flaskeform, ingen alias -> unknown
+{
+  const resolved = resolvePurchaseLine("limesaft (konsentrat på flaske)", null, "ml");
+  assertEqual("T024: eksplisitt konsentrat/flaske -> ingen eksakt alias -> unknown (ikke fersk lime)", resolved.kind, "unknown");
+}
+
+// T025: 2 dl ferskpresset appelsinjuice -> 4 appelsiner, 200 ml juice
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("ferskpresset appelsinjuice", "2", "dl")], "R1");
+  const orange = findByPurchaseId(list, "orange");
+  assertEqual("T025: 2 dl ferskpresset appelsinjuice -> 4 appelsiner", orange && formatShoppingAmount(orange), "4");
+}
+
+// T026: 1 ss appelsinjuice (generisk, IKKE ferskpresset) -> KEEP som juiceprodukt
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("appelsinjuice", "1", "ss")], "R1");
+  const orangeGoverned = findByPurchaseId(list, "orange");
+  assertTrue("T026: generisk appelsinjuice går IKKE inn i appelsin-ressursmodellen", !orangeGoverned, list);
+  const kept = findByName(list, "appelsinjuice");
+  assertTrue("T026: appelsinjuice beholdt som eget juiceprodukt (orange_juice)", !!kept, list);
+}
+
+// T027: 2 strimler appelsinskall -> behold strimler, REVIEW (peel_strip har ingen godkjent yield)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("strimler appelsinskall", "2", null)], "R1");
+  const orangeGoverned = findByPurchaseId(list, "orange");
+  assertTrue("T027: strimler appelsinskall går IKKE inn i ressursmodellen (ingen yield)", !orangeGoverned, list);
+  const kept = findByName(list, "strimler appelsinskall");
+  assertTrue("T027: strimler appelsinskall beholdt uendret", !!kept, list);
+}
+
+// T084: 1 ss saft av sitron -> 1 sitron; 15 ml saft; ingen saltvare
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("saft av sitron", "1", "ss")], "R1");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T084: 1 ss saft av sitron -> 1 sitron", lemon && formatShoppingAmount(lemon), "1");
+  assertTrue("T084: undertekst 15 ml saft", !!(lemon && getPurchaseNote(lemon)?.includes("15 ml saft")), lemon && getPurchaseNote(lemon));
+}
+
+// T094: 2 ss limeessens -> behold original, unknown_form; ingen lime
+{
+  const resolved = resolvePurchaseLine("limeessens", null, "ss");
+  assertEqual("T094: limeessens -> unknown (nye formord som 'essens' matches ikke ved stripping)", resolved.kind, "unknown");
+}
+
+// T095: 2 ss ferskpresset limesaft -> 1 lime (eksplisitt godkjent grammatikk/alias, ikke fuzzy)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("fersk limesaft", "2", "ss")], "R1");
+  const lime = findByPurchaseId(list, "lime");
+  assertEqual("T095: 2 ss fersk limesaft -> 1 lime", lime && formatShoppingAmount(lime), "1");
+}
+
+// T103: oppdatering av samlet limesaftbehov innen ÉN middag (simulert: ett kall, to linjer som
+// endrer seg til et annet samlet behov) -> beregnes fra råbehovet for DENNE middagen isolert.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("limesaft", "4,5", "ss")], "MiddagX");
+  const limeBefore = findByPurchaseId(list, "lime");
+  assertEqual("T103 (før endring): 4,5 ss -> 3 lime for denne middagen", limeBefore && formatShoppingAmount(limeBefore), "3");
+}
+
+// T106: isolasjon – juice av lime og sitron i samme uke er ALDRI samme kjøpsidentitet
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("limesaft", "2", "ss")], "A");
+  list = addRecipe(list, [it("sitronsaft", "2", "ss")], "B");
+  const lime = findByPurchaseId(list, "lime");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertTrue("T106: lime og sitron er to separate linjer, ingen delt skallkapasitet", !!lime && !!lemon && lime.id !== lemon.id, list);
+}
+
+// T116: samme faktiske økt, to linjer à 0,5 ss limesaft -> 1 lime (summering før ceil innen økten)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("limesaft", "0,5", "ss"), it("limesaft", "0,5", "ss")], "SammeØkt");
+  const lime = findByPurchaseId(list, "lime");
+  assertEqual("T116: 0,5+0,5 ss samme økt -> 1 lime", lime && formatShoppingAmount(lime), "1");
+}
+
+// T118: Uke, separate middager (mandag/tirsdag) med foreslått lagring -> 2 sitroner uansett
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sitronskall", "1", null)], "Mandag");
+  list = addRecipe(list, [it("sitronsaft", "1", null)], "Tirsdag");
+  const lemon = findByPurchaseId(list, "lemon");
+  assertEqual("T118: separate middager, ingen lagringsfunksjon -> 2 sitroner", lemon && formatShoppingAmount(lemon), "2");
+}
+
+// --- G: hvitløk (T051–T057) ---
+
+// T051: 3 fedd + 4 pressede hvitløksfedd -> 2 hvitløk; 7 fedd trengs
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("fedd hvitløk", "3", null), it("pressede hvitløksfedd", "4", null)], "R1");
+  const garlic = findByPurchaseId(list, "garlic");
+  assertEqual("T051: 3+4 fedd -> 2 hvitløk", garlic && formatShoppingAmount(garlic), "2");
+  assertTrue("T051: undertekst 7 fedd", !!(garlic && getPurchaseNote(garlic)?.includes("7 fedd")), garlic && getPurchaseNote(garlic));
+}
+
+// T052: Uke, 2 fedd + 4 fedd hvitløk -> 1 hvitløk; 6 fedd trengs, IKKE 2 hvitløk
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("hvitløksfedd", "2", null)], "A");
+  list = addRecipe(list, [it("fedd hvitløk", "4", null)], "B");
+  const garlic = findByPurchaseId(list, "garlic");
+  assertEqual("T052: 2+4 fedd (G summeres globalt) -> 1 hvitløk", garlic && formatShoppingAmount(garlic), "1");
+}
+
+// T053: Uke, 3 fedd + 4 fedd hvitløk -> 2 hvitløk; 7 fedd trengs (IKKE avrundet til 1)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("hvitløksfedd", "3", null)], "A");
+  list = addRecipe(list, [it("fedd hvitløk", "4", null)], "B");
+  const garlic = findByPurchaseId(list, "garlic");
+  assertEqual("T053: 3+4 fedd -> 2 hvitløk (7 fedd, sikkerhetsmargin, ikke 1)", garlic && formatShoppingAmount(garlic), "2");
+}
+
+// T054: 1 hel hvitløk + 6 fedd -> 2 hvitløk (reservert hel bruk + fedd)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("hvitløk", "1", null, "hel"), it("hvitløksfedd", "6", null)], "R1");
+  const garlic = findByPurchaseId(list, "garlic");
+  assertEqual("T054: 1 hel hvitløk + 6 fedd -> 2 hvitløk", garlic && formatShoppingAmount(garlic), "2");
+}
+
+// T055: 1 hvitløk uten presisering -> behold, REVIEW for fedd/hode (IKKE auto-resolve)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("hvitløk", "1", null)], "R1");
+  const garlicGoverned = findByPurchaseId(list, "garlic");
+  assertTrue("T055: tvetydig '1 hvitløk' går IKKE inn i G-ressursmodellen", !garlicGoverned, list);
+  const kept = findByName(list, "hvitløk");
+  assertTrue("T055: '1 hvitløk' beholdt uendret (vanlig tallfestet mengde, ikke auto-resolvert til garlic-modellen)", !!kept && kept.amount === 1, kept);
+}
+
+// T056: Uke, 6 fedd hvitløk + ½ ts hvitløkspulver -> 1 hvitløk OG ½ ts hvitløkspulver (separat produkt)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("hvitløksfedd", "6", null), it("hvitløkspulver", "0,5", "ts")], "R1");
+  const garlic = findByPurchaseId(list, "garlic");
+  assertEqual("T056: 6 fedd -> 1 hvitløk", garlic && formatShoppingAmount(garlic), "1");
+  const powder = findByName(list, "hvitløkspulver");
+  assertTrue("T056: hvitløkspulver er et HELT separat produkt", !!powder && powder.amount === 0.5, powder);
+}
+
+// T057: 2 ts hakket hvitløk -> behold volum, ingen antatt feddvekt (ingen alias -> unknown)
+{
+  const resolved = resolvePurchaseLine("hakket hvitløk", null, "ts");
+  assertEqual("T057: '2 ts hakket hvitløk' har ingen eksakt alias -> unknown, ingen gjettet feddvekt", resolved.kind, "unknown");
+}
+
+// --- E: egg (T086–T089, T117) ---
+
+// T086: samme økt, 2 hele egg + 3 plommer + 2 hviter -> 5 egg
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("egg", "2", null), it("eggeplommer", "3", null), it("eggehviter", "2", null)], "R1");
+  const egg = findByPurchaseId(list, "egg");
+  assertEqual("T086: 2 hele + 3 plommer + 2 hviter samme økt -> 5 egg", egg && formatShoppingAmount(egg), "5");
+}
+
+// T087: samme faktiske økt, A 2 plommer, B 2 hviter -> 2 egg
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("eggeplommer", "2", null), it("eggehviter", "2", null)], "A+B samme økt");
+  const egg = findByPurchaseId(list, "egg");
+  assertEqual("T087: 2 plommer + 2 hviter samme faktiske økt -> 2 egg", egg && formatShoppingAmount(egg), "2");
+}
+
+// T088: Uke, separate middager A 2 plommer, B 2 hviter -> 4 egg (ingen lagring)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("eggeplommer", "2", null)], "A");
+  list = addRecipe(list, [it("eggehviter", "2", null)], "B");
+  const egg = findByPurchaseId(list, "egg");
+  assertEqual("T088: separate middager -> 4 egg, ingen deling", egg && formatShoppingAmount(egg), "4");
+}
+
+// T089: 100 g pasteuriserte eggehviter -> KEEP+REVIEW for ny produktform (ingen alias -> unknown)
+{
+  const resolved = resolvePurchaseLine("pasteuriserte eggehviter", null, "g");
+  assertEqual("T089: pasteuriserte eggehviter (kartong) -> unknown, ingen gram-til-hele-egg", resolved.kind, "unknown");
+}
+
+// T117: Uke, separate middager A ½ plomme, B ½ plomme -> 2 egg (ceil PER middag, ikke ceil(sum))
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("eggeplomme", "0,5", null)], "A");
+  list = addRecipe(list, [it("eggeplomme", "0,5", null)], "B");
+  const egg = findByPurchaseId(list, "egg");
+  assertEqual("T117: ½+½ plomme separate middager -> 2 egg (ikke 1)", egg && formatShoppingAmount(egg), "2");
+}
+
+console.log(`\n(S/G/E-ressursmodellene) ${passed} OK, ${failed} FEIL så langt\n`);
+
+// --- Øvrige enkelt-/aggregeringstester som bruker den UENDREDE generelle sammenslåingen ---
+// (W, KEEP, PANTRY, N, REVIEW/choice, intervall/ukjent mengde – T028–T124 utenom de over)
+
+// T028/T029: ½ gul løk -> 1 gul løk; ½+½ -> 1 (ikke 2)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("gul løk", "0,5", null)], "A");
+  const onion = findByName(list, "gul løk");
+  assertEqual("T028: ½ gul løk -> 1 gul løk", onion && formatShoppingAmount(onion), "1");
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("gul løk", "0,5", null)], "A");
+  list = addRecipe(list, [it("gul løk", "0,5", null)], "B");
+  const onion = findByName(list, "gul løk");
+  assertEqual("T029: ½+½ gul løk (uke) -> 1 gul løk", onion && formatShoppingAmount(onion), "1");
+}
+
+// T030: 1½ + ¼ gul løk -> 2 gul løk; 1¾ trengs
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("gul løk", "1 1/2", null)], "A");
+  list = addRecipe(list, [it("gul løk", "1/4", null)], "B");
+  const onion = findByName(list, "gul løk");
+  assertEqual("T030: 1½+¼ gul løk -> 2 gul løk", onion && formatShoppingAmount(onion), "2");
+}
+
+// T033: ½ agurk + 0,5 stk. agurk -> 1 agurk (stk. og enhetsløst er likeverdig)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("agurk", "0,5", null)], "A");
+  list = addRecipe(list, [it("agurk", "0,5", "stk.")], "B");
+  const cucumber = findByName(list, "agurk");
+  assertEqual("T033: ½ + 0,5 stk. agurk -> 1 agurk", cucumber && formatShoppingAmount(cucumber), "1");
+}
+
+// T038: 1 ts paprika -> 1 ts paprikapulver (presedensregel 4), ingen paprikafrukt
+{
+  const resolved = resolvePurchaseLine("paprika", null, "ts");
+  assertEqual("T038: '1 ts paprika' -> paprika_powder (presedensregel 4)", resolved.purchaseId, "paprika_powder");
+}
+{
+  const resolvedFruit = resolvePurchaseLine("paprika", null, null);
+  assertEqual("T038b: bar 'paprika' uten ts-enhet -> paprikafrukt (pepper_fruit_unspecified)", resolvedFruit.purchaseId, "pepper_fruit_unspecified");
+}
+
+// T039: 10 g + 15 g fersk persille -> 25 g; ingen potte/bunt-konvertering i det hele tatt
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("fersk persille", "10", "g")], "A");
+  list = addRecipe(list, [it("fersk persille", "15", "g")], "B");
+  const parsley = findByName(list, "fersk persille");
+  assertEqual("T039: 10g+15g fersk persille -> 25 g (aldri bunt)", parsley && [parsley.amount, parsley.unit], [25, "g"]);
+}
+
+// T044: 8–10 blader fersk basilikum -> intervallet beholdes UENDRET (ingen midtpunkt, ingen potte)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("fersk basilikum", "8-10", "blad")], "A");
+  const basil = findByName(list, "fersk basilikum");
+  assertEqual("T044: 8-10 blad basilikum vises med intervallet bevart, ikke kollapset til '1'", basil && formatShoppingAmount(basil), "8-10 blad");
+}
+
+// T085: 1–2 ts kalvefond -> intervallet beholdes UENDRET (ingen midtpunkt-tall, ingen REVIEW for navnet)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("kalvefond", "1-2", "ts")], "A");
+  const stock = findByName(list, "kalvefond");
+  assertEqual("T085: 1-2 ts kalvefond vises med intervallet bevart, ikke midtpunktet 1,5", stock && formatShoppingAmount(stock), "1-2 ts");
+}
+
+// T051-adjacent precedence sanity: fresh-form downgrades (koriander/finhakket timian/finhakket dill)
+{
+  const coriander = resolvePurchaseLine("koriander", null, null);
+  assertEqual("H/presedens 4: bar 'koriander' nedgraderes til coriander_unspecified+REVIEW", coriander.purchaseId, "coriander_unspecified");
+  assertEqual("H/presedens 4: bar 'koriander' -> kind review", coriander.kind, "review");
+  const freshCoriander = resolvePurchaseLine("frisk koriander", null, null);
+  assertEqual("H/presedens 4: 'frisk koriander' (markør i navnet) forblir coriander_fresh", freshCoriander.purchaseId, "coriander_fresh");
+  const thyme = resolvePurchaseLine("finhakket timian", null, null);
+  assertEqual("H: 'finhakket timian' nedgraderes til thyme_unspecified+REVIEW", thyme.purchaseId, "thyme_unspecified");
+  const dill = resolvePurchaseLine("finhakket dill", null, null);
+  assertEqual("H: 'finhakket dill' nedgraderes til dill_unspecified+REVIEW", dill.purchaseId, "dill_unspecified");
+}
+
+// T047/T049: 1 ts oregano / 1 ts koriander uten form -> behold, ikke anta tørket/fersk
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("oregano", "1", "ts")], "A");
+  const oregano = findByName(list, "oregano");
+  assertTrue("T047: 'oregano' uten form beholdt uspesifisert (oregano_unspecified, ikke tørket)", !!oregano, list);
+}
+
+// T051: allerede testet over (G-seksjonen).
+
+// T058–T064: N – vann/biprodukter
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("vann", "3", "dl")], "A");
+  assertEqual("T058: 3 dl vann -> ingen kjøpsvare i det hele tatt", list.length, 0);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("pastavann", "1", "dl"), it("salt til kokevannet", "1,5", "ss")], "A");
+  assertEqual("T059: bare salt som kjøpsvare (pastavann skjult)", list.length, 1);
+  const salt = findByName(list, "salt til kokevannet");
+  assertTrue("T059: salt-linjen auto-avhuket (basisvare)", !!salt && salt.checked, salt);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("boks tunfisk i vann", "1", "boks")], "A");
+  assertEqual("T060: tunfisk i vann beholdes (aldri slettet av vannregelen)", list.length, 1);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("stekesmør fra biff", null, null)], "A");
+  assertEqual("T061: stekesmør fra biff -> NOT_PURCHASED, ingen linje", list.length, 0);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("olje fra de soltørkede tomatene", null, null)], "A");
+  assertEqual("T062: olje fra soltørkede tomater -> NOT_PURCHASED, ingen linje", list.length, 0);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("lake fra sylteagurken", "1", "ts")], "A");
+  assertEqual("T063: lake fra sylteagurken -> NOT_PURCHASED, ingen linje/REVIEW", list.length, 0);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(
+    list,
+    [it("kraft fra trekkingen", "4", "dl"), it("kraft fra kokingen", "2", "dl"), it("kraft fra kyllingen", null, null)],
+    "A",
+  );
+  assertEqual("T111: alle tre NOT_PURCHASED, ingen linjer", list.length, 0);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(
+    list,
+    [it("stekesjy fra kjøttet", null, null), it("kraft fra grønnsakene", null, null), it("væske fra boksen med bønner", null, null)],
+    "A",
+  );
+  assertEqual("T112: generelt 'X fra Y'-mønster (ukjente navn) -> alle NOT_PURCHASED", list.length, 0);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(
+    list,
+    [
+      it("kjøpt kyllingkraft", "3", "dl"),
+      it("tilsatt kalvefond", "1", "ss"),
+      it("buljongterning", "1", null),
+      it("ekstra olje", "2", "ss"),
+      it("kjøpt lake", "1", "dl"),
+    ],
+    "A",
+  );
+  assertEqual("T113: eksplisitte kjøps-/tilsetningsmarkører beholdes som vanlige kjøpsvarer (5 linjer)", list.length, 5);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("andefett", "2", "ss", "fra steking"), it("andefett", "2", "ss", "kjøpt")], "A");
+  assertEqual("T114: bare 2 ss kjøpt andefett vises (biproduktet utelates)", list.length, 1);
+  const fat = list[0];
+  assertEqual("T114: mengden er nøyaktig 2 ss (kjøpt-andefettet)", [fat.amount, fat.unit], [2, "ss"]);
+}
+
+// T065–T082: ordinær KEEP/kryss-enhet-sammenslåing (UENDRET maskin – regresjonssikring samtidig)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("rigatoni", "250", "g")], "A");
+  list = addRecipe(list, [it("rigatoni", "0,25", "kg")], "B");
+  const pasta = findByName(list, "rigatoni");
+  assertEqual("T066: 250g + 0,25kg rigatoni -> 500 g", pasta && [pasta.amount, pasta.unit], [500, "g"]);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("rigatoni", "250", "g"), it("rigatoni eller penne", "250", "g")], "A");
+  assertEqual("T068: fast rigatoni og uløst alternativ 'rigatoni eller penne' er TO separate linjer", list.length, 2);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("kremfløte", "2", "dl")], "A");
+  list = addRecipe(list, [it("kremfløte", "50", "ml")], "B");
+  list = addRecipe(list, [it("kremfløte", "2", "ss")], "C");
+  const cream = findByName(list, "kremfløte");
+  // 2dl=200ml + 50ml + 2ss(29,5736ml) = 279,5736 ml ~= 2,8 dl
+  assertTrue("T070: 2dl+50ml+2ss kremfløte -> ca. 2,8 dl", !!cream && cream.unit === "dl" && Math.abs((cream.amount ?? 0) - 2.8) < 0.05, cream);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("hakkede tomater", "400", "g")], "A");
+  list = addRecipe(list, [it("hakkede tomater", "1", "boks", "400 g")], "B");
+  const tomatoes = findByName(list, "hakkede tomater");
+  assertTrue("T072: 400g + boks(400g) hakkede tomater -> finnes (lokal ekvivalens håndteres av eksisterende merge)", !!tomatoes, list);
+}
+
+// T090/T091: salt og pepper-splitt
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("salt og sort pepper", null, null)], "A");
+  assertEqual("T090: 'salt og sort pepper' uten mengde splittes til 2 linjer", list.length, 2);
+  assertTrue("T090: begge linjer er ukvantifisert", list.every((e) => e.amount == null), list);
+  assertTrue("T090: 'sort' i input -> sort malt pepper, ikke generisk pepper", !!findByName(list, "sort malt pepper"), list);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("salt og pepper", null, null)], "A");
+  assertTrue("T090b: uten 'sort' -> generisk pepper", !!findByName(list, "pepper"), list);
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("salt og pepper", "1", "ts")], "A");
+  assertEqual("T091: '1 ts salt og pepper' (KVANTIFISERT) splittes IKKE, beholdes som én linje", list.length, 1);
+}
+
+// T097: 0 g salt -> intet kjøpsbehov (mengde 0, ikke manglende mengde)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("salt", "0", "g")], "A");
+  const salt = findByName(list, "salt");
+  assertEqual("T097: 0 g salt -> amount er eksakt 0 (intet behov, men linjen finnes fortsatt)", salt && salt.amount, 0);
+}
+
+// T100: 2 burrata (125 g hver) -> ett behov, ikke to additive
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("burrata", "2", "stk", "125 g hver")], "A");
+  assertEqual("T100: 2 burrata er ÉN linje", list.length, 1);
+}
+
+// T110/T123: salt lammekjøtt eller saltkjøtt av får
+{
+  const resolved = resolvePurchaseLine("salt lammekjøtt eller saltkjøtt av får", null, null);
+  assertEqual("T110: alternativuttrykket er ETT behov (choice_salted_lamb_mutton)", resolved.kind, "choice");
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("salt lammekjøtt", "400", "g"), it("saltkjøtt av får", "400", "g")], "A");
+  assertEqual("T123: to artsbenevnte kjøttprodukter, aldri separat saltvare", list.length, 2);
+  assertTrue("T123: ingen av linjene er PANTRY-salt", !list.some((e) => e.name.toLowerCase() === "salt"), list);
+}
+
+// T119/T120/T121/T122: eksakte aliaser, bevisst forskjellige produkter
+{
+  const curry = resolvePurchaseLine("yellow curry", null, "ts");
+  assertEqual("T119: 'yellow curry' -> yellow_curry_paste, separat fra karripulver", curry.purchaseId, "yellow_curry_paste");
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("finhakka tomater", "400", "g")], "A");
+  const tomatoes = findByName(list, "finhakka tomater");
+  assertTrue("T120: 'finhakka tomater' -> ingen REVIEW (HIGH, tomato_canned_finely_chopped)", !!tomatoes, list);
+  assertEqual("T120: resolvePurchaseLine gir 'normal', ikke review", resolvePurchaseLine("finhakka tomater", null, "g").kind, "normal");
+}
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("maisenna", "1", "ss")], "A");
+  list = addRecipe(list, [it("maizena", "1", "ss")], "B");
+  const starch = list.find((e) => e.purchaseMeta == null) ?? list[0];
+  assertTrue("T122: 'maisenna' og 'maizena' er samme produkt (cornstarch)", resolvePurchaseLine("maisenna", null, "ss").purchaseId === "cornstarch" && resolvePurchaseLine("maizena", null, "ss").purchaseId === "cornstarch", null);
+  assertEqual("T122: begge skrivemåtene summeres til samme linje (2 ss)", starch && [starch.amount, starch.unit], [2, "ss"]);
+}
+
+// T124: finhakket rødløk uten mengde -> rødløk, ukjent behov, ingen oppfunnet stykkmengde
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("finhakket rødløk", null, null)], "A");
+  const onion = findByName(list, "finhakket rødløk");
+  assertTrue("T124: rødløk uten mengde beholdt som ukjent behov, IKKE automatisk 1", !!onion && onion.amount == null, onion);
+}
+
+console.log(`\n(testmatrise T001–T124, det som er praktisk å uttrykke som enhetstest) ${passed} OK, ${failed} FEIL totalt\n`);
+
+console.log("=== Del 2: Regresjonstester for UENDRET eksisterende funksjonalitet ===\n");
+
+// Basisvare-gjenkjenning (isPantryStaple) – uendret liste/logikk
+assertTrue("Regresjon: 'fint havsalt' er basisvare", isPantryStaple("fint havsalt"));
+assertTrue("Regresjon: 'extra virgin olivenolje' er basisvare", isPantryStaple("extra virgin olivenolje"));
+assertTrue("Regresjon: 'rigatoni' er IKKE en basisvare", !isPantryStaple("rigatoni"));
+
+// Butikkategorier – uendret
+assertEqual("Regresjon: kremfløte -> dairy", categorizeShoppingItem("kremfløte"), "dairy");
+assertEqual("Regresjon: hermetiske tomater -> pantry (mer spesifikk enn 'tomater')", categorizeShoppingItem("hermetiske tomater"), "pantry");
+assertEqual("Regresjon: ukjent vare -> other", categorizeShoppingItem("et helt oppdiktet produktnavn xyz"), "other");
+
+// Del-av-en-helhet-kollaps (blad/fedd/kvist/båt) – uendret, kun flyttet forbi S/G-ruting
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("hjertesalat", "4", "blad")], "A");
+  const salad = findByName(list, "hjertesalat");
+  assertEqual("Regresjon: 4 blader hjertesalat kollapser til '1'", salad && formatShoppingAmount(salad), "1");
+}
+
+// Kjøpstips-notat for vin (isBuyingTipWorthKeeping-logikken er uendret)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("hvitvin (tørr)", "2", "dl", "en fyldig, rimelig hvitvin – f.eks. Chardonnay")], "A");
+  const wine = findByName(list, "hvitvin (tørr)");
+  assertTrue("Regresjon: vin-kjøpstips bevares i note-feltet", !!wine?.note?.includes("Chardonnay"), wine);
+}
+
+// "Ukvantifisert vare finnes allerede med mengde andre steder"-sammenslåingen – uendret
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("parmesan", "80", "g")], "A");
+  list = addRecipe(list, [it("parmesan", null, null, "til servering")], "B");
+  assertEqual("Regresjon: ukvantifisert parmesan slås sammen med tallfestet, ingen ny linje", list.length, 1);
+}
+
+console.log(`\n=== TOTALT: ${passed} OK, ${failed} FEIL ===`);
+if (failed > 0) {
+  console.log("\nFeilende tester:");
+  for (const f of failures) console.log(f);
+}
 process.exit(failed > 0 ? 1 : 0);
