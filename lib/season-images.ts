@@ -9,11 +9,12 @@
  * mønster som det tidligere "I kjøleskapet"-bildet
  * (public/images/pantry-hero.jpg).
  *
- * Bevisst DELVIS utfylt inntil videre – kun "host", "vinter", "var",
- * "forsommer" og "sommer" har bilde per nå. SeasonHeroImage.tsx
- * returnerer ingenting (ingen hero, siden ser ut som før) for en sesong
- * som mangler et bilde her, så resten av sesongene fungerer helt normalt
- * mens Henrik sender flere bilder etter hvert.
+ * Alle 6 sesongene har nå sitt eget bilde (siste, "sensommer", lagt til
+ * 05.10.2026). SeasonHeroImage.tsx returnerer uansett ingenting (ingen
+ * hero) for en eventuell FREMTIDIG sesong-slug som ikke finnes her, så
+ * mappingen trenger ikke være i sync med databasen for at siden skal
+ * fungere trygt – det er bare ikke lenger en forventet tilstand akkurat
+ * nå.
  */
 export const SEASON_HERO_IMAGES: Partial<Record<string, string>> = {
   host: "/images/seasons/host.jpg",
@@ -21,4 +22,5 @@ export const SEASON_HERO_IMAGES: Partial<Record<string, string>> = {
   var: "/images/seasons/var.jpg",
   forsommer: "/images/seasons/forsommer.jpg",
   sommer: "/images/seasons/sommer.jpg",
+  sensommer: "/images/seasons/sensommer.jpg",
 };
