@@ -84,7 +84,7 @@
  * mobilvennlige måten å endre én enkelt dag på – dra-og-bytt er et
  * tilleggsgrep for mus/trackpad på større skjermer.
  */
-import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
@@ -215,13 +215,27 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
   // lokale `active`-variabelen inne i STYLE_CHOICES-map-en lenger ned
   // (er choice.id den VALGTE stilen) – to helt ulike ting som tilfeldigvis
   // begge naturlig heter "active".
-  const [activeWeek, setActiveWeek] = useActiveWeeklyMenu();
+  const [activeWeek, setActiveWeek, , restored] = useActiveWeeklyMenu();
   const { style, recipeIds, vegetarianOnly } = activeWeek;
   const { addFromRecipe } = useShoppingList();
   const { saveMenu } = useSavedWeeklyMenus();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
+  // (06.10.2026, RUNDE 4) – Henrik: "ukesmenyen er kun åpen FØRSTE gang man
+  // går direkte tilbake fra handlelista, etter dette blir den tømt". `added`
+  // er egen, vanlig React-state (nullstilles på enhver ny mount) – en
+  // gjenopprettet uke (se useActiveWeeklyMenu.ts sin RUNDE 4-filheader)
+  // kom derfor tilbake med style/recipeIds/vegetarianOnly, men UI-et viste
+  // likevel feilaktig "Legg i handlelisten →" i stedet for "Se listen →",
+  // selv om varene FAKTISK allerede lå der (det er jo DERFOR
+  // øyeblikksbildet fantes). Det brøt kjeden for en SENERE tilbake-reise:
+  // ingenting på den feilaktig "ikke lagt til"-visningen skrev et ferskt
+  // øyeblikksbilde igjen. Synkroniserer nå `added` til true idet
+  // gjenopprettingen faktisk skjer.
+  useEffect(() => {
+    if (restored) setAdded(true);
+  }, [restored]);
   // Egen, LOKAL "lagret"-indikator (ikke utledet av useSavedWeeklyMenus,
   // til forskjell fra MealView.tsx sin `saved`, som slår opp mealId i et
   // register) – en lagret ukesmeny får sin egen, NYE id ved hver lagring

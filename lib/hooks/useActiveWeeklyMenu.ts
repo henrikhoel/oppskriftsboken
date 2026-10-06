@@ -135,24 +135,48 @@ export function activeWeeklyMenuRestoreHref(targetPath: string): string {
  * (06.10.2026, RUNDE 3) – "ved mount" over er nå PRESISERT til "ved mount
  * MED gjenopprett-signalet i URL-en", se RESTORE_PARAM-filheaderen over
  * for hele resonnementet/feilen dette retter opp i.
+ *
+ * (06.10.2026, RUNDE 4) FEILRETTET IGJEN – Henrik: "ukesmenyen er kun åpen
+ * FØRSTE gang man går direkte tilbake fra handlelista, etter dette blir den
+ * tømt". To separate, samvirkende feil:
+ *
+ * 1) Øyeblikksbildet ble fortsatt SLETTET med det samme ved en vellykket
+ *    gjenoppretting (se `window.sessionStorage.removeItem` som FØR sto
+ *    her). Det var riktig så lenge KUN selve URL-signalet avgjorde lesing
+ *    (RUNDE 3) – men betyr at øyeblikksbildet kun kan "brukes opp" ÉN
+ *    eneste gang i hele fanens levetid, uansett hvor mange ganger
+ *    tilbakelenken faktisk trykkes senere. Sletting er nå fjernet – siden
+ *    lesing uansett er strengt låst til RESTORE_PARAM-signalet (se over),
+ *    er det ingen fare for at et IKKE-signalisert besøk plukker opp et
+ *    gammelt øyeblikksbilde; det eneste som fortsatt rydder det bort er en
+ *    faktisk ENDRING av uken (clearStashedActiveWeeklyMenu, se over).
+ * 2) `added`-tilstanden i WeeklyMenuView.tsx (egen, vanlig React-state) ble
+ *    ALDRI satt til true av selve gjenopprettingen – kun style/recipeIds/
+ *    vegetarianOnly kom tilbake. Siden varene FAKTISK allerede lå i
+ *    handlelisten (det er jo DERFOR øyeblikksbildet fantes), men UI-et
+ *    likevel viste "Legg i handlelisten →"-knappen (ikke "Se listen →"),
+ *    var det ingenting på den gjenopprettede siden som skrev et FERSKT
+ *    øyeblikksbilde igjen – kombinert med feil 1) var dermed akkurat ÉN
+ *    tilbake-reise alt som noensinne fungerte. `restored` under eksponeres
+ *    nå som et eget flagg (sann idet en gjenoppretting faktisk skjedde)
+ *    slik at WeeklyMenuView kan sette `added` riktig – se bruken der.
  */
 export function useActiveWeeklyMenu() {
   const [state, setState] = useState<ActiveWeeklyMenuState>(EMPTY_ACTIVE_STATE);
   const [hydrated, setHydrated] = useState(false);
+  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
     try {
       if (shouldRestoreFromUrl()) {
         const raw = window.sessionStorage.getItem(ACTIVE_WEEKLY_MENU_KEY);
         if (raw != null) {
-          // Fjernes UMIDDELBART (konsumeres) – en senere, ny sidevisning av
-          // /ukesmeny MED signalet (uten en ny stashActiveWeeklyMenu()-
-          // skriving imellom) skal IKKE finne denne verdien igjen, se
-          // filheaderen over. Et besøk UTEN signalet rører derimot ikke
-          // et evt. lagret øyeblikksbilde i det hele tatt – se
-          // RESTORE_PARAM-filheaderen.
-          window.sessionStorage.removeItem(ACTIVE_WEEKLY_MENU_KEY);
+          // IKKE lenger slettet her (RUNDE 4, se filheaderen over) – lesing
+          // er uansett strengt låst til RESTORE_PARAM-signalet, så
+          // øyeblikksbildet kan trygt gjenbrukes av en SENERE tilbake-reise
+          // også, ikke bare den aller første.
           setState(JSON.parse(raw) as ActiveWeeklyMenuState);
+          setRestored(true);
         }
       }
     } catch {
@@ -164,5 +188,5 @@ export function useActiveWeeklyMenu() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return [state, setState, hydrated] as const;
+  return [state, setState, hydrated, restored] as const;
 }
