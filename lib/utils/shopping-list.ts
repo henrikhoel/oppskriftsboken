@@ -16,6 +16,7 @@ import {
   CITRUS_YIELDS,
   normalizeAliasKey,
   FRESH_HERB_PART_UNIT_EXEMPT_IDS,
+  convertToPreferredBase,
   type ParsedQuantity,
 } from "@/lib/utils/purchase-engine";
 
@@ -828,11 +829,6 @@ export function mergeIngredientsIntoList(
           : null
         : null;
 
-      const normalizedName = normalizeName(effective.name);
-      const normalizedUnit = normalizeUnit(effective.unit);
-      const identity = mergeIdentity(effective.name, effective.unit);
-      const mergeKey = identity.key;
-
       // KJØPSNORMALISERT SAMMENSLÅING (05.10.2026, spesifikasjonens krav
       // «korrekt kjøpsnormalisert visning uten å endre oppskriftens
       // originale ingrediensdata», bevist av T122: «maisenna» og «maizena»
@@ -849,6 +845,46 @@ export function mergeIngredientsIntoList(
       // stående (se `next.push` nederst), nøyaktig slik eksisterende
       // navnebasert sammenslåing alltid har latt det første navnet vinne.
       const keepPurchaseId = resolved.kind === "normal" && resolved.purchaseId ? resolved.purchaseId : null;
+
+      // MASSE↔VOLUM-WHITELIST (06.10.2026, Henriks del 1-spesifikasjon, se
+      // MASS_VOLUME_WHITELIST i purchase-engine.ts) – gjelder KUN for de 14
+      // eksplisitt godkjente kjøps-ID-ene, og KUN når selve enheten faktisk
+      // er en kjent metrisk g/ml-enhet (toMetricBase – "boks"/"stk"/
+      // "håndfull"/"klype" osv. gir aldri en konvertering, se
+      // convertToPreferredBase). Normaliserer til varens foretrukne
+      // sluttenhet FRA FØRSTE forekomst av varen (ikke bare når et andre
+      // bidrag faktisk krysser g/ml-grensen) – dette er bevisst: uten det
+      // ville f.eks. "1 ss smør" vist seg som "ss" ved første forekomst og
+      // først blitt "g" i det øyeblikket en andre, vekt-basert linje for
+      // smør dukket opp, et inkonsekvent sprang i visningen. "Pen enhet"
+      // (g/kg, ml/dl/l) avgjøres av de eksisterende, allerede godkjente
+      // pickNiceWeightUnit/pickNiceVolumeUnit-funksjonene – ALDRI en ny,
+      // parallell avrundingsregel.
+      let whitelistUnit: string | null = null;
+      let whitelistAmount: number | null = null;
+      if (keepPurchaseId && scaledAmount != null) {
+        const converted = convertToPreferredBase(keepPurchaseId, scaledAmount, effective.unit);
+        if (converted) {
+          const nice = converted.base === "ml" ? pickNiceVolumeUnit(converted.value) : pickNiceWeightUnit(converted.value);
+          whitelistAmount = nice.amount;
+          whitelistUnit = nice.unit;
+        }
+      }
+      // Resten av funksjonen (sammenslåingsnøkler, kryss-enhet-sammenslåing,
+      // ny linje-opprettelse) bruker disse "effektive" verdiene i stedet for
+      // item.amount/item.unit direkte – for ALT som ikke er whitelistet er
+      // whitelistAmount/whitelistUnit alltid null, og effectiveAmount/
+      // effectiveUnit er dermed bokstavelig talt de samme verdiene som før
+      // denne utvidelsen (ingen endring i oppførsel for ikke-whitelistede
+      // varer).
+      const effectiveAmount = whitelistAmount ?? scaledAmount;
+      const effectiveUnit = whitelistUnit ?? effective.unit;
+
+      const normalizedName = normalizeName(effective.name);
+      const normalizedUnit = normalizeUnit(effectiveUnit);
+      const identity = mergeIdentity(effective.name, effectiveUnit);
+      const mergeKey = identity.key;
+
       const sameItemAs = (entry: ShoppingListEntry): boolean =>
         keepPurchaseId
           ? entry.purchaseMeta?.ruleId === "KEEP" && entry.purchaseMeta?.purchaseId === keepPurchaseId
@@ -863,7 +899,7 @@ export function mergeIngredientsIntoList(
       // på samme måte som "begge i g"). Det som fortsatt aldri slås sammen,
       // er ulike enheter (f.eks. "1 boks" + "400 g") – MED MINDRE de er
       // kompatible metriske enheter, se KRYSS-ENHET-SAMMENSLÅING under.
-      const canMerge = scaledAmount != null;
+      const canMerge = effectiveAmount != null;
 
       const exactMatch = canMerge
         ? next.find((entry) => {
@@ -880,7 +916,7 @@ export function mergeIngredientsIntoList(
         : undefined;
 
       if (exactMatch) {
-        exactMatch.amount = (exactMatch.amount ?? 0) + (scaledAmount ?? 0);
+        exactMatch.amount = (exactMatch.amount ?? 0) + (effectiveAmount ?? 0);
         // Et ANDRE bidrag slås nå sammen med denne linjen – spesifikasjonens
         // intervall-bevaring (se rawIntervalText i lib/types.ts) gjelder
         // KUN en linje med ett eneste, uendret bidrag. To forskjellige
@@ -924,7 +960,7 @@ export function mergeIngredientsIntoList(
       // bevisst IKKE slås sammen, siden det ville krevd å gjette en
       // omregning vi ikke kan vite er riktig.
       if (canMerge) {
-        const itemBase = toBaseAmount(scaledAmount as number, effective.unit);
+        const itemBase = toBaseAmount(effectiveAmount as number, effectiveUnit);
         if (itemBase) {
           const compatMatch = next.find((entry) => {
             if (!sameItemAs(entry) || entry.amount == null) return false;
@@ -1024,7 +1060,7 @@ export function mergeIngredientsIntoList(
 
       next.push({
         id: generateId(), // se lib/utils/id.ts – crypto.randomUUID() alene kan mangle i nettleseren
-        amount: canMerge ? scaledAmount : null,
+        amount: canMerge ? effectiveAmount : null,
         displayAmount: canMerge ? null : effective.amount,
         // Se rawIntervalText i lib/types.ts – bevarer «1-2 ts»/«8-10 blad»
         // som opprinnelig skrevet FØRSTE gang linjen opprettes (kun når
@@ -1033,9 +1069,16 @@ export function mergeIngredientsIntoList(
         // brukes heller det eksisterende, allerede godkjente skalerte
         // midtpunkt-tallet – ingen gjetning på hvordan et intervall skal
         // skaleres). Fjernes igjen så snart et andre bidrag slås sammen inn
-        // (se exactMatch/compatMatch over).
-        rawIntervalText: canMerge && servingsMultiplier === 1 && looksLikeIntervalText(effective.amount) ? effective.amount : null,
-        unit: effective.unit,
+        // (se exactMatch/compatMatch over). MERK: utelates også når
+        // masse↔volum-whitelisten (over) faktisk konverterte linjen – den
+        // originale intervall-TEKSTEN ("1-2") svarer da ikke lenger til den
+        // viste enheten (f.eks. "ss" → "g"), så linjen faller i stedet
+        // tilbake til det vanlige, allerede godkjente tallvisningen.
+        rawIntervalText:
+          canMerge && whitelistUnit == null && servingsMultiplier === 1 && looksLikeIntervalText(effective.amount)
+            ? effective.amount
+            : null,
+        unit: effectiveUnit,
         // MERK: brukte tidligere å henge på item.note her (f.eks.
         // "løk (finhakket)") – ikke bare unødvendig detalj i en handleliste
         // (man trenger ikke vite HVORDAN man skjærer noe før man er på
@@ -1253,6 +1296,145 @@ export function getPurchaseNote(entry: ShoppingListEntry): string | null {
 function formatPlainNumber(value: number): string {
   const rounded = Math.round(value * 100) / 100;
   return rounded % 1 === 0 ? String(rounded) : String(rounded).replace(".", ",");
+}
+
+// ---------------------------------------------------------------------------
+// NY PRESENTASJON – «navn på hovedlinjen, mengde som diskret sekundærtekst»
+// (06.10.2026, Henriks del 2-spesifikasjon). Bygger DIREKTE på den
+// eksisterende formatShoppingAmount over (gjenbrukt uendret, ingen
+// parallell tallformatterings-logikk) – det NYE her er kun (a) et skille
+// mellom "eksakt, tellbart antall" og "tilnærmet/målt/konvertert mengde",
+// som avgjør om "ca."-prefikset skal med, og (b) en grupperings-funksjon
+// for de (sjeldne, se KRYSS-ENHET-SAMMENSLÅING i mergeIngredientsIntoList)
+// tilfellene der SAMME vare har flere, ikke-sammenslåbare behov (f.eks.
+// "15 g koriander" OG "1 håndfull koriander" i to ulike oppskrifter) – disse
+// forblir to SEPARATE ShoppingListEntry-rader (ingen gjetning på hvordan de
+// skal summeres, se eksisterende KRYSS-ENHET-kommentar), men vises samlet
+// under ÉN rad/ett varenavn, slik at ingen informasjon går tapt eller må
+// gjettes bort (Henriks eksplisitte krav).
+// ---------------------------------------------------------------------------
+
+/**
+ * Sant dersom denne linjens mengde er en TILNÆRMET/MÅLT/KONVERTERT mengde
+ * (ekte målenheter som g/kg/ml/l/dl/ss/ts, eller en vag enhet som
+ * "håndfull"/"klype"/"skive") – disse får "ca."-prefiks i den nye
+ * presentasjonen, se formatShoppingSecondaryAmount under. Usant for et
+ * EKSAKT, tellbart antall hele eksemplarer (enhetsløse/«stk»-mengder, og de
+ * allerede kollapsede "del av en helhet"-radene som viser "1") – man kjøper
+ * nøyaktig så mange hele enheter, det er ikke et anslag. Også usant for et
+ * bevart intervall (rawIntervalText, «1-2», «8-10») – det ER allerede et
+ * spenn, et "ca." foran ville vært misvisende/redundant – og for
+ * fritekst-fallback (entry.displayAmount, f.eks. "etter smak") – ikke et
+ * tall å anslå i det hele tatt, vises akkurat som skrevet.
+ *
+ * MERK: ser på "hvilken ENHET er dette", ikke "ble tallet faktisk avrundet
+ * akkurat nå" – et enkelt, uendret bidrag ("90 g smør" fra én oppskrift,
+ * ingen sammenslåing involvert) er like mye et ANSLAG å handle etter som et
+ * sammenslått/konvertert tall, siden man uansett ikke kjøper nøyaktig
+ * 90,00 g smør i butikken.
+ */
+export function isApproximateShoppingAmount(entry: ShoppingListEntry): boolean {
+  if (entry.rawIntervalText) return false;
+  if (entry.amount == null) return false;
+  const normalizedUnit = normalizeUnit(entry.unit);
+  const isHerbPartUnitExempt =
+    !!entry.purchaseMeta?.purchaseId && FRESH_HERB_PART_UNIT_EXEMPT_IDS.has(entry.purchaseMeta.purchaseId);
+  if (!isHerbPartUnitExempt && normalizedUnit && WHOLE_ITEM_PART_UNITS.has(normalizedUnit)) return false;
+  if (!entry.unit || DISCRETE_COUNT_UNITS.has(normalizedUnit)) return false;
+  return true;
+}
+
+/**
+ * Sekundærtekst-mengden for ÉN visningsgruppe (vanligvis ett eneste bidrag –
+ * se groupShoppingEntriesForDisplay under for de sjeldne tilfellene med
+ * flere). Gjenbruker formatShoppingAmount for selve tall-/enhet-formateringen
+ * av HVER rad, og legger kun på ETT delt "ca."-prefiks foran HELE den
+ * sammenslåtte teksten dersom MINST én av radene faktisk er en tilnærmet
+ * mengde (se isApproximateShoppingAmount) – «ca. 15 g + 1 håndfull», ikke
+ * «ca. 15 g + ca. 1 håndfull», se Henriks eget eksempel. Returnerer "" for
+ * en helt tom/ukvantifisert vare (f.eks. bart "salt" uten mengde i det hele
+ * tatt) – kalleren viser da ingen sekundærlinje overhodet, se
+ * ShoppingListView.tsx.
+ */
+export function formatShoppingSecondaryAmount(entries: ShoppingListEntry[]): string {
+  const parts = entries
+    .map((entry) => ({ text: formatShoppingAmount(entry).trim(), approximate: isApproximateShoppingAmount(entry) }))
+    .filter((part) => part.text.length > 0);
+  if (parts.length === 0) return "";
+  const joined = parts.map((part) => part.text).join(" + ");
+  return parts.some((part) => part.approximate) ? `ca. ${joined}` : joined;
+}
+
+/**
+ * Én visningsgruppe – ÉN rad/ett varenavn i den nye presentasjonen, se
+ * filheaderen over. `checked` er sann kun når ALLE underliggende rader er
+ * avhuket (en gruppe med flere, ikke-sammenslåtte behov vises/avhukes som
+ * én samlet enhet i UI-et, se ShoppingListView.tsx).
+ */
+export interface ShoppingDisplayGroup {
+  key: string;
+  name: string;
+  entries: ShoppingListEntry[];
+  checked: boolean;
+}
+
+/** Samme vare-identitet som sameItemAs i mergeIngredientsIntoList (over) –
+ * kjøps-ID når aliasoppslaget traff en kjent vare (dekker også S/G/E, som
+ * alltid er én enkelt rad per purchaseId og derfor trivielt blir en
+ * gruppe på én), ellers mergeIdentity-nøkkelen på navn+enhet. INGEN ny,
+ * parallell "er dette samme vare"-regel – kun den samme identiteten
+ * gjenbrukt for VISNINGS-gruppering i stedet for sammenslåing. */
+function displayGroupKey(entry: ShoppingListEntry): string {
+  if (entry.purchaseMeta?.purchaseId) return `p:${entry.purchaseMeta.purchaseId}`;
+  return `n:${mergeIdentity(entry.name, entry.unit).key}`;
+}
+
+/**
+ * Grupperer en liste med ShoppingListEntry til visningsgrupper – se
+ * ShoppingDisplayGroup over. For de aller fleste varer er dette en 1:1
+ * passthrough (allerede slått sammen til én rad av mergeIngredientsIntoList);
+ * grupperer kun faktisk sammen de sjeldne tilfellene der samme vare har
+ * flere, bevisst IKKE-sammenslåtte behov (inkompatible enheter, se
+ * KRYSS-ENHET-SAMMENSLÅING-kommentaren der). Bevarer rekkefølgen varene
+ * først dukker opp i `entries`.
+ */
+export function groupShoppingEntriesForDisplay(entries: ShoppingListEntry[]): ShoppingDisplayGroup[] {
+  const order: string[] = [];
+  const byKey = new Map<string, ShoppingListEntry[]>();
+  for (const entry of entries) {
+    const key = displayGroupKey(entry);
+    const list = byKey.get(key);
+    if (list) {
+      list.push(entry);
+    } else {
+      byKey.set(key, [entry]);
+      order.push(key);
+    }
+  }
+  return order.map((key) => {
+    const groupEntries = byKey.get(key)!;
+    return {
+      key,
+      name: groupEntries[0].name,
+      entries: groupEntries,
+      checked: groupEntries.every((e) => e.checked),
+    };
+  });
+}
+
+/**
+ * Del/eksporter-linje for ÉN visningsgruppe (06.10.2026, Henriks del 3-
+ * spesifikasjon) – komprimerer den to-linjers på-skjerm-presentasjonen
+ * (navn, så mengde under) til ÉN linje («Kremfløte — ca. 6 dl») for
+ * tekstbasert deling (Notater o.l.), UTEN at noen mengdeinformasjon går
+ * tapt – samme formatShoppingSecondaryAmount som på-skjerm-visningen,
+ * bare satt sammen på én linje i stedet for to. En helt ukvantifisert vare
+ * (ingen mengde i det hele tatt) vises med bare navnet, uten en tom
+ * "— "-rest.
+ */
+export function formatShoppingShareLine(group: ShoppingDisplayGroup): string {
+  const amount = formatShoppingSecondaryAmount(group.entries);
+  return amount ? `${group.name} — ${amount}` : group.name;
 }
 
 /**

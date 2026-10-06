@@ -775,4 +775,116 @@ export function computeWholeUnitPurchaseCount(total: ParsedQuantity): { count: n
   return { count: Math.max(0, Math.ceil(upper)), needsReviewForUnknown: false };
 }
 
+// ---------------------------------------------------------------------------
+// MASSE↔VOLUM-WHITELIST (06.10.2026, Henrik, produktgodkjent – bygger
+// direkte på "masse-volum-konvertering-kandidater.md"-auditen) – EKSPLISITT
+// whitelist for NØYAKTIG de 14 oppgitte kjøps-ID-ene, IKKE en generell
+// masse↔volum-motor. Kun disse 14 radene får lov til å krysse g/ml-grensen
+// som toBaseAmount/toMetricBase ellers aldri lar noe gjøre (se
+// shopping-list.ts sin KRYSS-ENHET-SAMMENSLÅING-kommentar); alt annet som
+// forekommer i både masse- og volumenheter i reelle oppskrifter (ferske
+// urter, ingefær, sylteagurke, pesto, panko, melis, havregryn, brødsmuler,
+// safran, salt, uspesifisert koriander, og enhver annen vare ikke i denne
+// listen) beholder den eksisterende, konservative "ingen kryssing"-
+// oppførselen fullstendig uendret – se auditens "moderat/lav/ikke en god
+// kandidat"-kategorier, som Henrik eksplisitt har bedt om IKKE å
+// implementere nå.
+//
+// Hver rad har NØYAKTIG ÉN Henrik-godkjent kjøkkenmålsfaktor (f.eks.
+// "1 ss smør = 15 g") – lagret direkte som den godkjente referansen
+// (referenceUnit/referenceGrams), ikke som en fritt utledet konstant et
+// annet sted. Andre volumenheter for SAMME vare (ss/ts/dl/l/ml) utledes
+// KUN via de allerede etablerte, delte kjøkkenmålsekvivalentene (1 ss =
+// 15 ml, 1 ts = 5 ml, 1 dl = 100 ml, 1 l = 1000 ml – samme
+// PURCHASE_ML_PER_SS/PURCHASE_ML_PER_TS-konstanter som S/G/E-modellene over
+// bruker) og referansens egen tetthet (referenceGrams / ml for
+// referenceUnit). Presedens: dersom en FREMTIDIG, eksplisitt
+// produkteier-godkjenning gir et EGET tall for en annen enhet av samme vare,
+// skal DEN brukes direkte for akkurat den enheten i stedet for en utledet
+// tetthet – «ikke la en indirekte utregnet tetthet overstyre en eksplisitt
+// godkjent konvertering» (Henriks egen presedensregel for denne whitelisten).
+// I dag har ingen av de 14 radene mer enn én godkjent enhet, så dette er
+// foreløpig kun en datamodell-forberedelse, ikke en aktiv gren.
+// ---------------------------------------------------------------------------
+
+export type MassVolumeReferenceUnit = "ss" | "dl";
+
+export interface MassVolumeConversion {
+  purchaseId: string;
+  /** Henriks godkjente kjøkkenmål for denne varen, f.eks. "ss" (smør: 1 ss)
+   * eller "dl" (kremfløte: 1 dl). */
+  referenceUnit: MassVolumeReferenceUnit;
+  /** Gram for nøyaktig ÉN referenceUnit av denne varen (f.eks. 15 for smør,
+   * «1 ss = 15 g»). */
+  referenceGrams: number;
+  /** Foretrukket sluttenhet – varen vises/lagres ALLTID i denne basen når
+   * den går gjennom whitelisten, uavhengig av hvilken base det opprinnelige
+   * bidraget kom i. "g" for 13 av de 14 varene; "ml" kun for kremfløte
+   * (r011), som Henrik eksplisitt har bedt om skal ende i ml/dl selv når et
+   * bidrag kommer i gram. */
+  preferredBase: "g" | "ml";
+}
+
+const ML_PER_REFERENCE_UNIT: Record<MassVolumeReferenceUnit, number> = {
+  ss: PURCHASE_ML_PER_SS,
+  dl: 100,
+};
+
+/** Henriks eksplisitte 14-vare-tabell (06.10.2026). IKKE utvid denne listen
+ * uten en ny, eksplisitt produkteier-godkjenning – se filheaderen over. */
+const MASS_VOLUME_WHITELIST_ROWS: MassVolumeConversion[] = [
+  { purchaseId: "butter", referenceUnit: "ss", referenceGrams: 15, preferredBase: "g" }, // Smør: 1 ss = 15 g
+  { purchaseId: "r011", referenceUnit: "dl", referenceGrams: 100, preferredBase: "ml" }, // Kremfløte: 1 dl = 100 g → ender i ml/dl
+  { purchaseId: "sugar_white", referenceUnit: "dl", referenceGrams: 90, preferredBase: "g" }, // Hvitt sukker: 1 dl = 90 g
+  { purchaseId: "r019", referenceUnit: "dl", referenceGrams: 140, preferredBase: "g" }, // Honning: 1 dl = 140 g
+  { purchaseId: "tomato_paste", referenceUnit: "ss", referenceGrams: 18, preferredBase: "g" }, // Tomatpuré: 1 ss = 18 g
+  { purchaseId: "yoghurt_greek", referenceUnit: "dl", referenceGrams: 100, preferredBase: "g" }, // Gresk yoghurt: 1 dl = 100 g
+  { purchaseId: "sourcream", referenceUnit: "ss", referenceGrams: 18, preferredBase: "g" }, // Rømme: 1 ss = 18 g
+  { purchaseId: "r040", referenceUnit: "ss", referenceGrams: 13, preferredBase: "g" }, // Majones: 1 ss = 13 g
+  { purchaseId: "sriracha", referenceUnit: "ss", referenceGrams: 12.5, preferredBase: "g" }, // Sriracha: 1 ss = 12,5 g
+  { purchaseId: "r161", referenceUnit: "dl", referenceGrams: 120, preferredBase: "g" }, // Ketchup: 1 dl = 120 g
+  { purchaseId: "r163", referenceUnit: "dl", referenceGrams: 100, preferredBase: "g" }, // Tzatziki: 1 dl = 100 g
+  { purchaseId: "wheat_flour", referenceUnit: "dl", referenceGrams: 55, preferredBase: "g" }, // Hvetemel: 1 dl = 55 g
+  { purchaseId: "sugar_brown", referenceUnit: "dl", referenceGrams: 70, preferredBase: "g" }, // Brunt sukker: 1 dl = 70 g
+  { purchaseId: "cornstarch", referenceUnit: "dl", referenceGrams: 50, preferredBase: "g" }, // Maisenna/Maizena: 1 dl = 50 g
+];
+
+export const MASS_VOLUME_WHITELIST: ReadonlyMap<string, MassVolumeConversion> = new Map(
+  MASS_VOLUME_WHITELIST_ROWS.map((row) => [row.purchaseId, row]),
+);
+
+function densityGPerMl(conv: MassVolumeConversion): number {
+  return conv.referenceGrams / ML_PER_REFERENCE_UNIT[conv.referenceUnit];
+}
+
+/**
+ * Regner om ÉN (mengde, enhet) til varens foretrukne base (g eller ml) via
+ * whitelisten over. Returnerer `null` – INGEN konvertering – dersom
+ * `purchaseId` ikke er en av de 14 whitelistede, eller dersom enheten ikke
+ * er en av de kjente metriske g/ml-enhetene toMetricBase forstår (f.eks.
+ * "boks"/"stk"/"klype"/håndfull" – ingen pakningsstørrelse-antakelser, se
+ * filheaderen). Allerede-i-foretrukket-base returneres uendret i verdi
+ * (fortsatt samme tall, bare typet som { base, value }) – selve
+ * "pen enhet"-visningen (g/kg, ml/dl/l) avgjøres av kalleren
+ * (shopping-list.ts sine pickNiceWeightUnit/pickNiceVolumeUnit), ikke her.
+ */
+export function convertToPreferredBase(
+  purchaseId: string,
+  amount: number,
+  unit: string | null,
+): { base: "g" | "ml"; value: number } | null {
+  const conv = MASS_VOLUME_WHITELIST.get(purchaseId);
+  if (!conv) return null;
+  const metric = toMetricBase(amount, unit);
+  if (!metric) return null;
+  if (metric.base === conv.preferredBase) return metric;
+  const density = densityGPerMl(conv);
+  if (metric.base === "ml") {
+    // Volum → foretrukket vekt (g). Eksempel: 2 ss smør = 30 ml * 1,0 g/ml = 30 g.
+    return { base: "g", value: metric.value * density };
+  }
+  // Vekt → foretrukket volum (ml). Kun kremfløte (r011) i dag.
+  return { base: "ml", value: metric.value / density };
+}
+
 export { PURCHASE_ALIASES, type PurchaseAlias };

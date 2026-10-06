@@ -30,8 +30,12 @@ import {
   mergeIngredientsIntoList,
   isPantryStaple,
   categorizeShoppingItem,
+  isApproximateShoppingAmount,
+  formatShoppingSecondaryAmount,
+  groupShoppingEntriesForDisplay,
+  formatShoppingShareLine,
 } from "../lib/utils/shopping-list";
-import { resolvePurchaseLine } from "../lib/utils/purchase-engine";
+import { resolvePurchaseLine, convertToPreferredBase } from "../lib/utils/purchase-engine";
 import type { IngredientGroup, IngredientItem, ShoppingListEntry, ShoppingListSourceRef } from "../lib/types";
 
 let passed = 0;
@@ -753,12 +757,20 @@ console.log(`\n(S/G/E-ressursmodellene) ${passed} OK, ${failed} FEIL så langt\n
   assertEqual("T120: resolvePurchaseLine gir 'normal', ikke review", resolvePurchaseLine("finhakka tomater", null, "g").kind, "normal");
 }
 {
+  // MERK (06.10.2026): oppdatert forventning etter Henriks masse↔volum-
+  // whitelist (Del 1) – cornstarch (maisenna/maizena) er én av de 14
+  // eksplisitt godkjente kjøps-ID-ene (1 dl = 50 g), og normaliseres derfor
+  // nå til gram FRA FØRSTE forekomst i stedet for å telles i "ss" (se W4 i
+  // Del 3-testene under for samme mekanisme med begge skrivemåtene aktivt
+  // kombinert med whitelist-konverteringen). Selve alias-sammenslåingen
+  // («maisenna» og «maizena» er samme kjøps-ID») er UENDRET og fortsatt
+  // bekreftet her – kun VISNINGSENHETEN er annerledes nå (g, ikke ss).
   let list: ShoppingListEntry[] = [];
   list = addRecipe(list, [it("maisenna", "1", "ss")], "A");
   list = addRecipe(list, [it("maizena", "1", "ss")], "B");
-  const starch = list.find((e) => e.purchaseMeta == null) ?? list[0];
+  const starch = list[0];
   assertTrue("T122: 'maisenna' og 'maizena' er samme produkt (cornstarch)", resolvePurchaseLine("maisenna", null, "ss").purchaseId === "cornstarch" && resolvePurchaseLine("maizena", null, "ss").purchaseId === "cornstarch", null);
-  assertEqual("T122: begge skrivemåtene summeres til samme linje (2 ss)", starch && [starch.amount, starch.unit], [2, "ss"]);
+  assertEqual("T122: begge skrivemåtene summeres til samme linje, nå i gram (whitelist, 1 ss = 7,5 g)", starch && [starch.amount, starch.unit], [15, "g"]);
 }
 
 // T124: finhakket rødløk uten mengde -> rødløk, ukjent behov, ingen oppfunnet stykkmengde
@@ -806,6 +818,246 @@ assertEqual("Regresjon: ukjent vare -> other", categorizeShoppingItem("et helt o
   list = addRecipe(list, [it("parmesan", null, null, "til servering")], "B");
   assertEqual("Regresjon: ukvantifisert parmesan slås sammen med tallfestet, ingen ny linje", list.length, 1);
 }
+
+console.log("=== Del 3: Henriks tre-delte spesifikasjon 06.10.2026 (masse↔volum-whitelist, ny presentasjon, del/eksport) ===\n");
+
+// --- DEL 1: Eksplisitt masse↔volum-whitelist (14 varer) ---
+
+// W1: Henriks eget eksempel – 75 g smør + 1 ss smør -> 90 g (1 ss = 15 g)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("smør", "75", "g")], "R1");
+  list = addRecipe(list, [it("smør", "1", "ss")], "R2");
+  const butter = findByName(list, "smør");
+  assertEqual("W1: 75 g smør + 1 ss smør -> ÉN linje", list.filter((e) => e.name === "smør").length, 1);
+  assertEqual("W1: 75 g smør + 1 ss smør -> 90 g", butter && formatShoppingAmount(butter), "90 g");
+}
+
+// W2: whitelisten normaliserer til foretrukket enhet FRA FØRSTE forekomst
+// (ikke bare når et andre bidrag krysser g/ml-grensen) – "2 ss smør" alene
+// skal vises som "30 g", ikke "2 ss".
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("smør", "2", "ss")], "R1");
+  const butter = findByName(list, "smør");
+  assertEqual("W2: 2 ss smør (ett bidrag) -> 30 g direkte", butter && formatShoppingAmount(butter), "30 g");
+}
+
+// W3: kremfløte (r011) er den ENE varen med foretrukket sluttenhet ml/dl –
+// et vektbidrag skal konverteres TIL volum, ikke omvendt.
+// 3 dl kremfløte (300 ml) + 50 g kremfløte (-> 50 ml, tetthet 1,0 g/ml) = 350 ml = 3,5 dl.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("kremfløte", "3", "dl")], "R1");
+  list = addRecipe(list, [it("kremfløte", "50", "g")], "R2");
+  const cream = findByName(list, "kremfløte");
+  assertEqual("W3: 3 dl + 50 g kremfløte -> ÉN linje", list.filter((e) => e.name === "kremfløte").length, 1);
+  assertEqual("W3: 3 dl kremfløte + 50 g kremfløte -> 3.5 dl (foretrukket enhet ml/dl)", cream?.unit, "dl");
+  assertEqual("W3: totalmengde 3.5 dl", cream?.amount, 3.5);
+}
+
+// W4: maisenna/maizena (cornstarch) – alias-sammenslåingen (ulike
+// skrivemåter av SAMME kjøps-ID) og masse↔volum-whitelisten virker SAMMEN.
+// 1 dl maisenna (50 g) + 50 g maizena = 100 g.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("maisenna", "1", "dl")], "R1");
+  list = addRecipe(list, [it("maizena", "50", "g")], "R2");
+  const cornstarch = list.find((e) => e.purchaseMeta?.purchaseId === "cornstarch");
+  assertTrue("W4: maisenna/maizena slått sammen til ÉN linje", list.filter((e) => e.purchaseMeta?.purchaseId === "cornstarch").length === 1, list);
+  assertEqual("W4: 1 dl maisenna + 50 g maizena -> 100 g", cornstarch && formatShoppingAmount(cornstarch), "100 g");
+}
+
+// W5: sriracha (1 ss = 12,5 g) – nøyaktig referanseenheten gir et eksakt,
+// ikke-flyttalls-urent tall.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("sriracha", "1", "ss")], "R1");
+  const sriracha = findByName(list, "sriracha");
+  assertEqual("W5: 1 ss sriracha -> 12.5 g", sriracha && formatShoppingAmount(sriracha), "12.5 g");
+}
+
+// W6: convertToPreferredBase returnerer null for ikke-whitelistede
+// kjøps-ID-er (ren enhetstest av selve funksjonen i purchase-engine.ts).
+{
+  assertEqual("W6: convertToPreferredBase(garlic, ...) -> null (ikke whitelistet)", convertToPreferredBase("garlic", 2, "ss"), null);
+  assertEqual("W6: convertToPreferredBase(butter, 'boks', ...) -> null (ikke metrisk enhet)", convertToPreferredBase("butter", 1, "boks"), null);
+}
+
+// W7: alt IKKE i whitelisten beholder den eksisterende, konservative
+// "ingen kryssing av g/ml"-oppførselen uendret – fersk koriander (urt,
+// eksplisitt utelatt av Henrik) i g OG ss skal IKKE slås sammen.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("fersk koriander", "15", "g")], "R1");
+  list = addRecipe(list, [it("fersk koriander", "1", "ss")], "R2");
+  const corianderLines = list.filter((e) => e.name === "fersk koriander");
+  assertEqual("W7: fersk koriander i g og ss forblir TO separate linjer", corianderLines.length, 2);
+}
+
+// W8: ingen pakningsstørrelse-antakelser – tomatpuré i "boks" (ikke en
+// metrisk enhet) skal ALDRI konverteres/slås sammen med en gram-mengde av
+// samme vare, selv om tomatpuré selv ER whitelistet for ss/g.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("tomatpuré", "1", "boks")], "R1");
+  list = addRecipe(list, [it("tomatpuré", "20", "g")], "R2");
+  const tomatoPasteLines = list.filter((e) => e.name === "tomatpuré");
+  assertEqual("W8: 1 boks + 20 g tomatpuré -> TO separate linjer (ingen pakningsgjetning)", tomatoPasteLines.length, 2);
+}
+
+// W9: salt (eksplisitt utelatt, "klype" er uansett ikke en metrisk enhet)
+// skal fortsatt ALDRI slås sammen på tvers av g/klype.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("salt", "1", "klype")], "R1");
+  list = addRecipe(list, [it("salt", "5", "g")], "R2");
+  const saltLines = list.filter((e) => e.name === "salt");
+  assertEqual("W9: 1 klype salt + 5 g salt -> TO separate linjer", saltLines.length, 2);
+}
+
+// --- DEL 2: Ny presentasjon (navn på hovedlinjen, mengde som sekundærtekst) ---
+
+// P1: isApproximateShoppingAmount – ekte målenheter/vage enheter er
+// tilnærmet ("ca."), eksakte tellbare antall og bevarte intervaller er det ikke.
+{
+  const gramEntry: ShoppingListEntry = { id: "x1", amount: 90, displayAmount: null, unit: "g", name: "smør", checked: false, fromRecipes: [] };
+  assertTrue("P1: 90 g er en tilnærmet mengde", isApproximateShoppingAmount(gramEntry));
+
+  const handfulEntry: ShoppingListEntry = { id: "x2", amount: 1, displayAmount: null, unit: "håndfull", name: "koriander", checked: false, fromRecipes: [] };
+  assertTrue("P1: '1 håndfull' er en tilnærmet mengde", isApproximateShoppingAmount(handfulEntry));
+
+  const eggEntry: ShoppingListEntry = { id: "x3", amount: 4, displayAmount: null, unit: null, name: "egg", checked: false, fromRecipes: [] };
+  assertTrue("P1: '4' (enhetsløst, eksakt antall) er IKKE tilnærmet", !isApproximateShoppingAmount(eggEntry));
+
+  const stkEntry: ShoppingListEntry = { id: "x4", amount: 3, displayAmount: null, unit: "stk", name: "løk", checked: false, fromRecipes: [] };
+  assertTrue("P1: '3 stk' er IKKE tilnærmet", !isApproximateShoppingAmount(stkEntry));
+
+  const wedgeEntry: ShoppingListEntry = { id: "x5", amount: 4, displayAmount: null, unit: "båter", name: "lime", checked: false, fromRecipes: [] };
+  assertTrue("P1: del-av-en-helhet ('båter', kollapses til 1) er IKKE tilnærmet", !isApproximateShoppingAmount(wedgeEntry));
+
+  const intervalEntry: ShoppingListEntry = {
+    id: "x6",
+    amount: 9,
+    displayAmount: null,
+    rawIntervalText: "8-10",
+    unit: "blad",
+    name: "basilikum",
+    checked: false,
+    fromRecipes: [],
+  };
+  assertTrue("P1: bevart intervall ('8-10 blad') er IKKE tilnærmet", !isApproximateShoppingAmount(intervalEntry));
+}
+
+// P2: formatShoppingSecondaryAmount – "ca."-prefiks for ett enkelt bidrag,
+// gjenbruker formatShoppingAmount uendret.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("smør", "90", "g")], "R1");
+  const butter = findByName(list, "smør")!;
+  assertEqual("P2: sekundærtekst for 90 g smør -> 'ca. 90 g'", formatShoppingSecondaryAmount([butter]), "ca. 90 g");
+
+  let eggList: ShoppingListEntry[] = [];
+  eggList = addRecipe(eggList, [it("egg", "4", "stk")], "R1");
+  const egg = findByPurchaseId(eggList, "egg")!;
+  assertEqual("P2: sekundærtekst for 4 egg -> '4' (ingen 'ca.', eksakt antall)", formatShoppingSecondaryAmount([egg]), "4");
+}
+
+// P3: groupShoppingEntriesForDisplay + formatShoppingSecondaryAmount –
+// flere, ikke-sammenslåtte behov for SAMME vare vises samlet i ÉN gruppe
+// med kombinert sekundærtekst, uten informasjonstap. Henriks eget eksempel:
+// "ca. 15 g + 1 håndfull" (ÉN delt "ca.", ikke gjentatt per del).
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("koriander", "15", "g")], "R1");
+  list = addRecipe(list, [it("koriander", "1", "håndfull")], "R2");
+  const corianderLines = list.filter((e) => e.name === "koriander");
+  assertEqual("P3: '15 g' og '1 håndfull' koriander forblir TO underliggende rader", corianderLines.length, 2);
+  const groups = groupShoppingEntriesForDisplay(list);
+  const corianderGroup = groups.find((g) => g.name === "koriander");
+  assertTrue("P3: de to radene vises som ÉN gruppe", !!corianderGroup && corianderGroup.entries.length === 2, groups);
+  assertEqual(
+    "P3: kombinert sekundærtekst -> 'ca. 15 g + 1 håndfull'",
+    corianderGroup && formatShoppingSecondaryAmount(corianderGroup.entries),
+    "ca. 15 g + 1 håndfull",
+  );
+}
+
+// P4: en helt ukvantifisert vare (bart "salt", ingen mengde i det hele
+// tatt) skal IKKE vise en tom "ca."-sekundærlinje.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("salt", null, null)], "R1");
+  const salt = findByName(list, "salt")!;
+  assertEqual("P4: ukvantifisert salt -> tom sekundærtekst", formatShoppingSecondaryAmount([salt]), "");
+}
+
+// P5: groupShoppingEntriesForDisplay er en 1:1-passthrough for alt som
+// allerede er slått sammen til én rad (de aller fleste varer) – ingen
+// regresjon i gruppe-antallet for et vanlig, ublandet scenario.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("ris", "200", "g")], "R1");
+  list = addRecipe(list, [it("løk", "2", "stk")], "R1");
+  const groups = groupShoppingEntriesForDisplay(list);
+  assertEqual("P5: to ublandede varer -> to grupper", groups.length, 2);
+}
+
+// --- DEL 3: Del/eksporter bevarer mengder i ett-linjes format ---
+
+// E1: Henriks eget eksempel – "Kremfløte — ca. 6 dl" (her: 3 dl + 3 dl -> 6 dl)
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("kremfløte", "3", "dl")], "R1");
+  list = addRecipe(list, [it("kremfløte", "3", "dl")], "R2");
+  const groups = groupShoppingEntriesForDisplay(list);
+  const creamGroup = groups.find((g) => g.name === "kremfløte")!;
+  assertEqual("E1: delingstekst for kremfløte -> 'kremfløte — ca. 6 dl'", formatShoppingShareLine(creamGroup), "kremfløte — ca. 6 dl");
+}
+
+// E2: flere, ikke-sammenslåtte behov komprimeres til ÉN delingslinje,
+// uten informasjonstap (samme kombinerte sekundærtekst som på skjermen).
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("koriander", "15", "g")], "R1");
+  list = addRecipe(list, [it("koriander", "1", "håndfull")], "R2");
+  const groups = groupShoppingEntriesForDisplay(list);
+  const corianderGroup = groups.find((g) => g.name === "koriander")!;
+  assertEqual(
+    "E2: delingstekst for koriander -> 'koriander — ca. 15 g + 1 håndfull'",
+    formatShoppingShareLine(corianderGroup),
+    "koriander — ca. 15 g + 1 håndfull",
+  );
+}
+
+// E3: en helt ukvantifisert vare vises med bare navnet i delingsteksten,
+// uten en tom "— "-rest.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("salt", null, null)], "R1");
+  const groups = groupShoppingEntriesForDisplay(list);
+  const saltGroup = groups.find((g) => g.name === "salt")!;
+  assertEqual("E3: delingstekst for ukvantifisert salt -> bare 'salt'", formatShoppingShareLine(saltGroup), "salt");
+}
+
+console.log(`\n(Del 3) ${passed} OK, ${failed} FEIL totalt\n`);
+
+console.log("=== Del 4: Regresjon – eksisterende kryss-enhet-sammenslåing for IKKE-whitelistede varer ===\n");
+
+// R1: soyasaus (ikke whitelistet) – ss+ts skal fortsatt slås sammen via den
+// EKSISTERENDE, uendrede generiske kryss-enhet-sammenslåingen (units.ts sine
+// presise ml-faktorer, IKKE purchase-engine sine norske kjøkkenmål – se
+// toBaseAmount i shopping-list.ts).
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("soyasaus", "1", "ss")], "R1");
+  list = addRecipe(list, [it("soyasaus", "1", "ts")], "R2");
+  const soy = findByName(list, "soyasaus");
+  assertEqual("R1: 1 ss + 1 ts soyasaus -> ÉN linje (kryss-enhet-sammenslåing uendret)", list.filter((e) => e.name === "soyasaus").length, 1);
+  assertTrue("R1: soyasaus-linjen har en volum-enhet (ts/ss/dl/l)", !!soy && ["ts", "ss", "dl", "l"].includes(soy.unit ?? ""), soy);
+}
+
+console.log(`\n(Del 4) ${passed} OK, ${failed} FEIL totalt\n`);
 
 console.log(`\n=== TOTALT: ${passed} OK, ${failed} FEIL ===`);
 if (failed > 0) {
