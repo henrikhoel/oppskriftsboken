@@ -102,7 +102,28 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       {/* id="top" – ankerpunkt for "til toppen"-pilen nederst i footeren
           (se Footer.tsx), samme enkle anker+scroll-behavior:smooth-mønster
           som "bla nedover"-pilen i heroen bruker, uten behov for JS. */}
-      <body id="top" className="flex min-h-screen flex-col bg-cream text-ink">
+      {/* (06.10.2026, RUNDE 5) bg-black i stedet for bg-cream – Henrik,
+          etter at flex-1-strekk-fiksen (SiteMain.tsx) var bekreftet
+          virkende: "kan du gjøre det grå feltet svart i såfall". Det som
+          var igjen etter strekk-fiksen var footerens egne, normale
+          avstander (mt-20 på selve <footer>, "til toppen"-pilens mt-8+
+          padding) – helt vanlig, konsekvent avstand på ALLE sider, ikke en
+          feil. Det <body> sin egen bakgrunn (--color-cream, #0b0b0a) som
+          vises gjennom akkurat DER (og ethvert annet sted body sin rå
+          bakgrunn skinner gjennom margener mellom flate elementer) leser
+          likevel merkbart gråere enn f.eks. "i sesong" sin egen
+          bg-black-wrapper (#000000) rett over – nøyaktig den synlige sømmen
+          Henrik pekte på. Endrer KUN selve <body>-fargen til ekte
+          Tailwind-"black" (#000000) – IKKE selve --color-cream-tokenet i
+          app/globals.css, som fortsatt brukes akkurat som før på kort/
+          footer/osv. (bg-cream-dark m.fl.) – body sin bakgrunn er i praksis
+          allerede usynlig de aller fleste steder (dekket av header/main/
+          footer sine egne eksplisitte bakgrunner), så denne endringen
+          treffer KUN de tynne sprekkene/margene der den rå bakgrunnen
+          faktisk skinner gjennom, side om side med linje med designets
+          eget uttalte mål om at siden skal lese som "ren sort, ikke brun".
+      */}
+      <body id="top" className="flex min-h-screen flex-col bg-black text-ink">
         <ChromeHeightVars />
         <a
           href="#main-content"
