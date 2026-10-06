@@ -59,6 +59,17 @@ import { t, type Lang, type DictKey } from "@/lib/i18n";
  * vare som gjenstår å handle. Samme prinsipp som ShoppingRow sin egen
  * pantryStapleHint under ({group.checked && isPantryStaple(...)}) brukte fra
  * før – kun section-medlemskapet hadde ikke fulgt etter.
+ *
+ * (06.10.2026, RUNDE 3) JUSTERT – Henrik, etter å ha sett RUNDE 2 i bruk:
+ * "det er bedre om den flyttes nederst på 'annet' delen, sånn at man ser
+ * hvor den flyttes til, nå blir den borte og man må lete etter den".
+ * categorizeShoppingItem() kunne sende en forlatt basisvare til HVILKEN SOM
+ * HELST butikkategori (f.eks. olivenolje → "Tørrvarer"), et sted langt fra
+ * der den nettopp lå – forsvinn-og-dukk-opp-et-annet-sted-følelsen Henrik
+ * beskriver. En forlatt basisvare rutes nå alltid til "Annet" spesifikt
+ * (ikke sin faktiske kategori), OG sorteres sist der (etter resten av
+ * "Annet" sin vanlige uavhuket/avhuket-sortering) – ÉTT fast, forutsigbart
+ * sted å se etter den, se byCategory-løkken og sorteringen rett under.
  */
 
 const CATEGORY_LABEL_KEYS: Record<ShoppingCategoryKey, DictKey> = {
@@ -145,7 +156,16 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
   const categorizedGroups = allGroups.filter((g) => !isPantryStaple(g.name) || !g.checked);
   const byCategory = new Map<ShoppingCategoryKey, ShoppingDisplayGroup[]>();
   for (const group of categorizedGroups) {
-    const key = categorizeShoppingItem(group.name);
+    // (06.10.2026, RUNDE 3) En nettopp uncheckket basisvare sendes ALLTID
+    // til "Annet" i stedet for sin "egentlige" butikkategori – Henrik: "det
+    // er bedre om den flyttes nederst på 'annet' delen, sånn at man ser
+    // hvor den flyttes til, nå blir den borte og man må lete etter den".
+    // categorizeShoppingItem(olivenolje) havner f.eks. i "Tørrvarer", et
+    // helt annet sted i lista enn Basisvarer-seksjonen varen nettopp kom
+    // fra – ÉTT forutsigbart sted å se etter den (alltid "Annet", alltid
+    // nederst der, se sorteringen under) er langt lettere å følge med på
+    // enn å måtte vite/gjette den riktige butikkategorien.
+    const key: ShoppingCategoryKey = isPantryStaple(group.name) ? "other" : categorizeShoppingItem(group.name);
     const list = byCategory.get(key) ?? [];
     list.push(group);
     byCategory.set(key, list);
@@ -154,8 +174,24 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
   // gjenstår mens man går rundt i butikken) – samme prinsipp som den
   // tidligere globale uncheckedFirst-sorteringen, nå bare avgrenset per
   // kategori i stedet for hele listen under ett.
-  for (const list of byCategory.values()) {
-    list.sort((a, b) => Number(a.checked) - Number(b.checked));
+  //
+  // (06.10.2026, RUNDE 3) "Annet" sorteres i tillegg med ferske, forlatte
+  // basisvarer SIST (etter uavhuket/avhuket-sorteringen for resten av
+  // "Annet") – se begrunnelsen ved byCategory-løkken over. En vanlig,
+  // ukategorisert vare som i utgangspunktet hører hjemme i "Annet" holder
+  // seg dermed øverst som før; kun de nylig flyttede basisvarene synker
+  // til bunnen, som den faste, forutsigbare landingsplassen Henrik ba om.
+  for (const [key, list] of byCategory) {
+    if (key === "other") {
+      list.sort((a, b) => {
+        const aMovedStaple = isPantryStaple(a.name) ? 1 : 0;
+        const bMovedStaple = isPantryStaple(b.name) ? 1 : 0;
+        if (aMovedStaple !== bMovedStaple) return aMovedStaple - bMovedStaple;
+        return Number(a.checked) - Number(b.checked);
+      });
+    } else {
+      list.sort((a, b) => Number(a.checked) - Number(b.checked));
+    }
   }
 
   async function handleShare() {
