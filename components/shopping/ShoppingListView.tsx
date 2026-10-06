@@ -104,6 +104,20 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
   const toBuyGroups = allGroups.filter((g) => !g.checked);
   const alreadyBoughtGroups = allGroups.filter((g) => g.checked);
 
+  // Meny-oversikt (06.10.2026, Henrik: "Når handlelisten kommer fra en
+  // ukesmeny, vises selve menyen ved deling/eksport til Notater, men ikke
+  // på handlelistesiden [...] Legg derfor inn en samlet menyoversikt øverst
+  // på selve handlelisten") – HENTET OPP hit fra handleShare under (samme
+  // utledning, ikke en duplisert/separat datakilde): hvilke retter listen
+  // faktisk stammer fra (fromRecipes-sporbarheten som ligger internt på
+  // hver rad, se lib/types.ts), deduplisert, i den rekkefølgen rettene
+  // først dukker opp. Kun basert på toBuyGroups, samme utvalg som selve
+  // varelisten og delingsteksten, slik at skjermvisningen og den delte
+  // teksten alltid stemmer overens. Tom for en vanlig, menyløs handleliste
+  // (manuelt lagt-til varer har fromRecipes: [], se useShoppingList.ts) –
+  // seksjonen under vises da ikke, se bruken.
+  const dishNames = Array.from(new Set(toBuyGroups.flatMap((g) => g.entries.flatMap((e) => e.fromRecipes))));
+
   // Basisvarer (isPantryStaple) havner ALLTID i sin egen seksjon nederst,
   // uavhengig av butikkategori – se filheaderen over. Resten grupperes per
   // butikkategori under.
@@ -141,12 +155,9 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
       const note = group.entries.find((e) => e.note)?.note;
       return note ? `${base} (${note})` : base;
     });
-    // Hvilke retter listen faktisk stammer fra (samme fromRecipes-sporbarhet
-    // som vises per linje i selve UI-et) – deduplisert, i den rekkefølgen
-    // rettene først dukker opp. Kun basert på toBuyGroups, samme utvalg som
-    // selve varelisten under, slik at "meny"-blokken og handlelisten alltid
-    // stemmer overens med hverandre.
-    const dishNames = Array.from(new Set(toBuyGroups.flatMap((g) => g.entries.flatMap((e) => e.fromRecipes))));
+    // dishNames – se den hoistede utledningen over (samme datakilde som nå
+    // også vises i meny-seksjonen øverst på selve handlelistesiden, se
+    // JSX-en rett under AddItemRow-blokken lenger ned i denne filen).
     const menuBlock =
       dishNames.length > 0
         ? `${t(lang, "eveningExperience.menuHeading")}:\n${dishNames.map((d) => `- ${d}`).join("\n")}\n\n`
@@ -224,6 +235,34 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
       <div className="mb-8 print:hidden">
         <AddItemRow lang={lang} onAdd={addManualItem} align="start" />
       </div>
+
+      {/* Meny-oversikt (06.10.2026, Henriks opprydding punkt 4 – se
+       * filheaderen ved dishNames over for hvor denne kommer fra) – vises
+       * KUN når listen faktisk stammer fra én eller flere oppskrifter
+       * (dishNames er tom for en vanlig, menyløs handleliste – ingen tom
+       * MENY-seksjon da). Plassert ETTER toppområdet (antall gjenstår/
+       * del-eksporter/fjern avhukede/tøm listen/legg til vare) og FØR
+       * første varekategori, som bedt om. Bevisst diskret/kompakt – egen,
+       * lavkontrast kort-flate (border-line/bg-paper, samme "kort bak
+       * retter"-flate som resten av CONVITE-uttrykket, se app/globals.css)
+       * i stedet for en stor, dominerende blokk – og ingen "Fra:
+       * [oppskrift]" per vare noe sted: selve varelinjene under er
+       * UENDRET (se ShoppingRow), kildekoblingen vises kun samlet her, én
+       * gang per rett. */}
+      {dishNames.length > 0 && (
+        <section className="mb-8 rounded-lg border border-line bg-paper px-5 py-4">
+          <h2 className="text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-ink-faint">
+            {t(lang, "eveningExperience.menuHeading")}
+          </h2>
+          <ul className="mt-2.5 space-y-1">
+            {dishNames.map((dish) => (
+              <li key={dish} className="font-serif text-sm leading-snug text-ink-soft">
+                {dish}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {SHOPPING_CATEGORY_ORDER.map((category) => {
         const groups = byCategory.get(category);
