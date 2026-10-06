@@ -523,23 +523,22 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
             ) : (
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="text-olive-dark">{t(lang, "weeklyMenu.addDone")}</span>
-                {/* (06.10.2026) ?fromWeeklyMenu=1 – samme mønster som
-                    lenkene til oppskriftssider litt lenger ned i denne
-                    filen (se ChevronLeftIcon-notatet i
-                    app/oppskrifter/[slug]/page.tsx): uten denne
-                    parameteren hadde handlelistesiden ingen vei tilbake
-                    til ukesmenyen (Henrik: "den blir helt borte").
-                    onClick={stashActiveWeeklyMenu(activeWeek)} – SAMME
-                    ett-skudds returøyeblikksbilde som oppskrift-lenkene
-                    under skriver (se useActiveWeeklyMenu.ts): uten denne
-                    var tilbakelenken i seg selv på plass, men selve
-                    /ukesmeny-siden viste en TOM starttilstand likevel
-                    (Henrik: "da må fortsatt ukesmenyen være synlig når
-                    man går tilbake, nå er den tom") – stashen er det som
-                    faktisk gjenoppretter stil/retter/vegetar-filter ved
-                    retur. */}
+                {/* (06.10.2026) Ingen ?fromWeeklyMenu=1 lenger – Henrik:
+                    "uansett om vi har lagt en ukesmeny i handlelista, så
+                    står det ALLTID 'tilbake til ukesmenyen' inne på
+                    handlelista, uansett om man går inn via handlelista
+                    eller senere". BackToWeeklyMenuLink
+                    (components/meal/BackToWeeklyMenuLink.tsx) avgjør nå
+                    SELV om tilbakelenken skal vises, ved å spørre
+                    handlelisten direkte – ingen URL-parameter å sette her
+                    lenger (se filheaderen der for hele resonnementet).
+                    onClick={stashActiveWeeklyMenu(activeWeek)} er bevisst
+                    BEHOLDT som en harmløs, redundant sikring ved siden av
+                    den egentlige skrivingen i handleAddToShoppingList
+                    over – se filheaderen ved clearStashedActiveWeeklyMenu
+                    i useActiveWeeklyMenu.ts. */}
                 <Link
-                  href="/handleliste?fromWeeklyMenu=1"
+                  href="/handleliste"
                   className="font-medium text-clay hover:text-clay-dark"
                   onClick={() => stashActiveWeeklyMenu(activeWeek)}
                 >

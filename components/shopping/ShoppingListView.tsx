@@ -8,6 +8,7 @@ import {
   categorizeShoppingItem,
   formatShoppingSecondaryLine,
   formatShoppingShareLine,
+  getActiveMenuDishNames,
   groupShoppingEntriesForDisplay,
   isPantryStaple,
   SHOPPING_CATEGORY_ORDER,
@@ -107,16 +108,14 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
   // Meny-oversikt (06.10.2026, Henrik: "Når handlelisten kommer fra en
   // ukesmeny, vises selve menyen ved deling/eksport til Notater, men ikke
   // på handlelistesiden [...] Legg derfor inn en samlet menyoversikt øverst
-  // på selve handlelisten") – HENTET OPP hit fra handleShare under (samme
-  // utledning, ikke en duplisert/separat datakilde): hvilke retter listen
-  // faktisk stammer fra (fromRecipes-sporbarheten som ligger internt på
-  // hver rad, se lib/types.ts), deduplisert, i den rekkefølgen rettene
-  // først dukker opp. Kun basert på toBuyGroups, samme utvalg som selve
-  // varelisten og delingsteksten, slik at skjermvisningen og den delte
-  // teksten alltid stemmer overens. Tom for en vanlig, menyløs handleliste
-  // (manuelt lagt-til varer har fromRecipes: [], se useShoppingList.ts) –
-  // seksjonen under vises da ikke, se bruken.
-  const dishNames = Array.from(new Set(toBuyGroups.flatMap((g) => g.entries.flatMap((e) => e.fromRecipes))));
+  // på selve handlelisten") – getActiveMenuDishNames (se
+  // lib/utils/shopping-list.ts) er den ÉNE delte utledningen, nå også
+  // brukt av BackToWeeklyMenuLink (components/meal/BackToWeeklyMenuLink.tsx)
+  // for å avgjøre om "Tilbake til ukesmenyen"-lenken skal vises øverst på
+  // SELVE siden (app/handleliste/page.tsx) – samme svar på "har vi en
+  // meny?" begge steder, ingen duplisert/separat datakilde. Tom for en
+  // vanlig, menyløs handleliste – seksjonen under vises da ikke, se bruken.
+  const dishNames = getActiveMenuDishNames(entries);
 
   // Basisvarer (isPantryStaple) havner ALLTID i sin egen seksjon nederst,
   // uavhengig av butikkategori – se filheaderen over. Resten grupperes per

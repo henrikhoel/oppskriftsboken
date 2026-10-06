@@ -1442,6 +1442,28 @@ export function groupShoppingEntriesForDisplay(entries: ShoppingListEntry[]): Sh
 }
 
 /**
+ * (06.10.2026, Henrik: "uansett om vi har lagt en ukesmeny i handlelista,
+ * så står det ALLTID 'tilbake til ukesmenyen' inne på handlelista,
+ * uansett om man går inn via handlelista eller senere") – hvilke retter
+ * handlelisten FAKTISK stammer fra akkurat nå, ÉN delt utledning brukt av
+ * BÅDE meny-oversikten øverst på selve handlelistesiden
+ * (ShoppingListView.tsx) OG den nye "Tilbake til ukesmenyen"-lenken
+ * (components/meal/BackToWeeklyMenuLink.tsx) – sistnevnte trenger kun å
+ * vite OM listen har en meny (dishNames.length > 0), ikke selve navnene,
+ * men bruker bevisst nøyaktig samme funksjon i stedet for en forenklet/
+ * duplisert sjekk, slik at "har vi en meny?" alltid besvares likt begge
+ * steder. Samme utvalg som del/eksport-teksten (formatShoppingShareLine
+ * kalles jo også kun for toBuyGroups) – KUN det som faktisk gjenstår å
+ * handle, deduplisert, i den rekkefølgen rettene først dukker opp. Tom
+ * for en vanlig, menyløs handleliste (manuelt lagt-til varer har
+ * fromRecipes: [], se useShoppingList.ts).
+ */
+export function getActiveMenuDishNames(entries: ShoppingListEntry[]): string[] {
+  const toBuyGroups = groupShoppingEntriesForDisplay(entries).filter((g) => !g.checked);
+  return Array.from(new Set(toBuyGroups.flatMap((g) => g.entries.flatMap((e) => e.fromRecipes))));
+}
+
+/**
  * OPPRYDDING (06.10.2026, Henrik, med skjermbilde av hvitløk/sitron) – ALL
  * mengde-/behovsinformasjon for en visningsgruppe samlet på ÉN diskret
  * sekundærlinje, i stedet for fordelt over en hoved-mengde ("2") OG en
