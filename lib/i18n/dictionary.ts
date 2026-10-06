@@ -527,6 +527,14 @@ const DICT = {
   "pantryPage.adminExternalCreateLink": { no: "Opprett som egen oppskrift →", en: "Create as your own recipe →" },
 
   "shoppingPage.title": { no: "Handleliste", en: "Shopping list" },
+  // (06.10.2026, Henrik: "når jeg trykker inn på handelista fra
+  // ukesmenyen, så har jeg ingen mulighet til å gå tilbake til
+  // ukesmenyen, den blir helt borte") – samme ett-hakk-tilbake-mønster
+  // som allerede finnes for oppskriftssider (recipeDetail.backToWeeklyMenuLink,
+  // se app/oppskrifter/[slug]/page.tsx): WeeklyMenuView.tsx legger nå ved
+  // ?fromWeeklyMenu=1 på lenken til handlelisten, og app/handleliste/
+  // page.tsx viser denne tilbakelenken når parameteret er satt.
+  "shoppingPage.backToWeeklyMenuLink": { no: "Tilbake til ukesmenyen", en: "Back to the weekly menu" },
   "shoppingPage.metaDescription": {
     no: "Din handleliste, satt sammen fra oppskriftene dine.",
     en: "Your shopping list, put together from your recipes.",

@@ -502,7 +502,13 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
             ) : (
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="text-olive-dark">{t(lang, "weeklyMenu.addDone")}</span>
-                <Link href="/handleliste" className="font-medium text-clay hover:text-clay-dark">
+                {/* (06.10.2026) ?fromWeeklyMenu=1 – samme mønster som
+                    lenkene til oppskriftssider litt lenger ned i denne
+                    filen (se ChevronLeftIcon-notatet i
+                    app/oppskrifter/[slug]/page.tsx): uten denne
+                    parameteren hadde handlelistesiden ingen vei tilbake
+                    til ukesmenyen (Henrik: "den blir helt borte"). */}
+                <Link href="/handleliste?fromWeeklyMenu=1" className="font-medium text-clay hover:text-clay-dark">
                   {t(lang, "weeklyMenu.viewList")} →
                 </Link>
               </div>
