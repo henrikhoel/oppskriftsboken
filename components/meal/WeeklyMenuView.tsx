@@ -507,8 +507,21 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
                     filen (se ChevronLeftIcon-notatet i
                     app/oppskrifter/[slug]/page.tsx): uten denne
                     parameteren hadde handlelistesiden ingen vei tilbake
-                    til ukesmenyen (Henrik: "den blir helt borte"). */}
-                <Link href="/handleliste?fromWeeklyMenu=1" className="font-medium text-clay hover:text-clay-dark">
+                    til ukesmenyen (Henrik: "den blir helt borte").
+                    onClick={stashActiveWeeklyMenu(activeWeek)} – SAMME
+                    ett-skudds returøyeblikksbilde som oppskrift-lenkene
+                    under skriver (se useActiveWeeklyMenu.ts): uten denne
+                    var tilbakelenken i seg selv på plass, men selve
+                    /ukesmeny-siden viste en TOM starttilstand likevel
+                    (Henrik: "da må fortsatt ukesmenyen være synlig når
+                    man går tilbake, nå er den tom") – stashen er det som
+                    faktisk gjenoppretter stil/retter/vegetar-filter ved
+                    retur. */}
+                <Link
+                  href="/handleliste?fromWeeklyMenu=1"
+                  className="font-medium text-clay hover:text-clay-dark"
+                  onClick={() => stashActiveWeeklyMenu(activeWeek)}
+                >
                   {t(lang, "weeklyMenu.viewList")} →
                 </Link>
               </div>
