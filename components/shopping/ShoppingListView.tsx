@@ -36,11 +36,29 @@ import { t, type Lang, type DictKey } from "@/lib/i18n";
  *     lib/utils/shopping-list.ts) i stedet for én lang liste – små
  *     uppercase kategori-labels, samme stil som f.eks. SeasonIngredientList
  *     sine "FRA HAVET/SKOGEN/..."-overskrifter.
- *  4) Basisvarer (isPantryStaple) vises ALLTID i en egen, flat seksjon
- *     nederst – uansett butikkategori – siden poenget med den seksjonen er
- *     "dette har du sikkert fra før", ikke hvor i butikken den står.
+ *  4) Basisvarer (isPantryStaple) vises i en egen, flat seksjon nederst –
+ *     uansett butikkategori – siden poenget med den seksjonen er "dette har
+ *     du sikkert fra før", ikke hvor i butikken den står. KUN mens varen
+ *     fortsatt er avhuket, se (06.10.2026, RUNDE 2) under.
  *  5) Ny, diskret "+ Legg til vare"-rad (useShoppingList sin nye
  *     addManualItem) – et lite inline tekstfelt, ikke en modal.
+ *
+ * (06.10.2026, RUNDE 2) FEILRETTET – Henrik: "når man 'unchecker' en
+ * basisvare, så blir den ikke med i handlelisten når man skal dele den til
+ * notater [...] når man uncheckker den, altså gjør den gyldig, så må den
+ * flytta seg opp til rett over denne 'basisvare'-lista [...] da legger det
+ * seg under 'annet' i lista, det passer bra". stapleGroups/categorizedGroups
+ * under delte FØR kun på isPantryStaple(navn) alene – en basisvare havnet
+ * dermed ALLTID i den flate, overstrøkne "Basisvarer"-seksjonen, uansett
+ * avhukingsstatus, selv om seksjonens egen ingress ("Vi antar at du allerede
+ * har disse") åpenbart ikke lenger stemmer for en vare brukeren bevisst har
+ * avhuket bort (= "nei, denne trenger jeg faktisk"). Deler nå i stedet på
+ * isPantryStaple(navn) && checked – i det øyeblikket varen uncheckes faller
+ * den ut av Basisvarer-seksjonen og inn i den vanlige butikkategori-
+ * grupperingen (categorizeShoppingItem), rett som en hvilken som helst annen
+ * vare som gjenstår å handle. Samme prinsipp som ShoppingRow sin egen
+ * pantryStapleHint under ({group.checked && isPantryStaple(...)}) brukte fra
+ * før – kun section-medlemskapet hadde ikke fulgt etter.
  */
 
 const CATEGORY_LABEL_KEYS: Record<ShoppingCategoryKey, DictKey> = {
@@ -117,11 +135,14 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
   // vanlig, menyløs handleliste – seksjonen under vises da ikke, se bruken.
   const dishNames = getActiveMenuDishNames(entries);
 
-  // Basisvarer (isPantryStaple) havner ALLTID i sin egen seksjon nederst,
-  // uavhengig av butikkategori – se filheaderen over. Resten grupperes per
-  // butikkategori under.
-  const stapleGroups = allGroups.filter((g) => isPantryStaple(g.name));
-  const categorizedGroups = allGroups.filter((g) => !isPantryStaple(g.name));
+  // Basisvarer (isPantryStaple) havner i sin egen seksjon nederst, uavhengig
+  // av butikkategori – KUN mens de fortsatt er avhuket ("vi antar at du
+  // allerede har disse"), se filheaderen over (06.10.2026, RUNDE 2). En
+  // uncheck flytter varen rett over i den vanlige butikkategori-
+  // grupperingen under i stedet, som enhver annen vare som gjenstår å
+  // handle.
+  const stapleGroups = allGroups.filter((g) => isPantryStaple(g.name) && g.checked);
+  const categorizedGroups = allGroups.filter((g) => !isPantryStaple(g.name) || !g.checked);
   const byCategory = new Map<ShoppingCategoryKey, ShoppingDisplayGroup[]>();
   for (const group of categorizedGroups) {
     const key = categorizeShoppingItem(group.name);
