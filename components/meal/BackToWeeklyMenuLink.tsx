@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
+import { activeWeeklyMenuRestoreHref } from "@/lib/hooks/useActiveWeeklyMenu";
 import { getActiveMenuDishNames } from "@/lib/utils/shopping-list";
 import { ChevronLeftIcon } from "@/components/ui/icons";
 import { t, type Lang } from "@/lib/i18n";
@@ -25,11 +26,22 @@ import { t, type Lang } from "@/lib/i18n";
  *
  * Selve KLIKKET tar fortsatt rett til /ukesmeny – OM ukesmenyen der faktisk
  * gjenoppretter stil/retter/vegetar-filter (i stedet for å vise en tom
- * starttilstand) styres av et HELT uavhengig ett-skudds sessionStorage-
- * øyeblikksbilde (stashActiveWeeklyMenu, skrevet idet uken legges i
- * handlelisten, se lib/hooks/useActiveWeeklyMenu.ts) – denne komponenten
- * vet ingenting om OG er ikke avhengig av det, den svarer kun på "bør
- * lenken vises nå?".
+ * starttilstand) styres av et ett-skudds sessionStorage-øyeblikksbilde
+ * (stashActiveWeeklyMenu, skrevet idet uken legges i handlelisten, se
+ * lib/hooks/useActiveWeeklyMenu.ts) – denne komponenten vet ingenting om
+ * SELVE innholdet der, den svarer kun på "bør lenken vises nå?".
+ *
+ * (06.10.2026, RUNDE 3) FEILRETTET – Henrik: "når jeg nå går inn på
+ * handlelisten senere, altså ikke direkte fra ukesmeny, og deretter går
+ * tilbake til ukesmeny, så er den tom igjen". Lenken pekte rett på
+ * "/ukesmeny", og den siden konsumerte/slettet øyeblikksbildet ved HVER
+ * mount – inkludert et hvilket som helst ANNET, tilfeldig besøk på
+ * /ukesmeny (f.eks. via header-lenken) man måtte gjøre i mellomtiden, før
+ * man faktisk trykket HER. Da var øyeblikksbildet borte lenge før det
+ * trengtes. Lenken bruker nå activeWeeklyMenuRestoreHref() – som legger
+ * ved et eksplisitt "gjenopprett"-signal i URL-en – slik at KUN en bevisst
+ * reise via AKKURAT denne lenken konsumerer øyeblikksbildet, se
+ * filheaderen ved RESTORE_PARAM i useActiveWeeklyMenu.ts.
  *
  * Egen, liten klient-komponent (i stedet for å flytte avgjørelsen inn i
  * ShoppingListView selv) fordi den rendres ØVERST på siden, FØR selve
@@ -51,7 +63,7 @@ export function BackToWeeklyMenuLink({ lang }: { lang: Lang }) {
 
   return (
     <Link
-      href="/ukesmeny"
+      href={activeWeeklyMenuRestoreHref("/ukesmeny")}
       className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
     >
       <ChevronLeftIcon className="h-4 w-4" />

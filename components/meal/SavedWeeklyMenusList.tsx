@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { useSavedWeeklyMenus, type SavedWeeklyMenu } from "@/lib/hooks/useSavedWeeklyMenus";
-import { stashActiveWeeklyMenu } from "@/lib/hooks/useActiveWeeklyMenu";
+import { stashActiveWeeklyMenu, activeWeeklyMenuRestoreHref } from "@/lib/hooks/useActiveWeeklyMenu";
 import { VARIED_CHOICE } from "@/lib/kitchen-intelligence/weekly-menu-styles";
 import { localizedTitle } from "@/lib/utils/format";
 import { Button } from "@/components/ui/Button";
@@ -39,7 +39,10 @@ export function SavedWeeklyMenusList({ recipes, lang }: { recipes: SearchableRec
     // da uken opprinnelig ble lagret, se filheaderen i
     // lib/hooks/useActiveWeeklyMenu.ts).
     stashActiveWeeklyMenu({ style: menu.style, recipeIds: menu.recipeIds, vegetarianOnly: false });
-    router.push("/ukesmeny");
+    // (06.10.2026, RUNDE 3) – se filheaderen ved RESTORE_PARAM i
+    // useActiveWeeklyMenu.ts: /ukesmeny konsumerer nå KUN et stashet
+    // øyeblikksbilde når dette gjenopprett-signalet er med i URL-en.
+    router.push(activeWeeklyMenuRestoreHref("/ukesmeny"));
   }
 
   let dateFormatter: Intl.DateTimeFormat | null = null;

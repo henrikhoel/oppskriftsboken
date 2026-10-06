@@ -67,6 +67,50 @@ export function clearStashedActiveWeeklyMenu() {
 }
 
 /**
+ * (06.10.2026, RUNDE 3) Henrik, etter at "ALLTID vis tilbakelenken på
+ * handlelista"-endringen var på plass (se BackToWeeklyMenuLink.tsx):
+ * "når jeg nå går inn på handlelisten senere, altså ikke direkte fra
+ * ukesmeny, og deretter går tilbake til ukesmeny, så er den tom igjen".
+ *
+ * Rotårsak: useActiveWeeklyMenu() under leste OG SLETTET
+ * øyeblikksbildet ved HVER ENESTE mount av /ukesmeny, uansett HVORDAN man
+ * kom dit – ikke bare via en bevisst "tilbake"-reise. Så lenge
+ * tilbakelenken på handlelista nå ALLTID vises (uavhengig av hvor lenge
+ * siden/hvor mange sider siden man la uken i handlelisten), er det fullt
+ * normalt å besøke /ukesmeny via helt vanlig navigasjon (header-lenken,
+ * et bokmerke, osv.) EN gang innimellom – det besøket konsumerte da
+ * øyeblikksbildet med det samme, og lot ingenting stå igjen til den
+ * FAKTISKE senere "tilbake"-reisen fra handlelista.
+ *
+ * Løsningen er et eksplisitt "jeg ØNSKER gjenoppretting"-signal
+ * (RESTORE_PARAM) i URL-en, satt KUN av de stedene som faktisk er en
+ * bevisst retur-reise til en tidligere aktiv/lagret uke: tilbakelenken fra
+ * handlelista (BackToWeeklyMenuLink.tsx), tilbakelenken fra en oppskrift
+ * man kom til via ukesmenyen (app/oppskrifter/[slug]/page.tsx), og "Bruk
+ * denne uken igjen" fra lagrede ukesmenyer (SavedWeeklyMenusList.tsx).
+ * useActiveWeeklyMenu() leser (og sletter) KUN øyeblikksbildet når dette
+ * signalet er med i URL-en – en helt vanlig navigering til /ukesmeny uten
+ * signalet lar et evt. lagret øyeblikksbilde stå urørt, klart for en
+ * SENERE, faktisk tilbake-reise, i stedet for å konsumere det stille i
+ * bakgrunnen. Samtidig beholdes hele poenget fra 28.09.2026-fiksen over
+ * (husker IKKE uken for alltid/ved enhver sidevisning) – uten signalet
+ * starter siden fortsatt alltid tom.
+ */
+const RESTORE_PARAM = "gjenopprett";
+
+function shouldRestoreFromUrl(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).has(RESTORE_PARAM);
+  } catch {
+    return false;
+  }
+}
+
+export function activeWeeklyMenuRestoreHref(targetPath: string): string {
+  return `${targetPath}?${RESTORE_PARAM}=1`;
+}
+
+/**
  * FEILRETTET (28.09.2026) – Henrik: "nå gjør den jo det du sa ikke skulle
  * skje, den husker ukesmenyen om jeg går ut til forsiden og inn igjen på
  * ukesmeny". Første versjon (se git-historikken, samme dag) holdt den
@@ -87,6 +131,10 @@ export function clearStashedActiveWeeklyMenu() {
  * med det samme ved mount. Effekten: naviger til en oppskrift og trykk
  * "tilbake" → uken er der. Naviger til forsiden (ingen stash skjedde der)
  * og inn på /ukesmeny igjen → tom side, som forventet.
+ *
+ * (06.10.2026, RUNDE 3) – "ved mount" over er nå PRESISERT til "ved mount
+ * MED gjenopprett-signalet i URL-en", se RESTORE_PARAM-filheaderen over
+ * for hele resonnementet/feilen dette retter opp i.
  */
 export function useActiveWeeklyMenu() {
   const [state, setState] = useState<ActiveWeeklyMenuState>(EMPTY_ACTIVE_STATE);
@@ -94,13 +142,18 @@ export function useActiveWeeklyMenu() {
 
   useEffect(() => {
     try {
-      const raw = window.sessionStorage.getItem(ACTIVE_WEEKLY_MENU_KEY);
-      if (raw != null) {
-        // Fjernes UMIDDELBART (konsumeres) – en senere, ny sidevisning av
-        // /ukesmeny (uten en ny stashActiveWeeklyMenu()-skriving imellom)
-        // skal IKKE finne denne verdien igjen, se filheaderen over.
-        window.sessionStorage.removeItem(ACTIVE_WEEKLY_MENU_KEY);
-        setState(JSON.parse(raw) as ActiveWeeklyMenuState);
+      if (shouldRestoreFromUrl()) {
+        const raw = window.sessionStorage.getItem(ACTIVE_WEEKLY_MENU_KEY);
+        if (raw != null) {
+          // Fjernes UMIDDELBART (konsumeres) – en senere, ny sidevisning av
+          // /ukesmeny MED signalet (uten en ny stashActiveWeeklyMenu()-
+          // skriving imellom) skal IKKE finne denne verdien igjen, se
+          // filheaderen over. Et besøk UTEN signalet rører derimot ikke
+          // et evt. lagret øyeblikksbilde i det hele tatt – se
+          // RESTORE_PARAM-filheaderen.
+          window.sessionStorage.removeItem(ACTIVE_WEEKLY_MENU_KEY);
+          setState(JSON.parse(raw) as ActiveWeeklyMenuState);
+        }
       }
     } catch {
       // Korrupt data eller sessionStorage utilgjengelig (privat modus o.l.)

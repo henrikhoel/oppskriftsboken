@@ -103,7 +103,14 @@ export default async function RecipePage({
   // samtidig – vilkårlig, men konsekvent, prioritering.
   const cameFromMeal = typeof fromMealId === "string" && fromMealId.trim().length > 0;
   const cameFromWeeklyMenu = typeof fromWeeklyMenu === "string" && fromWeeklyMenu.trim().length > 0;
-  const backHref = cameFromMeal ? `/meny/${fromMealId}` : cameFromWeeklyMenu ? "/ukesmeny" : "/oppskrifter";
+  // (06.10.2026, RUNDE 3) ?gjenopprett=1 – server-komponent, importerer
+  // derfor IKKE activeWeeklyMenuRestoreHref() fra den "use client"-markerte
+  // lib/hooks/useActiveWeeklyMenu.ts (streng-literal her i stedet, MÅ
+  // holdes i sync med RESTORE_PARAM der). Uten signalet leser/konsumerer
+  // ikke /ukesmeny lenger et evt. lagret returøyeblikksbilde – se
+  // filheaderen ved RESTORE_PARAM for hele resonnementet/feilen dette
+  // retter (Henrik: "går tilbake til ukesmeny, så er den tom igjen").
+  const backHref = cameFromMeal ? `/meny/${fromMealId}` : cameFromWeeklyMenu ? "/ukesmeny?gjenopprett=1" : "/oppskrifter";
   const backLabel = t(
     lang,
     cameFromMeal
