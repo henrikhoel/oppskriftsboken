@@ -32,6 +32,7 @@ import {
   categorizeShoppingItem,
   isApproximateShoppingAmount,
   formatShoppingSecondaryAmount,
+  formatShoppingSecondaryLine,
   groupShoppingEntriesForDisplay,
   formatShoppingShareLine,
 } from "../lib/utils/shopping-list";
@@ -960,7 +961,11 @@ console.log("=== Del 3: Henriks tre-delte spesifikasjon 06.10.2026 (masse↔volu
   let eggList: ShoppingListEntry[] = [];
   eggList = addRecipe(eggList, [it("egg", "4", "stk")], "R1");
   const egg = findByPurchaseId(eggList, "egg")!;
-  assertEqual("P2: sekundærtekst for 4 egg -> '4' (ingen 'ca.', eksakt antall)", formatShoppingSecondaryAmount([egg]), "4");
+  assertEqual(
+    "P2: sekundærtekst for 4 egg -> '4 stk.' (ingen 'ca.', men eksplisitt 'stk.' siden styrte S/G/E-kjøpsantall er enhetsløse)",
+    formatShoppingSecondaryAmount([egg]),
+    "4 stk.",
+  );
 }
 
 // P3: groupShoppingEntriesForDisplay + formatShoppingSecondaryAmount –
@@ -1003,6 +1008,51 @@ console.log("=== Del 3: Henriks tre-delte spesifikasjon 06.10.2026 (masse↔volu
   assertEqual("P5: to ublandede varer -> to grupper", groups.length, 2);
 }
 
+// P6: Opprydding 06.10.2026 (Henrik) – "trengs"/"Du trenger" skal ALDRI
+// forekomme i getPurchaseNote for G (hvitløk) eller S (sitrus) lenger.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("fedd hvitløk", "10", null)], "R1");
+  const garlic = findByPurchaseId(list, "garlic");
+  const garlicNote = garlic && getPurchaseNote(garlic);
+  assertTrue("P6: hvitløk-notat inneholder ikke 'trengs'", !!garlicNote && !garlicNote.includes("trengs"), garlicNote);
+  assertTrue("P6: hvitløk-notat inneholder ikke 'Du trenger'", !!garlicNote && !garlicNote.includes("Du trenger"), garlicNote);
+
+  let citrusList: ShoppingListEntry[] = [];
+  citrusList = addRecipe(citrusList, [it("sitronsaft", "2", "ss")], "R1");
+  const lemon = findByPurchaseId(citrusList, "lemon");
+  const lemonNote = lemon && getPurchaseNote(lemon);
+  assertTrue("P6: sitron-notat inneholder ikke 'trengs'", !!lemonNote && !lemonNote.includes("trengs"), lemonNote);
+  assertTrue("P6: sitron-notat inneholder ikke 'Du trenger'", !!lemonNote && !lemonNote.includes("Du trenger"), lemonNote);
+}
+
+// P7: Henriks eget eksempel – kjøpsantall og beregnet behov samles på ÉN
+// sekundærlinje ("2 stk. · ca. 10 fedd" / "2 stk. · ca. 30 ml saft"), ikke
+// spredt over flere linjer.
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("fedd hvitløk", "6", null)], "R1");
+  list = addRecipe(list, [it("fedd hvitløk", "4", null)], "R2");
+  const garlicGroups = groupShoppingEntriesForDisplay(list);
+  const garlicGroup = garlicGroups.find((g) => g.name === "hvitløk")!;
+  assertEqual(
+    "P7: hvitløk -> '2 stk. · ca. 10 fedd'",
+    garlicGroup && formatShoppingSecondaryLine(garlicGroup),
+    "2 stk. · ca. 10 fedd",
+  );
+
+  let citrusList: ShoppingListEntry[] = [];
+  citrusList = addRecipe(citrusList, [it("sitron", "1", null, "hel")], "R1");
+  citrusList = addRecipe(citrusList, [it("sitronsaft", "2", "ss")], "R2");
+  const citrusGroups = groupShoppingEntriesForDisplay(citrusList);
+  const lemonGroup = citrusGroups.find((g) => g.name === "sitron")!;
+  assertEqual(
+    "P7: sitron -> '2 stk. · ca. 30 ml saft'",
+    lemonGroup && formatShoppingSecondaryLine(lemonGroup),
+    "2 stk. · ca. 30 ml saft",
+  );
+}
+
 // --- DEL 3: Del/eksporter bevarer mengder i ett-linjes format ---
 
 // E1: Henriks eget eksempel – "Kremfløte — ca. 6 dl" (her: 3 dl + 3 dl -> 6 dl)
@@ -1038,6 +1088,29 @@ console.log("=== Del 3: Henriks tre-delte spesifikasjon 06.10.2026 (masse↔volu
   const groups = groupShoppingEntriesForDisplay(list);
   const saltGroup = groups.find((g) => g.name === "salt")!;
   assertEqual("E3: delingstekst for ukvantifisert salt -> bare 'salt'", formatShoppingShareLine(saltGroup), "salt");
+}
+
+// E4: Opprydding 06.10.2026 (Henrik) – delingstekst for hvitløk/sitron
+// tilsvarer skjermvisningen (kjøpsantall + beregnet behov på én linje),
+// og inneholder ALDRI "Fra: [oppskrift]".
+{
+  let list: ShoppingListEntry[] = [];
+  list = addRecipe(list, [it("fedd hvitløk", "6", null)], "R1");
+  list = addRecipe(list, [it("fedd hvitløk", "4", null)], "R2");
+  const groups = groupShoppingEntriesForDisplay(list);
+  const garlicGroup = groups.find((g) => g.name === "hvitløk")!;
+  const garlicLine = garlicGroup && formatShoppingShareLine(garlicGroup);
+  assertEqual("E4: delingstekst for hvitløk -> 'hvitløk — 2 stk. · ca. 10 fedd'", garlicLine, "hvitløk — 2 stk. · ca. 10 fedd");
+  assertTrue("E4: delingstekst for hvitløk inneholder ikke 'Fra:'", !!garlicLine && !garlicLine.includes("Fra:"), garlicLine);
+
+  let citrusList: ShoppingListEntry[] = [];
+  citrusList = addRecipe(citrusList, [it("sitron", "1", null, "hel")], "R1");
+  citrusList = addRecipe(citrusList, [it("sitronsaft", "2", "ss")], "R2");
+  const citrusGroups = groupShoppingEntriesForDisplay(citrusList);
+  const lemonGroup = citrusGroups.find((g) => g.name === "sitron")!;
+  const lemonLine = lemonGroup && formatShoppingShareLine(lemonGroup);
+  assertEqual("E4: delingstekst for sitron -> 'sitron — 2 stk. · ca. 30 ml saft'", lemonLine, "sitron — 2 stk. · ca. 30 ml saft");
+  assertTrue("E4: delingstekst for sitron inneholder ikke 'Fra:'", !!lemonLine && !lemonLine.includes("Fra:"), lemonLine);
 }
 
 console.log(`\n(Del 3) ${passed} OK, ${failed} FEIL totalt\n`);

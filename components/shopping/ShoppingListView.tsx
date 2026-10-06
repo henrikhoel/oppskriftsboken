@@ -6,9 +6,8 @@ import { clsx } from "clsx";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
 import {
   categorizeShoppingItem,
-  formatShoppingSecondaryAmount,
+  formatShoppingSecondaryLine,
   formatShoppingShareLine,
-  getPurchaseNote,
   groupShoppingEntriesForDisplay,
   isPantryStaple,
   SHOPPING_CATEGORY_ORDER,
@@ -273,7 +272,7 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
               <li key={group.key} className="border-b border-line/60 py-1.5 text-sm text-ink">
                 <div className="flex items-baseline justify-between gap-4">
                   <span>{group.name}</span>
-                  <span className="shrink-0 font-serif text-ink-soft">{formatShoppingSecondaryAmount(group.entries)}</span>
+                  <span className="shrink-0 font-serif text-ink-soft">{formatShoppingSecondaryLine(group)}</span>
                 </div>
                 {/* Kjøpstips (kun vin) – se samme felt/begrunnelse i
                  * hovedlisten over. Den FØRSTE raden i gruppen med et notat
@@ -295,7 +294,7 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
             <ul className="mt-2 space-y-1">
               {alreadyBoughtGroups.map((group) => (
                 <li key={group.key} className="text-sm text-ink-faint line-through">
-                  {group.name} · {formatShoppingSecondaryAmount(group.entries)}
+                  {group.name} · {formatShoppingSecondaryLine(group)}
                 </li>
               ))}
             </ul>
@@ -312,15 +311,19 @@ export function ShoppingListView({ lang }: { lang: Lang }) {
  * basisvare-seksjonen nederst (identisk oppførsel, kun hvilken liste de
  * vises i er forskjellig).
  *
- * NY PRESENTASJON (06.10.2026, Henriks del 2-spesifikasjon: "hovedlinje =
- * kun varenavn; totalmengde vises som liten diskret sekundærtekst under",
- * ingen "Du trenger"-prefiks) – hovedlinjen er nå BARE varenavnet;
- * mengden (med "ca."-prefiks der mengden er tilnærmet/målt/konvertert, se
- * formatShoppingSecondaryAmount) er en egen, mindre sekundærlinje under,
- * sammen med de øvrige, allerede eksisterende sekundærlinjene (kjøps-notat,
- * basisvare-hint, kjøpstips, "Fra: …") – INGEN av disse er fjernet eller
- * endret i seg selv, kun flyttet litt ned for å gi plass til den nye
- * mengde-linjen over dem.
+ * NY PRESENTASJON (06.10.2026, Henriks del 2-spesifikasjon, oppdatert
+ * 06.10.2026 med ytterligere opprydding: "hovedlinje = kun varenavn; ALL
+ * relevant mengde-/behovsinformasjon samlet på ÉN diskret sekundærlinje",
+ * ingen "Du trenger"/"trengs", ingen "Fra: [oppskrift]") – hovedlinjen er
+ * nå BARE varenavnet; mengden OG et evt. kjøps-notat (f.eks. hvitløkens
+ * fedd-detalj eller sitrusens saft/skall-detalj) er nå ÉN sekundærlinje
+ * under, satt sammen med " · " (se formatShoppingSecondaryLine) i stedet
+ * for å stå på to separate linjer som før. Kildesporingen ("Fra: …") er
+ * fjernet fra selve VISNINGEN – fromRecipes/sources finnes fortsatt
+ * uendret i den underliggende ShoppingListEntry-modellen (se
+ * lib/types.ts), bare ikke rendret her lenger. Basisvare-hint og
+ * kjøpstips (vin) er EGNE, uendrede linjer – de er rådgivende tekst, ikke
+ * mengdeinformasjon, og slås derfor ikke sammen med mengde-/behovslinjen.
  *
  * Tar nå en HEL ShoppingDisplayGroup (én eller flere underliggende rader,
  * se groupShoppingEntriesForDisplay i lib/utils/shopping-list.ts) i stedet
@@ -341,15 +344,12 @@ function ShoppingRow({
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
 }) {
-  const secondaryAmount = formatShoppingSecondaryAmount(group.entries);
-  // Kjøps-normaliserings-notat (05.10.2026, §6) – kun hvitløk/sitrus i dag,
-  // f.eks. "(ca. 7 fedd)" eller den generelle "usikker mengde"-REVIEW-
-  // meldingen. Henter fra ALLE underliggende rader (ikke bare den første) –
-  // en gruppe med flere behov skal ikke kunne skjule en REVIEW-melding på
-  // en av de andre radene.
-  const purchaseNotes = Array.from(new Set(group.entries.map(getPurchaseNote).filter((n): n is string => !!n)));
+  // ALL mengde-/behovsinformasjon (hoved-antall + et evt. kjøps-notat som
+  // "ca. 10 fedd"/"ca. 30 ml saft") samlet på ÉN linje, se
+  // formatShoppingSecondaryLine. Tom streng for en helt ukvantifisert vare
+  // ("salt" uten mengde) – viser da ingen sekundærlinje i det hele tatt.
+  const secondaryLine = formatShoppingSecondaryLine(group);
   const buyingTip = group.entries.find((e) => e.note)?.note;
-  const fromRecipes = Array.from(new Set(group.entries.flatMap((e) => e.fromRecipes)));
 
   function handleToggle() {
     // Setter ALLE underliggende rader til samme, nye tilstand (motsatt av
@@ -402,17 +402,15 @@ function ShoppingRow({
           <span className={clsx("block font-medium", group.checked ? "text-ink-faint line-through" : "text-ink")}>
             {group.name}
           </span>
-          {/* Mengde-sekundærlinjen (06.10.2026) – "ca. 90 g", "4", "ca. 15 g
-           * + 1 håndfull" osv., se formatShoppingSecondaryAmount. Tom streng
-           * for en helt ukvantifisert vare ("salt" uten mengde) – viser da
-           * ingen sekundærlinje i det hele tatt i stedet for en tom rad. */}
-          {secondaryAmount && (
+          {/* Mengde-/behovs-sekundærlinjen (06.10.2026) – "ca. 90 g",
+           * "2 stk. · ca. 10 fedd", "ca. 15 g + 1 håndfull" osv., se
+           * formatShoppingSecondaryLine. Tom streng for en helt
+           * ukvantifisert vare ("salt" uten mengde) – viser da ingen
+           * sekundærlinje i det hele tatt i stedet for en tom rad. */}
+          {secondaryLine && (
             <span className={clsx("block text-xs", group.checked ? "text-ink-faint line-through" : "text-ink-soft")}>
-              {secondaryAmount}
+              {secondaryLine}
             </span>
-          )}
-          {purchaseNotes.length > 0 && (
-            <span className="block text-xs text-ink-faint">{purchaseNotes.join(" · ")}</span>
           )}
           {/* Vises kun mens varen fortsatt står i sin automatisk
            * overstrøkne basisvare-tilstand (se PANTRY_STAPLE_NAMES i
@@ -430,14 +428,10 @@ function ShoppingRow({
               {t(lang, "shoppingPage.buyingTipLabel")}: {buyingTip}
             </span>
           )}
-          {/* Kildeinformasjon – diskret/sekundær (mindre på mobil, se punkt 8
-           * i redesign-spesifikasjonen, slik at den ikke konkurrerer med
-           * selve varenavnet mens man skanner listen i butikken). */}
-          {fromRecipes.length > 0 && (
-            <span className="block text-[0.7rem] text-ink-faint/80 sm:text-xs">
-              {t(lang, "shoppingPage.from")}: {fromRecipes.join(", ")}
-            </span>
-          )}
+          {/* "Fra: [oppskrift]" er FJERNET fra denne visningen (06.10.2026,
+           * Henrik) – kildesporingen (fromRecipes/sources) ligger fortsatt
+           * uendret i selve datamodellen (lib/types.ts), bare ikke vist her
+           * lenger. */}
         </span>
       </label>
       <button

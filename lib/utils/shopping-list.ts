@@ -1244,7 +1244,7 @@ export function getPurchaseNote(entry: ShoppingListEntry): string | null {
     if (totalCloves > 0) parts.push(`${formatPlainNumber(totalCloves)} fedd`);
     if (reservedWholeHeads > 0) parts.push(`${formatPlainNumber(reservedWholeHeads)} hel(e)`);
     if (parts.length === 0) return null;
-    return `ca. ${parts.join(" + ")} trengs`;
+    return `ca. ${parts.join(" + ")}`;
   }
 
   if (meta.ruleId === "S" && meta.events) {
@@ -1270,7 +1270,7 @@ export function getPurchaseNote(entry: ShoppingListEntry): string | null {
     if (zestMl > 0) parts.push(`${formatPlainNumber(zestMl)} ml skall`);
     if (parts.length === 0) return null;
     void fruit;
-    return `${parts.join(" + ")} trengs`;
+    return `ca. ${parts.join(" + ")}`;
   }
 
   if (meta.ruleId === "E" && meta.events) {
@@ -1344,6 +1344,21 @@ export function isApproximateShoppingAmount(entry: ShoppingListEntry): boolean {
   return true;
 }
 
+/** De tre styrte ressursmodellene (S/G/E) har ALLTID unit=null – selve
+ * tallet er et FERDIG UTREGNET kjøpsantall av hele eksemplarer (hoder,
+ * frukter, egg), se mergeGovernedCitrusOrEgg/mergeGovernedGarlic. Et bart
+ * tall der ("2") er tvetydig når det (06.10.2026, Henrik, med skjermbilde)
+ * står rett ved siden av en fedd-/saft-detalj som også er et tall ("2" +
+ * "ca. 10 fedd" leste ut som om "10" hørte til linjen over) – legger derfor
+ * eksplisitt til " stk." for akkurat disse, se formatShoppingSecondaryLine
+ * under. Rene KEEP-varer uten purchaseMeta, eller varer med en EKTE skrevet
+ * enhet (g/ss/håndfull osv.), er UPÅVIRKET – formatShoppingAmount sitt
+ * resultat brukes akkurat som før. */
+function isGovernedWholeCountEntry(entry: ShoppingListEntry): boolean {
+  const ruleId = entry.purchaseMeta?.ruleId;
+  return !entry.unit && (ruleId === "S" || ruleId === "G" || ruleId === "E");
+}
+
 /**
  * Sekundærtekst-mengden for ÉN visningsgruppe (vanligvis ett eneste bidrag –
  * se groupShoppingEntriesForDisplay under for de sjeldne tilfellene med
@@ -1358,7 +1373,11 @@ export function isApproximateShoppingAmount(entry: ShoppingListEntry): boolean {
  */
 export function formatShoppingSecondaryAmount(entries: ShoppingListEntry[]): string {
   const parts = entries
-    .map((entry) => ({ text: formatShoppingAmount(entry).trim(), approximate: isApproximateShoppingAmount(entry) }))
+    .map((entry) => {
+      const raw = formatShoppingAmount(entry).trim();
+      const text = raw && isGovernedWholeCountEntry(entry) ? `${raw} stk.` : raw;
+      return { text, approximate: isApproximateShoppingAmount(entry) };
+    })
     .filter((part) => part.text.length > 0);
   if (parts.length === 0) return "";
   const joined = parts.map((part) => part.text).join(" + ");
@@ -1423,18 +1442,40 @@ export function groupShoppingEntriesForDisplay(entries: ShoppingListEntry[]): Sh
 }
 
 /**
+ * OPPRYDDING (06.10.2026, Henrik, med skjermbilde av hvitløk/sitron) – ALL
+ * mengde-/behovsinformasjon for en visningsgruppe samlet på ÉN diskret
+ * sekundærlinje, i stedet for fordelt over en hoved-mengde ("2") OG en
+ * separat kjøps-notat-parentes ("ca. 10 fedd trengs") på hver sin linje.
+ * «2 fedd hvitløk» -> «hvitløk / 2 stk. · ca. 10 fedd», «2 sitron» -> «sitron
+ * / 2 stk. · ca. 30 ml saft». Delene skilles med " · " (IKKE "+" – det
+ * tegnet er reservert for flere RÅ bidrag av SAMME mengdetype innenfor
+ * formatShoppingSecondaryAmount, se der) og "trengs"/"Du trenger" er
+ * fjernet fra selve ordlyden (se getPurchaseNote over). For varer uten
+ * purchaseMeta (vanlige KEEP-varer) er dette identisk med
+ * formatShoppingSecondaryAmount alene – getPurchaseNote returnerer null for
+ * dem, så det er ingenting å slå sammen med.
+ */
+export function formatShoppingSecondaryLine(group: ShoppingDisplayGroup): string {
+  const amount = formatShoppingSecondaryAmount(group.entries);
+  const notes = Array.from(new Set(group.entries.map(getPurchaseNote).filter((n): n is string => !!n)));
+  return [amount, ...notes].filter((part) => part.length > 0).join(" · ");
+}
+
+/**
  * Del/eksporter-linje for ÉN visningsgruppe (06.10.2026, Henriks del 3-
- * spesifikasjon) – komprimerer den to-linjers på-skjerm-presentasjonen
- * (navn, så mengde under) til ÉN linje («Kremfløte — ca. 6 dl») for
- * tekstbasert deling (Notater o.l.), UTEN at noen mengdeinformasjon går
- * tapt – samme formatShoppingSecondaryAmount som på-skjerm-visningen,
- * bare satt sammen på én linje i stedet for to. En helt ukvantifisert vare
- * (ingen mengde i det hele tatt) vises med bare navnet, uten en tom
- * "— "-rest.
+ * spesifikasjon, oppdatert 06.10.2026 til å bruke den samlede
+ * formatShoppingSecondaryLine i stedet for kun mengden) – komprimerer den
+ * to-linjers på-skjerm-presentasjonen (navn, så mengde+behov under) til ÉN
+ * linje («Kremfløte — ca. 6 dl», «Hvitløk — 2 stk. · ca. 10 fedd») for
+ * tekstbasert deling (Notater o.l.), UTEN at noen mengde-/behovsinformasjon
+ * går tapt. En helt ukvantifisert vare (ingen mengde/notat i det hele tatt)
+ * vises med bare navnet, uten en tom "— "-rest. Inneholder ALDRI
+ * "Fra: [oppskrift]" – kildesporingen (fromRecipes/sources) finnes fortsatt
+ * i selve datamodellen, bare ikke med i selve delingsteksten.
  */
 export function formatShoppingShareLine(group: ShoppingDisplayGroup): string {
-  const amount = formatShoppingSecondaryAmount(group.entries);
-  return amount ? `${group.name} — ${amount}` : group.name;
+  const line = formatShoppingSecondaryLine(group);
+  return line ? `${group.name} — ${line}` : group.name;
 }
 
 /**
