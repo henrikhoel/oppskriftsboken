@@ -36,6 +36,37 @@ export function stashActiveWeeklyMenu(state: ActiveWeeklyMenuState) {
 }
 
 /**
+ * (06.10.2026) Henrik, etter at tilbakelenken fra handlelisten til
+ * ukesmenyen var på plass: "da må fortsatt ukesmenyen være synlig når man
+ * går tilbake, nå er den tom" – TO ganger på rad, selv etter at
+ * stashActiveWeeklyMenu(activeWeek) ble lagt til i onClick på "Se listen
+ * →"-lenken i WeeklyMenuView.tsx. For å ikke være avhengig av AKKURAT den
+ * ene lenkens onClick som eneste utløser (uansett hva som gjør at den
+ * ikke alltid treffer i praksis), skriver WeeklyMenuView nå
+ * øyeblikksbildet ALLEREDE idet uken faktisk legges i handlelisten
+ * (handleAddToShoppingList lykkes) – selve "noe er verdt å ta vare på for
+ * ÉN retur-reise"-hendelsen, uavhengig av hvilken lenke/knapp man senere
+ * bruker for å navigere til handlelisten. For at dette ikke skal
+ * gjeninnføre akkurat den "husker uken for alltid"-bieffekten FØRSTE
+ * forsøk hadde (se filheaderen over) dersom brukeren regenererer/bytter
+ * dag/stil ETTER at uken ble lagt i handlelisten UTEN å besøke
+ * handlelisten i det hele tatt, kalles denne funksjonen i AKKURAT de
+ * samme stedene WeeklyMenuView allerede nullstiller `added`
+ * (handlePickStyle/handleToggleVegetarianOnly/handleGenerate/
+ * handleRegenerate/handleSwapDay/swapDays) – et evt. foreldet
+ * øyeblikksbilde fra en uke som ikke lenger stemmer overens med det som
+ * faktisk ligger i handlelisten, slettes da med det samme i stedet for å
+ * bli stående og kunne dukke opp igjen ved et helt urelatert senere besøk.
+ */
+export function clearStashedActiveWeeklyMenu() {
+  try {
+    window.sessionStorage.removeItem(ACTIVE_WEEKLY_MENU_KEY);
+  } catch {
+    // Se stashActiveWeeklyMenu over – ingenting å gjøre her heller.
+  }
+}
+
+/**
  * FEILRETTET (28.09.2026) – Henrik: "nå gjør den jo det du sa ikke skulle
  * skje, den husker ukesmenyen om jeg går ut til forsiden og inn igjen på
  * ukesmeny". Første versjon (se git-historikken, samme dag) holdt den

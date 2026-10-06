@@ -89,7 +89,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
 import { useShoppingList } from "@/lib/hooks/useShoppingList";
-import { useActiveWeeklyMenu, stashActiveWeeklyMenu } from "@/lib/hooks/useActiveWeeklyMenu";
+import { useActiveWeeklyMenu, stashActiveWeeklyMenu, clearStashedActiveWeeklyMenu } from "@/lib/hooks/useActiveWeeklyMenu";
 import { useSavedWeeklyMenus } from "@/lib/hooks/useSavedWeeklyMenus";
 import { getMealShoppingIngredients } from "@/lib/actions/meal-shopping-list";
 import { formatMinutes, localizedTitle } from "@/lib/utils/format";
@@ -242,6 +242,12 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
   function handlePickStyle(next: WeeklyMenuChoice) {
     if (next === style) return;
     setAdded(false);
+    // (06.10.2026) – se filheaderen ved clearStashedActiveWeeklyMenu i
+    // useActiveWeeklyMenu.ts: uken endres her, så et evt. stashet
+    // øyeblikksbilde av den FORRIGE uken (fra handleAddToShoppingList
+    // under) er ikke lenger gyldig og skal ikke kunne dukke opp igjen ved
+    // et senere, urelatert besøk.
+    clearStashedActiveWeeklyMenu();
     setSavedJustNow(false);
     const nextPool = computePool(recipes, next, vegetarianOnly);
     // Kun regenerer AUTOMATISK ved stil-bytte hvis besøkende allerede har
@@ -257,6 +263,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
   function handleToggleVegetarianOnly() {
     const next = !vegetarianOnly;
     setAdded(false);
+    clearStashedActiveWeeklyMenu();
     setSavedJustNow(false);
     const nextPool = computePool(recipes, style, next);
     const nextRecipeIds = generated ? (nextPool.length >= MIN_RECIPES ? pickRandomWeek(nextPool) : []) : recipeIds;
@@ -266,6 +273,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
   function handleGenerate() {
     if (!hasEnoughRecipes) return;
     setAdded(false);
+    clearStashedActiveWeeklyMenu();
     setSavedJustNow(false);
     setActiveWeek({ style, recipeIds: pickRandomWeek(pool), vegetarianOnly });
   }
@@ -273,6 +281,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
   function handleRegenerate() {
     if (!hasEnoughRecipes) return;
     setAdded(false);
+    clearStashedActiveWeeklyMenu();
     setSavedJustNow(false);
     setActiveWeek({ style, recipeIds: pickRandomWeek(pool), vegetarianOnly });
   }
@@ -284,6 +293,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
     const nextIds = [...recipeIds];
     nextIds[index] = replacement.id;
     setAdded(false);
+    clearStashedActiveWeeklyMenu();
     setSavedJustNow(false);
     setActiveWeek({ style, recipeIds: nextIds, vegetarianOnly });
   }
@@ -309,6 +319,7 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
     const nextIds = [...recipeIds];
     [nextIds[a], nextIds[b]] = [nextIds[b], nextIds[a]];
     setAdded(false);
+    clearStashedActiveWeeklyMenu();
     setSavedJustNow(false);
     setActiveWeek({ style, recipeIds: nextIds, vegetarianOnly });
   }
@@ -383,6 +394,16 @@ export function WeeklyMenuView({ recipes, lang }: { recipes: SearchableRecipe[];
         });
       }
       setAdded(true);
+      // (06.10.2026) Henrik, etter at "Se listen →"-lenkens egen
+      // onClick={stashActiveWeeklyMenu(...)} viste seg IKKE å være nok
+      // alene ("da må fortsatt ukesmenyen være synlig når man går
+      // tilbake, nå er den tom", gjentatt selv etter den fiksen) –
+      // skriver øyeblikksbildet HER i stedet, idet uken faktisk BLIR
+      // lagt i handlelisten, fremfor å stole på nøyaktig det ene senere
+      // klikket på "Se listen →" som eneste utløser. Se filheaderen ved
+      // clearStashedActiveWeeklyMenu i useActiveWeeklyMenu.ts for hvordan
+      // dette likevel holdes ETT-SKUDDS og ferskt (ikke en løpende synk).
+      stashActiveWeeklyMenu({ style, recipeIds, vegetarianOnly });
     } catch (err) {
       setError(err instanceof Error ? err.message : t(lang, "mealShopping.error"));
     } finally {
