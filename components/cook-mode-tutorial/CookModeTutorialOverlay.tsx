@@ -3,10 +3,7 @@
 import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 import { t, type Lang, type DictKey } from "@/lib/i18n";
-import {
-  COOK_MODE_TUTORIAL_MIDDLE_STEP_ID,
-  COOK_MODE_TUTORIAL_TIMER_STEP_ID,
-} from "@/lib/cook-mode-tutorial/demo-recipe";
+import { COOK_MODE_TUTORIAL_MIDDLE_STEP_ID } from "@/lib/cook-mode-tutorial/demo-recipe";
 
 interface TutorialStep {
   /** Verdien på data-cookmode-target i CookMode.tsx, ELLER en liste med
@@ -99,11 +96,25 @@ const STEPS: TutorialStep[] = [
     bodyKey: "cookModeTutorial.allStepsBody",
   },
   {
+    // (07.10.2026, Henrik: "da kan det steget holdes der resten av
+    // tutorialen fordi det også inneholder tid som kan brukes på timer
+    // steget") – brukte tidligere et HELT ANNET demo-steg
+    // (COOK_MODE_TUTORIAL_TIMER_STEP_ID, "Ha i fløten ... 3-4 minutter").
+    // Det MIDTERSTE steget ("Smelt smøret ... i ca. 1 minutt") har også en
+    // tidsangivelse parseStepDurationMs (lib/kitchen-intelligence/timers.ts)
+    // fanger opp, så det kan gjenbrukes her i stedet for å hoppe til et
+    // tredje demo-steg – samme steg gjennom stegtekst, ingredienser OG
+    // tidtaker-forklaringen gjør hele midtpartiet av tutorialen til én
+    // sammenhengende visning av det samme steget, i stedet for tre
+    // forskjellige. "sett timer"-knappen viser da 1 min i stedet for
+    // 3-4 min, men selve funksjonen (en ekte, utledet varighet, ikke
+    // gjetning) demonstreres likt uansett hvilket av de to stegene som
+    // brukes.
     target: "timer",
     shape: "box",
     titleKey: "cookModeTutorial.timerAutoTitle",
     bodyKey: "cookModeTutorial.timerAutoBody",
-    forcedRecipeStepId: COOK_MODE_TUTORIAL_TIMER_STEP_ID,
+    forcedRecipeStepId: COOK_MODE_TUTORIAL_MIDDLE_STEP_ID,
   },
   { target: "timers", shape: "circle", titleKey: "cookModeTutorial.timersTitle", bodyKey: "cookModeTutorial.timersBody" },
   {

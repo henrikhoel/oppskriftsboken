@@ -94,20 +94,27 @@ export const COOK_MODE_TUTORIAL_RECIPE_ID = "cook-mode-tutorial-demo";
  *   men beholdes eksportert (samme "ETT sted å rette"-begrunnelse som
  *   resten av denne filen) i tilfelle et senere tutorial-steg trenger et
  *   fast, forutsigbart FØRSTE demo-steg igjen.
- * - MIDTERSTE steg: verken første eller siste steg i demo-oppskriften –
- *   brukt når selve stegteksten OG "I dette steget"-ingredienslisten
- *   forklares (07.10.2026, Henrik: "hadde det ikke vært best om første
- *   steget i tutorialen var det samme steget som det med ingrediensene?
- *   sånn at det henger mer sammen?" – begge forklaringene peker nå på
- *   akkurat samme demo-steg, "Smelt smøret ...", i stedet for å hoppe fra
- *   steg 1 til steg 2 mellom dem), OG når selve Forrige/Neste-knappene i
- *   bunnen forklares, slik at BEGGE faktisk vises som normalt (Forrige er
- *   utgrået på steg 1, og Neste blir en helt annen, oliven "Ferdig"-knapp
- *   på siste steg).
- * - TIMER-steget: det ENE steget i demo-oppskriften hvis tekst inneholder
- *   en tidsangivelse ("3-4 minutter"), og dermed er det eneste stedet den
- *   ekte "sett timer for steget"-knappen faktisk vises (se
- *   parseStepDurationMs i lib/kitchen-intelligence/timers.ts).
+ * - MIDTERSTE steg ("Smelt smøret ... i ca. 1 minutt"): verken første
+ *   eller siste steg i demo-oppskriften, og teksten inneholder BÅDE en
+ *   tidsangivelse parseStepDurationMs (lib/kitchen-intelligence/timers.ts)
+ *   fanger opp OG er det ene demo-steget med koblede ingredienser (se
+ *   ingredientItemIds under) – derfor brukt for FIRE forskjellige
+ *   tutorial-forklaringer: selve stegteksten, "I dette steget"-
+ *   ingredienslisten, den ekte "sett timer for steget"-knappen, OG
+ *   Forrige/Neste-knappene i bunnen (slik at BEGGE vises normalt – Forrige
+ *   er utgrået på steg 1, og Neste blir en helt annen, oliven "Ferdig"-
+ *   knapp på siste steg). (07.10.2026, Henrik, først om stegtekst+
+ *   ingredienser: "hadde det ikke vært best om første steget i tutorialen
+ *   var det samme steget som det med ingrediensene? sånn at det henger mer
+ *   sammen?", deretter om tidtakeren også: "da kan det steget holdes der
+ *   resten av tutorialen fordi det også inneholder tid som kan brukes på
+ *   timer steget") – ett og samme demo-steg gjennom hele midtpartiet av
+ *   tutorialen i stedet for å hoppe mellom tre forskjellige.
+ * - TIMER-steget: IKKE LENGER i bruk av noe tutorial-steg (se MIDTERSTE
+ *   over, som nå dekker tidtaker-forklaringen også) – beholdes eksportert
+ *   av samme grunn som FØRSTE over, i tilfelle et senere tutorial-steg
+ *   trenger nettopp DETTE demo-steget ("Ha i fløten ... 3-4 minutter")
+ *   igjen.
  */
 export const COOK_MODE_TUTORIAL_FIRST_STEP_ID = "tutorial-step-0";
 export const COOK_MODE_TUTORIAL_MIDDLE_STEP_ID = "tutorial-step-1";
