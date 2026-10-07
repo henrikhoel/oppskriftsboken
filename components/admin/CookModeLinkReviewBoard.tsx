@@ -19,7 +19,12 @@ import {
 import { isSuggestionAlreadyApplied, type CookModeLinkFlags, type CookModeLinkStatus } from "@/lib/utils/cookmode-link-status";
 import type { IngredientGroup, RecipeStep } from "@/lib/types";
 
-type StatusFilter = "all" | "unprocessed" | "needs_review" | "ready" | "missing";
+// "done" (07.10.2026, Henrik: "alle som er ferdige og godkjent bør ligge i
+// en egen 'Ferdig'-fane, sånn at jeg kan se at det faktisk har kommet
+// dit") – IKKE en CookModeLinkStatus (den er fortsatt "ready" i databasen,
+// se CookModeLinkQueueItem.pendingApproval sin filheader), men et eget
+// klient-filter for status="ready" OG allerede anvendt.
+type StatusFilter = "all" | "unprocessed" | "needs_review" | "ready" | "missing" | "done";
 
 const STATUS_LABEL: Record<CookModeLinkStatus, string> = {
   ready: "Klar",
@@ -37,6 +42,7 @@ const FILTER_TABS: { value: StatusFilter; label: string }[] = [
   { value: "needs_review", label: "Bør sjekkes" },
   { value: "missing", label: "Mangler koblinger" },
   { value: "ready", label: "Klar" },
+  { value: "done", label: "Ferdig" },
   { value: "unprocessed", label: "Ikke kjørt" },
   { value: "all", label: "Alle" },
 ];
@@ -246,13 +252,18 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
   // forskjellige tall med samme etikett å holde styr på. En allerede
   // anvendt "Klar"-oppskrift er ferdigbehandlet og forsvinner naturlig fra
   // denne fanen (den er fortsatt søkbar/synlig under "Alle", som bevisst
-  // viser rått antall uansett status).
+  // viser rått antall uansett status) – OG under den nye "Ferdig"-fanen
+  // (07.10.2026, Henrik: "alle som er ferdige og godkjent bør ligge i en
+  // egen 'Ferdig'-fane, sånn at jeg kan se at det faktisk har kommet
+  // dit"), som er akkurat det speilbildet: status="ready" OG IKKE
+  // pendingApproval.
   const counts = useMemo(() => {
-    const c = { all: queue.length, unprocessed: 0, ready: 0, needs_review: 0, missing: 0 };
+    const c = { all: queue.length, unprocessed: 0, ready: 0, done: 0, needs_review: 0, missing: 0 };
     for (const item of queue) {
       if (item.status === null) c.unprocessed++;
       else if (item.status === "ready") {
         if (item.pendingApproval) c.ready++;
+        else c.done++;
       } else c[item.status]++;
     }
     return c;
@@ -264,6 +275,7 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
         if (filter === "all") return true;
         if (filter === "unprocessed") return item.status === null;
         if (filter === "ready") return item.status === "ready" && item.pendingApproval;
+        if (filter === "done") return item.status === "ready" && !item.pendingApproval;
         return item.status === filter;
       })
       .map((item) => item.id);
