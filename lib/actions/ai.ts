@@ -1612,3 +1612,108 @@ export async function suggestIngredientGrouping(
 
   return groups;
 }
+
+/**
+ * "Foreslå ingredienskoblinger" (07.10.2026) – ETT FORSLAG for "I DETTE
+ * STEGET" i Cook Mode (se RecipeStep.ingredientItemIds sin filheader i
+ * lib/types.ts). Henrik, etter at selve Cook Mode-funksjonen var bygget: å
+ * måtte krysse av ingredienser manuelt for 270+ allerede lagrede oppskrifter
+ * er et uoverkommelig manuelt arbeid – denne lar AI-en gjøre et FØRSTE
+ * utkast admin ser over og retter/godkjenner, i stedet for å finne opp sitt
+ * eget "gjett ut fra stegtekst"-system i selve Cook Mode-visningen (som
+ * ville brutt det eksplisitte "ingen AI/gjetting i selve Cook Mode"-kravet
+ * – gjettingen skjer her, i admin, FØR noe lagres, akkurat som Del inn i
+ * grupper over).
+ *
+ * Nøyaktig samme "returner ALDRI selve ingrediensinnholdet, kun indekser"-
+ * prinsipp som suggestIngredientGrouping over, av samme grunn (en AI-
+ * gjendiktet mengde/enhet/navn ville vært en alvorlig, lett-oversett
+ * datafeil) – klientkoden (handleSuggestStepIngredientLinks i
+ * RecipeForm.tsx) slår opp de ORIGINALE FormIngredientItem-objektene på
+ * indeks. ULIK suggestIngredientGrouping på ett avgjørende punkt: en
+ * ingrediens kan høre til FLERE steg (f.eks. salt tilsatt i to omganger),
+ * så det finnes INGEN "kun ett sted"-dedup her.
+ */
+export interface StepIngredientLinkSuggestion {
+  /** Indeks inn i INPUT-listen `steps` (0-basert). */
+  stepIndex: number;
+  /** Indekser inn i INPUT-listen `ingredients` (0-basert, samme flate liste
+   * som suggestIngredientGrouping bruker). Tom liste = steget bruker ingen
+   * (nye) ingredienser (f.eks. "La deigen hvile i kjøleskapet i 30
+   * minutter") – helt gyldig, ikke en feil AI-en skal unngå. */
+  itemIndices: number[];
+}
+
+const STEP_INGREDIENT_LINKS_SCHEMA = {
+  type: "object",
+  properties: {
+    steps: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        properties: {
+          stepIndex: { type: "integer" },
+          itemIndices: { type: "array", items: { type: "integer" } },
+        },
+        required: ["stepIndex", "itemIndices"],
+      },
+    },
+  },
+  required: ["steps"],
+} as const;
+
+export async function suggestStepIngredientLinks(input: IngredientGroupingInput): Promise<StepIngredientLinkSuggestion[]> {
+  if (input.ingredients.length === 0 || input.steps.length === 0) return [];
+
+  const system =
+    "Du er en erfaren oppskriftsredaktør. Du får en oppskrifts fulle ingrediensliste (nummerert, FLAT) og " +
+    "fremgangsmåten (nummererte steg). Din jobb er å avgjøre, FOR HVERT STEG, NØYAKTIG hvilke av de nummererte " +
+    "ingrediensene som faktisk brukes/tilsettes i akkurat det steget – les stegteksten nøye, ikke bare match " +
+    "navn løst.\n\n" +
+    "Et steg kan bruke 0 ingredienser (f.eks. et hvile-/ventesteg, eller et steg som kun beskriver en handling " +
+    "på noe som allerede er tilsatt i et tidligere steg) – returner da en tom liste for det steget, tving ALDRI " +
+    "frem en kobling. En ingrediens kan høre til FLERE steg hvis den faktisk tilsettes/brukes flere steder (f.eks. " +
+    "salt i to omganger, eller noe brukt både til steking og i en saus senere) – inkluder den da i ALLE de " +
+    "faktiske stegene, ikke bare det første. Bruk gruppetitlene i hakeparentes (f.eks. «[Saus]») som en sterk " +
+    "ledetråd: en ingrediens fra en ingrediensgruppe/delsteg-seksjon hører normalt til steg i SAMME seksjon.\n\n" +
+    "Returner EN oppføring per steg (samme antall som antall input-steg, i samme rekkefølge) – ALDRI selve " +
+    "ingrediens- eller stegteksten, kun stepIndex og hvilke ingrediens-indekser som hører til.";
+
+  const ingredientLines = input.ingredients
+    .map((item, i) => `${i}. ${[item.amount, item.unit, item.name].filter((part) => part && part.trim()).join(" ")}`)
+    .join("\n");
+  const stepLines = input.steps
+    .map((s, i) => `${i}. ${s.groupTitle ? `[${s.groupTitle}] ` : ""}${s.text}`)
+    .join("\n");
+
+  const prompt = `Rett: ${input.title}\n\nIngredienser (indeksert):\n${ingredientLines}\n\nFremgangsmåte (indeksert):\n${stepLines}`;
+
+  const raw = await callClaudeToolJSON<{ steps?: unknown }>(system, prompt, STEP_INGREDIENT_LINKS_SCHEMA, {
+    maxTokens: 2000,
+    temperature: 0.1,
+  });
+
+  const validStepIndex = (n: unknown): n is number =>
+    typeof n === "number" && Number.isInteger(n) && n >= 0 && n < input.steps.length;
+  const validItemIndex = (n: unknown): n is number =>
+    typeof n === "number" && Number.isInteger(n) && n >= 0 && n < input.ingredients.length;
+
+  const byStepIndex = new Map<number, number[]>();
+  for (const raw_ of Array.isArray(raw.steps) ? raw.steps : []) {
+    const entry = raw_ as Record<string, unknown>;
+    if (!validStepIndex(entry.stepIndex)) continue;
+    const itemIndices = (Array.isArray(entry.itemIndices) ? entry.itemIndices : []).filter(validItemIndex);
+    byStepIndex.set(entry.stepIndex, itemIndices);
+  }
+
+  if (byStepIndex.size === 0) {
+    throw new Error("Kunne ikke foreslå ingredienskoblinger. Prøv igjen.");
+  }
+
+  // Én oppføring per input-steg, i rekkefølge – steg AI-en (mot formodning)
+  // ikke nevnte i det hele tatt får en tom liste (samme "trygt, stille
+  // fallback"-prinsipp som missing-sikkerhetsnettet i suggestIngredientGrouping
+  // over, men her betyr "mangler" simpelthen "ingen kobling foreslått").
+  return input.steps.map((_, i) => ({ stepIndex: i, itemIndices: byStepIndex.get(i) ?? [] }));
+}

@@ -138,6 +138,15 @@ export function getCookModeTutorialRecipe(lang: Lang): {
       stepNumber: index + 1,
       text,
       sortOrder: index,
+      // "I DETTE STEGET" (07.10.2026) – kun det MIDTERSTE demo-steget
+      // (COOK_MODE_TUTORIAL_MIDDLE_STEP_ID, index 1, "Smelt smøret og fres
+      // hvitløken ...") har koblede ingredienslinjer her, slik at det nye
+      // "step-ingredients"-tutorial-steget (se STEPS i
+      // CookModeTutorialOverlay.tsx) faktisk har noe ekte å vise frem –
+      // smør (tutorial-item-1) og hvitløk (tutorial-item-2), samme indekser
+      // som CONTENT[...].ingredients over. Tomt (ingen seksjon vises) for
+      // alle andre demo-steg, akkurat som en ekte, ennå ukoblet oppskrift.
+      ingredientItemIds: index === 1 ? ["tutorial-item-1", "tutorial-item-2"] : [],
     })),
   };
 }

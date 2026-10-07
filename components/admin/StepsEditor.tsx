@@ -1,7 +1,9 @@
 "use client";
 
-import { newStep, type FormStep } from "@/lib/admin-form-types";
-import { ArrowDownIcon, ArrowUpIcon, PlusIcon, TrashIcon } from "@/components/ui/icons";
+import { useState } from "react";
+import { clsx } from "clsx";
+import { newStep, type FormIngredientGroup, type FormStep } from "@/lib/admin-form-types";
+import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon, PlusIcon, TrashIcon } from "@/components/ui/icons";
 
 function moveAt<T>(list: T[], index: number, direction: -1 | 1): T[] {
   const target = index + direction;
@@ -11,12 +13,107 @@ function moveAt<T>(list: T[], index: number, direction: -1 | 1): T[] {
   return copy;
 }
 
+/**
+ * "Ingredienser i dette steget" (07.10.2026) – admin-UI for RecipeStep.
+ * ingredientItemIds (se filheaderen der i lib/types.ts): en avkrysningsliste
+ * over ALLE ingredienser i skjemaet akkurat nå, gruppert likt
+ * IngredientGroupsEditor.tsx, slik at admin kan krysse av NØYAKTIG hvilke
+ * linjer (ikke bare navn) dette steget bruker. Viser mengde+enhet+navn+
+ * notat for hver rad – samme visningsform som selve ingredienslisten – så
+ * admin kjenner raden igjen selv om flere rader har likt navn (f.eks. "smør"
+ * både til steking og i en saus, med ulik mengde).
+ *
+ * Bevisst en EGEN, kollapset seksjon PER steg (lukket som standard) fremfor
+ * alltid synlig: de fleste steg bruker 0-3 ingredienser, og en full
+ * avkrysningsliste under HVERT ENESTE steg hele tiden ville gjort et
+ * skjema med mange steg uoversiktlig. Antall valgte vises på selve
+ * åpne/lukke-knappen slik at admin ser status uten å måtte åpne den.
+ */
+function StepIngredientLinks({
+  groups,
+  selectedKeys,
+  onChange,
+}: {
+  groups: FormIngredientGroup[];
+  selectedKeys: string[];
+  onChange: (keys: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const namedGroups = groups
+    .map((g) => ({ ...g, items: g.items.filter((i) => i.name.trim() !== "") }))
+    .filter((g) => g.items.length > 0);
+  const selected = new Set(selectedKeys);
+
+  function toggle(key: string) {
+    onChange(selected.has(key) ? selectedKeys.filter((k) => k !== key) : [...selectedKeys, key]);
+  }
+
+  if (namedGroups.length === 0) {
+    return (
+      <p className="mt-2 text-xs text-ink-faint">
+        Legg til ingredienser i listen over først for å kunne koble dem til dette steget.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-xs font-medium text-clay hover:text-clay-dark"
+      >
+        <ChevronDownIcon className={clsx("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
+        {selectedKeys.length === 0
+          ? "Ingredienser i dette steget (ingen koblet)"
+          : `Ingredienser i dette steget (${selectedKeys.length} koblet)`}
+      </button>
+      {open && (
+        <div className="mt-2 space-y-3 rounded-lg border border-line bg-cream/50 p-3">
+          {namedGroups.map((group) => (
+            <div key={group.key}>
+              {group.title && (
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">{group.title}</p>
+              )}
+              <ul className="space-y-1">
+                {group.items.map((item) => (
+                  <li key={item.key}>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-xs text-ink hover:bg-cream-dark">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(item.key)}
+                        onChange={() => toggle(item.key)}
+                        className="h-3.5 w-3.5 shrink-0 accent-clay"
+                      />
+                      <span>
+                        {[item.amount, item.unit].filter((v) => v.trim() !== "").join(" ")} {item.name}
+                        {item.note ? ` (${item.note})` : ""}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function StepsEditor({
   steps,
   onChange,
+  groups,
 }: {
   steps: FormStep[];
   onChange: (steps: FormStep[]) => void;
+  /** Valgfri – kun den HOVEDSAKELIGE fremgangsmåten (ikke vegetarvarianten,
+   * se bruksstedene i RecipeForm.tsx) har ekte, lagrede ingrediens-id-er å
+   * koble til (se filheaderen til FormStep.ingredientItemKeys i
+   * lib/admin-form-types.ts) – uten denne proppen rendres ingen
+   * "Ingredienser i dette steget"-seksjon i det hele tatt. */
+  groups?: FormIngredientGroup[];
 }) {
   function updateStep(index: number, next: FormStep) {
     const copy = [...steps];
@@ -49,6 +146,13 @@ export function StepsEditor({
               rows={2}
               className="w-full resize-y rounded-lg border border-line-strong bg-paper px-3 py-2 text-base text-ink placeholder:text-ink-faint focus:outline-none sm:text-sm"
             />
+            {groups && (
+              <StepIngredientLinks
+                groups={groups}
+                selectedKeys={step.ingredientItemKeys}
+                onChange={(keys) => updateStep(index, { ...step, ingredientItemKeys: keys })}
+              />
+            )}
           </div>
           <div className="flex shrink-0 flex-col gap-1">
             <button

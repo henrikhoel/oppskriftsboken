@@ -23,6 +23,15 @@ export interface FormStep {
   key: string;
   groupTitle: string;
   text: string;
+  /** "I DETTE STEGET" i Cook Mode (07.10.2026) – FormIngredientItem.key-er
+   * (= ingredient_items.id ved lagring, se stableRowId i
+   * lib/actions/recipes.ts) for de ingredienslinjene dette steget bruker,
+   * satt i components/admin/StepsEditor.tsx sin avkrysningsliste. Tom liste
+   * = ingen lenker satt (viser ingen "I DETTE STEGET"-seksjon i Cook Mode),
+   * samme "valgfritt tillegg, ikke et krav"-mønster som resten av
+   * skjemaets valgfrie felter. Se RecipeStep.ingredientItemIds i
+   * lib/types.ts for hele bakgrunnen. */
+  ingredientItemKeys: string[];
 }
 
 /** Eksportert (i tillegg til newIngredientItem/newIngredientGroup/newStep
@@ -46,7 +55,7 @@ export function newIngredientGroup(): FormIngredientGroup {
 }
 
 export function newStep(): FormStep {
-  return { key: makeKey(), groupTitle: "", text: "" };
+  return { key: makeKey(), groupTitle: "", text: "", ingredientItemKeys: [] };
 }
 
 /**

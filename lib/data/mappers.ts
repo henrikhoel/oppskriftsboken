@@ -103,6 +103,10 @@ export interface RawRecipeRow {
         step_number: number;
         text: string;
         sort_order: number;
+        // Se RecipeStep.ingredientItemIds i lib/types.ts ("I DETTE STEGET" i
+        // Cook Mode, migrasjon 0032) – uuid[], not null default '{}' i
+        // databasen, så denne er alltid en (evt. tom) liste, aldri null.
+        ingredient_item_ids: string[];
       }[]
     | null;
 }
@@ -158,6 +162,7 @@ function mapSteps(raw: RawRecipeRow["recipe_steps"]): RecipeStep[] {
       stepNumber: s.step_number,
       text: s.text,
       sortOrder: s.sort_order,
+      ingredientItemIds: s.ingredient_item_ids,
     }));
 }
 
@@ -221,7 +226,7 @@ export const RECIPE_SELECT = `
   recipe_tags(tags(id, slug, name)),
   recipe_images(id, url, alt, sort_order),
   ingredient_groups(id, title, sort_order, ingredient_items(id, amount, unit, name, note, sort_order)),
-  recipe_steps(id, group_title, step_number, text, sort_order)
+  recipe_steps(id, group_title, step_number, text, sort_order, ingredient_item_ids)
 `;
 
 export function toSummary(recipe: Recipe): RecipeSummary {

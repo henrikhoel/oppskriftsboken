@@ -41,6 +41,38 @@ export interface RecipeStep {
   stepNumber: number;
   text: string;
   sortOrder: number;
+  /**
+   * "I DETTE STEGET" i Cook Mode (07.10.2026, ønsket av Henrik: "man skal
+   * ikke måtte åpne hele ingredienslisten for å sjekke mengder mens man
+   * lager mat"). Admin-definerte lenker til de KONKRETE ingredienslinjene
+   * (IngredientItem.id – se lib/types.ts over) dette steget faktisk bruker,
+   * satt i components/admin/StepsEditor.tsx sin "Ingredienser i dette
+   * steget"-avkrysningsliste.
+   *
+   * BEVISST id-basert, IKKE navnebasert eller tekst-/AI-tolket fra selve
+   * stegteksten: samme ingrediensNAVN kan forekomme flere ganger i én
+   * oppskrift med ulik mengde i ulike steg (f.eks. "20 g smør" til steking
+   * og "50 g smør" i en saus) – disse må kunne pekes til HVER SIN
+   * ingredienslinje, noe ren navnematching aldri kunne garantere riktig.
+   *
+   * Cook Mode (CookMode.tsx) slår disse id-ene opp MOT de allerede
+   * skalerte/enhets-konverterte `ingredientGroups` den får inn som prop
+   * (samme ferdigberegnede tall som resten av oppskriftssiden viser via
+   * RecipeInteractive.tsx sin scaleAmount/convertAmountToUs) – selve mengden
+   * dupliseres ALDRI her, kun hvilke linjer som hører til steget.
+   *
+   * Valgfritt/tom liste = ingen lenker satt (gjelder ALLE eksisterende
+   * oppskrifter frem til en admin faktisk definerer dem) – Cook Mode viser
+   * da ingen "I DETTE STEGET"-seksjon for steget, i stedet for å gjette.
+   *
+   * MERK: kun meningsfylt for den ORIGINALE, norske fremgangsmåten. Den
+   * engelske AI-oversettelsen og vegetarvarianten (withSyntheticIds i
+   * RecipeInteractive.tsx) får syntetiske steg-/ingrediens-id-er som aldri
+   * matcher disse – "I DETTE STEGET" vises derfor ikke der (samme stille
+   * fallback som for oppskrifter uten lenker satt), heller enn å vise feil
+   * ingredienser.
+   */
+  ingredientItemIds?: string[];
 }
 
 export interface Category {

@@ -7,7 +7,23 @@ import { z } from "zod";
  * kun frontend-sjekker).
  */
 
+/**
+ * Klientsidig STABIL id (FormIngredientGroup/FormIngredientItem.key i
+ * lib/admin-form-types.ts – satt til den eksisterende database-id-en når en
+ * allerede lagret rad redigeres, eller en fersk crypto.randomUUID() for en
+ * helt ny rad). Valgfri her: skjemaet sender den alltid, men validering
+ * holder feltet valgfritt slik at ingenting brekker dersom den likevel
+ * mangler. lib/actions/recipes.ts sin writeRecipeChildren() bruker denne
+ * (når den faktisk ER en gyldig uuid – se isUuid() der) som selve
+ * databasens id-kolonne ved innsetting i stedet for å la databasen generere
+ * en ny id ved HVERT lagre, slik at "I DETTE STEGET"-lenkene under
+ * (stepSchema.ingredientItemIds) fortsatt peker riktig etter en senere
+ * redigering av oppskriften, selv uten endringer i selve ingredienslisten.
+ */
+const stableIdSchema = z.string().trim().min(1).max(100).optional();
+
 export const ingredientItemSchema = z.object({
+  id: stableIdSchema,
   amount: z.string().trim().max(20).nullable(),
   unit: z.string().trim().max(20).nullable(),
   name: z.string().trim().min(1, "Ingrediensnavn kan ikke være tomt").max(120),
@@ -15,13 +31,21 @@ export const ingredientItemSchema = z.object({
 });
 
 export const ingredientGroupSchema = z.object({
+  id: stableIdSchema,
   title: z.string().trim().max(80).nullable(),
   items: z.array(ingredientItemSchema).min(1, "Legg til minst én ingrediens"),
 });
 
 export const stepSchema = z.object({
+  id: stableIdSchema,
   groupTitle: z.string().trim().max(80).nullable(),
   text: z.string().trim().min(1, "Steget kan ikke være tomt").max(2000),
+  // "I DETTE STEGET" i Cook Mode (migrasjon 0032) – se RecipeStep.ingredientItemIds
+  // i lib/types.ts. Liste av de samme stabile id-ene som
+  // ingredientItemSchema.id over (IKKE validert som ekte uuid her – en
+  // ugyldig/foreldet id blir ganske enkelt en lenke som ikke treffer noen
+  // ingrediens, se writeRecipeChildren(), aldri en lagringsfeil).
+  ingredientItemIds: z.array(z.string().trim().min(1).max(100)).max(200).default([]),
 });
 
 export const recipeInputSchema = z.object({

@@ -29,8 +29,10 @@ import {
   integrateStepsWithImprovements as integrateStepsWithImprovementsAi,
   findRecipesByDishName as findRecipesByDishNameAi,
   suggestIngredientGrouping as suggestIngredientGroupingAi,
+  suggestStepIngredientLinks as suggestStepIngredientLinksAi,
   type IntegratedRecipeStep,
   type IngredientGroupingSuggestion,
+  type StepIngredientLinkSuggestion,
 } from "@/lib/actions/ai";
 import { callClaudeJSON } from "@/lib/ai/anthropic";
 import { clampNutritionValue, type NutritionInfo } from "@/lib/kitchen-intelligence/nutrition";
@@ -120,12 +122,43 @@ async function resolveTagIds(
   return ids;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Avgjør om den klientsidige stabile id-en (RecipeInput sine valgfrie
+ * id-felter på ingrediensgrupper/-linjer, se stableIdSchema i
+ * lib/validation/recipe-schema.ts) faktisk kan brukes som databasens id-
+ * kolonne ved innsetting under. Må være en EKTE uuid – i vanlig bruk er den
+ * alltid det (RecipeForm.tsx sin FormIngredientGroup/Item.key er enten en
+ * eksisterende rad-id lest fra databasen, eller crypto.randomUUID() for en
+ * ny rad), men lib/utils/id.ts sin generateId() har en Math.random()-
+ * fallback for nettlesere/kontekster uten crypto.randomUUID (vanlig
+ * http://-dev-testing, se filheaderen der) som IKKE er en gyldig uuid.
+ * undefined her betyr "la databasen generere en ny id selv" (uendret
+ * oppførsel fra før denne id-bevaringen fantes) – aldri en lagringsfeil.
+ */
+function stableRowId(id: string | undefined): string | undefined {
+  return id && UUID_PATTERN.test(id) ? id : undefined;
+}
+
 /**
  * Skriver alle "barne-tabeller" (ingrediensgrupper/-linjer, steg, bilder,
  * tags) for en oppskrift på nytt. Enklest robuste tilnærming uten ekte
  * databasetransaksjoner i supabase-js: slett alt eksisterende og sett inn
  * på nytt i riktig rekkefølge. Trygt her siden hele skjemaet uansett
  * sendes samlet fra admin-UI-et hver gang.
+ *
+ * (07.10.2026) Setter nå EKSPLISITT `id` på hver innsatt gruppe/linje/steg
+ * når klienten har en gyldig uuid for raden (stableRowId over) – FØR denne
+ * endringen lot vi alltid databasen generere en helt FERSK id ved hvert
+ * eneste lagre, uavhengig av om raden fantes fra før. Det er fortsatt trygt
+ * for alt eksisterende (ingen kode leste/sammenlignet disse id-ene over tid
+ * på en måte som krevde stabilitet), men "I DETTE STEGET" i Cook Mode (se
+ * RecipeStep.ingredientItemIds i lib/types.ts) lenker admin-satte
+ * steg->ingredienslinje-referanser via NØYAKTIG disse id-ene – uten
+ * stabilitet ville lenken blitt stille brutt igjen i det øyeblikket
+ * oppskriften ble lagret på nytt, selv uten noen endring i selve
+ * ingredienslisten.
  */
 async function writeRecipeChildren(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -140,7 +173,12 @@ async function writeRecipeChildren(
   for (const [groupIndex, group] of input.ingredientGroups.entries()) {
     const { data: groupRow, error: groupError } = await supabase
       .from("ingredient_groups")
-      .insert({ recipe_id: recipeId, title: group.title, sort_order: groupIndex })
+      .insert({
+        id: stableRowId(group.id),
+        recipe_id: recipeId,
+        title: group.title,
+        sort_order: groupIndex,
+      })
       .select("id")
       .single();
 
@@ -149,6 +187,7 @@ async function writeRecipeChildren(
     }
 
     const itemsPayload = group.items.map((item, itemIndex) => ({
+      id: stableRowId(item.id),
       group_id: groupRow.id,
       amount: item.amount || null,
       unit: item.unit || null,
@@ -163,12 +202,24 @@ async function writeRecipeChildren(
     }
   }
 
+  // "I DETTE STEGET" (ingredient_item_ids, migrasjon 0032) – kun de
+  // id-ene admin faktisk koblet til STEGET som fortsatt refererer en
+  // ingrediens som faktisk finnes i DENNE lagringen filtreres inn; en
+  // foreldet/slettet lenke (f.eks. admin fjernet ingrediensen etterpå uten
+  // å huske å fjerne krysset) blir dermed luket bort automatisk i stedet
+  // for å ligge igjen som en lenke til en id som ikke lenger finnes.
+  const allValidItemIds = new Set(
+    input.ingredientGroups.flatMap((g) => g.items.map((item) => stableRowId(item.id)).filter((id): id is string => id != null)),
+  );
+
   const stepsPayload = input.steps.map((step, index) => ({
+    id: stableRowId(step.id),
     recipe_id: recipeId,
     group_title: step.groupTitle,
     step_number: index + 1,
     text: step.text,
     sort_order: index,
+    ingredient_item_ids: step.ingredientItemIds.filter((id) => allValidItemIds.has(id)),
   }));
 
   if (stepsPayload.length > 0) {
@@ -1376,6 +1427,48 @@ export async function suggestIngredientGrouping(input: {
     return {
       success: false,
       error: err instanceof Error ? err.message : "Kunne ikke dele ingrediensene inn i grupper. Prøv igjen.",
+    };
+  }
+}
+
+export interface StepIngredientLinksActionResult {
+  success: boolean;
+  links?: StepIngredientLinkSuggestion[];
+  error?: string;
+}
+
+/**
+ * "Foreslå ingredienskoblinger" (07.10.2026) – admin-only, kalt fra
+ * handleSuggestStepIngredientLinks i RecipeForm.tsx. Se filheaderen til
+ * suggestStepIngredientLinks i lib/actions/ai.ts for hele bakgrunnen: et
+ * FORSLAG til RecipeStep.ingredientItemIds ("I DETTE STEGET" i Cook Mode),
+ * admin ser over og retter/godkjenner i skjemaet FØR noe lagres – samme
+ * mønster som suggestIngredientGrouping over.
+ */
+export async function suggestStepIngredientLinks(input: {
+  title: string;
+  ingredients: { amount: string | null; unit: string | null; name: string; note: string | null }[];
+  steps: { groupTitle: string | null; text: string }[];
+}): Promise<StepIngredientLinksActionResult> {
+  await requireAdmin();
+
+  if (!input.title.trim()) {
+    return { success: false, error: "Legg inn en tittel før du foreslår ingredienskoblinger." };
+  }
+  if (input.ingredients.length === 0) {
+    return { success: false, error: "Legg inn minst én ingrediens før du foreslår ingredienskoblinger." };
+  }
+  if (input.steps.length === 0) {
+    return { success: false, error: "Legg inn minst ett steg før du foreslår ingredienskoblinger." };
+  }
+
+  try {
+    const links = await suggestStepIngredientLinksAi(input);
+    return { success: true, links };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Kunne ikke foreslå ingredienskoblinger. Prøv igjen.",
     };
   }
 }

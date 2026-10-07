@@ -36,6 +36,7 @@ import {
   integrateStepsWithImprovements,
   findRecipesByDishName,
   suggestIngredientGrouping,
+  suggestStepIngredientLinks,
 } from "@/lib/actions/recipes";
 import {
   importRecipeFromUrl,
@@ -88,7 +89,12 @@ function recipeToFormGroups(recipe?: Recipe | null): FormIngredientGroup[] {
 
 function recipeToFormSteps(recipe?: Recipe | null): FormStep[] {
   if (!recipe || recipe.steps.length === 0) return [newStep()];
-  return recipe.steps.map((s) => ({ key: s.id, groupTitle: s.groupTitle ?? "", text: s.text }));
+  return recipe.steps.map((s) => ({
+    key: s.id,
+    groupTitle: s.groupTitle ?? "",
+    text: s.text,
+    ingredientItemKeys: s.ingredientItemIds ?? [],
+  }));
 }
 
 /** Samme konvertering som recipeToFormGroups/recipeToFormSteps over, men for
@@ -113,7 +119,12 @@ function vegetarianToFormGroups(variant: VegetarianVariant | null | undefined): 
 
 function vegetarianToFormSteps(variant: VegetarianVariant | null | undefined): FormStep[] {
   if (!variant || variant.steps.length === 0) return [newStep()];
-  return variant.steps.map((s) => ({ key: makeKey(), groupTitle: s.groupTitle ?? "", text: s.text }));
+  return variant.steps.map((s) => ({
+    key: makeKey(),
+    groupTitle: s.groupTitle ?? "",
+    text: s.text,
+    ingredientItemKeys: [],
+  }));
 }
 
 /** Skjema-vennlig form av én DrinkPairingOption (vin/øl/alkoholfritt, se
@@ -316,7 +327,9 @@ export function RecipeForm({
         items: g.items.map((i) => ({ key: makeKey(), amount: i.amount, unit: i.unit, name: i.name, note: i.note })),
       })),
     );
-    setSteps(draft.steps.map((s) => ({ key: makeKey(), groupTitle: s.groupTitle ?? "", text: s.text })));
+    setSteps(
+      draft.steps.map((s) => ({ key: makeKey(), groupTitle: s.groupTitle ?? "", text: s.text, ingredientItemKeys: [] })),
+    );
     if (draft.source) setSource(draft.source);
     // (26.09.2026) Tips/Pass på nederst på siden – KUN satt når kilden
     // faktisk hadde et eget avsnitt for det (se RecipeImportDraft sin
@@ -573,7 +586,9 @@ export function RecipeForm({
           })),
         })),
       );
-      setSteps(draft.steps.map((s) => ({ key: makeKey(), groupTitle: s.groupTitle ?? "", text: s.text })));
+      setSteps(
+        draft.steps.map((s) => ({ key: makeKey(), groupTitle: s.groupTitle ?? "", text: s.text, ingredientItemKeys: [] })),
+      );
       if (draft.prepTimeMinutes != null) setPrepTime(String(draft.prepTimeMinutes));
       if (draft.cookTimeMinutes != null) setCookTime(String(draft.cookTimeMinutes));
       setDifficulty(draft.difficulty);
@@ -832,6 +847,70 @@ export function RecipeForm({
     }
   }
 
+  // "Foreslå ingredienskoblinger" (07.10.2026) – ETT FORSLAG til "I DETTE
+  // STEGET" i Cook Mode (se RecipeStep.ingredientItemIds sin filheader i
+  // lib/types.ts og suggestStepIngredientLinks sin i lib/actions/ai.ts).
+  // Henrik: å måtte krysse av dette manuelt på 270+ allerede lagrede
+  // oppskrifter er et uoverkommelig manuelt arbeid – denne fyller ut
+  // avkrysningene i StepsEditor FOR HVERT steg, admin ser over og
+  // retter/fjerner feil før "Lagre endringer" trykkes, akkurat som "Del inn
+  // i grupper" over. ERSTATTER eksisterende koblinger på alle steg (ikke en
+  // slå-sammen) – admin ba om et komplett forslag å korrigere, ikke et
+  // tillegg til det som evt. allerede var krysset av.
+  const [isSuggestingStepLinks, setIsSuggestingStepLinks] = useState(false);
+  const [stepLinksError, setStepLinksError] = useState<string | null>(null);
+
+  async function handleSuggestStepIngredientLinks() {
+    setStepLinksError(null);
+    const flatItems = groups.flatMap((g) => g.items);
+    if (flatItems.length === 0 || flatItems.every((item) => item.name.trim() === "")) {
+      setStepLinksError("Legg inn minst én ingrediens før du foreslår ingredienskoblinger.");
+      return;
+    }
+    if (steps.every((s) => s.text.trim() === "")) {
+      setStepLinksError("Legg inn minst ett steg før du foreslår ingredienskoblinger.");
+      return;
+    }
+
+    setIsSuggestingStepLinks(true);
+    try {
+      const result = await suggestStepIngredientLinks({
+        title,
+        ingredients: flatItems.map((item) => ({
+          amount: item.amount.trim() || null,
+          unit: item.unit.trim() || null,
+          name: item.name,
+          note: item.note.trim() || null,
+        })),
+        steps: steps.map((s) => ({ groupTitle: s.groupTitle || null, text: s.text })),
+      });
+
+      if (!result.success || !result.links) {
+        setStepLinksError(result.error ?? "Kunne ikke foreslå ingredienskoblinger. Prøv igjen.");
+        return;
+      }
+
+      // Slår opp de ORIGINALE FormIngredientItem.key-ene på indeks (samme
+      // flate liste som ble sendt inn) – AI-en returnerer aldri selve
+      // ingrediensinnholdet, kun indekser, se filheaderen til
+      // suggestStepIngredientLinks i lib/actions/ai.ts.
+      setSteps((prevSteps) =>
+        prevSteps.map((step, i) => {
+          const suggestion = result.links!.find((l) => l.stepIndex === i);
+          if (!suggestion) return step;
+          const keys = suggestion.itemIndices
+            .map((itemIndex) => flatItems[itemIndex]?.key)
+            .filter((key): key is string => key != null);
+          return { ...step, ingredientItemKeys: keys };
+        }),
+      );
+    } catch (err) {
+      setStepLinksError(err instanceof Error ? err.message : "Kunne ikke foreslå ingredienskoblinger. Prøv igjen.");
+    } finally {
+      setIsSuggestingStepLinks(false);
+    }
+  }
+
   async function handleSuggestImprovement() {
     setImprovementError(null);
     setIsSuggestingImprovement(true);
@@ -932,7 +1011,7 @@ export function RecipeForm({
           return;
         }
         setSteps(
-          result.steps.map((s) => ({ key: makeKey(), groupTitle: s.groupTitle ?? "", text: s.text })),
+          result.steps.map((s) => ({ key: makeKey(), groupTitle: s.groupTitle ?? "", text: s.text, ingredientItemKeys: [] })),
         );
       } finally {
         setIsImplementingImprovements(false);
@@ -1571,10 +1650,12 @@ export function RecipeForm({
       difficulty,
       spiceLevel,
       ingredientGroups: groups.map((g) => ({
+        id: g.key,
         title: g.title || null,
         items: g.items
           .filter((i) => i.name.trim() !== "")
           .map((i) => ({
+            id: i.key,
             amount: i.amount || null,
             unit: i.unit || null,
             name: i.name,
@@ -1583,7 +1664,22 @@ export function RecipeForm({
       })),
       steps: steps
         .filter((s) => s.text.trim() !== "")
-        .map((s) => ({ groupTitle: s.groupTitle || null, text: s.text })),
+        .map((s) => ({
+          id: s.key,
+          groupTitle: s.groupTitle || null,
+          text: s.text,
+          // "I DETTE STEGET" i Cook Mode – se FormStep.ingredientItemKeys sin
+          // filheader i lib/admin-form-types.ts. Et item kan ha blitt
+          // slettet fra ingredienslisten uten at krysset ble fjernet her;
+          // writeRecipeChildren() i lib/actions/recipes.ts luker selv bort
+          // lenker til id-er som ikke lenger finnes, så ingen filtrering er
+          // strengt nødvendig her – men gjort likevel for å ikke sende
+          // referanser til ingredienser som uansett ble fjernet fra
+          // skjemaet (tomt navn) i filteret over.
+          ingredientItemIds: s.ingredientItemKeys.filter((key) =>
+            groups.some((g) => g.items.some((i) => i.key === key && i.name.trim() !== "")),
+          ),
+        })),
       notes: notes || null,
       tips: tips || null,
       warnings: warnings || null,
@@ -2702,27 +2798,49 @@ export function RecipeForm({
       <section ref={stepsSectionRef} className="rounded-card border border-line bg-paper p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-serif text-xl text-ink">Fremgangsmåte</h2>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleOpenOrGenerateImprovement}
-            disabled={
-              isSuggestingImprovement ||
-              !title.trim() ||
-              groups.every((g) => g.items.every((i) => i.name.trim() === "")) ||
-              steps.every((s) => s.text.trim() === "")
-            }
-          >
-            {isSuggestingImprovement
-              ? "Vurderer …"
-              : improvement
-                ? "Vis forslag til forbedring"
-                : "Forslag til forbedring"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* "Foreslå ingredienskoblinger" (07.10.2026) – se
+             * handleSuggestStepIngredientLinks sin filheader over. Plassert
+             * her (ikke inni StepsEditor selv) av samme grunn som "Del inn i
+             * grupper" ligger i Ingredienser-seksjonens header: et
+             * engangskall for HELE listen, ikke en per-steg-handling. */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void handleSuggestStepIngredientLinks()}
+              disabled={
+                isSuggestingStepLinks ||
+                !title.trim() ||
+                groups.every((g) => g.items.every((i) => i.name.trim() === "")) ||
+                steps.every((s) => s.text.trim() === "")
+              }
+            >
+              {isSuggestingStepLinks ? "Foreslår …" : "Foreslå ingredienskoblinger"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleOpenOrGenerateImprovement}
+              disabled={
+                isSuggestingImprovement ||
+                !title.trim() ||
+                groups.every((g) => g.items.every((i) => i.name.trim() === "")) ||
+                steps.every((s) => s.text.trim() === "")
+              }
+            >
+              {isSuggestingImprovement
+                ? "Vurderer …"
+                : improvement
+                  ? "Vis forslag til forbedring"
+                  : "Forslag til forbedring"}
+            </Button>
+          </div>
         </div>
+        {stepLinksError && <p className="mb-3 text-sm text-clay-dark">{stepLinksError}</p>}
         {improvementError && <p className="mb-3 text-sm text-clay-dark">{improvementError}</p>}
-        <StepsEditor steps={steps} onChange={setSteps} />
+        <StepsEditor steps={steps} onChange={setSteps} groups={groups} />
       </section>
 
       <Drawer

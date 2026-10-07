@@ -56,6 +56,25 @@ const STEPS: TutorialStep[] = [
     bodyKey: "cookModeTutorial.stepTextBody",
     forcedRecipeStepId: COOK_MODE_TUTORIAL_FIRST_STEP_ID,
   },
+  {
+    // "I DETTE STEGET" (07.10.2026) – rett etter selve stegteksten
+    // forklares, siden den naturlig følger derfra ("her er HELE steget" →
+    // "og her er nøyaktig det du trenger TIL det"). Bruker det MIDTERSTE
+    // demo-steget (samme som "footer"-steget lenger ned), siden det er det
+    // ENE demo-steget demo-recipe.ts faktisk har koblet ingredienser til
+    // (smør+hvitløk) – se ingredientItemIds der. target er en STRENG, ikke
+    // en liste (i motsetning til "footer"): selv om CookMode.tsx har to
+    // DOM-elementer med dette attributtet (desktop/mobil-variant), skal
+    // ringen bare følge det ENE som faktisk er synlig i gjeldende viewport
+    // – se measureOne sin oppdaterte querySelectorAll-logikk over, ikke
+    // measureUnion (som ville slått de to sammen til ett rektangel, feil
+    // siden de aldri er synlige samtidig).
+    target: "step-ingredients",
+    shape: "box",
+    titleKey: "cookModeTutorial.stepIngredientsTitle",
+    bodyKey: "cookModeTutorial.stepIngredientsBody",
+    forcedRecipeStepId: COOK_MODE_TUTORIAL_MIDDLE_STEP_ID,
+  },
   { target: "close", shape: "circle", titleKey: "cookModeTutorial.closeTitle", bodyKey: "cookModeTutorial.closeBody" },
   { target: "progress", shape: "box", titleKey: "cookModeTutorial.progressTitle", bodyKey: "cookModeTutorial.progressBody" },
   {
@@ -265,10 +284,25 @@ export function CookModeTutorialOverlay({
     }
 
     function measureOne(targetName: string): SpotlightRect | null {
-      const el = document.querySelector(`[data-cookmode-target="${targetName}"]`);
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return { top: r.top, left: r.left, width: r.width, height: r.height };
+      // querySelectorAll + første ikke-null-størrelse treff (28.09.2026,
+      // utvidet 07.10.2026 for "step-ingredients"): "I DETTE STEGET" er det
+      // FØRSTE tutorial-målet med to mulige DOM-treff på samme
+      // data-cookmode-target – CookMode.tsx sin desktop-variant (hidden
+      // lg:flex) og mobil-variant (lg:hidden) ligger begge i DOM-en samtidig,
+      // bare den ene synlig avhengig av viewport-bredde. Et enkelt
+      // querySelector ville alltid plukket det FØRSTE DOM-treffet (desktop-
+      // varianten), som på en smal skjerm har display:none og dermed et
+      // tomt (0×0) rektangel – ringen ville da "forsvunnet" i stedet for å
+      // følge den faktisk synlige mobil-varianten. Andre mål har bare ETT
+      // treff, så dette er bakoverkompatibelt med dem.
+      const matches = document.querySelectorAll(`[data-cookmode-target="${targetName}"]`);
+      for (const el of matches) {
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          return { top: r.top, left: r.left, width: r.width, height: r.height };
+        }
+      }
+      return null;
     }
 
     /** For "footer"-steget (eneste stedet target er en LISTE, se

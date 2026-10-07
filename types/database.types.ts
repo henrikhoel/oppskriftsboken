@@ -292,6 +292,10 @@ export interface Database {
           step_number: number;
           text: string;
           sort_order: number;
+          // 0032_recipe_step_ingredient_links.sql. "I DETTE STEGET" i Cook
+          // Mode – ingredient_items.id-er dette steget bruker. not null
+          // default '{}', så alltid en (evt. tom) liste, aldri null.
+          ingredient_item_ids: string[];
         };
         Insert: {
           id?: string;
@@ -300,6 +304,7 @@ export interface Database {
           step_number: number;
           text: string;
           sort_order?: number;
+          ingredient_item_ids?: string[];
         };
         Update: Partial<Database["public"]["Tables"]["recipe_steps"]["Insert"]>;
         Relationships: [];

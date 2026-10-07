@@ -716,6 +716,14 @@ const DICT = {
     no: "Her ser du bare det du skal gjøre akkurat nå.",
     en: "Here you only see what you need to do right now.",
   },
+  // "I DETTE STEGET" (07.10.2026) – nytt tutorial-steg rett etter selve
+  // stegteksten over, se STEPS i CookModeTutorialOverlay.tsx. Samme korte,
+  // direkte "her ser du …"-stil som resten av omvisningen.
+  "cookModeTutorial.stepIngredientsTitle": { no: "Nøyaktig det du trenger", en: "Exactly what you need" },
+  "cookModeTutorial.stepIngredientsBody": {
+    no: "Ingrediensene for akkurat dette steget – allerede regnet om til porsjonene dine.",
+    en: "The ingredients for this exact step – already scaled to your servings.",
+  },
   "cookModeTutorial.timerAutoTitle": { no: "Tidtakeren er klar", en: "The timer is ready" },
   "cookModeTutorial.timerAutoBody": {
     no: "Når et steg krever tid, setter Cook Mode tiden for deg. Bare trykk for å starte.",
@@ -819,6 +827,13 @@ const DICT = {
   "cookModeTutorial.pageTitle": { no: "Cook Mode", en: "Cook Mode" },
 
   "cookMode.ingredientsButton": { no: "Ingredienser", en: "Ingredients" },
+  // "I DETTE STEGET" (07.10.2026) – diskret kontekst-visning per steg i
+  // selve Cook Mode-innholdsområdet (desktop: i det ellers tomme venstre
+  // feltet rundt det sentrerte steget; mobil: rett under stegteksten) – se
+  // CookMode.tsx. Lagret i vanlig case her, samme konvensjon som resten av
+  // ordboken (groupTitle osv.) – selve VERSAL-stilen kommer fra en
+  // "uppercase"-CSS-klasse i visningen, ikke fra denne teksten.
+  "cookMode.inThisStep": { no: "I dette steget", en: "In this step" },
   "cookMode.screenLockWarning": {
     no: "Skjermlås kan ikke holdes våken automatisk i denne nettleseren.",
     en: "The screen can't be kept awake automatically in this browser.",

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { clsx } from "clsx";
-import type { IngredientGroup, RecipeStep } from "@/lib/types";
+import type { IngredientGroup, IngredientItem, RecipeStep } from "@/lib/types";
 import type { CookingTimeline } from "@/lib/kitchen-intelligence/timeline";
 import { getStepTimerLabels } from "@/lib/actions/kitchen-intelligence";
 import { useCookModeState } from "@/lib/hooks/useCookModeState";
@@ -158,6 +158,25 @@ export function CookMode({
     () => (currentStep ? cookingTimeline?.steps.find((s) => s.stepId === currentStep.id) ?? null : null),
     [cookingTimeline, currentStep],
   );
+
+  // "I DETTE STEGET" (07.10.2026) – se RecipeStep.ingredientItemIds sin
+  // filheader i lib/types.ts. Slår opp de konkrete ingredienslinjene
+  // gjeldende steg er admin-koblet til, MOT `ingredientGroups` slik den
+  // allerede er mottatt som prop her (RecipeInteractive.tsx sin
+  // `displayGroups` – ALLEREDE skalert for valgt porsjonsantall og
+  // konvertert til valgt måleenhetssystem). Mengden dupliseres eller
+  // regnes ALDRI ut på nytt her – kun hvilke av de allerede ferdigberegnede
+  // linjene som hører til dette steget. Rekkefølgen følger den NATURLIGE
+  // ingrediensgruppe-/linjeordenen (ikke rekkefølgen admin krysset av dem i
+  // skjemaet), slik at den alltid stemmer med ordenen i resten av
+  // oppskriften/den vanlige ingredienslisten/skuffen under.
+  const allIngredientItems = useMemo(() => ingredientGroups.flatMap((g) => g.items), [ingredientGroups]);
+  const stepIngredientItems = useMemo(() => {
+    const ids = currentStep?.ingredientItemIds;
+    if (!ids || ids.length === 0) return [];
+    const idSet = new Set(ids);
+    return allIngredientItems.filter((item) => idSet.has(item.id));
+  }, [allIngredientItems, currentStep]);
 
   // Korte tidtaker-navn ("Gryten koker") for steg med en tidtaker-verdig
   // varighet – hentes samlet én gang når oppskriften åpnes i Cook Mode
@@ -533,35 +552,62 @@ export function CookMode({
           )}
         </div>
 
-        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center py-8">
-          {/* Delsteg-gruppe (30.09.2026, Henrik: "delsteg-gruppe i
-           * fremgangsmåten kommer ikke opp i cook mode", presisert til "vil
-           * ha den som litt mindre og elegant tekst rett over selve steget
-           * som vises") – sto tidligere klemt inn i "Steg X av Y"-linjen
-           * over (" · {groupTitle}"), lett å overse der. Egen, rolig linje
-           * her i stedet, rett over selve stegteksten, samme
-           * uppercase/tracking-wide-stil som groupTitle allerede har i den
-           * vanlige fremgangsmåte-listen utenfor Cook Mode (se
-           * RecipeInteractive.tsx). IKKE en del av
-           * data-cookmode-target="step-text" under – tutorial-ringen skal
-           * fortsatt kun omslutte selve stegteksten, se kommentaren der. */}
-          {currentStep.groupTitle && (
-            <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-clay sm:mb-3 sm:text-sm">
-              {currentStep.groupTitle}
-            </p>
-          )}
-          {/* data-cookmode-target satt på selve <p>-en, IKKE wrapper-diven
-           * over: den er flex-1 og strekker seg over all ledig høyde i
-           * innholdsområdet, så en tutorial-ring rundt DEN ble en enorm
-           * firkant uavhengig av hvor mye tekst steget faktisk har (Henrik,
-           * 28.09.2026: "den gule firkanten her er også alt for stor").
-           * Ringen skal kun omslutte den faktisk synlige teksten. */}
-          <p
-            className="text-balance text-center font-serif text-2xl leading-snug sm:text-3xl md:text-4xl"
-            data-cookmode-target="step-text"
+        {/* (07.10.2026) "I DETTE STEGET" – lg:grid med tre like store
+         * kolonner reproduserer NØYAKTIG samme visuelle sentrering som
+         * mx-auto+max-w-2xl ga alene (midtkolonnen er samme bredde, de to
+         * ytre er like store "fr"-kolonner) – selve steget flytter seg IKKE
+         * en pixel. Den venstre kolonnen var ren tom luft før; brukes nå
+         * diskret til ingrediensene for DETTE steget på desktop, se
+         * StepIngredientsList under. Under lg forblir layouten en helt
+         * vanlig flex-col (uendret fra før) – ingrediensene vises der i
+         * stedet rett under selve steget, se samme komponent kalt inni
+         * midt-kolonnen under. */}
+        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center py-8 lg:mx-0 lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_minmax(0,42rem)_minmax(0,1fr)] lg:items-center lg:gap-x-8">
+          <div
+            className="hidden lg:flex lg:flex-col lg:items-end lg:justify-center lg:pr-2"
+            data-cookmode-target="step-ingredients"
           >
-            {currentStep.text}
-          </p>
+            <StepIngredientsList items={stepIngredientItems} lang={lang} align="right" />
+          </div>
+
+          <div>
+            {/* Delsteg-gruppe (30.09.2026, Henrik: "delsteg-gruppe i
+             * fremgangsmåten kommer ikke opp i cook mode", presisert til "vil
+             * ha den som litt mindre og elegant tekst rett over selve steget
+             * som vises") – sto tidligere klemt inn i "Steg X av Y"-linjen
+             * over (" · {groupTitle}"), lett å overse der. Egen, rolig linje
+             * her i stedet, rett over selve stegteksten, samme
+             * uppercase/tracking-wide-stil som groupTitle allerede har i den
+             * vanlige fremgangsmåte-listen utenfor Cook Mode (se
+             * RecipeInteractive.tsx). IKKE en del av
+             * data-cookmode-target="step-text" under – tutorial-ringen skal
+             * fortsatt kun omslutte selve stegteksten, se kommentaren der. */}
+            {currentStep.groupTitle && (
+              <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-clay sm:mb-3 sm:text-sm">
+                {currentStep.groupTitle}
+              </p>
+            )}
+            {/* data-cookmode-target satt på selve <p>-en, IKKE wrapper-diven
+             * over: den er flex-1 og strekker seg over all ledig høyde i
+             * innholdsområdet, så en tutorial-ring rundt DEN ble en enorm
+             * firkant uavhengig av hvor mye tekst steget faktisk har (Henrik,
+             * 28.09.2026: "den gule firkanten her er også alt for stor").
+             * Ringen skal kun omslutte den faktisk synlige teksten. */}
+            <p
+              className="text-balance text-center font-serif text-2xl leading-snug sm:text-3xl md:text-4xl"
+              data-cookmode-target="step-text"
+            >
+              {currentStep.text}
+            </p>
+
+            {/* Mobil/tablet (under lg): samme ingrediensliste som i venstre
+             * kolonne over, men vist KOMPAKT rett under selve steget i
+             * stedet for side om side (ville klemt stegteksten unødig langt
+             * til høyre på en smal skjerm). */}
+            <div className="lg:hidden" data-cookmode-target="step-ingredients">
+              <StepIngredientsList items={stepIngredientItems} lang={lang} align="center" className="mt-5" />
+            </div>
+          </div>
         </div>
 
         {suggestedDurationMs != null && (
@@ -833,6 +879,65 @@ export function CookMode({
           </ul>
         )}
       </Drawer>
+    </div>
+  );
+}
+
+/**
+ * "I DETTE STEGET" (07.10.2026) – selve visningen av de ingrediensene
+ * gjeldende steg er admin-koblet til (se stepIngredientItems-kommentaren i
+ * CookMode() over). Bevisst IKKE et kort/boks (ingen bakgrunn/kant/skygge) –
+ * Henrik: skal være diskret, hovedinstruksen skal fortsatt være det klart
+ * dominerende elementet. Liten gull (text-clay) VERSAL-etikett + rolig,
+ * dempet (text-ink-faint) sans-serif-tekst for selve linjene – ingen
+ * font-serif her, i motsetning til selve steget, nettopp for å ikke
+ * konkurrere visuelt med det.
+ *
+ * Returnerer `null` når steget ikke har noen koblede ingredienser (admin
+ * ikke satt noen ennå, eller steget rett og slett ikke bruker noen – f.eks.
+ * "La deigen hvile i kjøleskapet i 30 minutter") – ingen seksjon vises da i
+ * det hele tatt, se filheaderen til RecipeStep.ingredientItemIds i
+ * lib/types.ts.
+ *
+ * Samme formatShoppingAmount()-visning som den eksisterende ingrediens-
+ * skuffen (se showIngredients-panelet over) – gjenbruker den etablerte
+ * mengde-formatteringen i stedet for å finne opp en ny.
+ */
+function StepIngredientsList({
+  items,
+  lang,
+  align,
+  className,
+}: {
+  items: IngredientItem[];
+  lang: Lang;
+  align: "right" | "center";
+  className?: string;
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className={clsx(align === "right" ? "text-right" : "text-center", className)}>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-clay">
+        {t(lang, "cookMode.inThisStep")}
+      </p>
+      <ul className="mt-2 space-y-1">
+        {items.map((item) => (
+          <li key={item.id} className="text-sm leading-snug text-ink-faint">
+            {formatShoppingAmount({
+              id: item.id,
+              amount: null,
+              displayAmount: item.amount,
+              unit: item.unit,
+              name: item.name,
+              checked: false,
+              fromRecipes: [],
+            })}{" "}
+            {item.name}
+            {item.note ? ` (${item.note})` : ""}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
