@@ -153,6 +153,15 @@ export interface Database {
           vegetarian_ingredient_groups: unknown | null;
           vegetarian_steps: unknown | null;
           vegetarian_variant: unknown | null;
+          // Admin-kø-status for batch-forslåtte Cook Mode-koblinger – se
+          // migrasjon 0033_recipe_cookmode_link_review.sql og
+          // lib/utils/cookmode-link-status.ts. null = batch har ikke kjørt.
+          cook_mode_link_status: "ready" | "needs_review" | "missing" | null;
+          // jsonb-utkast fra batch-kjøringen – se CookModeLinkSuggestionPayload
+          // i lib/utils/cookmode-link-status.ts. unknown her (ikke typen
+          // direkte), samme begrunnelse som nutrition_info i
+          // lib/data/mappers.ts sin RawRecipeRow.
+          cook_mode_link_suggestions: unknown | null;
           rating_sum: number;
           rating_count: number;
           created_at: string;
@@ -205,6 +214,8 @@ export interface Database {
           vegetarian_ingredient_groups?: unknown | null;
           vegetarian_steps?: unknown | null;
           vegetarian_variant?: unknown | null;
+          cook_mode_link_status?: "ready" | "needs_review" | "missing" | null;
+          cook_mode_link_suggestions?: unknown | null;
           rating_sum?: number;
           rating_count?: number;
           created_at?: string;

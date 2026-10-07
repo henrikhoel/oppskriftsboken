@@ -1642,6 +1642,18 @@ export interface StepIngredientLinkSuggestion {
    * (nye) ingredienser (f.eks. "La deigen hvile i kjøleskapet i 30
    * minutter") – helt gyldig, ikke en feil AI-en skal unngå. */
   itemIndices: number[];
+  /** (07.10.2026, batch-forslag for 300+ eksisterende oppskrifter – se
+   * lib/actions/cookmode-link-review.ts og lib/utils/cookmode-link-status.ts)
+   * true når AI-en selv IKKE er trygg på at forslaget for akkurat dette
+   * steget (inkludert en evt. tom liste) er riktig, f.eks. fordi
+   * ingrediensen omtales INDIREKTE i teksten ("ha i blandingen", "tilsett
+   * resten") uten et tydelig, entydig navn å matche mot, eller steget ser
+   * ut til å bruke noe som ikke sikkert lar seg feste til nøyaktig én av de
+   * nummererte ingrediens-linjene. false når du er rimelig sikker – de
+   * fleste steg skal være false. Fortsatt BARE et selvtillit-flagg, ALDRI
+   * en vei til å beskrive/generere noe – styrer kun om et menneske bør se
+   * over forslaget før det godkjennes (se computeCookModeLinkStatus). */
+  uncertain: boolean;
 }
 
 const STEP_INGREDIENT_LINKS_SCHEMA = {
@@ -1655,8 +1667,9 @@ const STEP_INGREDIENT_LINKS_SCHEMA = {
         properties: {
           stepIndex: { type: "integer" },
           itemIndices: { type: "array", items: { type: "integer" } },
+          uncertain: { type: "boolean" },
         },
-        required: ["stepIndex", "itemIndices"],
+        required: ["stepIndex", "itemIndices", "uncertain"],
       },
     },
   },
@@ -1677,8 +1690,13 @@ export async function suggestStepIngredientLinks(input: IngredientGroupingInput)
     "salt i to omganger, eller noe brukt både til steking og i en saus senere) – inkluder den da i ALLE de " +
     "faktiske stegene, ikke bare det første. Bruk gruppetitlene i hakeparentes (f.eks. «[Saus]») som en sterk " +
     "ledetråd: en ingrediens fra en ingrediensgruppe/delsteg-seksjon hører normalt til steg i SAMME seksjon.\n\n" +
+    "Sett «uncertain»=true for et steg når du IKKE er trygg på forslaget ditt for akkurat det steget – f.eks. " +
+    "når ingrediensen omtales indirekte («ha i blandingen», «tilsett resten», «bland inn det som er igjen») uten " +
+    "et tydelig navn å matche mot, når to eller flere ingredienser i listen har samme/lignende navn og du er " +
+    "usikker på hvilken av dem steget faktisk mener, eller når steget tydelig bruker noe du ikke sikkert kan " +
+    "feste til nøyaktig én nummerert linje. Sett «uncertain»=false når du er rimelig sikker (de fleste steg).\n\n" +
     "Returner EN oppføring per steg (samme antall som antall input-steg, i samme rekkefølge) – ALDRI selve " +
-    "ingrediens- eller stegteksten, kun stepIndex og hvilke ingrediens-indekser som hører til.";
+    "ingrediens- eller stegteksten, kun stepIndex, hvilke ingrediens-indekser som hører til, og uncertain.";
 
   const ingredientLines = input.ingredients
     .map((item, i) => `${i}. ${[item.amount, item.unit, item.name].filter((part) => part && part.trim()).join(" ")}`)
@@ -1699,12 +1717,12 @@ export async function suggestStepIngredientLinks(input: IngredientGroupingInput)
   const validItemIndex = (n: unknown): n is number =>
     typeof n === "number" && Number.isInteger(n) && n >= 0 && n < input.ingredients.length;
 
-  const byStepIndex = new Map<number, number[]>();
+  const byStepIndex = new Map<number, { itemIndices: number[]; uncertain: boolean }>();
   for (const raw_ of Array.isArray(raw.steps) ? raw.steps : []) {
     const entry = raw_ as Record<string, unknown>;
     if (!validStepIndex(entry.stepIndex)) continue;
     const itemIndices = (Array.isArray(entry.itemIndices) ? entry.itemIndices : []).filter(validItemIndex);
-    byStepIndex.set(entry.stepIndex, itemIndices);
+    byStepIndex.set(entry.stepIndex, { itemIndices, uncertain: entry.uncertain === true });
   }
 
   if (byStepIndex.size === 0) {
@@ -1714,6 +1732,12 @@ export async function suggestStepIngredientLinks(input: IngredientGroupingInput)
   // Én oppføring per input-steg, i rekkefølge – steg AI-en (mot formodning)
   // ikke nevnte i det hele tatt får en tom liste (samme "trygt, stille
   // fallback"-prinsipp som missing-sikkerhetsnettet i suggestIngredientGrouping
-  // over, men her betyr "mangler" simpelthen "ingen kobling foreslått").
-  return input.steps.map((_, i) => ({ stepIndex: i, itemIndices: byStepIndex.get(i) ?? [] }));
+  // over, men her betyr "mangler" simpelthen "ingen kobling foreslått"). Et
+  // utelatt steg markeres BEVISST uncertain=true (ikke false) – AI-en sa
+  // ingenting om det i det hele tatt, så det er nettopp IKKE "rimelig
+  // sikker på tom liste" på samme måte som et steg den uttrykkelig vurderte.
+  return input.steps.map((_, i) => {
+    const entry = byStepIndex.get(i);
+    return { stepIndex: i, itemIndices: entry?.itemIndices ?? [], uncertain: entry ? entry.uncertain : true };
+  });
 }

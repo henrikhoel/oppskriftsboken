@@ -65,6 +65,15 @@ export function AdminNav({ userEmail }: { userEmail: string | null }) {
             >
               Helg &amp; gjester
             </Link>
+            {/* "Jeg vil slippe å gå manuelt gjennom 300+ oppskrifter for å
+             * opprette Cook Mode-koblinger" (07.10.2026) – se filheaderen i
+             * app/admin/(dashboard)/cook-mode-koblinger/page.tsx. */}
+            <Link
+              href="/admin/cook-mode-koblinger"
+              className="rounded-full px-3 py-1.5 font-medium text-ink-soft hover:bg-cream-dark hover:text-ink"
+            >
+              Cook Mode-koblinger
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm text-ink-faint">
