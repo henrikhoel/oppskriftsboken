@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 import { t, type Lang, type DictKey } from "@/lib/i18n";
 import {
-  COOK_MODE_TUTORIAL_FIRST_STEP_ID,
   COOK_MODE_TUTORIAL_MIDDLE_STEP_ID,
   COOK_MODE_TUTORIAL_TIMER_STEP_ID,
 } from "@/lib/cook-mode-tutorial/demo-recipe";
@@ -50,25 +49,35 @@ interface TutorialStep {
 const STEPS: TutorialStep[] = [
   { target: null, shape: "box", titleKey: "cookModeTutorial.introTitle", bodyKey: "cookModeTutorial.introBody" },
   {
+    // (07.10.2026, Henrik: "hadde det ikke vært best om første steget i
+    // tutorialen var det samme steget som det med ingrediensene? sånn at
+    // det henger mer sammen?") – bruker nå det MIDTERSTE demo-steget
+    // (COOK_MODE_TUTORIAL_MIDDLE_STEP_ID, "Smelt smøret og fres hvitløken
+    // ...") i stedet for det FØRSTE ("Kok pastaen ..."), samme demo-steg
+    // som "I dette steget"-forklaringen rett under bruker. Tidligere hoppet
+    // demoen fra "Kok pastaen" (uten koblede ingredienser) til "Smelt
+    // smøret" (med) mellom disse to tutorial-stegene – samme steg gjennom
+    // begge gir i stedet én sammenhengende fortelling: "her er steget" →
+    // "og her er nøyaktig det steget trenger".
     target: "step-text",
     shape: "box",
     titleKey: "cookModeTutorial.stepTextTitle",
     bodyKey: "cookModeTutorial.stepTextBody",
-    forcedRecipeStepId: COOK_MODE_TUTORIAL_FIRST_STEP_ID,
+    forcedRecipeStepId: COOK_MODE_TUTORIAL_MIDDLE_STEP_ID,
   },
   {
     // "I DETTE STEGET" (07.10.2026) – rett etter selve stegteksten
     // forklares, siden den naturlig følger derfra ("her er HELE steget" →
-    // "og her er nøyaktig det du trenger TIL det"). Bruker det MIDTERSTE
-    // demo-steget (samme som "footer"-steget lenger ned), siden det er det
-    // ENE demo-steget demo-recipe.ts faktisk har koblet ingredienser til
-    // (smør+hvitløk) – se ingredientItemIds der. target er en STRENG, ikke
-    // en liste (i motsetning til "footer"): selv om CookMode.tsx har to
-    // DOM-elementer med dette attributtet (desktop/mobil-variant), skal
-    // ringen bare følge det ENE som faktisk er synlig i gjeldende viewport
-    // – se measureOne sin oppdaterte querySelectorAll-logikk over, ikke
-    // measureUnion (som ville slått de to sammen til ett rektangel, feil
-    // siden de aldri er synlige samtidig).
+    // "og her er nøyaktig det du trenger TIL det"). Samme MIDTERSTE
+    // demo-steg som over (se kommentaren der) – det ENE demo-steget
+    // demo-recipe.ts faktisk har koblet ingredienser til (smør+hvitløk) –
+    // se ingredientItemIds der. target er en STRENG, ikke en liste (i
+    // motsetning til "footer"): selv om CookMode.tsx har to DOM-elementer
+    // med dette attributtet (desktop/mobil-variant), skal ringen bare følge
+    // det ENE som faktisk er synlig i gjeldende viewport – se measureOne
+    // sin oppdaterte querySelectorAll-logikk over, ikke measureUnion (som
+    // ville slått de to sammen til ett rektangel, feil siden de aldri er
+    // synlige samtidig).
     target: "step-ingredients",
     shape: "box",
     titleKey: "cookModeTutorial.stepIngredientsTitle",

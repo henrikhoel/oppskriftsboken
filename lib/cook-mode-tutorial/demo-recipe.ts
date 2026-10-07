@@ -89,14 +89,21 @@ export const COOK_MODE_TUTORIAL_RECIPE_ID = "cook-mode-tutorial-demo";
  * gang endres, i stedet for hardkodede strenger spredt ut over
  * tutorial-filene:
  *
- * - FØRSTE steg: brukes når selve den store stegteksten forklares (hvilket
- *   steg det er spiller ingen rolle for DEN forklaringen, men et fast,
- *   forutsigbart valg er bedre enn å arve en evt. rest-tilstand fra forrige
- *   tutorial-kjøring).
+ * - FØRSTE steg: for øyeblikket ikke i bruk av noe tutorial-steg (se
+ *   MIDTERSTE under) – stod tidligere bak selve stegteksten-forklaringen,
+ *   men beholdes eksportert (samme "ETT sted å rette"-begrunnelse som
+ *   resten av denne filen) i tilfelle et senere tutorial-steg trenger et
+ *   fast, forutsigbart FØRSTE demo-steg igjen.
  * - MIDTERSTE steg: verken første eller siste steg i demo-oppskriften –
- *   brukt når selve Forrige/Neste-knappene i bunnen forklares, slik at
- *   BEGGE faktisk vises som normalt (Forrige er utgrået på steg 1, og
- *   Neste blir en helt annen, oliven "Ferdig"-knapp på siste steg).
+ *   brukt når selve stegteksten OG "I dette steget"-ingredienslisten
+ *   forklares (07.10.2026, Henrik: "hadde det ikke vært best om første
+ *   steget i tutorialen var det samme steget som det med ingrediensene?
+ *   sånn at det henger mer sammen?" – begge forklaringene peker nå på
+ *   akkurat samme demo-steg, "Smelt smøret ...", i stedet for å hoppe fra
+ *   steg 1 til steg 2 mellom dem), OG når selve Forrige/Neste-knappene i
+ *   bunnen forklares, slik at BEGGE faktisk vises som normalt (Forrige er
+ *   utgrået på steg 1, og Neste blir en helt annen, oliven "Ferdig"-knapp
+ *   på siste steg).
  * - TIMER-steget: det ENE steget i demo-oppskriften hvis tekst inneholder
  *   en tidsangivelse ("3-4 minutter"), og dermed er det eneste stedet den
  *   ekte "sett timer for steget"-knappen faktisk vises (se
