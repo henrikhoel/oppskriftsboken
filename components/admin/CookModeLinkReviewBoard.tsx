@@ -9,6 +9,7 @@ import {
   approveAllReadyCookModeLinks,
   approveCookModeLinks,
   getCookModeLinkReview,
+  recomputeCookModeLinkStatuses,
   regenerateCookModeLinkSuggestion,
   runCookModeLinkBatch,
   type CookModeLinkReviewRecipe,
@@ -203,11 +204,26 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
   const [isBatchRunning, setIsBatchRunning] = useState(false);
   const [batchDone, setBatchDone] = useState(0);
   const [batchFailed, setBatchFailed] = useState<{ id: string; title: string; error: string }[]>([]);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [batchSummary, setBatchSummary] = useState<string | null>(null);
   const stopBatchRef = useRef(false);
 
   const [isBulkApproving, setIsBulkApproving] = useState(false);
   const [bulkDone, setBulkDone] = useState(0);
+  const [bulkFailed, setBulkFailed] = useState<{ id: string; title: string; error: string }[]>([]);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [bulkSummary, setBulkSummary] = useState<string | null>(null);
   const stopBulkRef = useRef(false);
+
+  // "den treffer perfekt på hver oppskrift, så den er kanskje litt for
+  // kritisk?" (07.10.2026) – egen løkke for å regne om status/flagg for
+  // ALLE allerede batch-kjørte oppskrifter med de nye, mindre strenge
+  // reglene (se lib/utils/cookmode-link-status.ts), uten nye AI-kall.
+  const [isRecomputing, setIsRecomputing] = useState(false);
+  const [recomputeDone, setRecomputeDone] = useState(0);
+  const [recomputeError, setRecomputeError] = useState<string | null>(null);
+  const [recomputeSummary, setRecomputeSummary] = useState<string | null>(null);
+  const stopRecomputeRef = useRef(false);
 
   const counts = useMemo(() => {
     const c = { all: queue.length, unprocessed: 0, ready: 0, needs_review: 0, missing: 0 };
@@ -324,16 +340,31 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
     setIsBatchRunning(true);
     setBatchDone(0);
     setBatchFailed([]);
+    setBatchError(null);
+    setBatchSummary(null);
     stopBatchRef.current = false;
+    let done = 0;
+    let failedCount = 0;
     try {
       for (let i = 0; i < 200; i++) {
         if (stopBatchRef.current) break;
         const result = await runCookModeLinkBatch(10);
         setQueue((prev) => prev.map((item) => result.processed.find((p) => p.id === item.id) ?? item));
-        setBatchDone((n) => n + result.processed.length);
+        done += result.processed.length;
+        failedCount += result.failed.length;
+        setBatchDone(done);
         if (result.failed.length > 0) setBatchFailed((prev) => [...prev, ...result.failed]);
         if (result.remaining === 0 || result.processed.length === 0) break;
       }
+      setBatchSummary(
+        failedCount > 0 ? `${done} oppskrift(er) behandlet, ${failedCount} feilet.` : `${done} oppskrift(er) behandlet.`,
+      );
+    } catch (err) {
+      // Uten denne fanges en feil fra selve Server Action-kallet (f.eks.
+      // tapt admin-sesjon) ikke opp noe sted – knappen ville bare gått
+      // tilbake til normal uten noen forklaring, se Henriks "det hjalp jo
+      // ikke så mye" (07.10.2026).
+      setBatchError(err instanceof Error ? err.message : "Noe gikk feil under batch-kjøringen.");
     } finally {
       setIsBatchRunning(false);
     }
@@ -342,17 +373,66 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
   async function handleApproveAllReady() {
     setIsBulkApproving(true);
     setBulkDone(0);
+    setBulkFailed([]);
+    setBulkError(null);
+    setBulkSummary(null);
     stopBulkRef.current = false;
+    let done = 0;
+    let failedCount = 0;
     try {
       for (let i = 0; i < 200; i++) {
         if (stopBulkRef.current) break;
         const result = await approveAllReadyCookModeLinks(25);
         setQueue((prev) => prev.map((item) => result.approved.find((p) => p.id === item.id) ?? item));
-        setBulkDone((n) => n + result.approved.length);
+        done += result.approved.length;
+        failedCount += result.failed.length;
+        setBulkDone(done);
+        if (result.failed.length > 0) setBulkFailed((prev) => [...prev, ...result.failed]);
         if (result.remaining === 0 || result.approved.length === 0) break;
       }
+      // Statusen ("Klar") endrer seg ikke av en godkjenning – uten denne
+      // oppsummeringen ser knappen uforandret ut etter en kjøring selv når
+      // den fungerte helt fint, se Henriks "når jeg trykker ... skjer det
+      // ingenting?" (07.10.2026).
+      setBulkSummary(
+        failedCount > 0 ? `${done} oppskrift(er) godkjent, ${failedCount} feilet.` : `${done} oppskrift(er) godkjent.`,
+      );
+    } catch (err) {
+      setBulkError(err instanceof Error ? err.message : "Noe gikk feil under godkjenningen.");
     } finally {
       setIsBulkApproving(false);
+    }
+  }
+
+  // "den treffer perfekt på hver oppskrift, så den er kanskje litt for
+  // kritisk?" (07.10.2026) – regner om status for alle allerede
+  // batch-kjørte oppskrifter med de nye reglene i
+  // lib/utils/cookmode-link-status.ts, uten nye AI-kall. Offset-paginert
+  // (ikke statusbasert som de to andre løkkene) siden "ikke-null status"-
+  // settet ikke krymper av denne operasjonen.
+  async function handleRecomputeStatuses() {
+    setIsRecomputing(true);
+    setRecomputeDone(0);
+    setRecomputeError(null);
+    setRecomputeSummary(null);
+    stopRecomputeRef.current = false;
+    let offset = 0;
+    let done = 0;
+    try {
+      for (let i = 0; i < 200; i++) {
+        if (stopRecomputeRef.current) break;
+        const result = await recomputeCookModeLinkStatuses(offset, 50);
+        setQueue((prev) => prev.map((item) => result.updated.find((p) => p.id === item.id) ?? item));
+        done += result.updated.length;
+        setRecomputeDone(done);
+        offset = result.nextOffset;
+        if (result.done) break;
+      }
+      setRecomputeSummary(`${done} oppskrift(er) fikk ny status.`);
+    } catch (err) {
+      setRecomputeError(err instanceof Error ? err.message : "Noe gikk feil under omregningen.");
+    } finally {
+      setIsRecomputing(false);
     }
   }
 
@@ -416,12 +496,36 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
           </button>
         )}
 
+        <Button type="button" variant="ghost" size="sm" onClick={() => void handleRecomputeStatuses()} disabled={isRecomputing}>
+          {isRecomputing ? `Oppdaterer status … (${recomputeDone})` : "Oppdater status med nye regler"}
+        </Button>
+        {isRecomputing && (
+          <button
+            type="button"
+            onClick={() => (stopRecomputeRef.current = true)}
+            className="text-xs font-medium text-ink-faint hover:text-clay-dark"
+          >
+            Stopp
+          </button>
+        )}
+
+        {batchError && <p className="w-full text-xs text-clay-dark">{batchError}</p>}
+        {!isBatchRunning && batchSummary && <p className="w-full text-xs text-ink-faint">Batch: {batchSummary}</p>}
         {batchFailed.length > 0 && (
           <p className="w-full text-xs text-clay-dark">
             {batchFailed.length} oppskrift(er) feilet under batch-kjøringen – prøv dem igjen senere (de forblir «Ikke
             kjørt»).
           </p>
         )}
+
+        {bulkError && <p className="w-full text-xs text-clay-dark">{bulkError}</p>}
+        {!isBulkApproving && bulkSummary && <p className="w-full text-xs text-ink-faint">Godkjenning: {bulkSummary}</p>}
+        {bulkFailed.length > 0 && (
+          <p className="w-full text-xs text-clay-dark">{bulkFailed.length} oppskrift(er) feilet under godkjenningen.</p>
+        )}
+
+        {recomputeError && <p className="w-full text-xs text-clay-dark">{recomputeError}</p>}
+        {!isRecomputing && recomputeSummary && <p className="w-full text-xs text-ink-faint">{recomputeSummary}</p>}
       </div>
 
       <div className="flex flex-wrap gap-2">

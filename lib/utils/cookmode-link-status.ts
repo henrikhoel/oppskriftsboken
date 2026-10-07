@@ -27,18 +27,26 @@ export type CookModeLinkStatus = "ready" | "needs_review" | "missing";
 
 export interface CookModeLinkFlags {
   /** To (eller flere) ingredienslinjer i oppskriften har samme navn (f.eks.
-   * "smør" til steking OG i sausen, med ulik mengde) – en AI-foreslått
-   * kobling kan da ha truffet FEIL linje uten at det er synlig fra selve
-   * forslaget alene, se Henriks eksempel "samme råvare finnes i flere
-   * ingredienslinjer". Et RECIPE-nivå-flagg (ikke per steg), siden
-   * tvetydigheten gjelder ingredienslisten som helhet, uavhengig av hvilket
-   * steg som faktisk ble (feil)koblet. */
+   * "smør" til steking OG i sausen, med ulik mengde) OG minst én av de
+   * duplikate linjene er faktisk koblet til et steg i forslaget – en
+   * AI-foreslått kobling kan da ha truffet FEIL linje uten at det er synlig
+   * fra selve forslaget alene, se Henriks eksempel "samme råvare finnes i
+   * flere ingredienslinjer". 07.10.2026 (Henrik: "den treffer perfekt på
+   * hver oppskrift, så den er kanskje litt for kritisk?"): BEVISST
+   * begrenset til duplikater som faktisk er i bruk i forslaget – en
+   * ubrukt duplikat-linje (f.eks. to "salt"-linjer der bare én faktisk
+   * trengs noe sted) er ikke noe å sjekke, og duplikatnavn er for vanlig i
+   * vanlige oppskrifter til å brukes ubetinget som et varslingskriterium.
+   * Et RECIPE-nivå-flagg (ikke per steg), siden tvetydigheten gjelder
+   * ingredienslisten som helhet, uavhengig av hvilket steg som faktisk ble
+   * (feil)koblet. */
   hasDuplicateIngredientNames: boolean;
   /** Minst én ingredienslinje er foreslått/koblet til 2+ steg. Dette er i
    * seg selv HELT LOVLIG (Henrik: "samme oppmålte ingrediens kan faktisk
-   * brukes over flere steg") – men også eksplisitt nevnt som et
-   * tvilstilfelle å sjekke, siden AI-en kan ha anslått gjenbruk som ikke
-   * faktisk stemmer. */
+   * brukes over flere steg") – vises som informasjon på oppskriften, men
+   * (07.10.2026, se hasDuplicateIngredientNames sin kommentar for
+   * bakgrunnen) påvirker IKKE lenger status alene: dette er for vanlig i
+   * normale oppskrifter til å tvinge "Bør sjekkes" hver gang det skjer. */
   hasSharedIngredientAcrossSteps: boolean;
   /** Steg-id-er der stegteksten inneholder en frase som "resten av",
    * "halvparten av", "litt av" o.l. – indikerer en delmengde av noe som kan
@@ -91,10 +99,11 @@ const AMBIGUOUS_PHRASE_RE = /\b(resten|halvparten|litt av|noe av|en del av)\b/i;
  * id-er, men EN ADMIN SIN EGEN GODKJENNING (approveCookModeLinks) kaller
  * denne UTEN det argumentet – et menneske har da allerede sett over akkurat
  * det en AI ville vært usikker på, så det skal ikke kunne holde status
- * nede på "needs_review" for alltid. De tre andre, rent strukturelle
- * flaggene (duplikatnavn/delt ingrediens/tvetydig frase) beregnes derimot
- * likt begge steder – de er fakta om oppskriftens TEKST, ikke om AI-ens
- * selvtillit, og endrer seg ikke av at et menneske har sett på den.
+ * nede på "needs_review" for alltid. De to andre, rent strukturelle
+ * flaggene (duplikatnavn-i-bruk/tvetydig frase – se under for hvorfor
+ * "delt ingrediens over steg" ikke lenger er blant disse) beregnes
+ * derimot likt begge steder – de er fakta om oppskriftens TEKST, ikke om
+ * AI-ens selvtillit, og endrer seg ikke av at et menneske har sett på den.
  */
 export function computeCookModeLinkStatus(params: {
   ingredientGroups: { items: { id: string; name: string }[] }[];
@@ -103,13 +112,23 @@ export function computeCookModeLinkStatus(params: {
 }): CookModeLinkStatusResult {
   const { ingredientGroups, steps, uncertainStepIds = [] } = params;
 
+  const flatItems = ingredientGroups.flatMap((g) => g.items);
   const nameCounts = new Map<string, number>();
-  for (const item of ingredientGroups.flatMap((g) => g.items)) {
+  for (const item of flatItems) {
     const key = item.name.trim().toLowerCase();
     if (!key) continue;
     nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
   }
-  const hasDuplicateIngredientNames = [...nameCounts.values()].some((count) => count > 1);
+  const duplicateNames = new Set([...nameCounts.entries()].filter(([, count]) => count > 1).map(([name]) => name));
+  const nameById = new Map(flatItems.map((item) => [item.id, item.name.trim().toLowerCase()]));
+  const linkedItemIds = new Set(steps.flatMap((s) => s.ingredientItemIds));
+  // Kun et varsel når en av de duplikate linjene FAKTISK er i bruk i
+  // forslaget – se CookModeLinkFlags sin kommentar for hvorfor en ubrukt
+  // duplikat-linje ikke lenger er nok til å trigge "Bør sjekkes".
+  const hasDuplicateIngredientNames = [...linkedItemIds].some((id) => {
+    const name = nameById.get(id);
+    return !!name && duplicateNames.has(name);
+  });
 
   const stepCountByItemId = new Map<string, number>();
   for (const step of steps) {
@@ -117,6 +136,8 @@ export function computeCookModeLinkStatus(params: {
       stepCountByItemId.set(id, (stepCountByItemId.get(id) ?? 0) + 1);
     }
   }
+  // Rent informativt (se CookModeLinkFlags sin kommentar) – påvirker ikke
+  // `anyFlag`/status under.
   const hasSharedIngredientAcrossSteps = [...stepCountByItemId.values()].some((count) => count > 1);
 
   const ambiguousPhraseStepIds = steps
@@ -136,11 +157,11 @@ export function computeCookModeLinkStatus(params: {
   const linkedStepCount = steps.filter((s) => s.ingredientItemIds.length > 0).length;
   const totalStepCount = steps.length;
 
-  const anyFlag =
-    hasDuplicateIngredientNames ||
-    hasSharedIngredientAcrossSteps ||
-    ambiguousPhraseStepIds.length > 0 ||
-    resolvedUncertainStepIds.length > 0;
+  // hasSharedIngredientAcrossSteps er BEVISST ikke med her (07.10.2026) –
+  // se CookModeLinkFlags sin kommentar: Henrik definerte det selv som
+  // "helt lovlig", og det er for vanlig i normale oppskrifter til å tvinge
+  // "Bør sjekkes" alene. Vises fortsatt som info på oppskriften.
+  const anyFlag = hasDuplicateIngredientNames || ambiguousPhraseStepIds.length > 0 || resolvedUncertainStepIds.length > 0;
 
   let status: CookModeLinkStatus;
   if (linkedStepCount === 0) {

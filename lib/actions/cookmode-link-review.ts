@@ -479,3 +479,99 @@ export async function approveAllReadyCookModeLinks(limit = 25): Promise<CookMode
 
   return { approved, remaining: Math.max(0, pending.length - toApply.length), failed };
 }
+
+export interface CookModeLinkRecomputeResult {
+  /** Oppskrifter der status/flagg faktisk endret seg etter de nye reglene –
+   * brukt av CookModeLinkReviewBoard.tsx til å oppdatere kølisten live. */
+  updated: CookModeLinkQueueItem[];
+  nextOffset: number;
+  done: boolean;
+}
+
+/**
+ * "den treffer perfekt på hver oppskrift, så den er kanskje litt for
+ * kritisk?" (07.10.2026) – etter at computeCookModeLinkStatus ble gjort
+ * mindre streng (se lib/utils/cookmode-link-status.ts: duplikatnavn kun
+ * når faktisk i bruk, delt-ingrediens-over-steg ikke lenger blokkerende),
+ * regner denne UTEN NYE AI-KALL om status/flagg på nytt for alle
+ * oppskrifter som allerede har kjørt batch – rett fra det allerede lagrede
+ * utkastet (cook_mode_link_suggestions.stepSuggestions +
+ * .flags.uncertainStepIds, akkurat det AI-en selv returnerte forrige gang).
+ *
+ * Hopper BEVISST over en oppskrift der utkastet allerede er skrevet til den
+ * levende koblingen (isSuggestionAlreadyApplied) – det betyr en admin
+ * allerede har godkjent nøyaktig dette utkastet, og status skal IKKE kunne
+ * falle tilbake til "needs_review" av en regelendring etter at et menneske
+ * har sett over det (se samme prinsipp i writeApprovedLinks/
+ * computeCookModeLinkStatus sin filheader).
+ *
+ * `offset`/`limit`-paginert (samme "ingen maxDuration"-grunn som batch og
+ * bulk-godkjenning) – klienten løkker til `done`, se
+ * CookModeLinkReviewBoard.tsx.
+ */
+export async function recomputeCookModeLinkStatuses(offset = 0, limit = 50): Promise<CookModeLinkRecomputeResult> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("recipes")
+    .select(
+      "id, slug, title, cook_mode_link_status, cook_mode_link_suggestions, recipe_steps(id, text, ingredient_item_ids), ingredient_groups(ingredient_items(id, name))",
+    )
+    .not("cook_mode_link_status", "is", null)
+    .order("id", { ascending: true })
+    .range(offset, offset + limit - 1);
+  if (error) throw new Error(`Kunne ikke hente oppskrifter for omregning: ${error.message}`);
+
+  type Row = {
+    id: string;
+    slug: string;
+    title: string;
+    cook_mode_link_status: CookModeLinkStatus;
+    cook_mode_link_suggestions: unknown | null;
+    recipe_steps: { id: string; text: string; ingredient_item_ids: string[] }[] | null;
+    ingredient_groups: { ingredient_items: { id: string; name: string }[] | null }[] | null;
+  };
+  const rows = (data ?? []) as unknown as Row[];
+  const updated: CookModeLinkQueueItem[] = [];
+
+  await Promise.all(
+    rows.map(async (row) => {
+      const suggestion = row.cook_mode_link_suggestions as CookModeLinkSuggestionPayload | null;
+      // Intet utkast å regne om (f.eks. "missing" uten ingredienser/steg i
+      // det hele tatt) – ingenting de nye reglene kan endre her.
+      if (!suggestion) return;
+
+      const liveSteps = row.recipe_steps ?? [];
+      // Allerede eksplisitt godkjent av en admin – rør ikke status.
+      if (isSuggestionAlreadyApplied(liveSteps, suggestion.stepSuggestions)) return;
+
+      const items = (row.ingredient_groups ?? []).flatMap((g) => g.ingredient_items ?? []);
+      const result = computeCookModeLinkStatus({
+        ingredientGroups: [{ items }],
+        steps: liveSteps.map((s) => ({ id: s.id, text: s.text, ingredientItemIds: suggestion.stepSuggestions[s.id] ?? [] })),
+        uncertainStepIds: suggestion.flags.uncertainStepIds,
+      });
+
+      if (result.status === row.cook_mode_link_status) return;
+
+      const payload: CookModeLinkSuggestionPayload = { ...suggestion, flags: result.flags };
+      const { error: updateError } = await supabase
+        .from("recipes")
+        .update({ cook_mode_link_status: result.status, cook_mode_link_suggestions: payload })
+        .eq("id", row.id);
+      if (updateError) throw new Error(`Kunne ikke lagre ny status for "${row.title}": ${updateError.message}`);
+
+      updated.push({
+        id: row.id,
+        slug: row.slug,
+        title: row.title,
+        status: result.status,
+        linkedStepCount: liveSteps.filter((s) => (s.ingredient_item_ids ?? []).length > 0).length,
+        totalStepCount: liveSteps.length,
+      });
+    }),
+  );
+
+  return { updated, nextOffset: offset + rows.length, done: rows.length < limit };
+}
