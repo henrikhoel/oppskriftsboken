@@ -1,6 +1,10 @@
 import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 import { createClient } from "@/lib/supabase/server";
-import type { CookModeLinkStatus } from "@/lib/utils/cookmode-link-status";
+import {
+  isSuggestionAlreadyApplied,
+  type CookModeLinkStatus,
+  type CookModeLinkSuggestionPayload,
+} from "@/lib/utils/cookmode-link-status";
 
 /**
  * Lese-laget for Cook Mode-koblings-kø-visningen (07.10.2026, se
@@ -25,6 +29,16 @@ export interface CookModeLinkQueueItem {
   status: CookModeLinkStatus | null;
   linkedStepCount: number;
   totalStepCount: number;
+  /** "jeg trykker på 'godkjenn alle klare (57)', men så står det bare
+   * fortsatt at det er 57 klare. de må jo fjernes??" (07.10.2026) – true
+   * når det finnes et utkast (cook_mode_link_suggestions) som IKKE ennå er
+   * skrevet til den levende koblingen (recipe_steps.ingredient_item_ids).
+   * Status "ready" endres aldri av en godkjenning (en godkjent oppskrift
+   * ER jo fortsatt "Klar"), så CookModeLinkReviewBoard.tsx bruker DETTE
+   * feltet – ikke status alene – til å vise/telle hvor mange "Klar"-
+   * oppskrifter som faktisk GJENSTÅR å bulk-godkjenne. false for en
+   * oppskrift uten noe utkast i det hele tatt (ingenting å anvende). */
+  pendingApproval: boolean;
 }
 
 interface QueueRow {
@@ -32,6 +46,7 @@ interface QueueRow {
   slug: string;
   title: string;
   cook_mode_link_status: CookModeLinkStatus | null;
+  cook_mode_link_suggestions: unknown | null;
   recipe_steps: { id: string; ingredient_item_ids: string[] }[] | null;
 }
 
@@ -52,7 +67,7 @@ export async function getCookModeLinkQueue(): Promise<CookModeLinkQueueItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("recipes")
-    .select("id, slug, title, cook_mode_link_status, recipe_steps(id, ingredient_item_ids)")
+    .select("id, slug, title, cook_mode_link_status, cook_mode_link_suggestions, recipe_steps(id, ingredient_item_ids)")
     .order("title", { ascending: true });
 
   if (error || !data) {
@@ -62,6 +77,7 @@ export async function getCookModeLinkQueue(): Promise<CookModeLinkQueueItem[]> {
 
   return (data as unknown as QueueRow[]).map((row) => {
     const steps = row.recipe_steps ?? [];
+    const suggestion = row.cook_mode_link_suggestions as CookModeLinkSuggestionPayload | null;
     return {
       id: row.id,
       slug: row.slug,
@@ -69,6 +85,7 @@ export async function getCookModeLinkQueue(): Promise<CookModeLinkQueueItem[]> {
       status: row.cook_mode_link_status,
       linkedStepCount: steps.filter((s) => (s.ingredient_item_ids ?? []).length > 0).length,
       totalStepCount: steps.length,
+      pendingApproval: !!suggestion && !isSuggestionAlreadyApplied(steps, suggestion.stepSuggestions),
     };
   });
 }

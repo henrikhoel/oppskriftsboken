@@ -16,7 +16,7 @@ import {
   type CookModeLinkFlagBreakdown,
   type CookModeLinkReviewRecipe,
 } from "@/lib/actions/cookmode-link-review";
-import type { CookModeLinkFlags, CookModeLinkStatus } from "@/lib/utils/cookmode-link-status";
+import { isSuggestionAlreadyApplied, type CookModeLinkFlags, type CookModeLinkStatus } from "@/lib/utils/cookmode-link-status";
 import type { IngredientGroup, RecipeStep } from "@/lib/types";
 
 type StatusFilter = "all" | "unprocessed" | "needs_review" | "ready" | "missing";
@@ -245,6 +245,14 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
     return c;
   }, [queue]);
 
+  // "de må jo fjernes??" (07.10.2026) – status "ready" endres ALDRI av en
+  // godkjenning (en godkjent oppskrift ER jo fortsatt "Klar"), så
+  // counts.ready alene ville aldri gå mot 0 etter "Godkjenn alle klare".
+  // Knappen bruker derfor dette i stedet: kun de "Klar"-oppskriftene som
+  // FAKTISK gjenstår å skrive til den levende koblingen (se
+  // CookModeLinkQueueItem.pendingApproval).
+  const pendingReadyCount = useMemo(() => queue.filter((item) => item.status === "ready" && item.pendingApproval).length, [queue]);
+
   const filteredIds = useMemo(() => {
     return queue
       .filter((item) => {
@@ -327,6 +335,11 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
       const result = await regenerateCookModeLinkSuggestion(detail.id);
       setDetail(result);
       setStepLinks(buildInitialStepLinks(result));
+      // Et ferskt regenerert utkast – sjekk på nytt om det (ved et uhell)
+      // allerede er identisk med den levende koblingen, se
+      // CookModeLinkQueueItem.pendingApproval.
+      const liveSteps = result.steps.map((s) => ({ id: s.id, ingredient_item_ids: s.ingredientItemIds ?? [] }));
+      const pendingApproval = !!result.suggestion && !isSuggestionAlreadyApplied(liveSteps, result.suggestion.stepSuggestions);
       updateQueueItem({
         id: result.id,
         slug: result.slug,
@@ -334,6 +347,7 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
         status: result.status,
         linkedStepCount: result.steps.filter((s) => (s.ingredientItemIds ?? []).length > 0).length,
         totalStepCount: result.steps.length,
+        pendingApproval,
       });
     } catch (err) {
       setDetailError(err instanceof Error ? err.message : "Kunne ikke generere forslag på nytt.");
@@ -467,15 +481,6 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
     });
   }
 
-  // "Godkjenn alle klare" (Henrik: "jeg primært skal kvalitetssikre
-  // tvilstilfellene, ikke manuelt koble alle oppskrifter fra bunnen av") –
-  // teller status="ready" oppskrifter UANSETT om utkastet faktisk er
-  // skrevet til den levende koblingen ennå (se isSuggestionAlreadyApplied i
-  // lib/actions/cookmode-link-review.ts, som gjør den faktiske filtreringen
-  // server-side); dette tallet er derfor et øvre anslag admin ser FØR
-  // kjøring, ikke et løfte om nøyaktig så mange skrivinger.
-  const readyCount = counts.ready;
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3 rounded-card border border-line bg-paper p-4">
@@ -504,10 +509,10 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
           variant="outline"
           size="sm"
           onClick={() => void handleApproveAllReady()}
-          disabled={isBulkApproving || readyCount === 0}
+          disabled={isBulkApproving || pendingReadyCount === 0}
         >
           <CheckIcon className="h-3.5 w-3.5" />
-          {isBulkApproving ? `Godkjenner … (${bulkDone} godkjent)` : `Godkjenn alle klare (${readyCount})`}
+          {isBulkApproving ? `Godkjenner … (${bulkDone} godkjent)` : `Godkjenn alle klare (${pendingReadyCount})`}
         </Button>
         {isBulkApproving && (
           <button
@@ -607,6 +612,9 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
                     <span>
                       {item.linkedStepCount}/{item.totalStepCount} steg koblet
                     </span>
+                  )}
+                  {item.status === "ready" && item.pendingApproval && (
+                    <span className="text-clay-dark">venter på lagring</span>
                   )}
                 </span>
               </button>

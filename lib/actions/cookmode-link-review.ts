@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { suggestStepIngredientLinks as suggestStepIngredientLinksAi } from "@/lib/actions/ai";
 import {
   computeCookModeLinkStatus,
+  isSuggestionAlreadyApplied,
   type CookModeLinkStatus,
   type CookModeLinkSuggestionPayload,
 } from "@/lib/utils/cookmode-link-status";
@@ -223,6 +224,9 @@ export async function runCookModeLinkBatch(limit = 10): Promise<CookModeLinkBatc
           status: result.status,
           linkedStepCount: result.linkedStepCount,
           totalStepCount: result.totalStepCount,
+          // Et fersk batch-utkast er pr. definisjon aldri skrevet til den
+          // levende koblingen ennå.
+          pendingApproval: result.status === "ready",
         });
       } catch (err) {
         failed.push({ id: row.id, title: row.title, error: err instanceof Error ? err.message : "Ukjent feil" });
@@ -367,7 +371,10 @@ async function writeApprovedLinks(
   revalidatePath(`/oppskrifter/${slug}`);
 
   const linkedStepCount = updates.filter((u) => u.ids.length > 0).length;
-  return { id: recipeId, slug, title, status: "ready", linkedStepCount, totalStepCount: stepIds.length };
+  // pendingApproval: false – selve poenget med denne funksjonen er at den
+  // NETTOPP skrev utkastet til den levende koblingen, se
+  // CookModeLinkQueueItem.pendingApproval ("de må jo fjernes??", 07.10.2026).
+  return { id: recipeId, slug, title, status: "ready", linkedStepCount, totalStepCount: stepIds.length, pendingApproval: false };
 }
 
 /**
@@ -397,24 +404,11 @@ export async function approveCookModeLinks(
   return writeApprovedLinks(supabase, recipeId, row.slug, row.title, stepIds, stepLinks);
 }
 
-/** Har denne oppskriftens LEVENDE koblinger allerede nøyaktig det
- * utkastet beskriver? Brukt av approveAllReadyCookModeLinks under for å
- * vite hvilke "ready"-oppskrifter som faktisk GJENSTÅR å bulk-godkjenne,
- * siden cook_mode_link_suggestions (med vilje) aldri nullstilles av en
- * godkjenning – uten denne sjekken ville en allerede godkjent oppskrift
- * dukket opp som "gjenstående" for alltid. */
-function isSuggestionAlreadyApplied(
-  steps: { id: string; ingredient_item_ids: string[] }[],
-  stepSuggestions: Record<string, string[]>,
-): boolean {
-  return steps.every((step) => {
-    const suggested = new Set(stepSuggestions[step.id] ?? []);
-    const live = new Set(step.ingredient_item_ids ?? []);
-    if (suggested.size !== live.size) return false;
-    for (const id of suggested) if (!live.has(id)) return false;
-    return true;
-  });
-}
+// isSuggestionAlreadyApplied flyttet til lib/utils/cookmode-link-status.ts
+// (07.10.2026) – lib/data/cookmode-link-review.ts (ingen "use server") må
+// kunne bruke nøyaktig samme sjekk for å vise om et "Klar"-utkast venter på
+// bulk-godkjenning, uten å importere fra denne server-action-filen. Se
+// CookModeLinkQueueItem.pendingApproval.
 
 export interface CookModeLinkBulkApproveResult {
   approved: CookModeLinkQueueItem[];
@@ -569,6 +563,10 @@ export async function recomputeCookModeLinkStatuses(offset = 0, limit = 50): Pro
         status: result.status,
         linkedStepCount: liveSteps.filter((s) => (s.ingredient_item_ids ?? []).length > 0).length,
         totalStepCount: liveSteps.length,
+        // Vi hoppet nettopp over denne grenen hvis utkastet allerede var
+        // anvendt (se isSuggestionAlreadyApplied-sjekken over) – alle som
+        // når hit er fremdeles uanvendte.
+        pendingApproval: result.status === "ready",
       });
     }),
   );

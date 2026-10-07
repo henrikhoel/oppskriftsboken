@@ -174,3 +174,27 @@ export function computeCookModeLinkStatus(params: {
 
   return { status, flags, linkedStepCount, totalStepCount };
 }
+
+/**
+ * Har denne oppskriftens LEVENDE koblinger allerede nøyaktig det et utkast
+ * beskriver? "jeg trykker på 'godkjenn alle klare (57)', men så står det
+ * bare fortsatt at det er 57 klare. de må jo fjernes??" (07.10.2026) –
+ * BEVISST flyttet hit fra lib/actions/cookmode-link-review.ts (ren
+ * sammenligning, ingen database-/AI-kall) slik at BÅDE den "use server"-
+ * filen (til å vite hva som faktisk GJENSTÅR å bulk-godkjenne) OG
+ * lib/data/cookmode-link-review.ts (til å vise om et "Klar"-utkast venter
+ * på å bli lagret, eller allerede er det) kan bruke nøyaktig samme
+ * sjekk – uten at lese-laget (ingen "use server") må importere noe fra
+ * server-action-filen. */
+export function isSuggestionAlreadyApplied(
+  steps: { id: string; ingredient_item_ids: string[] }[],
+  stepSuggestions: Record<string, string[]>,
+): boolean {
+  return steps.every((step) => {
+    const suggested = new Set(stepSuggestions[step.id] ?? []);
+    const live = new Set(step.ingredient_item_ids ?? []);
+    if (suggested.size !== live.size) return false;
+    for (const id of suggested) if (!live.has(id)) return false;
+    return true;
+  });
+}
