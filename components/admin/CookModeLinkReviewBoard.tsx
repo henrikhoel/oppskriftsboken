@@ -236,28 +236,34 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
   const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
   const [breakdownError, setBreakdownError] = useState<string | null>(null);
 
+  // "men nå står det 'klar (57)' hva betyr det?!" (07.10.2026) – status
+  // "ready" endres ALDRI av en godkjenning (en godkjent oppskrift ER jo
+  // fortsatt "Klar"), så et rått antall "status=ready" ville aldri gå mot 0
+  // og se annerledes ut før/etter "Godkjenn alle klare". BEVISST valg:
+  // "Klar"-fanen og -knappen betyr derfor BÅDE her SAMME ting – kun de
+  // "Klar"-oppskriftene som FAKTISK gjenstår å skrive til den levende
+  // koblingen (CookModeLinkQueueItem.pendingApproval) – så det er ALDRI to
+  // forskjellige tall med samme etikett å holde styr på. En allerede
+  // anvendt "Klar"-oppskrift er ferdigbehandlet og forsvinner naturlig fra
+  // denne fanen (den er fortsatt søkbar/synlig under "Alle", som bevisst
+  // viser rått antall uansett status).
   const counts = useMemo(() => {
     const c = { all: queue.length, unprocessed: 0, ready: 0, needs_review: 0, missing: 0 };
     for (const item of queue) {
       if (item.status === null) c.unprocessed++;
-      else c[item.status]++;
+      else if (item.status === "ready") {
+        if (item.pendingApproval) c.ready++;
+      } else c[item.status]++;
     }
     return c;
   }, [queue]);
-
-  // "de må jo fjernes??" (07.10.2026) – status "ready" endres ALDRI av en
-  // godkjenning (en godkjent oppskrift ER jo fortsatt "Klar"), så
-  // counts.ready alene ville aldri gå mot 0 etter "Godkjenn alle klare".
-  // Knappen bruker derfor dette i stedet: kun de "Klar"-oppskriftene som
-  // FAKTISK gjenstår å skrive til den levende koblingen (se
-  // CookModeLinkQueueItem.pendingApproval).
-  const pendingReadyCount = useMemo(() => queue.filter((item) => item.status === "ready" && item.pendingApproval).length, [queue]);
 
   const filteredIds = useMemo(() => {
     return queue
       .filter((item) => {
         if (filter === "all") return true;
         if (filter === "unprocessed") return item.status === null;
+        if (filter === "ready") return item.status === "ready" && item.pendingApproval;
         return item.status === filter;
       })
       .map((item) => item.id);
@@ -509,10 +515,10 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
           variant="outline"
           size="sm"
           onClick={() => void handleApproveAllReady()}
-          disabled={isBulkApproving || pendingReadyCount === 0}
+          disabled={isBulkApproving || counts.ready === 0}
         >
           <CheckIcon className="h-3.5 w-3.5" />
-          {isBulkApproving ? `Godkjenner … (${bulkDone} godkjent)` : `Godkjenn alle klare (${pendingReadyCount})`}
+          {isBulkApproving ? `Godkjenner … (${bulkDone} godkjent)` : `Godkjenn alle klare (${counts.ready})`}
         </Button>
         {isBulkApproving && (
           <button
