@@ -8,10 +8,12 @@ import type { CookModeLinkQueueItem } from "@/lib/data/cookmode-link-review";
 import {
   approveAllReadyCookModeLinks,
   approveCookModeLinks,
+  getCookModeLinkFlagBreakdown,
   getCookModeLinkReview,
   recomputeCookModeLinkStatuses,
   regenerateCookModeLinkSuggestion,
   runCookModeLinkBatch,
+  type CookModeLinkFlagBreakdown,
   type CookModeLinkReviewRecipe,
 } from "@/lib/actions/cookmode-link-review";
 import type { CookModeLinkFlags, CookModeLinkStatus } from "@/lib/utils/cookmode-link-status";
@@ -225,6 +227,15 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
   const [recomputeSummary, setRecomputeSummary] = useState<string | null>(null);
   const stopRecomputeRef = useRef(false);
 
+  // "så den er kanskje litt for kritisk? eller?" (07.10.2026) – viser HVA i
+  // "Bør sjekkes"-haugen som faktisk driver tallet (se
+  // getCookModeLinkFlagBreakdown sin filheader), på forespørsel – ikke
+  // lastet automatisk, siden det er en ren diagnose-spørring man typisk
+  // bare vil kjøre når tallet ser overraskende høyt ut.
+  const [flagBreakdown, setFlagBreakdown] = useState<CookModeLinkFlagBreakdown | null>(null);
+  const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(false);
+  const [breakdownError, setBreakdownError] = useState<string | null>(null);
+
   const counts = useMemo(() => {
     const c = { all: queue.length, unprocessed: 0, ready: 0, needs_review: 0, missing: 0 };
     for (const item of queue) {
@@ -436,6 +447,18 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
     }
   }
 
+  async function handleShowBreakdown() {
+    setIsLoadingBreakdown(true);
+    setBreakdownError(null);
+    try {
+      setFlagBreakdown(await getCookModeLinkFlagBreakdown());
+    } catch (err) {
+      setBreakdownError(err instanceof Error ? err.message : "Kunne ikke hente årsaksfordeling.");
+    } finally {
+      setIsLoadingBreakdown(false);
+    }
+  }
+
   function toggleItem(stepId: string, itemId: string) {
     setStepLinks((prev) => {
       const current = prev[stepId] ?? [];
@@ -542,7 +565,24 @@ export function CookModeLinkReviewBoard({ initialQueue }: { initialQueue: CookMo
             {tab.label} ({counts[tab.value]})
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => void handleShowBreakdown()}
+          disabled={isLoadingBreakdown}
+          className="rounded-full px-3.5 py-1.5 text-sm font-medium text-ink-faint underline-offset-2 hover:text-clay-dark hover:underline"
+        >
+          {isLoadingBreakdown ? "Henter årsaksfordeling …" : "Hvorfor er disse flagget?"}
+        </button>
       </div>
+
+      {breakdownError && <p className="text-xs text-clay-dark">{breakdownError}</p>}
+      {flagBreakdown && (
+        <p className="text-xs text-ink-faint">
+          Av {flagBreakdown.total} «Bør sjekkes»: {flagBreakdown.uncertainStep} pga AI-en var usikker på et steg,{" "}
+          {flagBreakdown.ambiguousPhrase} pga tvetydig frase («resten av» o.l.), {flagBreakdown.duplicateNamesInUse} pga
+          duplikatnavn i bruk. (Kan overlappe – en oppskrift kan telle i flere.)
+        </p>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
         <div className="max-h-[70vh] space-y-1 overflow-y-auto rounded-card border border-line bg-paper p-2">

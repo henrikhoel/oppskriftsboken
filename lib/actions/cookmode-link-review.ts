@@ -575,3 +575,48 @@ export async function recomputeCookModeLinkStatuses(offset = 0, limit = 50): Pro
 
   return { updated, nextOffset: offset + rows.length, done: rows.length < limit };
 }
+
+export interface CookModeLinkFlagBreakdown {
+  total: number;
+  uncertainStep: number;
+  ambiguousPhrase: number;
+  duplicateNamesInUse: number;
+}
+
+/**
+ * "det hjalp jo ikke så mye" / "så den er kanskje litt for kritisk? eller?"
+ * (07.10.2026) – ren diagnostikk: av alle "Bør sjekkes"-oppskrifter, hvor
+ * mange skyldes HVERT av de tre gjenværende flaggene i
+ * lib/utils/cookmode-link-status.ts (AI-ens egen uncertain-vurdering,
+ * tvetydig frase i stegteksten, eller duplikatnavn faktisk i bruk)? Lar
+ * Henrik se hvilket av dem som faktisk driver tallet, uten å måtte spørre
+ * databasen direkte – verken device_bash (brukerens maskin) eller denne
+ * sesjonens egen sandkasse kan nå Supabase sitt domene (ikke i noen av de
+ * to sine nettverks-allowlister), så denne lesingen må gå via appens egen,
+ * allerede autentiserte Supabase-klient. En oppskrift kan telle i flere
+ * bøtter samtidig (summen kan derfor overstige `total`).
+ */
+export async function getCookModeLinkFlagBreakdown(): Promise<CookModeLinkFlagBreakdown> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("recipes")
+    .select("cook_mode_link_suggestions")
+    .eq("cook_mode_link_status", "needs_review");
+  if (error) throw new Error(`Kunne ikke hente årsaksfordeling: ${error.message}`);
+
+  const rows = (data ?? []) as unknown as { cook_mode_link_suggestions: unknown | null }[];
+  let uncertainStep = 0;
+  let ambiguousPhrase = 0;
+  let duplicateNamesInUse = 0;
+  for (const row of rows) {
+    const suggestion = row.cook_mode_link_suggestions as CookModeLinkSuggestionPayload | null;
+    if (!suggestion) continue;
+    if (suggestion.flags.uncertainStepIds.length > 0) uncertainStep++;
+    if (suggestion.flags.ambiguousPhraseStepIds.length > 0) ambiguousPhrase++;
+    if (suggestion.flags.hasDuplicateIngredientNames) duplicateNamesInUse++;
+  }
+
+  return { total: rows.length, uncertainStep, ambiguousPhrase, duplicateNamesInUse };
+}
