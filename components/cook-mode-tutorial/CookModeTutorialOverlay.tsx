@@ -213,9 +213,11 @@ function spotlightClipPath(hole: { x: number; y: number; w: number; h: number; r
  * FAST BOKSPLASSERING (Henrik, 28.09.2026): tutorial-boksen sto tidligere
  * rett over/under det pekte-ut elementet, og hoppet dermed rundt på
  * skjermen mellom hvert steg. Nå er den midtstilt (både vannrett og
- * loddrett) og STÅR STILLE gjennom hele tutorialen – eneste unntak er
- * "step-text"-steget, der selve den store stegteksten ligger midt på
- * skjermen og boksen derfor må ned mot bunnen for ikke å dekke den
+ * loddrett) og STÅR STILLE gjennom hele tutorialen – unntakene er
+ * "step-text"- og "step-ingredients"-stegene (07.10.2026 for sistnevnte),
+ * der selve den store stegteksten (og, på mobil, ingredienslisten rett
+ * under den) ligger midt på skjermen, og boksen derfor må ned mot bunnen
+ * for ikke å dekke det som faktisk skal vises frem
  * (`boxPosition`, avledet direkte av `step.target`, ingen egen state).
  * Dette gjør også at Forrige/Neste alltid ligger på nøyaktig samme sted,
  * slik at man kan klikke seg raskt gjennom uten at blikket må lete etter
@@ -265,9 +267,16 @@ export function CookModeTutorialOverlay({
 
   const step = STEPS[index];
   const isFraming = step.target === null; // intro eller avslutning – bred, "editorial" kortvariant
-  // Eneste steget der boksen forlater sin faste, midtstilte plass – se
-  // filheaderen over.
-  const boxPosition: "center" | "bottom" = step.target === "step-text" ? "bottom" : "center";
+  // De eneste stegene der boksen forlater sin faste, midtstilte plass – se
+  // filheaderen over. "step-ingredients" (07.10.2026, Henrik, m/skjermbilde
+  // fra mobil: "denne boksen kommer rett foran det som skal vises i
+  // tutorialen") lagt til av samme grunn som "step-text": på mobil vises
+  // ingredienslisten rett under selve stegteksten, midt på skjermen – en
+  // midtstilt boks dekket den da fullstendig i stedet for å la den
+  // faktiske, lyssatte ingredienslisten være synlig ved siden av/under
+  // kortet.
+  const boxPosition: "center" | "bottom" =
+    step.target === "step-text" || step.target === "step-ingredients" ? "bottom" : "center";
   const isFirst = index === 0;
   const isLast = index === STEPS.length - 1;
   // Outro-steget er den ANDRE av de to "framing"-stegene (isFraming, se
