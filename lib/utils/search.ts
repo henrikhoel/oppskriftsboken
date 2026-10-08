@@ -17,7 +17,11 @@ export interface SearchableRecipe extends RecipeSummary {
   ingredientNames: string[];
 }
 
-function normalize(text: string): string {
+// Eksportert (08.10.2026, se SearchBar.tsx sin type-ahead-forslagsliste) \u2013
+// samme aksent-uf\u00f8lsomme sammenligning ("svensk" skal matche "Svenske") skal
+// brukes identisk begge steder i stedet for at SearchBar.tsx dupliserer sin
+// egen versjon av akkurat denne normaliseringen.
+export function normalize(text: string): string {
   return text
     .toLowerCase()
     .normalize("NFKD")
