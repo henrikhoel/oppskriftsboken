@@ -10,6 +10,7 @@ import { useCookModeTimers } from "@/lib/hooks/useCookModeTimers";
 import { useWakeLock } from "@/lib/hooks/useWakeLock";
 import { useVoiceCommands, type VoiceCommand } from "@/lib/hooks/useVoiceCommands";
 import { formatShoppingAmount } from "@/lib/utils/shopping-list";
+import { parseAmount } from "@/lib/utils/scale";
 import { playTimerDoneSound } from "@/lib/utils/timer-sound";
 import { Drawer } from "@/components/ui/Drawer";
 import {
@@ -171,12 +172,48 @@ export function CookMode({
   // skjemaet), slik at den alltid stemmer med ordenen i resten av
   // oppskriften/den vanlige ingredienslisten/skuffen under.
   const allIngredientItems = useMemo(() => ingredientGroups.flatMap((g) => g.items), [ingredientGroups]);
+
+  // "når det er noe i oppskriften man allerede har brukt ... da har man
+  // allerede brukt målingen, det er målingen man er ute etter" (08.10.2026)
+  // – en ingredienslinje admin har koblet til FLERE steg (f.eks. "150 g
+  // ris" kokt i et tidlig steg, så referert til igjen som "den kokte
+  // risen" i et senere) skal bare vise selve MENGDEN på det
+  // tidligste/første steget den faktisk måles ut i – et senere steg som
+  // bare gjenbruker noe allerede tilberedt skal vise NAVNET alene, det er
+  // ingen ny måling å ta stilling til der. Beregnes ÉN gang for HELE
+  // oppskriften (ikke per steg), slik at "tidligste" er riktig uansett
+  // hvilket steg man står på når man blar fram/tilbake.
+  const firstStepIndexByItemId = useMemo(() => {
+    const map = new Map<string, number>();
+    steps.forEach((step, index) => {
+      for (const id of step.ingredientItemIds ?? []) {
+        if (!map.has(id)) map.set(id, index);
+      }
+    });
+    return map;
+  }, [steps]);
+
   const stepIngredientItems = useMemo(() => {
     const ids = currentStep?.ingredientItemIds;
     if (!ids || ids.length === 0) return [];
     const idSet = new Set(ids);
-    return allIngredientItems.filter((item) => idSet.has(item.id));
-  }, [allIngredientItems, currentStep]);
+    return allIngredientItems
+      .filter((item) => idSet.has(item.id))
+      .map((item) => ({
+        item,
+        // To vilkår for å vise selve mengden (se filheaderen over): (1)
+        // dette er FØRSTE steg denne linjen er koblet til – ikke en
+        // gjenbruk av noe allerede tilberedt/tilsatt, OG (2) mengden er en
+        // EKTE tallverdi (se IngredientItem.amount sin filheader i
+        // lib/types.ts – "etter smak o.l." har tom streng/null, men noen
+        // oppskrifter har i praksis skrevet vage ord som "litt" direkte i
+        // feltet også, som heller ikke er en måling å vise som egen linje,
+        // se Henriks "topp med flaksalt og litt persille"-eksempel).
+        // Mangler ett av vilkårene → ren navne-visning, ingen tallverdi
+        // noen faktisk kan måle ut noe fra likevel.
+        showAmount: firstStepIndexByItemId.get(item.id) === currentIndex && parseAmount(item.amount) != null,
+      }));
+  }, [allIngredientItems, currentStep, currentIndex, firstStepIndexByItemId]);
 
   // Korte tidtaker-navn ("Gryten koker") for steg med en tidtaker-verdig
   // varighet – hentes samlet én gang når oppskriften åpnes i Cook Mode
@@ -901,7 +938,11 @@ export function CookMode({
  *
  * Samme formatShoppingAmount()-visning som den eksisterende ingrediens-
  * skuffen (se showIngredients-panelet over) – gjenbruker den etablerte
- * mengde-formatteringen i stedet for å finne opp en ny.
+ * mengde-formatteringen i stedet for å finne opp en ny, men KUN når
+ * `showAmount` sier at mengden faktisk hører hjemme her (se
+ * stepIngredientItems-kommentaren i CookMode() over: en gjenbrukt
+ * ingrediens fra et tidligere steg, eller en ikke-tallfestet "etter
+ * smak"/"litt"-type mengde, viser bare navnet).
  */
 function StepIngredientsList({
   items,
@@ -909,7 +950,7 @@ function StepIngredientsList({
   align,
   className,
 }: {
-  items: IngredientItem[];
+  items: { item: IngredientItem; showAmount: boolean }[];
   lang: Lang;
   align: "right" | "center";
   className?: string;
@@ -922,17 +963,21 @@ function StepIngredientsList({
         {t(lang, "cookMode.inThisStep")}
       </p>
       <ul className="mt-2 space-y-1">
-        {items.map((item) => (
+        {items.map(({ item, showAmount }) => (
           <li key={item.id} className="text-sm leading-snug text-ink-faint">
-            {formatShoppingAmount({
-              id: item.id,
-              amount: null,
-              displayAmount: item.amount,
-              unit: item.unit,
-              name: item.name,
-              checked: false,
-              fromRecipes: [],
-            })}{" "}
+            {showAmount && (
+              <>
+                {formatShoppingAmount({
+                  id: item.id,
+                  amount: null,
+                  displayAmount: item.amount,
+                  unit: item.unit,
+                  name: item.name,
+                  checked: false,
+                  fromRecipes: [],
+                })}{" "}
+              </>
+            )}
             {item.name}
             {item.note ? ` (${item.note})` : ""}
           </li>
