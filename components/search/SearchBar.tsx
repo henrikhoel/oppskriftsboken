@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useId, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { SearchIcon } from "@/components/ui/icons";
 import { clsx } from "clsx";
 import { t, type Lang } from "@/lib/i18n";
@@ -49,7 +49,12 @@ export function SearchBar({
   const [allSuggestions, setAllSuggestions] = useState<RecipeSearchSuggestion[] | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const inputId = useRef(`recipe-search-${Math.random().toString(36).slice(2)}`).current;
+  // useId() (08.10.2026, fiks av hydrerings-feil) – IKKE Math.random(), som
+  // regnes ut helt uavhengig på server og klient og dermed ga to ulike
+  // id-er ved første render ("A tree hydrated but some attributes of the
+  // server rendered HTML didn't match the client properties"). useId() er
+  // laget nettopp for å være stabil/lik mellom server- og klient-rendering.
+  const inputId = `recipe-search-${useId()}`;
 
   // Ordet(ene) man har skrevet må ALLE finnes i tittelen (aksent-/
   // case-ufølsomt, samme normalize() som /oppskrifter sitt eget søk
